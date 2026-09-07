@@ -39,6 +39,7 @@ class AppDbCfg(_Section):
     dsn: PostgresDsn = Field(default="postgresql://app:app@localhost:5433/app")  # type: ignore[assignment]
     pool_min: int = Field(default=1, ge=0)
     pool_max: int = Field(default=10, ge=1)
+    migrations_dir: str = "migrations"
 
 
 class RedisCfg(_Section):

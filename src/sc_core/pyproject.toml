@@ -13,6 +13,8 @@ dependencies = [
   "injector>=0.22.0",
   "fastapi-injector>=0.8.0",
   "tzdata>=2025.1",  # IANA zones for America/Lima on Windows containers/hosts
+  "psycopg[binary,pool]>=3.2.9",
+  "redis>=5.0.0",
 ]
 
 [build-system]

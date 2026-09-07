@@ -19,6 +19,7 @@ Usage: call :func:`configure_logging` once at process start, then
 
 from __future__ import annotations
 
+import inspect
 import json
 import logging
 import sys
@@ -138,9 +139,11 @@ class InterceptHandler(logging.Handler):
             level: str | int = logger.level(record.levelname).name
         except ValueError:
             level = record.levelno
-        frame: FrameType | None = logging.currentframe()
-        depth = 2
-        while frame is not None and frame.f_code.co_filename == logging.__file__:
+        # Walk out of the logging module so loguru attributes the record to
+        # the real caller (uvicorn, httpx, ...) instead of logging internals.
+        frame: FrameType | None = inspect.currentframe()
+        depth = 0
+        while frame is not None and (depth == 0 or frame.f_code.co_filename == logging.__file__):
             frame = frame.f_back
             depth += 1
         logger.opt(depth=depth, exception=record.exc_info).log(level, record.getMessage())
@@ -163,6 +166,11 @@ def configure_logging(settings: Settings, *, stream: TextIO | None = None) -> No
         logger.add(out, level=settings.log_level, format=_HUMAN_FORMAT, colorize=out is sys.stderr)
 
     logging.basicConfig(handlers=[InterceptHandler()], level=0, force=True)
-    for name in ("uvicorn", "uvicorn.error", "uvicorn.access", "httpx", "msal"):
+    for name in ("uvicorn", "uvicorn.error", "httpx", "msal"):
         logging.getLogger(name).handlers = [InterceptHandler()]
         logging.getLogger(name).propagate = False
+    # uvicorn's access log is opt-in (our middleware already gives every
+    # request an id); attaching a handler here would silently re-enable it.
+    access = logging.getLogger("uvicorn.access")
+    access.handlers = [InterceptHandler()] if settings.http.access_log else []
+    access.propagate = False

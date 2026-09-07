@@ -1,0 +1,39 @@
+# Local infrastructure. Run from the repository root:
+#   docker compose -f infra/docker-compose.yml up -d
+# Later phases add compose.odoo.yml, compose.langfuse.yml and more members to
+# compose.agents.yml; all are included from here so one command starts everything.
+name: scai
+
+include:
+  - compose.agents.yml
+
+services:
+  app-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: app
+    ports:
+      - "5433:5432"
+    volumes:
+      - app-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U app -d app"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]  # locks and pub/sub only, nothing durable
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  app-db-data:
