@@ -1,0 +1,16 @@
+[project]
+name = "sc_core"
+version = "0.1.0"
+description = "Shared library for the Supply Chain AI Agents: settings, app factory, schemas, Odoo, mail and LLM clients"
+requires-python = ">=3.13"
+dependencies = [
+  # Added by the story that first imports each library (P0-S2: pydantic-settings,
+  # loguru; P0-S3: fastapi, injector, fastapi-injector; P0-S5: psycopg, redis).
+]
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sc_core"]
