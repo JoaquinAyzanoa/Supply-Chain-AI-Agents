@@ -12,6 +12,7 @@ dependencies = [
   "uvicorn[standard]>=0.35.0",
   "injector>=0.22.0",
   "fastapi-injector>=0.8.0",
+  "tzdata>=2025.1",  # IANA zones for America/Lima on Windows containers/hosts
 ]
 
 [build-system]
@@ -25,3 +26,5 @@ packages = ["sc_core"]
 # starlette ships with fastapi; its ASGI types and datastructures are the
 # intended import surface for middleware.
 DEP003 = ["starlette"]
+# tzdata is data only (IANA zone files read by zoneinfo); it is never imported.
+DEP002 = ["tzdata"]
