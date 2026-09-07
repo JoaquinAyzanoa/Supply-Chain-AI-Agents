@@ -1,0 +1,32 @@
+# Application members. Each one is built from the shared Dockerfile with its
+# member name; inside the compose network they reach each other by service name.
+services:
+  director:
+    build:
+      context: ..
+      dockerfile: docker/base.Dockerfile
+      args:
+        MEMBER: director
+    image: scai/director
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      SC__ENVIRONMENT: ${SC__ENVIRONMENT:-dev}
+      SC__APP_DB__DSN: postgresql://app:app@app-db:5432/app
+      SC__REDIS__DSN: redis://redis:6379/0
+    ports:
+      # Host port is overridable because 8000 is a popular default on dev machines.
+      - "${SC_DIRECTOR_PORT:-8000}:8000"
+    depends_on:
+      app-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped

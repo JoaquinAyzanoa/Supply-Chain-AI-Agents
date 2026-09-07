@@ -1,0 +1,18 @@
+[project]
+name = "director"
+version = "0.1.0"
+description = "Orchestrator: receives events, routes work to the agents over A2A and consolidates results"
+requires-python = ">=3.13"
+dependencies = [
+  "sc_core",
+]
+
+[tool.uv.sources]
+sc_core = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["director"]

@@ -1,0 +1,9 @@
+# Normalise line endings to LF in the repository regardless of the developer's
+# core.autocrlf, matching .editorconfig and VS Code settings.
+* text=auto eol=lf
+
+# Binary formats
+*.png binary
+*.jpg binary
+*.pdf binary
+*.xlsx binary
