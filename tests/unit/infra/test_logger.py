@@ -107,6 +107,17 @@ def test_log_level_is_respected() -> None:
     assert [entry["msg"] for entry in lines] == ["shown"]
 
 
+def test_service_name_outside_any_context() -> None:
+    """Records from other tasks (uvicorn startup) still carry the service name."""
+    stream = io.StringIO()
+    configure_logging(_settings(service_name="director"), stream=stream)
+    import contextvars
+
+    contextvars.Context().run(lambda: logger.info("from a fresh context"))
+    (line,) = _json_lines(stream)
+    assert line["service_name"] == "director"
+
+
 def test_stdlib_logging_is_intercepted() -> None:
     stream = io.StringIO()
     configure_logging(_settings(), stream=stream)

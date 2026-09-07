@@ -64,6 +64,10 @@ _HUMAN_FORMAT = (
 
 _CONTEXT_KEYS = ("service_name", "case_id", "trace_id", "run_id", "request_id")
 
+# Fallback for records emitted outside any request context (uvicorn startup,
+# scheduler ticks, background tasks). Set by configure_logging.
+_default_service_name = "unnamed"
+
 
 def is_sensitive_key(key: str) -> bool:
     """True when ``key`` names something that must never be logged in clear."""
@@ -91,6 +95,8 @@ def _patch_record(record: Record) -> None:
     """loguru patcher: inject context and redact extras, in place."""
     extra = record["extra"]
     snap = context.snapshot()
+    if snap["service_name"] == "unnamed":
+        snap["service_name"] = _default_service_name
     for key in _CONTEXT_KEYS:
         extra.setdefault(key, snap[key])
     for key in list(extra):
@@ -156,7 +162,9 @@ def configure_logging(settings: Settings, *, stream: TextIO | None = None) -> No
     Calling it twice replaces the previous configuration, which keeps it
     idempotent for tests and for services that reconfigure on reload.
     """
+    global _default_service_name
     out = stream or sys.stderr
+    _default_service_name = settings.service_name
     context.service_name.set(settings.service_name)
     logger.remove()
     logger.configure(patcher=_patch_record)
