@@ -5,8 +5,6 @@ description = "Orchestrator: receives events, routes work to the agents over A2A
 requires-python = ">=3.13"
 dependencies = [
   "sc_core",
-  "fastapi>=0.116.1",
-  "uvicorn[standard]>=0.35.0",
 ]
 
 [tool.uv.sources]

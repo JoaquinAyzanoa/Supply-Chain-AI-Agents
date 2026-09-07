@@ -8,6 +8,10 @@ dependencies = [
   "pydantic>=2.11.0",
   "pydantic-settings>=2.10.1",
   "loguru>=0.7.3",
+  "fastapi>=0.116.1",
+  "uvicorn[standard]>=0.35.0",
+  "injector>=0.22.0",
+  "fastapi-injector>=0.8.0",
 ]
 
 [build-system]
@@ -16,3 +20,8 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["sc_core"]
+
+[tool.deptry.per_rule_ignores]
+# starlette ships with fastapi; its ASGI types and datastructures are the
+# intended import surface for middleware.
+DEP003 = ["starlette"]

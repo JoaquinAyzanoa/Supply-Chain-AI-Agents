@@ -69,6 +69,16 @@ select = [
 [tool.ruff.lint.isort]
 known-first-party = ["sc_core", "director"]
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI-style dependency markers are safe as argument defaults.
+extend-immutable-calls = [
+  "fastapi.Depends",
+  "fastapi.Query",
+  "fastapi.Header",
+  "fastapi.Body",
+  "fastapi_injector.Injected",
+]
+
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"

@@ -398,17 +398,11 @@ name = "director"
 version = "0.1.0"
 source = { editable = "src/director" }
 dependencies = [
-    { name = "fastapi" },
     { name = "sc-core" },
-    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.116.1" },
-    { name = "sc-core", editable = "src/sc_core" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.35.0" },
-]
+requires-dist = [{ name = "sc-core", editable = "src/sc_core" }]
 
 [[package]]
 name = "distlib"
@@ -456,6 +450,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/8a/02/91e3416a8fdd715abb903a952a6bec7cdd8d14eed55d415fc8595524c319/fastapi-0.141.1.tar.gz", hash = "sha256:e8822fc40db1e1858054d7a949a888695bc9bdce70139178e33bd2871a453ca1", size = 425799, upload-time = "2026-07-29T17:18:05.568Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/03/10388a42375ee7e4ac9b94eb2c5c569c8b5795e377e701c9ac3ad63de890/fastapi-0.141.1-py3-none-any.whl", hash = "sha256:bfb91aa2d334c61cb35ba9a116fc123b3d3df31640b801cf57a7a78ec3f603b3", size = 131954, upload-time = "2026-07-29T17:18:04.364Z" },
+]
+
+[[package]]
+name = "fastapi-injector"
+version = "0.9.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "injector" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/97/be/d8bfa733a115a971490d375598f4b4cfeef1c258b4706574f6ece4965b04/fastapi_injector-0.9.0.tar.gz", hash = "sha256:e6c68cc9241871b0c8695e10c7805cd25de890d126d7f4b7b49d995ef21311bb", size = 7871, upload-time = "2025-10-10T15:13:06.828Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/df/35/692ef03d88e07ef0b46b42a76a3e935e045c56e1bf4c2dcbbcf4268a194b/fastapi_injector-0.9.0-py3-none-any.whl", hash = "sha256:fbabe6bedf3cc280157c39548c1171201c6d1c5a373df5d15c85f5b2a177c781", size = 9715, upload-time = "2025-10-10T15:13:05.401Z" },
 ]
 
 [[package]]
@@ -582,6 +588,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
+]
+
+[[package]]
+name = "injector"
+version = "0.24.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/17/6c/de0f64b2b8d7d8cd3206bd6fb54ebb0c7c2e2fe0f2d16103756ff1bf803b/injector-0.24.0.tar.gz", hash = "sha256:e85a75d1516cff2f03170f3fd1219f56acb25c9a05e307819ae0dcde3dad3d3f", size = 55988, upload-time = "2026-01-09T12:10:41.782Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5f/db/953aeee405f1466832f212f61496ee07c29f7f027f7591b71b06bd08a418/injector-0.24.0-py3-none-any.whl", hash = "sha256:47294c7a7fdb811f0d1b442a1e0152bb2fc28b2ccaaba4cba44e5e125e0da2d0", size = 21504, upload-time = "2026-01-09T12:10:40.329Z" },
 ]
 
 [[package]]
@@ -1213,16 +1228,24 @@ name = "sc-core"
 version = "0.1.0"
 source = { editable = "src/sc_core" }
 dependencies = [
+    { name = "fastapi" },
+    { name = "fastapi-injector" },
+    { name = "injector" },
     { name = "loguru" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "fastapi-injector", specifier = ">=0.8.0" },
+    { name = "injector", specifier = ">=0.22.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic", specifier = ">=2.11.0" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.35.0" },
 ]
 
 [[package]]

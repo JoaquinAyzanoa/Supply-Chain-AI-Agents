@@ -47,6 +47,16 @@ class RedisCfg(_Section):
     dsn: RedisDsn = Field(default="redis://localhost:6379/0")  # type: ignore[assignment]
 
 
+class HttpCfg(_Section):
+    """HTTP server and middleware settings shared by every service."""
+
+    host: str = "0.0.0.0"
+    port: int = Field(default=8000, ge=1, le=65535)
+    max_request_bytes: int = Field(default=1_048_576, ge=1)  # 1 MiB: JSON events and webhooks
+    enable_hsts: bool = False  # only behind TLS (phase 10)
+    access_log: bool = False  # request logging is done by our middleware, not uvicorn
+
+
 class Settings(BaseSettings):
     """Root settings object.
 
@@ -71,6 +81,7 @@ class Settings(BaseSettings):
     )
     timezone: str = "America/Lima"
 
+    http: HttpCfg = Field(default_factory=HttpCfg)
     app_db: AppDbCfg = Field(default_factory=AppDbCfg)
     redis: RedisCfg = Field(default_factory=RedisCfg)
 
