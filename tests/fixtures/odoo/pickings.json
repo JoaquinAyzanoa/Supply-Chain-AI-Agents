@@ -1,0 +1,284 @@
+{
+ "entries": [
+  {
+   "key": "ff88b77eae5ba91c3186b7cd",
+   "request": {
+    "service": "common",
+    "method": "login",
+    "args": [
+     "scai",
+     "<login>",
+     "<api_key>"
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": 8
+   }
+  },
+  {
+   "key": "40713296a7b8768ae2a1af69",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "name",
+        "=",
+        "P00015"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+     {
+      "id": 15,
+      "name": "P00015",
+      "state": "purchase",
+      "partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-10 20:21:42",
+      "date_approve": "2026-09-08 20:21:42",
+      "date_planned": "2026-09-08 20:21:42",
+      "amount_untaxed": 6936.0,
+      "amount_total": 6936.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       26,
+       27
+      ],
+      "picking_ids": [
+       13
+      ],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     }
+    ]
+   }
+  },
+  {
+   "key": "b2f00749490f6b6742d32e2a",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "stock.picking",
+     "search_read",
+     [
+      [
+       [
+        "purchase_id",
+        "=",
+        15
+       ],
+       [
+        "picking_type_code",
+        "=",
+        "incoming"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "origin",
+       "purchase_id",
+       "picking_type_code",
+       "scheduled_date",
+       "date_deadline",
+       "date_done",
+       "move_ids",
+       "sc_eta_source",
+       "sc_needs_human",
+       "sc_last_run_id"
+      ],
+      "offset": 0,
+      "order": "scheduled_date asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": [
+     {
+      "id": 13,
+      "name": "WH/IN/00006",
+      "state": "assigned",
+      "partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "origin": "P00015",
+      "purchase_id": [
+       15,
+       "P00015"
+      ],
+      "picking_type_code": "incoming",
+      "scheduled_date": "2026-09-08 20:21:42",
+      "date_deadline": "2026-09-08 20:21:42",
+      "date_done": false,
+      "move_ids": [
+       30,
+       31
+      ],
+      "sc_eta_source": "supplier",
+      "sc_needs_human": false,
+      "sc_last_run_id": "run_int"
+     }
+    ]
+   }
+  },
+  {
+   "key": "9ef66bbbd7e6dbe975ea9318",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "stock.move",
+     "search_read",
+     [
+      [
+       [
+        "picking_id",
+        "=",
+        13
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "product_id",
+       "product_uom_qty",
+       "quantity",
+       "state",
+       "picking_id",
+       "purchase_line_id",
+       "date"
+      ],
+      "offset": 0,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": [
+     {
+      "id": 30,
+      "product_id": [
+       32,
+       "[FURN_6667] Acoustic Bloc Screens (White)"
+      ],
+      "product_uom_qty": 20.0,
+      "quantity": 20.0,
+      "state": "assigned",
+      "picking_id": [
+       13,
+       "WH/IN/00006"
+      ],
+      "purchase_line_id": [
+       26,
+       "[FURN_6667] Acoustic Bloc Screens (White)"
+      ],
+      "date": "2026-09-08 20:21:42"
+     },
+     {
+      "id": 31,
+      "product_id": [
+       28,
+       "[FURN_9001] Flipover"
+      ],
+      "product_uom_qty": 10.0,
+      "quantity": 10.0,
+      "state": "assigned",
+      "picking_id": [
+       13,
+       "WH/IN/00006"
+      ],
+      "purchase_line_id": [
+       27,
+       "[FURN_9001] Flipover"
+      ],
+      "date": "2026-09-08 20:21:42"
+     }
+    ]
+   }
+  }
+ ]
+}

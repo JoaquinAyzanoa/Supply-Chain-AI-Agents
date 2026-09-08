@@ -15,6 +15,7 @@ services:
       SC__ENVIRONMENT: ${SC__ENVIRONMENT:-dev}
       SC__APP_DB__DSN: postgresql://app:app@app-db:5432/app
       SC__REDIS__DSN: redis://redis:6379/0
+      SC__ODOO__URL: http://odoo:8069
     ports:
       # Host port defaults to 8010: 8000 is a popular default on dev machines
       # (another local project already uses it). Override with SC_DIRECTOR_PORT.

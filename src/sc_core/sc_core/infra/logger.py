@@ -177,6 +177,8 @@ def configure_logging(settings: Settings, *, stream: TextIO | None = None) -> No
     for name in ("uvicorn", "uvicorn.error", "httpx", "msal"):
         logging.getLogger(name).handlers = [InterceptHandler()]
         logging.getLogger(name).propagate = False
+    # httpx logs every request at INFO; our clients log what matters themselves.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
     # uvicorn's access log is opt-in (our middleware already gives every
     # request an id); attaching a handler here would silently re-enable it.
     access = logging.getLogger("uvicorn.access")

@@ -145,6 +145,10 @@ odoo-upgrade module="sc_agents":
 odoo-apikey login="sc_agent_bot":
     {{UV}} run python scripts/odoo_apikey.py --login {{login}} --db {{ODOO_DB}}
 
+# Re-record the Odoo response cassettes (tests/fixtures/odoo) from the live container
+odoo-record:
+    {{UV}} run python scripts/odoo_record.py
+
 # Open an Odoo shell against the database
 odoo-shell:
     {{COMPOSE}} exec odoo odoo shell -d {{ODOO_DB}} --no-http
