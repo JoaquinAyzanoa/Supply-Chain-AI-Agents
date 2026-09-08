@@ -40,6 +40,7 @@ python_files = ["test_*.py", "*_test.py"]
 asyncio_mode = "auto"
 markers = [
   "integration: needs docker compose services (Odoo, Postgres, Redis, Langfuse)",
+  "odoo: needs the Odoo container from `just up` and SC__ODOO__API_KEY in .env",
   "graph: needs a logged-in Microsoft Graph session",
   "llm: needs a real LLM provider key",
 ]
