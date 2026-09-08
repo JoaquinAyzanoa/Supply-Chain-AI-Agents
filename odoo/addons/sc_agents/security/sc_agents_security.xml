@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="module_category_sc_agents" model="ir.module.category">
+        <field name="name">Supply Chain AI Agents</field>
+        <field name="description">Access for the AI agents' technical user</field>
+        <field name="sequence">60</field>
+    </record>
+
+    <!-- The bot user belongs here. Humans never need this group. -->
+    <record id="group_agent" model="res.groups">
+        <field name="name">Agent bot</field>
+        <field name="category_id" ref="module_category_sc_agents"/>
+        <field name="comment">Technical user of the AI agents: reads and writes agent records, resolves nothing by itself.</field>
+    </record>
+</odoo>

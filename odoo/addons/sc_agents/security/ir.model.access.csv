@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_sc_approval_agent,sc.approval agent,model_sc_approval,sc_agents.group_agent,1,1,1,0
+access_sc_approval_purchase_user,sc.approval purchase user,model_sc_approval,purchase.group_purchase_user,1,1,0,0
+access_sc_approval_purchase_manager,sc.approval purchase manager,model_sc_approval,purchase.group_purchase_manager,1,1,1,1
+access_sc_agent_run_agent,sc.agent.run agent,model_sc_agent_run,sc_agents.group_agent,1,1,1,0
+access_sc_agent_run_purchase_user,sc.agent.run purchase user,model_sc_agent_run,purchase.group_purchase_user,1,0,0,0
+access_sc_agent_run_purchase_manager,sc.agent.run purchase manager,model_sc_agent_run,purchase.group_purchase_manager,1,1,1,1
+access_sc_mail_link_agent,sc.mail.link agent,model_sc_mail_link,sc_agents.group_agent,1,1,1,0
+access_sc_mail_link_purchase_user,sc.mail.link purchase user,model_sc_mail_link,purchase.group_purchase_user,1,0,0,0
+access_sc_mail_link_purchase_manager,sc.mail.link purchase manager,model_sc_mail_link,purchase.group_purchase_manager,1,1,1,1

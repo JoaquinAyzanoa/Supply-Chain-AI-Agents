@@ -11,7 +11,7 @@ dependencies = []
 
 [dependency-groups]
 dev = [
-  "ruff>=0.12.11",
+  "ruff>=0.16.6,<0.17",  # keep in sync with .pre-commit-config.yaml
   "mypy>=1.17.1",
   "deptry>=0.23.1",
   "pytest>=8.4.1",
@@ -69,6 +69,11 @@ select = [
 [tool.ruff.lint.isort]
 known-first-party = ["sc_core", "director"]
 
+[tool.ruff.lint.per-file-ignores]
+# Odoo addons follow Odoo conventions: relative imports and star-less module inits.
+"odoo/addons/**/__init__.py" = ["F401"]
+"odoo/addons/**/__manifest__.py" = ["ALL"]
+
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI-style dependency markers are safe as argument defaults.
 extend-immutable-calls = [
@@ -101,6 +106,7 @@ exclude = [
   "scripts/",
   "tests/",
   "blueprints/",
+  "odoo/",       # Odoo addon code imports the odoo package, which is not installed here
 ]
 
 [tool.deptry]
