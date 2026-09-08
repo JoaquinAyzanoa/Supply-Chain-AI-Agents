@@ -8,3 +8,5 @@ access_sc_agent_run_purchase_manager,sc.agent.run purchase manager,model_sc_agen
 access_sc_mail_link_agent,sc.mail.link agent,model_sc_mail_link,sc_agents.group_agent,1,1,1,0
 access_sc_mail_link_purchase_user,sc.mail.link purchase user,model_sc_mail_link,purchase.group_purchase_user,1,0,0,0
 access_sc_mail_link_purchase_manager,sc.mail.link purchase manager,model_sc_mail_link,purchase.group_purchase_manager,1,1,1,1
+access_product_supplierinfo_agent,product.supplierinfo agent (quoted prices),product.model_product_supplierinfo,sc_agents.group_agent,1,1,1,0
+access_stock_orderpoint_agent,stock.warehouse.orderpoint agent (reorder rules),stock.model_stock_warehouse_orderpoint,sc_agents.group_agent,1,1,1,0
