@@ -121,6 +121,31 @@ image member="director":
     docker build -f docker/base.Dockerfile --build-arg MEMBER={{member}} -t scai/{{member}} .
 
 # --------------------------------------------------------------------
+# Odoo
+
+ODOO_DB := "scai"
+ODOO_MODULES := "base,contacts,mail,product,purchase,stock,purchase_stock,sale_management,purchase_requisition,base_automation"
+
+# Create the Odoo database with demo data and install the modules (idempotent)
+odoo-init:
+    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{ODOO_MODULES}} --stop-after-init
+    {{COMPOSE}} restart odoo
+
+# Upgrade one Odoo module after changing its code
+odoo-upgrade module="sc_agents":
+    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -u {{module}} --stop-after-init
+    {{COMPOSE}} restart odoo
+
+# Open an Odoo shell against the database
+odoo-shell:
+    {{COMPOSE}} exec odoo odoo shell -d {{ODOO_DB}} --no-http
+
+# Stop Odoo and delete its database and filestore (destructive)
+odoo-reset:
+    {{COMPOSE}} rm -sfv odoo odoo-db
+    docker volume rm scai_odoo-db-data scai_odoo-web-data
+
+# --------------------------------------------------------------------
 # Packaging & cleaning
 
 # Build wheels for every member into dist/

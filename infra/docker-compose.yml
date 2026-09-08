@@ -5,6 +5,7 @@
 name: scai
 
 include:
+  - compose.odoo.yml
   - compose.agents.yml
 
 services:

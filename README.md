@@ -38,8 +38,9 @@ just env         # create .env from .env.example
 just hooks       # pre-commit hooks
 just qa          # ruff, mypy, deptry per member
 just test        # unit tests
-just up          # postgres + redis + director in docker
-curl localhost:8000/health/ready
+just up          # postgres + redis + odoo + director in docker
+just odoo-init   # first time only: create the Odoo database
+curl localhost:8010/health/ready
 just down
 ```
 
@@ -50,8 +51,9 @@ just dev director      # uvicorn with reload on 127.0.0.1:8000
 just run director      # exactly what the container runs
 ```
 
-On Windows, if port 8000 is taken (Docker Desktop sometimes holds it), set
-`SC_DIRECTOR_PORT=8010` before `just up`.
+The director container publishes on host port 8010 by default (8000 is often
+taken on developer machines); override with `SC_DIRECTOR_PORT`. Odoo publishes
+on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
 

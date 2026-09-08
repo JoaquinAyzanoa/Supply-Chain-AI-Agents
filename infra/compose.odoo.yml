@@ -1,0 +1,46 @@
+# Odoo 18 Community for local development and integration tests.
+#
+# First time:   just up        (pulls the image, starts an empty server)
+#               just odoo-init (creates database "scai" with demo data and the modules)
+# Reset:        just odoo-reset
+services:
+  odoo-db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_DB: postgres
+    volumes:
+      - odoo-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U odoo -d postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  odoo:
+    image: odoo:18.0
+    depends_on:
+      odoo-db:
+        condition: service_healthy
+    ports:
+      - "${SC_ODOO_PORT:-8069}:8069"
+    environment:
+      HOST: odoo-db
+      USER: odoo
+      PASSWORD: odoo
+    volumes:
+      - ../odoo/addons:/mnt/extra-addons
+      - ../odoo/config/odoo.conf:/etc/odoo/odoo.conf:ro
+      - odoo-web-data:/var/lib/odoo
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8069/web/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    restart: unless-stopped
+
+volumes:
+  odoo-db-data:
+  odoo-web-data:
