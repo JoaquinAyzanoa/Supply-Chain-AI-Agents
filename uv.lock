@@ -398,11 +398,17 @@ name = "director"
 version = "0.1.0"
 source = { editable = "src/director" }
 dependencies = [
+    { name = "fastapi" },
+    { name = "loguru" },
     { name = "sc-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "sc-core", editable = "src/sc_core" }]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "sc-core", editable = "src/sc_core" },
+]
 
 [[package]]
 name = "distlib"
