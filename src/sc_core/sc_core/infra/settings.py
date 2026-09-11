@@ -67,6 +67,38 @@ class OdooCfg(_Section):
         return bool(self.api_key.get_secret_value())
 
 
+MailAuthMode = Literal["delegated", "application"]
+
+
+class MailCfg(_Section):
+    """Microsoft Graph access to the purchasing mailbox.
+
+    ``delegated`` (development): a personal Outlook.com account signs in once
+    with the device-code flow; refresh tokens are cached in the app database.
+    ``application`` (production, phase 10): client credentials against the
+    company tenant, restricted to one shared mailbox.
+    """
+
+    auth_mode: MailAuthMode = "delegated"
+    client_id: str = ""
+    authority: str = "https://login.microsoftonline.com/consumers"
+    tenant_id: str = ""  # application mode only
+    client_secret: SecretStr = SecretStr("")  # application mode only
+    mailbox: str = "me"  # "me" in delegated mode, an address in application mode
+    poll_interval_minutes: int = Field(default=30, ge=1)
+    scopes: list[str] = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]
+    pdf_max_pages: int = Field(default=20, ge=1)
+    pdf_max_bytes: int = Field(default=10_000_000, ge=1)
+
+    @property
+    def configured(self) -> bool:
+        if not self.client_id:
+            return False
+        if self.auth_mode == "application":
+            return bool(self.tenant_id and self.client_secret.get_secret_value() and self.mailbox)
+        return True
+
+
 class HttpCfg(_Section):
     """HTTP server and middleware settings shared by every service."""
 
@@ -105,6 +137,7 @@ class Settings(BaseSettings):
     app_db: AppDbCfg = Field(default_factory=AppDbCfg)
     redis: RedisCfg = Field(default_factory=RedisCfg)
     odoo: OdooCfg = Field(default_factory=OdooCfg)
+    mail: MailCfg = Field(default_factory=MailCfg)
 
     @property
     def is_dev(self) -> bool:

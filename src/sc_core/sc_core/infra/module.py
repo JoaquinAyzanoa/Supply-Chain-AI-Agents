@@ -78,8 +78,39 @@ class OdooModule(Module):
         return MailLinkRepo(client)
 
 
+class MailModule(Module):
+    """Token provider and Graph client (one per process) plus the ``graph`` readiness check.
+
+    ``store`` overrides the token cache store (tests pass a memory store);
+    by default delegated mode persists the MSAL cache in the app database.
+    """
+
+    def __init__(self, *, critical: bool = True, store: TokenCacheStore | None = None) -> None:
+        self._critical = critical
+        self._store = store
+
+    @provider
+    @singleton
+    def provide_tokens(self, settings: Settings) -> TokenProvider:
+        return build_token_provider(
+            settings.mail, app_db_dsn=str(settings.app_db.dsn), store=self._store
+        )
+
+    @provider
+    @singleton
+    def provide_mail_client(self, tokens: TokenProvider, health: HealthRegistry) -> MailClient:
+        from sc_core.infra.health import checks
+
+        client = GraphMailClient(tokens)
+        health.register("graph", checks.graph(client), critical=self._critical)
+        return client
+
+
 # Imported after the classes so the provider annotations resolve at runtime
 # without a circular import at module load (repositories import settings).
+from sc_core.mail.auth import TokenCacheStore, TokenProvider, build_token_provider  # noqa: E402
+from sc_core.mail.graph import GraphMailClient  # noqa: E402
+from sc_core.mail.protocol import MailClient  # noqa: E402
 from sc_core.odoo.client import OdooClient  # noqa: E402
 from sc_core.odoo.repositories import (  # noqa: E402
     ActivityRepo,

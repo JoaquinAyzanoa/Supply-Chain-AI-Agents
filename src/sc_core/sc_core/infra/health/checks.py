@@ -17,6 +17,7 @@ import redis.asyncio as redis_async
 from sc_core.infra.health.types import HealthCheck
 
 if TYPE_CHECKING:
+    from sc_core.mail.protocol import MailClient
     from sc_core.odoo.client import OdooClient
 
 
@@ -52,4 +53,14 @@ def odoo(client: OdooClient) -> HealthCheck:
         await client.uid()
 
     check.__name__ = "odoo"
+    return check
+
+
+def graph(client: MailClient) -> HealthCheck:
+    """The mail session is valid and Graph answers for the mailbox."""
+
+    async def check() -> None:
+        await client.me()
+
+    check.__name__ = "graph"
     return check

@@ -159,6 +159,25 @@ odoo-reset:
     docker volume rm scai_odoo-db-data scai_odoo-web-data
 
 # --------------------------------------------------------------------
+# Mail (Microsoft Graph)
+
+# Device-code login as the bot mailbox; the session is cached in the app database
+mail-login: migrate
+    {{UV}} run python -m sc_core.mail.cli login
+
+# Show whether a cached mail session exists and for which account
+mail-whoami:
+    {{UV}} run python -m sc_core.mail.cli whoami
+
+# Remove the cached mail session
+mail-logout:
+    {{UV}} run python -m sc_core.mail.cli logout
+
+# Read the mailbox identity and the newest inbox entries through Graph
+mail-check:
+    {{UV}} run python -m sc_core.mail.cli check
+
+# --------------------------------------------------------------------
 # Packaging & cleaning
 
 # Build wheels for every member into dist/
