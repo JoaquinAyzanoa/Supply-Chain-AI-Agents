@@ -1,0 +1,95 @@
+"""Agent-related fields and actions on purchase orders.
+
+Field prefix is ``sc_`` (not ``x_``, which Odoo reserves for fields created
+from the UI). Everything an agent writes on a PO is visible in the "AI Agent"
+tab and explained in the chatter.
+"""
+
+from odoo.exceptions import UserError
+
+from odoo import fields, models
+
+ETA_SOURCES = [
+    ("supplier", "Supplier"),
+    ("tracking", "Tracking"),
+    ("estimated", "Estimated"),
+]
+
+
+class PurchaseOrder(models.Model):
+    _inherit = "purchase.order"
+
+    sc_external_ref = fields.Char(
+        string="Agent external ref",
+        index=True,
+        copy=False,
+        help="Idempotency key set by the agent that created this order. "
+        "The same key never creates a second order.",
+    )
+    sc_eta_source = fields.Selection(
+        ETA_SOURCES,
+        string="ETA source",
+        copy=False,
+        help="Where the current planned date came from.",
+    )
+    sc_eta_confidence = fields.Float(
+        string="ETA confidence",
+        copy=False,
+        help="0..1 confidence the agent assigned to the planned date.",
+    )
+    sc_needs_human = fields.Boolean(
+        string="Needs human",
+        default=False,
+        copy=False,
+        help="An agent could not finish on its own; a pending approval or escalation exists.",
+    )
+    sc_pending_approval_id = fields.Many2one(
+        "sc.approval",
+        string="Pending approval",
+        copy=False,
+        ondelete="set null",
+    )
+    sc_approval_ids = fields.One2many("sc.approval", "po_id", string="Approvals")
+    sc_agent_run_ids = fields.One2many("sc.agent.run", "po_id", string="Agent runs")
+    sc_mail_link_ids = fields.One2many("sc.mail.link", "po_id", string="Mail links")
+
+    def action_sc_approve(self):
+        self.ensure_one()
+        self._sc_require_pending().resolve("approved", self.env.user)
+
+    def action_sc_reject(self):
+        self.ensure_one()
+        self._sc_require_pending().resolve("rejected", self.env.user)
+
+    def _sc_require_pending(self):
+        approval = self.sc_pending_approval_id
+        if not approval or approval.status != "pending":
+            raise UserError(self.env._("There is no pending approval on this order."))
+        return approval
+
+
+class PurchaseOrderLine(models.Model):
+    _inherit = "purchase.order.line"
+
+    def sc_log_eta_change(self, source, run_id):
+        """Post a chatter note on the order explaining an ETA change made by an agent.
+
+        Called by the agents right after writing ``date_planned`` so the audit
+        trail (who, why, which run) sits next to Odoo's own tracking message.
+        """
+        label = dict(ETA_SOURCES).get(source, source)
+        for line in self:
+            when = fields.Date.to_string(line.date_planned) if line.date_planned else "-"
+            line.order_id.message_post(
+                # Keyword names must not collide with env._'s own "source" parameter.
+                body=self.env._(
+                    "ETA of %(product)s set to %(date)s by agent run %(run)s (origin: %(origin)s)",
+                    product=line.product_id.display_name,
+                    date=when,
+                    run=run_id,
+                    origin=label,
+                ),
+                message_type="comment",
+                subtype_xmlid="mail.mt_note",
+            )
+        return True

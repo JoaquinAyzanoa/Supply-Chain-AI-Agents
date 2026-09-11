@@ -1,0 +1,412 @@
+{
+ "entries": [
+  {
+   "key": "ff88b77eae5ba91c3186b7cd",
+   "request": {
+    "service": "common",
+    "method": "login",
+    "args": [
+     "scai",
+     "<login>",
+     "<api_key>"
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": 8
+   }
+  },
+  {
+   "key": "6701d01bcabea86c5b96eecf",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "supplier_rank",
+        ">",
+        0
+       ],
+       [
+        "is_company",
+        "=",
+        true
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "order": "name asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+     {
+      "id": 15,
+      "name": "Azure Interior",
+      "email": "azure.Interior24@example.com",
+      "email_normalized": "azure.interior24@example.com",
+      "is_company": true,
+      "supplier_rank": 4,
+      "parent_id": false,
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [
+       27,
+       34,
+       28
+      ],
+      "lang": "en_US",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "b8c196ef07a0b2d8f7fdb89c",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "product.supplierinfo",
+     "search_read",
+     [
+      [
+       [
+        "partner_id",
+        "=",
+        15
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "partner_id",
+       "product_tmpl_id",
+       "product_id",
+       "product_name",
+       "product_code",
+       "min_qty",
+       "price",
+       "currency_id",
+       "delay",
+       "date_start",
+       "date_end",
+       "sequence"
+      ],
+      "offset": 0,
+      "order": "product_tmpl_id asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": [
+     {
+      "id": 7,
+      "partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "product_tmpl_id": [
+       13,
+       "[E-COM09] Large Desk"
+      ],
+      "product_id": false,
+      "product_name": false,
+      "product_code": false,
+      "min_qty": 1.0,
+      "price": 1399.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 4,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 21,
+      "partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "product_tmpl_id": [
+       5,
+       "[FURN_7777] Office Chair"
+      ],
+      "product_id": false,
+      "product_name": false,
+      "product_code": false,
+      "min_qty": 1.0,
+      "price": 55.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 7,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 22,
+      "partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "product_tmpl_id": [
+       14,
+       "[E-COM10] Pedal Bin"
+      ],
+      "product_id": false,
+      "product_name": false,
+      "product_code": false,
+      "min_qty": 0.0,
+      "price": 10.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 4,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     }
+    ]
+   }
+  },
+  {
+   "key": "f1cc06d1668fae15132c8465",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "stock.warehouse.orderpoint",
+     "search_read",
+     [
+      []
+     ],
+     {
+      "fields": [
+       "name",
+       "product_id",
+       "warehouse_id",
+       "location_id",
+       "product_min_qty",
+       "product_max_qty",
+       "qty_to_order",
+       "qty_forecast",
+       "qty_on_hand",
+       "trigger",
+       "lead_days_date",
+       "supplier_id",
+       "active"
+      ],
+      "offset": 0,
+      "order": "product_id asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": [
+     {
+      "id": 3,
+      "name": "OP/00003",
+      "product_id": [
+       5,
+       "[FURN_7777] Office Chair"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 3.0,
+      "product_max_qty": 5.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 58.0,
+      "qty_on_hand": 0.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-09-10",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 1,
+      "name": "OP/00001",
+      "product_id": [
+       6,
+       "[FURN_8888] Office Lamp"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 5.0,
+      "product_max_qty": 10.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 50.0,
+      "qty_on_hand": 0.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-09-13",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 2,
+      "name": "OP/00002",
+      "product_id": [
+       28,
+       "[FURN_9001] Flipover"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 5.0,
+      "product_max_qty": 12.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 15.0,
+      "qty_on_hand": 0.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-09-12",
+      "supplier_id": false,
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "57c33ec0e49400bb9de49e08",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "stock.warehouse.orderpoint",
+     "search_read",
+     [
+      [
+       [
+        "product_id",
+        "=",
+        5
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "product_id",
+       "warehouse_id",
+       "location_id",
+       "product_min_qty",
+       "product_max_qty",
+       "qty_to_order",
+       "qty_forecast",
+       "qty_on_hand",
+       "trigger",
+       "lead_days_date",
+       "supplier_id",
+       "active"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": [
+     {
+      "id": 3,
+      "name": "OP/00003",
+      "product_id": [
+       5,
+       "[FURN_7777] Office Chair"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 3.0,
+      "product_max_qty": 5.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 58.0,
+      "qty_on_hand": 0.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-09-10",
+      "supplier_id": false,
+      "active": true
+     }
+    ]
+   }
+  }
+ ]
+}

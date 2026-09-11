@@ -1,0 +1,994 @@
+{
+ "entries": [
+  {
+   "key": "ff88b77eae5ba91c3186b7cd",
+   "request": {
+    "service": "common",
+    "method": "login",
+    "args": [
+     "scai",
+     "<login>",
+     "<api_key>"
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": 8
+   }
+  },
+  {
+   "key": "fc418cbea276083fc1e32a32",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "email_normalized",
+        "=",
+        "azure.interior24@example.com"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+     {
+      "id": 15,
+      "name": "Azure Interior",
+      "email": "azure.Interior24@example.com",
+      "email_normalized": "azure.interior24@example.com",
+      "is_company": true,
+      "supplier_rank": 4,
+      "parent_id": false,
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [
+       27,
+       34,
+       28
+      ],
+      "lang": "en_US",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "091cff8fd7ed020ba1587b46",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "email_normalized",
+        "=ilike",
+        "%@example.com"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "order": "is_company desc, name asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": [
+     {
+      "id": 15,
+      "name": "Azure Interior",
+      "email": "azure.Interior24@example.com",
+      "email_normalized": "azure.interior24@example.com",
+      "is_company": true,
+      "supplier_rank": 4,
+      "parent_id": false,
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [
+       27,
+       34,
+       28
+      ],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 16,
+      "name": "Lumber Inc",
+      "email": "lumber-inv92@example.com",
+      "email_normalized": "lumber-inv92@example.com",
+      "is_company": true,
+      "supplier_rank": 0,
+      "parent_id": false,
+      "commercial_partner_id": [
+       16,
+       "Lumber Inc"
+      ],
+      "child_ids": [
+       35
+      ],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 13,
+      "name": "OpenWood",
+      "email": "wow@example.com",
+      "email_normalized": "wow@example.com",
+      "is_company": true,
+      "supplier_rank": 0,
+      "parent_id": false,
+      "commercial_partner_id": [
+       13,
+       "OpenWood"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 12,
+      "name": "Ready Mat",
+      "email": "ready.mat28@example.com",
+      "email_normalized": "ready.mat28@example.com",
+      "is_company": true,
+      "supplier_rank": 0,
+      "parent_id": false,
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [
+       22,
+       26,
+       38,
+       25,
+       37,
+       31,
+       39
+      ],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 14,
+      "name": "The Jackson Group",
+      "email": "jackson.group82@example.com",
+      "email_normalized": "jackson.group82@example.com",
+      "is_company": true,
+      "supplier_rank": 0,
+      "parent_id": false,
+      "commercial_partner_id": [
+       14,
+       "The Jackson Group"
+      ],
+      "child_ids": [
+       30,
+       29
+      ],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 9,
+      "name": "Wood Corner",
+      "email": "wood.corner26@example.com",
+      "email_normalized": "wood.corner26@example.com",
+      "is_company": true,
+      "supplier_rank": 0,
+      "parent_id": false,
+      "commercial_partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "child_ids": [
+       18,
+       33,
+       17
+      ],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 36,
+      "name": "Addison Olson",
+      "email": "addison.olson28@example.com",
+      "email_normalized": "addison.olson28@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       10,
+       "Acme Corporation"
+      ],
+      "commercial_partner_id": [
+       10,
+       "Acme Corporation"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 22,
+      "name": "Billy Fox",
+      "email": "billy.fox45@example.com",
+      "email_normalized": "billy.fox45@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       12,
+       "Ready Mat"
+      ],
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 27,
+      "name": "Brandon Freeman",
+      "email": "brandon.freeman55@example.com",
+      "email_normalized": "brandon.freeman55@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       15,
+       "Azure Interior"
+      ],
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 40,
+      "name": "Chester Reed",
+      "email": "chester.reed79@example.com",
+      "email_normalized": "chester.reed79@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "commercial_partner_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 34,
+      "name": "Colleen Diaz",
+      "email": "colleen.diaz83@example.com",
+      "email_normalized": "colleen.diaz83@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       15,
+       "Azure Interior"
+      ],
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 19,
+      "name": "Douglas Fletcher",
+      "email": "douglas.fletcher51@example.com",
+      "email_normalized": "douglas.fletcher51@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       10,
+       "Acme Corporation"
+      ],
+      "commercial_partner_id": [
+       10,
+       "Acme Corporation"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 41,
+      "name": "Dwayne Newman",
+      "email": "dwayne.newman28@example.com",
+      "email_normalized": "dwayne.newman28@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "commercial_partner_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 26,
+      "name": "Edith Sanchez",
+      "email": "edith.sanchez68@example.com",
+      "email_normalized": "edith.sanchez68@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       12,
+       "Ready Mat"
+      ],
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 21,
+      "name": "Edwin Hansen",
+      "email": "edwin.hansen58@example.com",
+      "email_normalized": "edwin.hansen58@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "commercial_partner_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 20,
+      "name": "Floyd Steward",
+      "email": "floyd.steward34@example.com",
+      "email_normalized": "floyd.steward34@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       10,
+       "Acme Corporation"
+      ],
+      "commercial_partner_id": [
+       10,
+       "Acme Corporation"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 30,
+      "name": "Gordon Owens",
+      "email": "gordon.owens47@example.com",
+      "email_normalized": "gordon.owens47@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       14,
+       "The Jackson Group"
+      ],
+      "commercial_partner_id": [
+       14,
+       "The Jackson Group"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 43,
+      "name": "Jeff Lawson",
+      "email": "jeff.lawson52@example.com",
+      "email_normalized": "jeff.lawson52@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       42,
+       "My Company (Chicago)"
+      ],
+      "commercial_partner_id": [
+       42,
+       "My Company (Chicago)"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 23,
+      "name": "Jesse Brown",
+      "email": "jesse.brown74@example.com",
+      "email_normalized": "jesse.brown74@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "commercial_partner_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 8,
+      "name": "Joel Willis",
+      "email": "joel.willis63@example.com",
+      "email_normalized": "joel.willis63@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": false,
+      "commercial_partner_id": [
+       8,
+       "YourCompany, Joel Willis"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 38,
+      "name": "Julie Richards",
+      "email": "julie.richards84@example.com",
+      "email_normalized": "julie.richards84@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       12,
+       "Ready Mat"
+      ],
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 25,
+      "name": "Kim Snyder",
+      "email": "kim.snyder96@example.com",
+      "email_normalized": "kim.snyder96@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       12,
+       "Ready Mat"
+      ],
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 35,
+      "name": "Lorraine Douglas",
+      "email": "lorraine.douglas35@example.com",
+      "email_normalized": "lorraine.douglas35@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       16,
+       "Lumber Inc"
+      ],
+      "commercial_partner_id": [
+       16,
+       "Lumber Inc"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 7,
+      "name": "Marc Demo",
+      "email": "mark.brown23@example.com",
+      "email_normalized": "mark.brown23@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": false,
+      "commercial_partner_id": [
+       7,
+       "YourCompany, Marc Demo"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 28,
+      "name": "Nicole Ford",
+      "email": "nicole.ford75@example.com",
+      "email_normalized": "nicole.ford75@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       15,
+       "Azure Interior"
+      ],
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 32,
+      "name": "Oscar Morgan",
+      "email": "oscar.morgan11@example.com",
+      "email_normalized": "oscar.morgan11@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "commercial_partner_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 18,
+      "name": "Ron Gibson",
+      "email": "ron.gibson76@example.com",
+      "email_normalized": "ron.gibson76@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       9,
+       "Wood Corner"
+      ],
+      "commercial_partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 37,
+      "name": "Sandra Neal",
+      "email": "sandra.neal80@example.com",
+      "email_normalized": "sandra.neal80@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       12,
+       "Ready Mat"
+      ],
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 24,
+      "name": "Soham Palmer",
+      "email": "soham.palmer15@example.com",
+      "email_normalized": "soham.palmer15@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "commercial_partner_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 31,
+      "name": "Theodore Gardner",
+      "email": "theodore.gardner36@example.com",
+      "email_normalized": "theodore.gardner36@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       12,
+       "Ready Mat"
+      ],
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 33,
+      "name": "Tom Ruiz",
+      "email": "tom.ruiz89@example.com",
+      "email_normalized": "tom.ruiz89@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       9,
+       "Wood Corner"
+      ],
+      "commercial_partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 29,
+      "name": "Toni Rhodes",
+      "email": "toni.rhodes11@example.com",
+      "email_normalized": "toni.rhodes11@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       14,
+       "The Jackson Group"
+      ],
+      "commercial_partner_id": [
+       14,
+       "The Jackson Group"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 39,
+      "name": "Travis Mendoza",
+      "email": "travis.mendoza24@example.com",
+      "email_normalized": "travis.mendoza24@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       12,
+       "Ready Mat"
+      ],
+      "commercial_partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 17,
+      "name": "Willie Burke",
+      "email": "willie.burke80@example.com",
+      "email_normalized": "willie.burke80@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       9,
+       "Wood Corner"
+      ],
+      "commercial_partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "4f3b2c342c0187a686e0a12e",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "read",
+     [
+      [
+       15
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": [
+     {
+      "id": 15,
+      "name": "Azure Interior",
+      "email": "azure.Interior24@example.com",
+      "email_normalized": "azure.interior24@example.com",
+      "is_company": true,
+      "supplier_rank": 4,
+      "parent_id": false,
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [
+       27,
+       34,
+       28
+      ],
+      "lang": "en_US",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "dad846ec4522b863a0e9fc37",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "parent_id",
+        "=",
+        15
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "order": "name asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": [
+     {
+      "id": 27,
+      "name": "Brandon Freeman",
+      "email": "brandon.freeman55@example.com",
+      "email_normalized": "brandon.freeman55@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       15,
+       "Azure Interior"
+      ],
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 34,
+      "name": "Colleen Diaz",
+      "email": "colleen.diaz83@example.com",
+      "email_normalized": "colleen.diaz83@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       15,
+       "Azure Interior"
+      ],
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     },
+     {
+      "id": 28,
+      "name": "Nicole Ford",
+      "email": "nicole.ford75@example.com",
+      "email_normalized": "nicole.ford75@example.com",
+      "is_company": false,
+      "supplier_rank": 0,
+      "parent_id": [
+       15,
+       "Azure Interior"
+      ],
+      "commercial_partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "child_ids": [],
+      "lang": "en_US",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "b1ce1c067887c70cf82312d0",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "email_normalized",
+        "=",
+        "nobody@nowhere.invalid"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": []
+   }
+  }
+ ]
+}

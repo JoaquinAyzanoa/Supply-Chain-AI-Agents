@@ -9,10 +9,15 @@ irrelevant.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 import psycopg
 import redis.asyncio as redis_async
 
 from sc_core.infra.health.types import HealthCheck
+
+if TYPE_CHECKING:
+    from sc_core.odoo.client import OdooClient
 
 
 def postgres(dsn: str, *, connect_timeout: int = 3) -> HealthCheck:
@@ -36,4 +41,15 @@ def redis(dsn: str, *, timeout: float = 3.0) -> HealthCheck:
             await client.aclose()
 
     check.__name__ = "redis"
+    return check
+
+
+def odoo(client: OdooClient) -> HealthCheck:
+    """Odoo answers ``common.version`` and the bot's credentials still log in."""
+
+    async def check() -> None:
+        await client.version()
+        await client.uid()
+
+    check.__name__ = "odoo"
     return check

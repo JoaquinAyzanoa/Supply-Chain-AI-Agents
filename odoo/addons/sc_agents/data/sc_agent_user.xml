@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- noupdate: an upgrade must never reset the password or groups an admin changed. -->
+    <data noupdate="1">
+        <record id="partner_sc_agent_bot" model="res.partner">
+            <field name="name">SC Agent Bot</field>
+            <field name="email">sc-agent-bot@localhost</field>
+            <field name="active" eval="True"/>
+        </record>
+
+        <!--
+        Technical user of the agents. Least privilege: purchase user, inventory
+        user and the agent group. The password is for development only: Odoo
+        lets a user create API keys only from their own Preferences, so someone
+        must log in as the bot once to generate the key stored in
+        SC__ODOO__API_KEY. Change the password (or disable it) in production.
+        -->
+        <record id="user_sc_agent_bot" model="res.users">
+            <field name="name">SC Agent Bot</field>
+            <field name="login">sc_agent_bot</field>
+            <field name="password">sc_agent_bot</field>
+            <field name="partner_id" ref="partner_sc_agent_bot"/>
+            <field name="share" eval="False"/>
+            <field name="notification_type">inbox</field>
+            <field name="groups_id" eval="[(6, 0, [
+                ref('base.group_user'),
+                ref('purchase.group_purchase_user'),
+                ref('stock.group_stock_user'),
+                ref('sc_agents.group_agent'),
+            ])]"/>
+        </record>
+    </data>
+</odoo>

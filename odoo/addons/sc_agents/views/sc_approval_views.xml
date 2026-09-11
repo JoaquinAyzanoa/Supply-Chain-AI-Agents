@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sc_approval_view_list" model="ir.ui.view">
+        <field name="name">sc.approval.list</field>
+        <field name="model">sc.approval</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="status == 'pending'" decoration-muted="status in ('rejected', 'expired')">
+                <field name="create_date"/>
+                <field name="kind"/>
+                <field name="po_id"/>
+                <field name="summary"/>
+                <field name="requested_by"/>
+                <field name="status" widget="badge"/>
+                <field name="resolved_by_id"/>
+                <field name="callback_status" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="sc_approval_view_form" model="ir.ui.view">
+        <field name="name">sc.approval.form</field>
+        <field name="model">sc.approval</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_approve" type="object" string="Approve" class="btn-success"
+                            invisible="status != 'pending'" groups="purchase.group_purchase_user"/>
+                    <button name="action_reject" type="object" string="Reject" class="btn-danger"
+                            invisible="status != 'pending'" groups="purchase.group_purchase_user"/>
+                    <button name="action_retry_callback" type="object" string="Resend callback"
+                            invisible="status == 'pending' or callback_status == 'sent'"
+                            groups="purchase.group_purchase_manager"/>
+                    <field name="status" widget="statusbar" statusbar_visible="pending,approved,rejected"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Request">
+                            <field name="kind"/>
+                            <field name="summary"/>
+                            <field name="po_id"/>
+                            <field name="requested_by"/>
+                            <field name="case_id"/>
+                            <field name="run_id"/>
+                        </group>
+                        <group string="Decision">
+                            <field name="resolved_by_id"/>
+                            <field name="resolved_at"/>
+                            <field name="reason"/>
+                            <field name="callback_status"/>
+                            <field name="callback_error" invisible="not callback_error"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Proposal" name="payload">
+                            <field name="payload_json" widget="ace" options="{'mode': 'json'}" readonly="1"/>
+                        </page>
+                        <page string="Technical" name="technical" groups="base.group_system">
+                            <group>
+                                <field name="res_model"/>
+                                <field name="res_id"/>
+                                <field name="thread_id"/>
+                                <field name="callback_url"/>
+                                <field name="callback_secret" password="True"/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="sc_approval_action" model="ir.actions.act_window">
+        <field name="name">Approvals</field>
+        <field name="res_model">sc.approval</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{'search_default_pending': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No approval requests yet</p>
+            <p>The AI agents will ask here before sending emails or changing orders.</p>
+        </field>
+    </record>
+
+    <record id="sc_approval_view_search" model="ir.ui.view">
+        <field name="name">sc.approval.search</field>
+        <field name="model">sc.approval</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="summary"/>
+                <field name="po_id"/>
+                <field name="case_id"/>
+                <filter name="pending" string="Pending" domain="[('status', '=', 'pending')]"/>
+                <filter name="mine" string="Resolved by me" domain="[('resolved_by_id', '=', uid)]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_kind" string="Kind" context="{'group_by': 'kind'}"/>
+                    <filter name="group_status" string="Status" context="{'group_by': 'status'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>

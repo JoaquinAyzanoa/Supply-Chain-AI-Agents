@@ -60,11 +60,11 @@ qa: fmt lint typecheck deps
 
 # Format with ruff
 fmt:
-    {{UV}} run ruff format src tests scripts
+    {{UV}} run ruff format src tests scripts odoo/addons
 
 # Lint with ruff, applying safe fixes
 lint:
-    {{UV}} run ruff check --fix src tests scripts
+    {{UV}} run ruff check --fix src tests scripts odoo/addons
 
 # Type-check with mypy
 typecheck:
@@ -119,6 +119,44 @@ ps:
 # Build the container image of one member
 image member="director":
     docker build -f docker/base.Dockerfile --build-arg MEMBER={{member}} -t scai/{{member}} .
+
+# --------------------------------------------------------------------
+# Odoo
+
+ODOO_DB := "scai"
+ODOO_MODULES := "base,contacts,mail,product,purchase,stock,purchase_stock,sale_management,purchase_requisition,base_automation,sc_agents"
+
+# Create the Odoo database with demo data and install the modules (idempotent)
+odoo-init:
+    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{ODOO_MODULES}} --stop-after-init
+    {{COMPOSE}} restart odoo
+
+# Install one Odoo module into the existing database
+odoo-install module="sc_agents":
+    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{module}} --stop-after-init
+    {{COMPOSE}} restart odoo
+
+# Upgrade one Odoo module after changing its code
+odoo-upgrade module="sc_agents":
+    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -u {{module}} --stop-after-init
+    {{COMPOSE}} restart odoo
+
+# Generate an API key for the bot user and store it in .env (SC__ODOO__API_KEY)
+odoo-apikey login="sc_agent_bot":
+    {{UV}} run python scripts/odoo_apikey.py --login {{login}} --db {{ODOO_DB}}
+
+# Re-record the Odoo response cassettes (tests/fixtures/odoo) from the live container
+odoo-record:
+    {{UV}} run python scripts/odoo_record.py
+
+# Open an Odoo shell against the database
+odoo-shell:
+    {{COMPOSE}} exec odoo odoo shell -d {{ODOO_DB}} --no-http
+
+# Stop Odoo and delete its database and filestore (destructive)
+odoo-reset:
+    {{COMPOSE}} rm -sfv odoo odoo-db
+    docker volume rm scai_odoo-db-data scai_odoo-web-data
 
 # --------------------------------------------------------------------
 # Packaging & cleaning

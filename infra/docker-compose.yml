@@ -5,6 +5,7 @@
 name: scai
 
 include:
+  - compose.odoo.yml
   - compose.agents.yml
 
 services:
@@ -15,7 +16,8 @@ services:
       POSTGRES_PASSWORD: app
       POSTGRES_DB: app
     ports:
-      - "5433:5432"
+      # 15432 avoids the ranges Windows/Hyper-V reserves (5433 landed inside one).
+      - "${SC_APP_DB_PORT:-15432}:5432"
     volumes:
       - app-db-data:/var/lib/postgresql/data
     healthcheck:

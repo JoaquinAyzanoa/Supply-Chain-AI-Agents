@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_sc_agents_root" name="AI Agents" parent="purchase.menu_purchase_root"
+              sequence="50" groups="purchase.group_purchase_user"/>
+    <menuitem id="menu_sc_approvals" name="Approvals" parent="menu_sc_agents_root"
+              action="sc_approval_action" sequence="10"/>
+    <menuitem id="menu_sc_agent_runs" name="Runs" parent="menu_sc_agents_root"
+              action="sc_agent_run_action" sequence="20"/>
+    <menuitem id="menu_sc_mail_links" name="Mail links" parent="menu_sc_agents_root"
+              action="sc_mail_link_action" sequence="30"/>
+</odoo>

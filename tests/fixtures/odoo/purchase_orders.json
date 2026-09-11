@@ -1,0 +1,751 @@
+{
+ "entries": [
+  {
+   "key": "ff88b77eae5ba91c3186b7cd",
+   "request": {
+    "service": "common",
+    "method": "login",
+    "args": [
+     "scai",
+     "<login>",
+     "<api_key>"
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": 8
+   }
+  },
+  {
+   "key": "40713296a7b8768ae2a1af69",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "name",
+        "=",
+        "P00015"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+     {
+      "id": 15,
+      "name": "P00015",
+      "state": "purchase",
+      "partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-10 20:21:42",
+      "date_approve": "2026-09-08 20:21:42",
+      "date_planned": "2026-09-08 20:21:42",
+      "amount_untaxed": 6936.0,
+      "amount_total": 6936.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       26,
+       27
+      ],
+      "picking_ids": [
+       13
+      ],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     }
+    ]
+   }
+  },
+  {
+   "key": "e0950513d7ea9d5e90469cbc",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order.line",
+     "search_read",
+     [
+      [
+       [
+        "order_id",
+        "=",
+        15
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "order_id",
+       "name",
+       "product_id",
+       "product_qty",
+       "product_uom",
+       "price_unit",
+       "price_subtotal",
+       "currency_id",
+       "date_planned",
+       "qty_received",
+       "qty_invoiced",
+       "state"
+      ],
+      "offset": 0,
+      "order": "id asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": [
+     {
+      "id": 26,
+      "order_id": [
+       15,
+       "P00015"
+      ],
+      "name": "[FURN_6667] Acoustic Bloc Screens (White)",
+      "product_id": [
+       32,
+       "[FURN_6667] Acoustic Bloc Screens (White)"
+      ],
+      "product_qty": 20.0,
+      "product_uom": [
+       1,
+       "Units"
+      ],
+      "price_unit": 286.8,
+      "price_subtotal": 5736.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "date_planned": "2026-10-20 12:00:00",
+      "qty_received": 0.0,
+      "qty_invoiced": 0.0,
+      "state": "purchase"
+     },
+     {
+      "id": 27,
+      "order_id": [
+       15,
+       "P00015"
+      ],
+      "name": "[FURN_9001] Flipover",
+      "product_id": [
+       28,
+       "[FURN_9001] Flipover"
+      ],
+      "product_qty": 10.0,
+      "product_uom": [
+       1,
+       "Units"
+      ],
+      "price_unit": 120.0,
+      "price_subtotal": 1200.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "date_planned": "2026-09-08 20:21:42",
+      "qty_received": 0.0,
+      "qty_invoiced": 0.0,
+      "state": "purchase"
+     }
+    ]
+   }
+  },
+  {
+   "key": "e7cc13c078e047cb20a6bfd3",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "partner_id",
+        "=",
+        12
+       ],
+       "|",
+       "&",
+       [
+        "state",
+        "in",
+        [
+         "purchase"
+        ]
+       ],
+       [
+        "receipt_status",
+        "!=",
+        "full"
+       ],
+       [
+        "state",
+        "in",
+        [
+         "draft",
+         "sent",
+         "to approve"
+        ]
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "order": "date_order desc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": [
+     {
+      "id": 15,
+      "name": "P00015",
+      "state": "purchase",
+      "partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-10 20:21:42",
+      "date_approve": "2026-09-08 20:21:42",
+      "date_planned": "2026-09-08 20:21:42",
+      "amount_untaxed": 6936.0,
+      "amount_total": 6936.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       26,
+       27
+      ],
+      "picking_ids": [
+       13
+      ],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     },
+     {
+      "id": 7,
+      "name": "P00007",
+      "state": "draft",
+      "partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-08 20:21:38",
+      "date_approve": false,
+      "date_planned": "2026-09-08 20:21:38",
+      "amount_untaxed": 1222.5,
+      "amount_total": 1222.5,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       15,
+       16
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     },
+     {
+      "id": 4,
+      "name": "P00004",
+      "state": "sent",
+      "partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-08 20:21:38",
+      "date_approve": false,
+      "date_planned": "2026-09-13 20:21:37",
+      "amount_untaxed": 14563.0,
+      "amount_total": 14563.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       7,
+       8,
+       9
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     }
+    ]
+   }
+  },
+  {
+   "key": "0b4e10b5ab9d8d468e3ca668",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "state",
+        "in",
+        [
+         "purchase"
+        ]
+       ],
+       [
+        "date_planned",
+        "<",
+        "2027-01-01"
+       ],
+       [
+        "receipt_status",
+        "!=",
+        "full"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "order": "date_planned asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": [
+     {
+      "id": 8,
+      "name": "P00008",
+      "state": "purchase",
+      "partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-03 20:21:38",
+      "date_approve": "2026-08-30 20:21:38",
+      "date_planned": "2026-09-08 00:00:00",
+      "amount_untaxed": 6465.5,
+      "amount_total": 6465.5,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       17,
+       18
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     },
+     {
+      "id": 9,
+      "name": "P00009",
+      "state": "purchase",
+      "partner_id": [
+       11,
+       "Gemini Furniture"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-08-24 20:21:38",
+      "date_approve": "2026-09-03 20:21:38",
+      "date_planned": "2026-09-08 00:00:00",
+      "amount_untaxed": 12500.0,
+      "amount_total": 12500.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       19,
+       20
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     },
+     {
+      "id": 10,
+      "name": "P00010",
+      "state": "purchase",
+      "partner_id": [
+       15,
+       "Azure Interior"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-08-24 20:21:38",
+      "date_approve": "2026-08-21 20:21:38",
+      "date_planned": "2026-09-08 00:00:00",
+      "amount_untaxed": 2505.0,
+      "amount_total": 2505.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       21
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     },
+     {
+      "id": 15,
+      "name": "P00015",
+      "state": "purchase",
+      "partner_id": [
+       12,
+       "Ready Mat"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-10 20:21:42",
+      "date_approve": "2026-09-08 20:21:42",
+      "date_planned": "2026-09-08 20:21:42",
+      "amount_untaxed": 6936.0,
+      "amount_total": 6936.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       26,
+       27
+      ],
+      "picking_ids": [
+       13
+      ],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     },
+     {
+      "id": 11,
+      "name": "P00011",
+      "state": "purchase",
+      "partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-08 20:21:41",
+      "date_approve": "2026-09-08 20:21:41",
+      "date_planned": "2026-09-10 00:00:00",
+      "amount_untaxed": 1500.0,
+      "amount_total": 1500.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "My Company (San Francisco)"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       22
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_pending_approval_id": false
+     }
+    ]
+   }
+  },
+  {
+   "key": "495779cb8029509a8fefb348",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "name",
+        "=",
+        "DOES-NOT-EXIST"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": []
+   }
+  }
+ ]
+}

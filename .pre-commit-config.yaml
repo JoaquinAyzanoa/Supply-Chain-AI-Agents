@@ -2,7 +2,7 @@
 # full version (adds mypy and deptry).
 repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.11
+    rev: v0.16.6
     hooks:
       - id: ruff-check
         args: [--fix]

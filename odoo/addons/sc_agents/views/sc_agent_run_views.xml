@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="sc_agent_run_view_list" model="ir.ui.view">
+        <field name="name">sc.agent.run.list</field>
+        <field name="model">sc.agent.run</field>
+        <field name="arch" type="xml">
+            <list decoration-danger="status == 'failed'" decoration-warning="status == 'awaiting_approval'">
+                <field name="started_at"/>
+                <field name="agent"/>
+                <field name="po_id"/>
+                <field name="status" widget="badge"/>
+                <field name="model"/>
+                <field name="summary"/>
+                <field name="finished_at" optional="hide"/>
+                <field name="trace_url" widget="url" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="sc_agent_run_view_form" model="ir.ui.view">
+        <field name="name">sc.agent.run.form</field>
+        <field name="model">sc.agent.run</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="run_id"/>
+                            <field name="agent"/>
+                            <field name="case_id"/>
+                            <field name="po_id"/>
+                        </group>
+                        <group>
+                            <field name="status"/>
+                            <field name="model"/>
+                            <field name="started_at"/>
+                            <field name="finished_at"/>
+                            <field name="trace_url" widget="url"/>
+                        </group>
+                    </group>
+                    <field name="summary"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="sc_agent_run_action" model="ir.actions.act_window">
+        <field name="name">Agent runs</field>
+        <field name="res_model">sc.agent.run</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">No agent runs yet</p>
+        </field>
+    </record>
+</odoo>

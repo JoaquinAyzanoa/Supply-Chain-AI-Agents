@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="purchase_order_form_sc_agents" model="ir.ui.view">
+        <field name="name">purchase.order.form.sc_agents</field>
+        <field name="model">purchase.order</field>
+        <field name="inherit_id" ref="purchase.purchase_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//header" position="inside">
+                <button name="action_sc_approve" type="object" string="Approve agent proposal"
+                        class="btn-success" invisible="not sc_pending_approval_id"
+                        groups="purchase.group_purchase_user"/>
+                <button name="action_sc_reject" type="object" string="Reject agent proposal"
+                        class="btn-danger" invisible="not sc_pending_approval_id"
+                        groups="purchase.group_purchase_user"/>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="AI Agent" name="sc_agent">
+                    <group>
+                        <group string="Status">
+                            <field name="sc_needs_human"/>
+                            <field name="sc_pending_approval_id"/>
+                            <field name="sc_external_ref"/>
+                        </group>
+                        <group string="Arrival date">
+                            <field name="sc_eta_source"/>
+                            <field name="sc_eta_confidence" widget="percentage"/>
+                        </group>
+                    </group>
+                    <separator string="Approvals"/>
+                    <field name="sc_approval_ids" readonly="1">
+                        <list>
+                            <field name="create_date"/>
+                            <field name="kind"/>
+                            <field name="summary"/>
+                            <field name="status" widget="badge"
+                                   decoration-warning="status == 'pending'"
+                                   decoration-success="status == 'approved'"
+                                   decoration-danger="status == 'rejected'"/>
+                            <field name="resolved_by_id"/>
+                        </list>
+                    </field>
+                    <separator string="Agent runs"/>
+                    <field name="sc_agent_run_ids" readonly="1">
+                        <list>
+                            <field name="started_at"/>
+                            <field name="agent"/>
+                            <field name="status" widget="badge"/>
+                            <field name="model"/>
+                            <field name="summary"/>
+                            <field name="trace_url" widget="url"/>
+                        </list>
+                    </field>
+                    <separator string="Mail links"/>
+                    <field name="sc_mail_link_ids" readonly="1">
+                        <list>
+                            <field name="received_at"/>
+                            <field name="direction"/>
+                            <field name="confidence"/>
+                            <field name="web_link" widget="url" string="Open in Outlook"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -398,11 +398,17 @@ name = "director"
 version = "0.1.0"
 source = { editable = "src/director" }
 dependencies = [
+    { name = "fastapi" },
+    { name = "loguru" },
     { name = "sc-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "sc-core", editable = "src/sc_core" }]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "sc-core", editable = "src/sc_core" },
+]
 
 [[package]]
 name = "distlib"
@@ -1300,6 +1306,7 @@ source = { editable = "src/sc_core" }
 dependencies = [
     { name = "fastapi" },
     { name = "fastapi-injector" },
+    { name = "httpx" },
     { name = "injector" },
     { name = "loguru" },
     { name = "psycopg", extra = ["binary", "pool"] },
@@ -1314,6 +1321,7 @@ dependencies = [
 requires-dist = [
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "fastapi-injector", specifier = ">=0.8.0" },
+    { name = "httpx", specifier = ">=0.27.0" },
     { name = "injector", specifier = ">=0.22.0" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2.9" },
@@ -1385,7 +1393,7 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=0.24.0" },
     { name = "pytest-cov", specifier = ">=6.2.1" },
     { name = "python-semantic-release", specifier = ">=10.5.3" },
-    { name = "ruff", specifier = ">=0.12.11" },
+    { name = "ruff", specifier = ">=0.16.6,<0.17" },
     { name = "testcontainers", specifier = ">=4.13.3" },
 ]
 
