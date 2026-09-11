@@ -87,6 +87,8 @@ class MailCfg(_Section):
     mailbox: str = "me"  # "me" in delegated mode, an address in application mode
     poll_interval_minutes: int = Field(default=30, ge=1)
     scopes: list[str] = ["Mail.Read", "Mail.ReadWrite", "Mail.Send", "User.Read"]
+    pdf_max_pages: int = Field(default=20, ge=1)
+    pdf_max_bytes: int = Field(default=10_000_000, ge=1)
 
     @property
     def configured(self) -> bool:
