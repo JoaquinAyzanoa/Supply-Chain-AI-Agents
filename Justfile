@@ -173,6 +173,10 @@ mail-whoami:
 mail-logout:
     {{UV}} run python -m sc_core.mail.cli logout
 
+# Read the mailbox identity and the newest inbox entries through Graph
+mail-check:
+    {{UV}} run python -m sc_core.mail.cli check
+
 # --------------------------------------------------------------------
 # Packaging & cleaning
 

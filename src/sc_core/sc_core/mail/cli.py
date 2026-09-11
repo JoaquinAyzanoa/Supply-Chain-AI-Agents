@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sc_core.infra.logger import configure_logging
@@ -50,13 +51,37 @@ def cmd_logout(settings: Settings) -> int:
     return 0
 
 
+def cmd_check(settings: Settings) -> int:
+    """Prove the mailbox is reachable: identity and the newest inbox entries."""
+    from sc_core.mail.graph import GraphMailClient
+
+    async def run() -> int:
+        async with GraphMailClient(_provider(settings)) as graph:
+            me = await graph.me()
+            address = me.get("mail") or me.get("userPrincipalName")
+            print(f"mailbox: {me.get('displayName')} <{address}>")
+            page = await graph.inbox_delta(None, page_size=5)
+            newest = sorted(
+                page.messages, key=lambda m: m.received_at or datetime.min.replace(tzinfo=UTC)
+            )[-5:]
+            print(f"inbox: {len(page.messages)} message(s) in the first delta page")
+            for msg in reversed(newest):
+                when = msg.received_at.isoformat(timespec="minutes") if msg.received_at else "?"
+                sender = msg.sender.normalized if msg.sender else "?"
+                print(f"  {when}  {sender:<40} {(msg.subject or '')[:60]}")
+        return 0
+
+    return asyncio.run(run())
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Microsoft Graph mail session")
-    parser.add_argument("command", choices=["login", "whoami", "logout"])
+    parser.add_argument("command", choices=["login", "whoami", "logout", "check"])
     args = parser.parse_args(argv)
     settings = get_settings()
     configure_logging(settings)
-    return {"login": cmd_login, "whoami": cmd_whoami, "logout": cmd_logout}[args.command](settings)
+    commands = {"login": cmd_login, "whoami": cmd_whoami, "logout": cmd_logout, "check": cmd_check}
+    return commands[args.command](settings)
 
 
 if __name__ == "__main__":  # pragma: no cover
