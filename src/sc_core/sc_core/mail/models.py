@@ -89,6 +89,24 @@ class Attachment(StrictModel):
         return self.content_type == "application/pdf" or self.name.lower().endswith(".pdf")
 
 
+class MessageIds(StrictModel):
+    """What the system keeps about a message it created: never the content."""
+
+    id: str
+    internet_message_id: str | None = None
+    conversation_id: str | None = None
+    web_link: str | None = None
+
+    @classmethod
+    def from_graph(cls, node: dict[str, Any]) -> MessageIds:
+        return cls(
+            id=node["id"],
+            internet_message_id=node.get("internetMessageId"),
+            conversation_id=node.get("conversationId"),
+            web_link=node.get("webLink"),
+        )
+
+
 class OutboundMessage(StrictModel):
     """A message to create as a draft or send. ``headers`` must use ``x-`` names (Graph rule)."""
 
@@ -97,6 +115,17 @@ class OutboundMessage(StrictModel):
     html_body: str
     cc: list[str] = []
     headers: dict[str, str] = {}
+
+    def tagged(self, po_name: str, case_id: str | None = None) -> OutboundMessage:
+        """Copy with the order token in the subject and the tracking headers set."""
+        from sc_core.mail import po_token
+
+        return self.model_copy(
+            update={
+                "subject": po_token.tag_subject(self.subject, po_name),
+                "headers": {**self.headers, **po_token.headers_for(po_name, case_id)},
+            }
+        )
 
     def to_graph(self) -> dict[str, Any]:
         node: dict[str, Any] = {

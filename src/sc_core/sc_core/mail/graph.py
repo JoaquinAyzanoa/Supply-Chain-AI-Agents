@@ -28,7 +28,13 @@ from loguru import logger
 
 from sc_core.mail.auth.base import TokenProvider
 from sc_core.mail.errors import DeltaExpired, GraphError, MailAuthRequired
-from sc_core.mail.models import Attachment, DeltaPage, InboundMessage
+from sc_core.mail.models import (
+    Attachment,
+    DeltaPage,
+    InboundMessage,
+    MessageIds,
+    OutboundMessage,
+)
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 MESSAGE_SELECT = (
@@ -141,7 +147,8 @@ class GraphMailClient:
         response = await self._request(
             "GET", f"{self._mailbox()}", params={"$select": "displayName,mail,userPrincipalName"}
         )
-        return response.json()
+        data: dict[str, Any] = response.json()
+        return data
 
     # --- reading ----------------------------------------------------------------
 
@@ -225,20 +232,102 @@ class GraphMailClient:
             )
         return result
 
+    # --- writing ----------------------------------------------------------------
+
+    async def send(self, message: OutboundMessage) -> None:
+        """Send immediately (``sendMail``). No ids come back; prefer ``send_tracked``."""
+        await self._request(
+            "POST",
+            f"{self._mailbox()}/sendMail",
+            json={"message": message.to_graph(), "saveToSentItems": True},
+        )
+
+    async def create_draft(self, message: OutboundMessage) -> MessageIds:
+        """Create a draft in the Drafts folder. Exchange assigns the ids at creation.
+
+        This is the path for human approval: the reviewer can open the draft
+        in Outlook, and ``send_draft`` sends exactly what was reviewed.
+        """
+        response = await self._request(
+            "POST", f"{self._mailbox()}/messages", json=message.to_graph()
+        )
+        return MessageIds.from_graph(response.json())
+
+    async def send_draft(self, draft_id: str) -> None:
+        """Send an existing draft. Its id changes when it moves to Sent Items."""
+        await self._request("POST", f"{self._mailbox()}/messages/{draft_id}/send")
+
+    async def reply_draft(
+        self, message_id: str, html_body: str, *, headers: dict[str, str] | None = None
+    ) -> MessageIds:
+        """Create a reply draft in the same conversation (Graph sets In-Reply-To/References)."""
+        node: dict[str, Any] = {"body": {"contentType": "html", "content": html_body}}
+        if headers:
+            node["internetMessageHeaders"] = [{"name": k, "value": v} for k, v in headers.items()]
+        response = await self._request(
+            "POST", f"{self._mailbox()}/messages/{message_id}/createReply", json={"message": node}
+        )
+        return MessageIds.from_graph(response.json())
+
+    async def find_sent(self, internet_message_id: str) -> MessageIds | None:
+        """Locate a message in Sent Items by its RFC 5322 Message-ID."""
+        escaped = internet_message_id.replace("'", "''")
+        response = await self._request(
+            "GET",
+            f"{self._mailbox()}/mailFolders/sentitems/messages",
+            params={
+                "$filter": f"internetMessageId eq '{escaped}'",
+                "$select": "id,internetMessageId,conversationId,webLink",
+                "$top": "1",
+            },
+        )
+        rows = response.json().get("value") or []
+        return MessageIds.from_graph(rows[0]) if rows else None
+
+    async def send_tracked(
+        self, message: OutboundMessage, *, lookup_attempts: int = 5, lookup_delay: float = 2.0
+    ) -> MessageIds:
+        """Create a draft, send it, and return the ids of the sent copy.
+
+        The draft's ``internetMessageId`` and ``conversationId`` are stable
+        across the send; only the Graph ``id`` changes, so the sent copy is
+        looked up by Message-ID (Sent Items can lag a few seconds).
+        """
+        draft = await self.create_draft(message)
+        await self.send_draft(draft.id)
+        if draft.internet_message_id:
+            for attempt in range(lookup_attempts):
+                sent = await self.find_sent(draft.internet_message_id)
+                if sent:
+                    return sent
+                if attempt < lookup_attempts - 1:
+                    await self._sleep(lookup_delay)
+        logger.bind(message_id=draft.internet_message_id).warning(
+            "sent message not found in Sent Items yet; returning draft ids"
+        )
+        return draft
+
+    async def delete_message(self, message_id: str) -> None:
+        """Permanently remove a message (used by tests and to discard a rejected draft)."""
+        await self._request("DELETE", f"{self._mailbox()}/messages/{message_id}")
+
 
 # --- helpers ----------------------------------------------------------------------
 
 
 def _backoff_delay(attempt: int) -> float:
-    return min(_BACKOFF_BASE * 2**attempt, _BACKOFF_CAP)
+    return min(_BACKOFF_BASE * (2.0**attempt), _BACKOFF_CAP)
 
 
 def _retry_after(response: httpx.Response) -> float:
     value = response.headers.get("Retry-After")
+    if not value:
+        return _DEFAULT_RETRY_AFTER
     try:
-        return max(float(value), 0.0) if value else _DEFAULT_RETRY_AFTER
+        seconds: float = float(value)
     except ValueError:
         return _DEFAULT_RETRY_AFTER
+    return max(seconds, 0.0)
 
 
 def _error_details(response: httpx.Response) -> dict[str, Any]:
