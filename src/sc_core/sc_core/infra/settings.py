@@ -36,7 +36,7 @@ class _Section(BaseModel):
 class AppDbCfg(_Section):
     """Connection to the application database (checkpoints, cases, jobs)."""
 
-    dsn: PostgresDsn = Field(default="postgresql://app:app@localhost:5433/app")  # type: ignore[assignment]
+    dsn: PostgresDsn = Field(default="postgresql://app:app@localhost:15432/app")  # type: ignore[assignment]
     pool_min: int = Field(default=1, ge=0)
     pool_max: int = Field(default=10, ge=1)
     migrations_dir: str = "migrations"

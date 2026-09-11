@@ -16,7 +16,7 @@ def test_defaults_are_valid(clean_env: pytest.MonkeyPatch) -> None:
     # PostgresDsn is a multi-host URL in pydantic v2; inspect the first host.
     (host,) = s.app_db.dsn.hosts()
     assert host["host"] == "localhost"
-    assert host["port"] == 5433
+    assert host["port"] == 15432
     assert s.redis.dsn.scheme == "redis"
 
 
