@@ -9,7 +9,7 @@ Release compares the token so a slow holder never deletes a successor's lock.
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from typing import Protocol
 from uuid import uuid4
 
@@ -24,7 +24,7 @@ return 0
 
 
 class Lock(Protocol):
-    def acquire(self, name: str, *, ttl_seconds: int) -> AsyncIterator[bool]: ...
+    def acquire(self, name: str, *, ttl_seconds: int) -> AbstractAsyncContextManager[bool]: ...
 
 
 class RedisLock:

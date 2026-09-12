@@ -5,6 +5,7 @@ requires-python = ">=3.13, <3.15"
 [manifest]
 members = [
     "director",
+    "mail-sync",
     "sc-core",
     "supply-chain-ai-agents",
 ]
@@ -469,14 +470,20 @@ version = "0.1.0"
 source = { editable = "src/director" }
 dependencies = [
     { name = "fastapi" },
+    { name = "fastapi-injector" },
+    { name = "injector" },
     { name = "loguru" },
+    { name = "pydantic" },
     { name = "sc-core" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "fastapi-injector", specifier = ">=0.8.0" },
+    { name = "injector", specifier = ">=0.22.0" },
     { name = "loguru", specifier = ">=0.7.3" },
+    { name = "pydantic", specifier = ">=2.11.0" },
     { name = "sc-core", editable = "src/sc_core" },
 ]
 
@@ -873,6 +880,29 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/3a/05/a1dae3dffd1116099471c643b8924f5aa6524411dc6c63fdae648c4f1aca/loguru-0.7.3.tar.gz", hash = "sha256:19480589e77d47b8d85b2c827ad95d49bf31b0dcde16593892eb51dd18706eb6", size = 63559, upload-time = "2024-12-06T11:20:56.608Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0c/29/0348de65b8cc732daa3e33e67806420b2ae89bdce2b04af740289c5c6c8c/loguru-0.7.3-py3-none-any.whl", hash = "sha256:31a33c10c8e1e10422bfd431aeb5d351c7cf7fa671e3c4df004162264b28220c", size = 61595, upload-time = "2024-12-06T11:20:54.538Z" },
+]
+
+[[package]]
+name = "mail-sync"
+version = "0.1.0"
+source = { editable = "src/mail_sync" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "fastapi-injector" },
+    { name = "injector" },
+    { name = "loguru" },
+    { name = "pydantic" },
+    { name = "sc-core" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "fastapi-injector", specifier = ">=0.8.0" },
+    { name = "injector", specifier = ">=0.22.0" },
+    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "pydantic", specifier = ">=2.11.0" },
+    { name = "sc-core", editable = "src/sc_core" },
 ]
 
 [[package]]
