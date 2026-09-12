@@ -44,6 +44,7 @@ class AgentProvider:
                         build_graph(self._deps, checkpointer),
                         model=self._settings.llm.model_for(AGENT_NAME),
                         writes=self._deps.writes,
+                        language=self._settings.agents.language,
                     )
         return self._agent
 
@@ -81,6 +82,7 @@ class InventoryPlanningModule(Module):
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,
             cfg=settings.planning,
+            language=settings.agents.language,
             publish=publisher.publish,
             langfuse=settings.langfuse,
         )

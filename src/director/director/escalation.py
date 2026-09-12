@@ -18,6 +18,7 @@ from typing import Any, Protocol, runtime_checkable
 from loguru import logger
 
 from director.store import Case, CaseStore
+from sc_core.i18n import Language, language_name, t
 from sc_core.infra import tracing
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter, system, user
@@ -134,9 +135,12 @@ class OdooEscalationPorts:
 class OdooApprovals:
     """``ApprovalsPort`` over the Odoo repositories (pending list, reminder note, expiry)."""
 
-    def __init__(self, approvals: ApprovalRepo, orders: PurchaseOrderRepo) -> None:
+    def __init__(
+        self, approvals: ApprovalRepo, orders: PurchaseOrderRepo, *, language: Language = "en"
+    ) -> None:
         self._approvals = approvals
         self._orders = orders
+        self._language = language
 
     async def pending(self) -> list[Any]:
         return await self._approvals.pending()
@@ -146,8 +150,14 @@ class OdooApprovals:
             return
         await self._orders.post_note(
             approval.po_id.id,
-            f"<p>Recordatorio: la aprobación #{approval.id} ({approval.kind}) lleva "
-            f"{days_pending} días pendiente: {approval.summary}</p>",
+            t(
+                "approval.reminder",
+                self._language,
+                id=approval.id,
+                kind=approval.kind,
+                days=days_pending,
+                summary=approval.summary,
+            ),
         )
 
     async def expire(self, approval_id: int, *, reason: str) -> None:
@@ -163,12 +173,14 @@ class OdooEscalator:
         *,
         deadline_days: int = 2,
         langfuse: LangfuseCfg | None = None,
+        language: Language = "en",
     ) -> None:
         self._chat = chat
         self._ports = ports
         self._cases = cases
         self._deadline_days = deadline_days
         self._langfuse = langfuse
+        self._language = language
 
     async def escalate(
         self, case: Case, *, reason: str, details: dict[str, Any] | None = None
@@ -190,15 +202,15 @@ class OdooEscalator:
         approval_id = await self._ports.create_escalation(
             summary=summary, payload=payload, case_id=case.case_id, po_id=po_id
         )
-        note = f"<p>{summary}</p><p>Motivo: {reason}</p>"
+        note = f"<p>{summary}</p><p>{t('escalation.reason', self._language, reason=reason)}</p>"
         if trace_url:
-            note += f'<p><a href="{trace_url}">Traza en Langfuse</a></p>'
+            note += f'<p><a href="{trace_url}">{t("escalation.trace", self._language)}</a></p>'
         res_model, res_id = ("purchase.order", po_id) if po_id else ("sc.approval", approval_id)
         try:
             await self._ports.schedule_review(
                 res_model=res_model,
                 res_id=res_id,
-                summary=f"Escalación {case.po_name or case.kind}",
+                summary=t("escalation.todo", self._language, name=case.po_name or case.kind),
                 note_html=note,
                 days=self._deadline_days,
             )
@@ -215,16 +227,17 @@ class OdooEscalator:
         """Three sentences from the model; the reason itself when the model is unavailable."""
         prompt = get_prompt("escalation_summary", local_dir=PROMPTS_DIR, cfg=self._langfuse)
         text = prompt.compile(
+            language=language_name(self._language),
             case_kind=case.kind,
-            po_name=case.po_name or "(sin orden)",
+            po_name=case.po_name or "(no order)",
             case_status=case.status,
             reason=reason,
             details=_plain(details),
-            history="\n".join(f"- {line}" for line in history) or "- (sin historial)",
+            history="\n".join(f"- {line}" for line in history) or "- (no history)",
         )
         try:
             result = await self._chat.complete(
-                [system(text), user("Redacta el resumen.")],
+                [system(text), user("Write the summary.")],
                 temperature=0.2,
                 max_tokens=400,
                 name="escalation_summary",
@@ -254,4 +267,4 @@ class OdooEscalator:
 
 def _plain(details: dict[str, Any]) -> str:
     parts = [f"{k}={v}" for k, v in details.items() if v not in (None, "", {}, [])]
-    return "; ".join(parts) or "(ninguno)"
+    return "; ".join(parts) or "(none)"

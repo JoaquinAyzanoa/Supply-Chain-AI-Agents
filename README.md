@@ -335,6 +335,18 @@ The supplier agent can also send a confirmed order as Odoo's own "Orden de
 Compra" PDF (task `send_po`): the report is rendered over RPC, attached to
 the cover email, listed in the approval and sent after it.
 
+## Language
+
+Everything internal is English: prompts, reasoning, tool calls, logs, traces
+and case events. Only what people read follows a language. Emails to
+suppliers are written in the supplier's Odoo language (`res.partner.lang`),
+falling back to the instance language; explanations, run summaries,
+escalation summaries, approval titles, chatter notes and the Control Tower
+follow `SC__AGENTS__LANGUAGE` (`en` or `es`, default `en`). Those strings
+live in one catalog, `sc_core.i18n`, and every prompt that produces text for
+a person takes the language as a variable. Odoo renders PDFs and its own UI
+in the partner's and the user's language on its own.
+
 ## Conventions
 
 - One library is added to a member's `pyproject.toml` by the story that first

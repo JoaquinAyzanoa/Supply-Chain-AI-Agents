@@ -15,6 +15,7 @@ from pathlib import Path
 from loguru import logger
 from pydantic import Field
 
+from sc_core.i18n import Language, language_name, t
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter, complete_structured, system, user
 from sc_core.prompts import get_prompt
@@ -32,42 +33,48 @@ class Explanation(StrictModel):
     reasoning: str = Field(max_length=800)
     recommended_action: str = Field(max_length=300)
 
-    def render(self) -> str:
-        return f"{self.headline} {self.reasoning} Acción: {self.recommended_action}"
+    def render(self, language: Language = "en") -> str:
+        label = t("plan.action_label", language)
+        return f"{self.headline} {self.reasoning} {label} {self.recommended_action}"
 
 
 def line_facts(line: ReplenishmentLine) -> str:
     """The numbers the model may talk about, as plain text."""
     rows = [
-        f"producto: {line.product_ref} {line.product_name}".strip(),
-        f"excepción: {line.exception}",
-        f"acción propuesta por las reglas: {line.action}",
-        f"stock disponible: {line.on_hand:g} (reservado {line.reserved:g}), "
-        f"por recibir: {line.incoming:g}, posición: {line.position:g}",
-        f"demanda diaria prevista: {line.forecast_daily:g} ({line.forecast_method}, "
-        f"{line.history_periods} semanas de historia"
+        f"product: {line.product_ref} {line.product_name}".strip(),
+        f"exception: {line.exception}",
+        f"action proposed by the rules: {line.action}",
+        f"stock on hand: {line.on_hand:g} (reserved {line.reserved:g}), "
+        f"incoming: {line.incoming:g}, position: {line.position:g}",
+        f"forecast daily demand: {line.forecast_daily:g} ({line.forecast_method}, "
+        f"{line.history_periods} weeks of history"
         + (f", WAPE {line.wape:.0%}" if line.wape is not None else "")
         + ")",
-        f"plazo de entrega: {line.lead_time_days:g} días (sigma {line.sigma_lead_time_days:g})",
-        f"nivel de servicio: {line.service_level:.0%}, clase {line.abc_class}",
-        f"stock de seguridad: {line.ss:g}, punto de pedido: {line.rop:g}, "
-        f"nivel máximo: {line.order_up_to:g}",
-        f"cobertura actual: {line.coverage_days:g} días"
+        f"lead time: {line.lead_time_days:g} days (sigma {line.sigma_lead_time_days:g})",
+        f"service level: {line.service_level:.0%}, class {line.abc_class}",
+        f"safety stock: {line.ss:g}, reorder point: {line.rop:g}, "
+        f"order-up-to level: {line.order_up_to:g}",
+        f"current coverage: {line.coverage_days:g} days"
         if line.coverage_days is not None
-        else "cobertura actual: sin demanda",
-        f"regla actual: min {line.current_min:g} / max {line.current_max:g}"
+        else "current coverage: no demand",
+        f"current rule: min {line.current_min:g} / max {line.current_max:g}"
         if line.current_min is not None and line.current_max is not None
-        else "regla actual: ninguna",
-        f"regla propuesta: min {line.proposed_min:g} / max {line.proposed_max:g}",
-        f"cantidad a pedir: {line.order_qty:g}"
-        + (f" a {line.supplier_name}" if line.supplier_name else "")
-        + (f" ({line.unit_price:g} {line.currency or ''} c/u)" if line.unit_price else ""),
+        else "current rule: none",
+        f"proposed rule: min {line.proposed_min:g} / max {line.proposed_max:g}",
+        f"quantity to order: {line.order_qty:g}"
+        + (f" from {line.supplier_name}" if line.supplier_name else "")
+        + (f" ({line.unit_price:g} {line.currency or ''} each)" if line.unit_price else ""),
     ]
     return "\n".join(f"- {row}" for row in rows)
 
 
 async def explain_line(
-    chat: ChatCompleter, line: ReplenishmentLine, *, as_of: date, langfuse: LangfuseCfg | None
+    chat: ChatCompleter,
+    line: ReplenishmentLine,
+    *,
+    as_of: date,
+    langfuse: LangfuseCfg | None,
+    language: Language = "en",
 ) -> ReplenishmentLine:
     """The same line with ``explanation`` filled; numbers are copied, never rewritten."""
     if line.exception is None or line.explanation:  # nothing to explain, or the review already did
@@ -76,7 +83,10 @@ async def explain_line(
     try:
         result = await complete_structured(
             chat,
-            [system(prompt.compile(as_of=as_of.isoformat())), user(line_facts(line))],
+            [
+                system(prompt.compile(as_of=as_of.isoformat(), language=language_name(language))),
+                user(line_facts(line)),
+            ],
             Explanation,
             name="inventory_planning.explain",
             metadata={
@@ -88,10 +98,11 @@ async def explain_line(
         )
     except ScError as exc:
         logger.bind(product=line.product_ref).warning("explanation unavailable: {}", exc)
-        return line.model_copy(
-            update={"explanation": f"{line.exception}: sin explicación ({exc.message})"[:500]}
+        text = t(
+            "plan.explanation_unavailable", language, exception=line.exception, error=exc.message
         )
-    return line.model_copy(update={"explanation": result.render()[:1000]})
+        return line.model_copy(update={"explanation": text[:500]})
+    return line.model_copy(update={"explanation": result.render(language)[:1000]})
 
 
 async def explain_lines(
@@ -100,8 +111,12 @@ async def explain_lines(
     *,
     as_of: date,
     langfuse: LangfuseCfg | None,
+    language: Language = "en",
 ) -> list[ReplenishmentLine]:
-    return [await explain_line(chat, line, as_of=as_of, langfuse=langfuse) for line in lines]
+    return [
+        await explain_line(chat, line, as_of=as_of, langfuse=langfuse, language=language)
+        for line in lines
+    ]
 
 
 async def explain_run(
@@ -112,28 +127,27 @@ async def explain_run(
     as_of: date,
     warehouse_code: str,
     langfuse: LangfuseCfg | None,
+    language: Language = "en",
 ) -> str:
     """A short narrative of the run for the approval note."""
     prompt = get_prompt("explain_run", local_dir=PROMPTS_DIR, cfg=langfuse)
     exceptions = [ln for ln in lines if ln.exception]
     facts = [
-        f"fecha: {as_of.isoformat()}, almacén: {warehouse_code}",
-        f"productos revisados: {int(totals.get('lines', len(lines)))}",
-        f"solicitudes de cotización propuestas: {int(totals.get('rfq_lines', 0))}",
-        f"reglas de reposición a cambiar: {int(totals.get('rules_changed', 0))}",
-        f"excepciones: {len(exceptions)}",
-        f"pendientes de revisión manual: {int(totals.get('manual_review', 0))}",
+        f"date: {as_of.isoformat()}, warehouse: {warehouse_code}",
+        f"products reviewed: {int(totals.get('lines', len(lines)))}",
+        f"RFQs proposed: {int(totals.get('rfq_lines', 0))}",
+        f"reorder rules to change: {int(totals.get('rules_changed', 0))}",
+        f"exceptions: {len(exceptions)}",
+        f"pending manual review: {int(totals.get('manual_review', 0))}",
     ]
     for key, value in sorted(totals.items()):
         if key.startswith("rfq_value_"):
-            facts.append(
-                f"valor de las cotizaciones ({key.removeprefix('rfq_value_')}): {value:,.0f}"
-            )
+            facts.append(f"RFQ value ({key.removeprefix('rfq_value_')}): {value:,.0f}")
     for line in exceptions:
         facts.append(f"- {line.product_ref}: {line.exception} → {line.action}")
     try:
         result = await chat.complete(
-            [system(prompt.text), user("\n".join(facts))],
+            [system(prompt.compile(language=language_name(language))), user("\n".join(facts))],
             temperature=0.2,
             max_tokens=400,
             name="inventory_planning.summary",

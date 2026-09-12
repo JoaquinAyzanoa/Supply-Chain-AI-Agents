@@ -242,6 +242,9 @@ class AgentsCfg(_Section):
     approver_user_id: int = Field(default=2, ge=1)  # Odoo demo: 2 = Administrator
     approval_deadline_days: int = Field(default=2, ge=0)
     max_tool_rounds: int = Field(default=6, ge=1)  # model <-> tools loop cap per node
+    # Language of what people read (explanations, summaries, approval titles, notes, the UI).
+    # Emails follow the supplier's Odoo language and fall back to this. Internals stay English.
+    language: Literal["en", "es"] = "en"
 
 
 class HttpCfg(_Section):

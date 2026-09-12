@@ -25,6 +25,7 @@ from inventory_planning.policy.params import resolve_params
 from inventory_planning.ports import DataPorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node
+from sc_core.i18n import Language, t
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
 from sc_core.schema.a2a import InventoryPlanningTask
@@ -121,16 +122,26 @@ def make_detect() -> Node:
     return detect
 
 
-def make_explain(chat: ChatCompleter, *, langfuse: LangfuseCfg | None) -> Node:
+def make_explain(
+    chat: ChatCompleter, *, langfuse: LangfuseCfg | None, language: Language = "en"
+) -> Node:
     async def explain(state: Any) -> dict[str, Any]:
         dataset = dataset_of(state)
-        lines = await explain_lines(chat, lines_of(state), as_of=dataset.as_of, langfuse=langfuse)
+        lines = await explain_lines(
+            chat, lines_of(state), as_of=dataset.as_of, langfuse=langfuse, language=language
+        )
         return {"lines": [ln.model_dump(mode="json") for ln in lines]}
 
     return explain
 
 
-def make_propose(chat: ChatCompleter, runs: RunStore, *, langfuse: LangfuseCfg | None) -> Node:
+def make_propose(
+    chat: ChatCompleter,
+    runs: RunStore,
+    *,
+    langfuse: LangfuseCfg | None,
+    language: Language = "en",
+) -> Node:
     async def propose(state: Any) -> dict[str, Any]:
         task = task_of(state)
         dataset = dataset_of(state)
@@ -150,6 +161,7 @@ def make_propose(chat: ChatCompleter, runs: RunStore, *, langfuse: LangfuseCfg |
             as_of=dataset.as_of,
             warehouse_code=dataset.warehouse_code,
             langfuse=langfuse,
+            language=language,
         )
         proposal = draft.model_copy(update={"totals": totals, "summary": summary})
         status = "simulated" if task.kind == "what_if" else "proposed"
@@ -157,7 +169,10 @@ def make_propose(chat: ChatCompleter, runs: RunStore, *, langfuse: LangfuseCfg |
         logger.bind(run_id=state["run_id"], lines=len(lines), totals=totals).info("proposal ready")
         update: dict[str, Any] = {"proposal": proposal.model_dump(mode="json")}
         if task.kind == "what_if":
-            update["outcome"] = {"status": "no_action", "summary": f"simulación: {summary}"[:500]}
+            update["outcome"] = {
+                "status": "no_action",
+                "summary": t("plan.simulation", language, summary=summary)[:500],
+            }
         return update
 
     return propose

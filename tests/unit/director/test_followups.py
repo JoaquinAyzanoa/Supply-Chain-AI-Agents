@@ -414,7 +414,7 @@ async def test_stale_approvals_are_reminded_once_and_expired(
     summary = await job.run("po_followups", tick("po_followups", "run_1"))
     assert summary["approvals"] == {"reminded": [2, 4], "expired": [3]}
     assert approvals.reminded == [(2, 3), (4, 4)]
-    assert approvals.expired[0][0] == 3 and "8 días" in approvals.expired[0][1]
+    assert approvals.expired[0][0] == 3 and "8 days" in approvals.expired[0][1]
     # the three orders wait for a human: only P00013 (due soon) got a task
     assert [json.loads(t.task_json)["po_name"] for t in agent.sent] == ["P00013"]
 

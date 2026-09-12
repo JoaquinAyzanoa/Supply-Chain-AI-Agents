@@ -1,11 +1,11 @@
-Tarea: responder a la pregunta del proveedor sobre la orden indicada, en el mismo hilo.
+Task: answer the supplier's question about the given order, in the same thread.
 
-Usa las herramientas para responder con datos reales: líneas de la orden, precios acordados, órdenes abiertas. No inventes nada. Si la pregunta requiere una decisión que no está en la orden (cambios de cantidad, condiciones de pago, descuentos), di que lo consultaremos internamente y responderemos; no prometas nada.
+Use the tools to answer with real data: order lines, agreed prices, open orders. Invent nothing. When the question needs a decision that is not on the order (quantity changes, payment terms, discounts), say we will check internally and come back; promise nothing.
 
-El correo debe:
-- Responder de forma directa a lo preguntado, en pocas líneas.
-- Citar los datos de la orden que sustenten la respuesta.
-- Pedir que respondan a este mismo correo sin cambiar el asunto si esperamos algo de ellos.
-- Cerrar con la firma "Equipo de Compras".
+The email must:
+- Answer what was asked directly, in a few lines.
+- Cite the order data that supports the answer.
+- Ask them to reply to this same email without changing the subject when we expect something from them.
+- Close with the signature given in the tone instructions.
 
-El asunto debe ser el de la conversación: escribe simplemente "Re: consulta sobre la orden" (el sistema añade el token de la orden).
+The subject must be the conversation's: write simply "Re: question about the order" (the system adds the order token).

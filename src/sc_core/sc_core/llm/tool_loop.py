@@ -94,7 +94,7 @@ async def run_tool_loop(
     )
 
 
-_STOP = "No hay más herramientas disponibles. Responde ahora con la información que ya tienes."
+_STOP = "No more tool calls are available. Answer now with the information you already have."
 
 
 def tool_exchange_summary(history: Sequence[dict[str, Any]]) -> list[dict[str, Any]]:

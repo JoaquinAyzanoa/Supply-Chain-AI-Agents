@@ -142,17 +142,17 @@ def _pick(resolution: UnlinkedResolution | None, candidates: list[PoContext]) ->
 
 def _render(candidates: list[PoContext], meta: InboundMeta, text: str, today: date) -> str:
     parts = [
-        f"Fecha de hoy: {today.isoformat()}",
-        f"Remitente: {meta.sender_address or '-'}",
-        f"Token de orden en el asunto: {meta.subject_token or 'ninguno'}",
-        "Órdenes candidatas:",
+        f"Today's date: {today.isoformat()}",
+        f"Sender: {meta.sender_address or '-'}",
+        f"Order token in the subject: {meta.subject_token or 'none'}",
+        "Candidate orders:",
     ]
     for ctx in candidates:
         parts.append(
-            f"- {ctx.name} | proveedor: {ctx.partner_name} | estado: {ctx.state} | "
-            f"fecha prevista: {ctx.date_planned.isoformat() if ctx.date_planned else '-'}"
+            f"- {ctx.name} | supplier: {ctx.partner_name} | state: {ctx.state} | "
+            f"planned date: {ctx.date_planned.isoformat() if ctx.date_planned else '-'}"
         )
         parts.append(lines_table(ctx))
-    parts.append("Correo del proveedor:")
+    parts.append("Supplier's email:")
     parts.append(text.strip())
     return "\n".join(parts)

@@ -59,7 +59,7 @@ async def test_eta_update_proposes_dates_then_applies_after_approval(
     )
     assert ports.eta_meta == [{"po_id": 7, "confidence": 0.9}]
     assert ports.price_upserts == []
-    assert "2 cambio(s)" in ports.notes[-1][1] and "ana" in ports.notes[-1][1]
+    assert "2 change(s)" in ports.notes[-1][1] and "ana" in ports.notes[-1][1]
     assert cleared(await agent.snapshot("case_eta"))
 
 
@@ -97,7 +97,7 @@ async def test_quotation_with_currency_mismatch_flags_that_line(
     assert "moneda" in (proposal.changes[2].review_reason or "")
 
     applied = await agent.resume("case_q", {"approval_id": 101, "status": "approved"})
-    assert applied.status == "applied" and "1 pendiente" in applied.outcome.summary
+    assert applied.status == "applied" and "1 pending" in applied.outcome.summary
     assert ports.price_upserts == [
         {
             "partner_id": 42,
@@ -110,7 +110,7 @@ async def test_quotation_with_currency_mismatch_flags_that_line(
         }
     ]
     assert ports.date_changes == []
-    assert "revisión manual" in ports.notes[-1][1]
+    assert "manual review" in ports.notes[-1][1]
 
 
 async def test_out_of_office_is_no_action_without_approval(
@@ -178,5 +178,5 @@ def test_build_proposal_low_confidence_and_unmapped_line() -> None:
     proposal = build_proposal(ctx, data)
     kinds = [(c.field, c.needs_review, c.review_reason) for c in proposal.changes]
     assert kinds[0] == ("date_planned", True, "fecha interpretada con baja confianza")
-    assert kinds[-1][0] == "price" and kinds[-1][1] and "no emparejado" in (kinds[-1][2] or "")
+    assert kinds[-1][0] == "price" and kinds[-1][1] and "not matched" in (kinds[-1][2] or "")
     assert proposal.applicable == [] and '"20/10"' in proposal.summary

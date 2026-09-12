@@ -45,6 +45,7 @@ from inventory_planning.ports import DataPorts, WritePorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node, PlanningState
 from sc_core.graph import ApprovalGateway
+from sc_core.i18n import Language, t
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
 from sc_core.schema.events import RfqDrafted
@@ -66,6 +67,7 @@ class Deps:
     chat: ChatCompleter
     approvals: ApprovalGateway
     cfg: PlanningCfg = field(default_factory=PlanningCfg)
+    language: Language = "en"  # for what people read; internals stay English
     publish: Publish = _no_publish
     langfuse: LangfuseCfg | None = None
     today: Callable[[], date] = field(default=local_today)
@@ -77,12 +79,17 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     _add(g, "forecast", make_forecast())
     _add(g, "compute", make_compute(deps.params, deps.cfg))
     _add(g, "detect", make_detect())
-    _add(g, "review", make_review(deps.chat, deps.cfg, langfuse=deps.langfuse))
-    _add(g, "explain", make_explain(deps.chat, langfuse=deps.langfuse))
-    _add(g, "no_action", _no_action)
-    _add(g, "propose", make_propose(deps.chat, deps.runs, langfuse=deps.langfuse))
-    _add(g, "apply", make_apply(deps.writes, deps.runs, publish=deps.publish, today=deps.today))
-    _add(g, "rejected", make_rejected(deps.runs))
+    lang = deps.language
+    _add(g, "review", make_review(deps.chat, deps.cfg, langfuse=deps.langfuse, language=lang))
+    _add(g, "explain", make_explain(deps.chat, langfuse=deps.langfuse, language=lang))
+    _add(g, "no_action", _no_action_node(lang))
+    _add(g, "propose", make_propose(deps.chat, deps.runs, langfuse=deps.langfuse, language=lang))
+    _add(
+        g,
+        "apply",
+        make_apply(deps.writes, deps.runs, publish=deps.publish, today=deps.today, language=lang),
+    )
+    _add(g, "rejected", make_rejected(deps.runs, language=lang))
 
     g.add_edge(START, "load")
     g.add_conditional_edges("load", _continue_or_end, {"go": "forecast", "end": END})
@@ -99,7 +106,7 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     deps.approvals.add_approval(
         g,
         step=PLAN_STEP,
-        build=make_plan_approval(),
+        build=make_plan_approval(language=deps.language),
         after=None,
         approved="apply",
         rejected="rejected",
@@ -126,16 +133,19 @@ def _after_propose(state: dict[str, Any]) -> Hashable:
     return "approval" if actionable else "nothing"
 
 
-async def _no_action(state: Any) -> dict[str, Any]:
-    lines = state.get("lines") or []
-    held = [ln["product_ref"] for ln in lines if ln.get("action") == "hold"]
-    manual = [ln["product_ref"] for ln in lines if ln.get("action") == "manual_review"]
-    parts = ["nada que aplicar"]
-    if held:
-        parts.append(f"en espera: {', '.join(held)}")
-    if manual:
-        parts.append(f"revisión manual: {', '.join(manual)}")
-    explanation = next((ln.get("explanation") for ln in lines if ln.get("explanation")), None)
-    if explanation:
-        parts.append(str(explanation))
-    return {"outcome": {"status": "no_action", "summary": "; ".join(parts)[:500]}}
+def _no_action_node(language: Language) -> Node:
+    async def no_action(state: Any) -> dict[str, Any]:
+        lines = state.get("lines") or []
+        held = [ln["product_ref"] for ln in lines if ln.get("action") == "hold"]
+        manual = [ln["product_ref"] for ln in lines if ln.get("action") == "manual_review"]
+        parts = [t("plan.nothing", language)]
+        if held:
+            parts.append(t("plan.on_hold", language, refs=", ".join(held)))
+        if manual:
+            parts.append(t("plan.manual_review", language, refs=", ".join(manual)))
+        explanation = next((ln.get("explanation") for ln in lines if ln.get("explanation")), None)
+        if explanation:
+            parts.append(str(explanation))
+        return {"outcome": {"status": "no_action", "summary": "; ".join(parts)[:500]}}
+
+    return no_action

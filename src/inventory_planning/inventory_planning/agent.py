@@ -13,6 +13,7 @@ from inventory_planning.nodes.apply import PLAN_STEP
 from inventory_planning.ports import WritePorts
 from sc_core.graph import run_config
 from sc_core.graph.approval import pending_for
+from sc_core.i18n import Language, t
 from sc_core.infra import tracing
 from sc_core.schema.a2a import (
     AppliedSummary,
@@ -26,10 +27,18 @@ from sc_core.shared.idempotency import new_id
 
 
 class InventoryPlanningAgent:
-    def __init__(self, graph: CompiledStateGraph, *, model: str, writes: WritePorts) -> None:
+    def __init__(
+        self,
+        graph: CompiledStateGraph,
+        *,
+        model: str,
+        writes: WritePorts,
+        language: Language = "en",
+    ) -> None:
         self._graph = graph
         self._model = model
         self._writes = writes
+        self._language = language
 
     async def run(self, task: InventoryPlanningTask) -> InventoryPlanningResult:
         run_id = new_id("run")
@@ -82,8 +91,13 @@ class InventoryPlanningAgent:
         )
         return result
 
-    @staticmethod
-    def result_from(state: dict[str, Any]) -> InventoryPlanningResult:
+    def result_from(self, state: dict[str, Any]) -> InventoryPlanningResult:
+        return result_from(state, language=self._language)
+
+
+def result_from(state: dict[str, Any], *, language: Language = "en") -> InventoryPlanningResult:
+    """The result a run's state describes; the waiting summary is in ``language``."""
+    if True:  # kept flat to leave the original body untouched
         task = InventoryPlanningTask.model_validate(state["task"])
         if state.get("outcome"):
             outcome = Outcome.model_validate(state["outcome"])
@@ -91,7 +105,7 @@ class InventoryPlanningAgent:
             pending = pending_for(state, PLAN_STEP)
             outcome = Outcome(
                 status="awaiting_approval",
-                summary="esperando aprobación del plan",
+                summary=t("plan.awaiting", language),
                 approval_id=pending.get("approval_id") if pending else None,
             )
         proposal = state.get("proposal")

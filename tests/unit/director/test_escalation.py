@@ -105,7 +105,7 @@ async def test_failed_result_creates_escalation_with_summary_and_trace(
     assert review == {
         "res_model": "purchase.order",
         "res_id": 15,
-        "summary": "Escalación P00015",
+        "summary": "Escalation P00015",
         "days": 3,
     }
     # exactly one model call, fed with the reason and the history, never with an email body
@@ -137,7 +137,7 @@ async def test_case_without_order_hangs_the_review_on_the_approval(
     assert ports.reviews[0] == {
         "res_model": "sc.approval",
         "res_id": escalation.approval_id,
-        "summary": "Escalación unlinked",
+        "summary": "Escalation unlinked",
         "days": 2,
     }
 

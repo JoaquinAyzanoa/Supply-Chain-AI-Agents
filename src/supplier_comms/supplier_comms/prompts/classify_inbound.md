@@ -1,11 +1,11 @@
-Tarea: clasificar el correo recibido de un proveedor respecto a la orden indicada.
+Task: classify the email received from a supplier about the given order.
 
-Categorías posibles (usa exactamente una):
-- quotation: el proveedor da precios, plazos o condiciones para los productos (cotización, proforma, lista de precios).
-- eta_update: el proveedor confirma, cambia o retrasa la fecha de entrega, o informa una entrega parcial.
-- question: el proveedor pregunta algo o pide una aclaración y espera respuesta nuestra.
-- other: respuesta automática, fuera de oficina, acuse de recibo sin contenido, publicidad o cualquier cosa que no requiere acción.
+Possible categories (use exactly one):
+- quotation: the supplier gives prices, lead times or terms for the products (quotation, proforma, price list).
+- eta_update: the supplier confirms, changes or delays the delivery date, or reports a partial delivery.
+- question: the supplier asks something or requests a clarification and expects an answer from us.
+- other: automatic reply, out of office, empty acknowledgement, advertising, or anything that needs no action.
 
-Si el correo trae precios y también una fecha de entrega, clasifica como quotation. Da la razón en una frase y una confianza entre 0 y 1.
+If the email brings prices and also a delivery date, classify it as quotation. Give the reason in one sentence and a confidence between 0 and 1.
 
-Responde únicamente con JSON con las claves kind, confidence y reason.
+Answer only with JSON with the keys kind, confidence and reason.

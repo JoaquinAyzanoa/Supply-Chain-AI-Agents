@@ -16,6 +16,7 @@ from typing import Any
 from loguru import logger
 
 from sc_core.graph import ApprovalRequest, decision_for
+from sc_core.i18n import Language, t
 from sc_core.mail import po_token
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from supplier_comms.nodes.common import context_of, esc, finish, task_of
@@ -25,13 +26,15 @@ from supplier_comms.state import Node
 Sleep = Callable[[float], Awaitable[None]]
 
 SEND_STEP = "send_email"
-KIND_LABEL = {
-    "rfq": "solicitud de cotización",
-    "request_eta": "solicitud de fecha de entrega",
-    "follow_up": "recordatorio",
-    "send_po": "orden de compra",
-    "reply": "respuesta",
-}
+
+
+def kind_label(kind: str, language: Language) -> str:
+    key = (
+        f"kind.{kind}"
+        if kind in ("rfq", "request_eta", "follow_up", "send_po", "reply")
+        else "kind.email"
+    )
+    return t(key, language)
 
 
 def make_create_draft(ports: AgentPorts) -> Node:
@@ -70,16 +73,22 @@ def make_create_draft(ports: AgentPorts) -> Node:
 
 
 def make_send_approval(
-    auto_send_partner_ids: frozenset[int],
+    auto_send_partner_ids: frozenset[int], *, language: Language = "en"
 ) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         ctx = context_of(state)
         outbound = state["outbound"] or {}
-        label = KIND_LABEL.get(outbound.get("kind", ""), "correo")
+        label = kind_label(outbound.get("kind", ""), language)
         auto = ctx.partner_id in auto_send_partner_ids
         return ApprovalRequest(
             kind="send_email",
-            summary=f"Enviar {label} a {ctx.partner_name} por {ctx.name}",
+            summary=t(
+                "send.approval_summary",
+                language,
+                label=label,
+                partner=ctx.partner_name,
+                po=ctx.name,
+            ),
             payload={
                 "to": outbound.get("to"),
                 "subject": outbound.get("subject"),
@@ -91,13 +100,15 @@ def make_send_approval(
             },
             po_id=ctx.id,
             auto_approve=auto,
-            auto_reason="proveedor en la lista de envío automático" if auto else None,
+            auto_reason=t("send.auto_reason", language) if auto else None,
         )
 
     return build
 
 
-def make_send(ports: AgentPorts, *, sleep: Sleep, find_attempts: int = 5) -> Node:
+def make_send(
+    ports: AgentPorts, *, sleep: Sleep, find_attempts: int = 5, language: Language = "en"
+) -> Node:
     async def send(state: Any) -> dict[str, Any]:
         ctx = context_of(state)
         task = task_of(state)
@@ -112,35 +123,53 @@ def make_send(ports: AgentPorts, *, sleep: Sleep, find_attempts: int = 5) -> Nod
         ids = await _sent_ids(ports, draft_ids, sleep, find_attempts)
         await ports.record_outbound(ids=ids, po_name=ctx.name, case_id=state["case_id"])
         await ports.link_outbound(ctx.id, ids, case_id=state["case_id"])
-        label = KIND_LABEL.get(outbound.get("kind", ""), "correo")
-        link = f' <a href="{esc(ids.web_link)}">Abrir en Outlook</a>' if ids.web_link else ""
+        label = kind_label(outbound.get("kind", ""), language)
+        link = (
+            f' <a href="{esc(ids.web_link)}">{t("common.open_outlook", language)}</a>'
+            if ids.web_link
+            else ""
+        )
         await ports.post_note(
             ctx.id,
-            f"<p>Agente supplier_comms envió {esc(label)} a {esc(', '.join(outbound['to']))} "
-            f"(asunto: {esc(outbound['subject'])}, caso {esc(state['case_id'])}).{link}</p>",
+            t(
+                "send.note",
+                language,
+                label=esc(label),
+                to=esc(", ".join(outbound["to"])),
+                subject=esc(outbound["subject"]),
+                case=esc(state["case_id"]),
+                link=link,
+            ),
         )
         logger.bind(po_name=ctx.name, kind=task.kind, message_id=ids.id).info("email sent")
         return finish(
             "sent",
-            f"{label} enviada a {ctx.partner_name} por {ctx.name}",
+            t("send.summary", language, label=label, partner=ctx.partner_name, po=ctx.name),
             sent={"sent_message_id": ids.id, "web_link": ids.web_link},
         )
 
     return send
 
 
-def make_rejected(ports: AgentPorts) -> Node:
+def make_rejected(ports: AgentPorts, *, language: Language = "en") -> Node:
     async def rejected(state: Any) -> dict[str, Any]:
         ctx = context_of(state)
         decision = decision_for(state, SEND_STEP)
         who = decision.resolved_by if decision and decision.resolved_by else "-"
-        reason = decision.reason if decision and decision.reason else "sin motivo"
+        reason = (
+            decision.reason if decision and decision.reason else t("common.no_reason", language)
+        )
         await ports.post_note(
             ctx.id,
-            f"<p>Envío rechazado por {esc(who)}: {esc(reason)}. "
-            f"El borrador sigue en Outlook (caso {esc(state['case_id'])}).</p>",
+            t(
+                "send.rejected_note",
+                language,
+                who=esc(who),
+                reason=esc(reason),
+                case=esc(state["case_id"]),
+            ),
         )
-        return finish("rejected", f"envío rechazado por {who}: {reason}")
+        return finish("rejected", t("send.rejected_summary", language, who=who, reason=reason))
 
     return rejected
 

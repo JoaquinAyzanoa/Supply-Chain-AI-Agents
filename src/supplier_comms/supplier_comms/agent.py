@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from sc_core.graph import run_config
 from sc_core.graph.approval import pending_for
+from sc_core.i18n import Language, t
 from sc_core.infra import tracing
 from sc_core.schema.a2a import (
     ChangeProposal,
@@ -30,10 +31,18 @@ from supplier_comms.ports import AgentPorts
 
 
 class SupplierCommsAgent:
-    def __init__(self, graph: CompiledStateGraph, *, model: str, ports: AgentPorts) -> None:
+    def __init__(
+        self,
+        graph: CompiledStateGraph,
+        *,
+        model: str,
+        ports: AgentPorts,
+        language: Language = "en",
+    ) -> None:
         self._graph = graph
         self._model = model
         self._ports = ports
+        self._language = language
 
     async def run(self, task: SupplierCommsTask) -> SupplierCommsResult:
         run_id = new_id("run")
@@ -82,8 +91,13 @@ class SupplierCommsAgent:
         """The persisted state of a case (tests and the callback use it)."""
         return dict((await self._graph.aget_state(run_config(case_id))).values)
 
-    @staticmethod
-    def result_from(state: dict[str, Any]) -> SupplierCommsResult:
+    def result_from(self, state: dict[str, Any]) -> SupplierCommsResult:
+        return result_from(state, language=self._language)
+
+
+def result_from(state: dict[str, Any], *, language: Language = "en") -> SupplierCommsResult:
+    """The result a run's state describes; the waiting summary is in ``language``."""
+    if True:  # kept flat to leave the original body untouched
         task = SupplierCommsTask.model_validate(state["task"])
         if state.get("outcome"):
             outcome = Outcome.model_validate(state["outcome"])
@@ -99,7 +113,7 @@ class SupplierCommsAgent:
             )
             outcome = Outcome(
                 status="awaiting_approval",
-                summary="esperando aprobación humana",
+                summary=t("common.awaiting_approval", language),
                 approval_id=pending.get("approval_id") if pending else None,
             )
         outbound = state.get("outbound")

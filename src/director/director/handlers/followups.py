@@ -31,6 +31,7 @@ from director.workflow import (
     consolidate_outcome,
     outcome_from_reply,
 )
+from sc_core.i18n import Language, t
 from sc_core.odoo.models import Approval, PurchaseOrder
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.events import ScheduledTick
@@ -91,7 +92,9 @@ class FollowUpJob:
         approvals: ApprovalsPort | None = None,
         conversations: ConversationLookup | None = None,
         today: Callable[[], date] = local_today,
+        language: Language = "en",
     ) -> None:
+        self._language = language
         self._policy = policy
         self._orders = orders
         self._mail = mail
@@ -152,7 +155,7 @@ class FollowUpJob:
             case = await self._cases.find_by_thread(approval.thread_id or "")
             # An escalation is already a person's to answer: remind, never expire.
             if days >= self._policy.approval_expire_days and approval.kind != "escalation":
-                reason = f"sin respuesta del aprobador en {days} días"
+                reason = t("approval.expired", self._language, days=days)
                 await self._approvals.expire(approval.id, reason=reason)
                 expired.append(approval.id)
                 if case is not None:

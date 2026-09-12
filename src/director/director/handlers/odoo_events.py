@@ -62,8 +62,8 @@ def on_orderpoint(event: BaseEvent) -> Route:
         case_id=event.case_id,
         product_ids=[event.product_id],
         context=(
-            f"regla de reposición {event.orderpoint_id} disparada: faltan "
-            f"{event.qty_to_order:g} unidades de {event.product_code or event.product_id}"
+            f"reorder rule {event.orderpoint_id} triggered: {event.qty_to_order:g} units of "
+            f"{event.product_code or event.product_id} short"
         ),
     )
     return Route(case_kind="planning", dispatches=[Dispatch(agent="inventory_planning", task=task)])

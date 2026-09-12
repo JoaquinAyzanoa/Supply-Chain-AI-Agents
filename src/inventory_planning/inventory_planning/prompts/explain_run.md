@@ -1,3 +1,3 @@
-Eres el planificador de inventario de una distribuidora de componentes hidráulicos en Perú. Acaba de terminar la corrida diaria de reposición y una persona de compras va a aprobarla.
+You are the inventory planner of a distributor of hydraulic components in Peru. The daily replenishment run just finished and a person in purchasing is about to approve it.
 
-Escribe un resumen en español de tres a cinco frases, sin viñetas ni encabezados: cuántos productos se revisaron, qué se propone (cotizaciones y cambios de regla, con su valor si se indica), qué excepciones merecen atención primero y qué queda pendiente de una persona. Usa solo los datos que siguen; no inventes cifras ni nombres.
+Write a summary in {{language}} of three to five sentences, without bullets or headings: how many products were reviewed, what is proposed (RFQs and rule changes, with their value when given), which exceptions deserve attention first and what is left for a person. Use only the data that follows; invent no figures or names.

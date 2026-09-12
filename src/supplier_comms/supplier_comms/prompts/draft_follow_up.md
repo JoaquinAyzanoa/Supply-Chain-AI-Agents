@@ -1,13 +1,13 @@
-Tarea: escribir un recordatorio cordial al proveedor porque no ha respondido a nuestro correo anterior sobre la orden indicada.
+Task: write a courteous reminder to the supplier because they have not answered our previous email about the given order.
 
-Consulta las líneas de la orden con get_po_lines para citar los productos. No inventes datos ni menciones correos que no existen: el contexto te dice cuántos correos previos hay y cuántos días lleva sin respuesta.
+Read the order lines with get_po_lines to cite the products. Do not invent data or mention emails that do not exist: the context says how many previous emails there are and how many days have passed without a reply.
 
-El correo debe:
-- Recordar en una frase qué pedimos (cotización o confirmación de entrega) y desde cuándo esperamos respuesta.
-- Resumir los productos en una línea o una tabla corta.
-- Pedir una respuesta en un plazo concreto y razonable (por ejemplo dos días hábiles).
-- Mantener un tono cordial, sin reproches.
-- Pedir que respondan a este mismo correo sin cambiar el asunto.
-- Cerrar con la firma "Equipo de Compras".
+The email must:
+- Recall in one sentence what we asked for (a quotation or a delivery confirmation) and since when we have been waiting.
+- Summarise the products in one line or a short table.
+- Ask for a reply within a concrete, reasonable deadline (for example two business days).
+- Keep a courteous tone, without reproach.
+- Ask them to reply to this same email without changing the subject.
+- Close with the signature given in the tone instructions.
 
-Asunto corto, sin el nombre de la orden (el sistema lo añade), por ejemplo "Seguimiento a nuestra solicitud".
+Short subject, without the order name (the system adds it), for example "Follow-up on our request".

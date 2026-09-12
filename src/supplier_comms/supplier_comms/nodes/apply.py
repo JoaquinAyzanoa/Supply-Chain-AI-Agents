@@ -15,6 +15,7 @@ from typing import Any
 from loguru import logger
 
 from sc_core.graph import ApprovalRequest, decision_for
+from sc_core.i18n import Language, t
 from sc_core.schema.a2a import ChangeProposal
 from supplier_comms.nodes.common import context_of, esc, finish
 from supplier_comms.ports import AgentPorts
@@ -24,14 +25,16 @@ from supplier_comms.state import Node
 CHANGE_STEP = "po_change"
 
 
-def make_change_approval() -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
+def make_change_approval(
+    *, language: Language = "en"
+) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         ctx = context_of(state)
         proposal = ChangeProposal.model_validate(state["proposal"])
         review = sum(1 for c in proposal.changes if c.needs_review)
         return ApprovalRequest(
             kind="po_change",
-            summary=f"Cambios propuestos en {ctx.name}: {proposal.summary}",
+            summary=t("changes.approval_summary", language, po=ctx.name, summary=proposal.summary),
             payload={
                 "po_name": ctx.name,
                 "summary": proposal.summary,
@@ -45,7 +48,7 @@ def make_change_approval() -> Callable[[dict[str, Any]], Awaitable[ApprovalReque
     return build
 
 
-def make_apply_changes(ports: AgentPorts) -> Node:
+def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
     async def apply_changes(state: Any) -> dict[str, Any]:
         ctx = context_of(state)
         proposal = ChangeProposal.model_validate(state["proposal"])
@@ -92,47 +95,69 @@ def make_apply_changes(ports: AgentPorts) -> Node:
         who = decision.resolved_by if decision and decision.resolved_by else "-"
         await ports.post_note(
             ctx.id,
-            f"<p>Agente supplier_comms aplicó {len(applied)} cambio(s) aprobado(s) por {esc(who)} "
-            f"(caso {esc(state['case_id'])}, run {esc(run_id)}).</p>"
-            + changes_html(applied)
-            + (f"<p>Pendientes de revisión manual:</p>{changes_html(skipped)}" if skipped else ""),
+            t(
+                "changes.applied_note",
+                language,
+                n=len(applied),
+                who=esc(who),
+                case=esc(state["case_id"]),
+                run=esc(run_id),
+            )
+            + changes_html(applied, language)
+            + (
+                t("changes.pending_note", language) + changes_html(skipped, language)
+                if skipped
+                else ""
+            ),
         )
         logger.bind(po_name=ctx.name, applied=len(applied), skipped=len(skipped)).info(
             "changes applied"
         )
         return finish(
             "applied",
-            f"{len(applied)} cambio(s) aplicado(s) en {ctx.name}"
-            + (f", {len(skipped)} pendiente(s) de revisión" if skipped else ""),
+            t("changes.applied_summary", language, n=len(applied), po=ctx.name)
+            + (t("changes.pending_summary", language, n=len(skipped)) if skipped else ""),
         )
 
     return apply_changes
 
 
-def make_change_rejected(ports: AgentPorts) -> Node:
+def make_change_rejected(ports: AgentPorts, *, language: Language = "en") -> Node:
     async def rejected(state: Any) -> dict[str, Any]:
         ctx = context_of(state)
         decision = decision_for(state, CHANGE_STEP)
         who = decision.resolved_by if decision and decision.resolved_by else "-"
-        reason = decision.reason if decision and decision.reason else "sin motivo"
+        reason = (
+            decision.reason if decision and decision.reason else t("common.no_reason", language)
+        )
         await ports.post_note(
             ctx.id,
-            f"<p>Cambios propuestos rechazados por {esc(who)}: {esc(reason)} "
-            f"(caso {esc(state['case_id'])}).</p>",
+            t(
+                "changes.rejected_note",
+                language,
+                who=esc(who),
+                reason=esc(reason),
+                case=esc(state["case_id"]),
+            ),
         )
-        return finish("rejected", f"cambios rechazados por {who}: {reason}")
+        return finish("rejected", t("changes.rejected_summary", language, who=who, reason=reason))
 
     return rejected
 
 
-def make_no_action() -> Node:
+def make_no_action(*, language: Language = "en") -> Node:
     async def no_action(state: Any) -> dict[str, Any]:
         ctx = context_of(state)
         classification = state.get("classification") or {}
         return finish(
             "no_action",
-            f"{ctx.name}: correo clasificado como {classification.get('kind', 'other')}; "
-            f"{classification.get('reason', 'sin acción')}",
+            t(
+                "changes.no_action",
+                language,
+                po=ctx.name,
+                kind=classification.get("kind", "other"),
+                reason=classification.get("reason", "no action"),
+            ),
         )
 
     return no_action

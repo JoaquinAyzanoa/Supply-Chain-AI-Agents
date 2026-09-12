@@ -52,6 +52,7 @@ class AgentProvider:
                         build_graph(self._deps, checkpointer),
                         model=self._settings.llm.model_for(AGENT_NAME),
                         ports=self._deps.ports,
+                        language=self._settings.agents.language,
                     )
         return self._agent
 
@@ -97,6 +98,7 @@ class SupplierCommsModule(Module):
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,
             auto_send_partner_ids=frozenset(settings.supplier_comms.auto_send_partner_ids),
+            language=settings.agents.language,
             max_tool_rounds=settings.agents.max_tool_rounds,
             max_attachment_chars=settings.supplier_comms.max_attachment_chars,
             langfuse=settings.langfuse,

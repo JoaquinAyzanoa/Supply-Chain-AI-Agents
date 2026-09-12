@@ -88,6 +88,7 @@ class DirectorModule(Module):
             cases,
             deadline_days=settings.agents.approval_deadline_days,
             langfuse=settings.langfuse,
+            language=settings.agents.language,
         )
 
     @provider
@@ -112,8 +113,9 @@ class DirectorModule(Module):
                     cases=cases,
                     agents=agents,
                     escalator=escalator,
-                    approvals=OdooApprovals(approvals, orders),
+                    approvals=OdooApprovals(approvals, orders, language=settings.agents.language),
                     conversations=conversations,
+                    language=settings.agents.language,
                 ),
                 "inventory_planning": PlanningJob(
                     cases=cases, agents=agents, escalator=escalator, conversations=conversations

@@ -23,6 +23,7 @@ def demo_context(
         state="purchase",
         partner_id=partner_id,
         partner_name="Proveedor Hidraulica",
+        partner_lang="es_PE",  # the demo supplier reads Spanish; the instance may be English
         supplier_emails=[SUPPLIER_EMAIL] if emails is None else emails,
         currency="PEN",
         currency_id=3,

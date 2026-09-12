@@ -25,6 +25,7 @@ from inventory_planning.nodes.explain import line_facts
 from inventory_planning.nodes.propose import dataset_of, lines_of, params_of, task_of
 from inventory_planning.policy import ProductParams
 from inventory_planning.state import Node
+from sc_core.i18n import Language, language_name, t
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter, complete_structured, system, user
 from sc_core.prompts import get_prompt
@@ -41,7 +42,13 @@ class ReviewDecision(StrictModel):
     reason: str = Field(max_length=600)
 
 
-def make_review(chat: ChatCompleter, cfg: PlanningCfg, *, langfuse: LangfuseCfg | None) -> Node:
+def make_review(
+    chat: ChatCompleter,
+    cfg: PlanningCfg,
+    *,
+    langfuse: LangfuseCfg | None,
+    language: Language = "en",
+) -> Node:
     async def review(state: Any) -> dict[str, Any]:
         task = task_of(state)
         if task.kind != "review_product":
@@ -54,8 +61,8 @@ def make_review(chat: ChatCompleter, cfg: PlanningCfg, *, langfuse: LangfuseCfg 
             if product is None:
                 out.append(line.model_dump(mode="json"))
                 continue
-            decision = await _decide(chat, line, product, task.context, langfuse)
-            reviewed = _apply_decision(line, decision, product, state, params, cfg)
+            decision = await _decide(chat, line, product, task.context, langfuse, language)
+            reviewed = _apply_decision(line, decision, product, state, params, cfg, language)
             logger.bind(product=line.product_ref, action=decision.action).info("product reviewed")
             out.append(reviewed.model_dump(mode="json"))
         return {"lines": out}
@@ -69,21 +76,22 @@ async def _decide(
     product: ProductData,
     context: str | None,
     langfuse: LangfuseCfg | None,
+    language: Language,
 ) -> ReviewDecision:
     prompt = get_prompt("review_product", local_dir=PROMPTS_DIR, cfg=langfuse)
-    alternates = [t.partner_name for t in product.suppliers[1:]]
+    alternates = [terms.partner_name for terms in product.suppliers[1:]]
     facts = "\n".join(
         [
             line_facts(line),
-            f"- notas internas del producto: {product.notes or '(ninguna)'}",
-            f"- motivo de la revisión: {context or '(no indicado)'}",
-            f"- proveedores alternativos: {', '.join(alternates) or 'ninguno'}",
+            f"- internal product notes: {product.notes or '(none)'}",
+            f"- reason for the review: {context or '(not given)'}",
+            f"- alternate suppliers: {', '.join(alternates) or 'none'}",
         ]
     )
     try:
         return await complete_structured(
             chat,
-            [system(prompt.text), user(facts)],
+            [system(prompt.compile(language=language_name(language))), user(facts)],
             ReviewDecision,
             name="inventory_planning.review",
             metadata={"prompt": prompt.name, "prompt_version": prompt.version},
@@ -91,7 +99,8 @@ async def _decide(
     except ScError as exc:
         logger.bind(product=line.product_ref).warning("review unavailable: {}", exc)
         return ReviewDecision(
-            action="manual_review", reason=f"sin revisión del modelo: {exc.message}"
+            action="manual_review",
+            reason=t("plan.review_unavailable", language, error=exc.message),
         )
 
 
@@ -102,8 +111,9 @@ def _apply_decision(
     state: dict[str, Any],
     params: dict[int, ProductParams],
     cfg: PlanningCfg,
+    language: Language,
 ) -> ReplenishmentLine:
-    note = f"Revisión: {decision.reason}"
+    note = t("plan.review_note", language, reason=decision.reason)
     if decision.action == "keep":
         return line
     if decision.action == "hold":

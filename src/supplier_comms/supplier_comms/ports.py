@@ -152,6 +152,7 @@ class LivePorts:
             state=po.state,
             partner_id=company.id,
             partner_name=company.name,
+            partner_lang=partner.lang or company.lang,
             supplier_emails=emails,
             currency=currency,
             currency_id=po.currency_id.id if po.currency_id else None,

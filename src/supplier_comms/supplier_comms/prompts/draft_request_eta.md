@@ -1,12 +1,12 @@
-Tarea: pedir al proveedor la fecha de entrega confirmada de la orden indicada.
+Task: ask the supplier for the confirmed delivery date of the given order.
 
-Consulta las líneas de la orden con get_po_lines para citar los productos y la fecha prevista que tenemos registrada. No inventes datos.
+Read the order lines with get_po_lines to cite the products and the planned date we have on record. Do not invent data.
 
-El correo debe:
-- Referirse a la orden ya confirmada y a la fecha prevista registrada.
-- Pedir una fecha de entrega confirmada por línea si difieren, o una sola si es la misma.
-- Pedir que avisen de inmediato ante cualquier retraso o entrega parcial.
-- Pedir que respondan a este mismo correo sin cambiar el asunto.
-- Cerrar con la firma "Equipo de Compras".
+The email must:
+- Refer to the already confirmed order and to the planned date on record.
+- Ask for a confirmed delivery date per line when they differ, or one date when it is the same.
+- Ask to be told immediately of any delay or partial delivery.
+- Ask them to reply to this same email without changing the subject.
+- Close with the signature given in the tone instructions.
 
-Asunto corto, sin el nombre de la orden (el sistema lo añade), por ejemplo "Confirmación de fecha de entrega".
+Short subject, without the order name (the system adds it), for example "Delivery date confirmation".

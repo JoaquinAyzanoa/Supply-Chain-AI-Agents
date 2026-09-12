@@ -71,7 +71,7 @@ async def test_send_rfq_pauses_on_approval_then_sends(
         "direction": "out",
         "case_id": "case_rfq",
     }
-    assert "Abrir en Outlook" in ports.notes[-1][1]
+    assert "Open in Outlook" in ports.notes[-1][1]
     assert sent.outbound is not None and sent.outbound.sent_message_id == "sent1"
     assert len(approval_ports.created) == 1  # no second approval on resume
 
@@ -89,8 +89,8 @@ async def test_reject_sends_nothing(
     )
     assert result.status == "rejected" and "esperar" in result.outcome.summary
     assert ports.sent_ids == [] and ports.links == []
-    assert "rechazado" in ports.notes[-1][1]
-    assert "Días sin respuesta del proveedor: 4" in chat.calls[0].messages[1]["contents"][0]["text"]
+    assert "rejected" in ports.notes[-1][1]
+    assert "Days without a supplier reply: 4" in chat.calls[0].messages[1]["contents"][0]["text"]
 
 
 async def test_auto_send_partner_skips_approval(
@@ -134,3 +134,21 @@ async def test_sent_copy_lookup_retries_then_falls_back(
     result = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c7", po_name="P00015"))
     assert result.status == "sent"
     assert ports.outbound_records[0]["graph_message_id"] == "draft1"  # fell back to the draft ids
+
+
+async def test_email_language_follows_the_supplier_then_the_instance(
+    make_agent: Any, chat: ScriptedChatClient, ports: FakePorts
+) -> None:
+    """The demo supplier reads Spanish (es_PE); one without a language gets the instance's."""
+    chat.responses.extend([tool_call_result("get_po_lines", {"po_name": "P00015"}), "ok", DRAFT])
+    await make_agent().run(SupplierCommsTask(kind="send_rfq", case_id="lang_es", po_name="P00015"))
+    system_text = chat.calls[0].messages[0]["contents"][0]["text"]
+    assert "Write the email in Spanish" in system_text and "Equipo de Compras" in system_text
+
+    ports.contexts["P00016"] = demo_context(name="P00016").model_copy(update={"partner_lang": None})
+    chat.responses.extend([tool_call_result("get_po_lines", {"po_name": "P00016"}), "ok", DRAFT])
+    await make_agent(language="en").run(
+        SupplierCommsTask(kind="send_rfq", case_id="lang_en", po_name="P00016")
+    )
+    system_text = chat.calls[-2].messages[0]["contents"][0]["text"]
+    assert "Write the email in English" in system_text and "Purchasing Team" in system_text
