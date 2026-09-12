@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+import pytest
+
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
 from sc_core.schema.a2a import SupplierCommsTask
 from supplier_comms.models import DraftOutput
@@ -187,3 +189,15 @@ async def test_email_language_follows_the_supplier_then_the_instance(
     )
     system_text = chat.calls[-2].messages[0]["contents"][0]["text"]
     assert "Write the email in English" in system_text and "Purchasing Team" in system_text
+
+
+async def test_a_crashing_run_is_logged_as_failed(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    chat.responses.append(RuntimeError("provider down"))
+    agent = make_agent()
+    with pytest.raises(RuntimeError):
+        await agent.run(SupplierCommsTask(kind="send_rfq", case_id="case_crash", po_name="P00015"))
+    [run] = [r for r in ports.runs.values() if r.get("case_id") == "case_crash"]
+    assert run["status"] == "failed" and "provider down" in run["summary"]
+    assert "calls" in run["usage"]

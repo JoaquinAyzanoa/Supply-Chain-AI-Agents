@@ -7,14 +7,16 @@
  */
 import { Link, useParams } from "@tanstack/react-router";
 import { ExternalLink } from "lucide-react";
+import { useState } from "react";
 
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Empty, ErrorBox, Loading } from "@/components/ui/feedback";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useI18n } from "@/i18n";
-import { formatDateTime, formatNumber } from "@/lib/utils";
+import { formatDate, formatDateTime, formatNumber } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
-import { useCase, type AgentRun, type CaseEvent } from "./api";
+import { useCase, type AgentRun, type CaseEvent, type CaseView } from "./api";
+import { failureOf, labelFor, shortCaseId } from "./labels";
 
 export function CaseTimelinePage() {
   const { caseId } = useParams({ strict: false }) as { caseId: string };
@@ -25,7 +27,7 @@ export function CaseTimelinePage() {
   const { case: item, events, runs } = detail.data;
   return (
     <div>
-      <PageTitle title={item.po_name ? `${item.po_name} · ${t(`cases.kind.${item.kind}`)}` : t(`cases.kind.${item.kind}`)}>
+      <PageTitle title={caseTitle(item, t, locale)}>
         <div className="flex items-center gap-2">
           <StatusBadge status={item.status} />
           {item.trace_url ? (
@@ -41,7 +43,8 @@ export function CaseTimelinePage() {
           <p className="mb-3 text-xs text-muted-foreground">
             {t("cases.opened", { at: formatDateTime(item.created_at, locale) })}
             {item.next_action_at ? ` · ${t("cases.next_action", { at: formatDateTime(item.next_action_at, locale) })}` : ""}
-            {` · ${item.case_id}`}
+            {" · "}
+            <span title={item.case_id}>{t("cases.id", { id: shortCaseId(item.case_id) })}</span>
           </p>
           {events.length === 0 ? <Empty /> : null}
           <ol className="relative border-l pl-4" aria-label={t("cases.timeline")}>
@@ -66,13 +69,27 @@ export function CaseTimelinePage() {
   );
 }
 
+export function caseTitle(item: CaseView, t: ReturnType<typeof useI18n>["t"], locale: string): string {
+  const kind = t(`cases.kind.${item.kind}`);
+  if (item.po_name) return t("cases.title.po", { po: item.po_name, kind });
+  if (item.kind === "planning") return t("cases.title.planning", { date: formatDate(item.created_at, locale) });
+  return t("cases.title.kind", { kind, date: formatDate(item.created_at, locale) });
+}
+
 function EventLine({ event }: { event: CaseEvent }) {
   const { t } = useI18n();
   const p = event.payload as Record<string, unknown>;
   const text = (key: string) => (typeof p[key] === "string" ? (p[key] as string) : "");
   switch (event.kind) {
     case "event_received":
-      return <p className="text-sm">{t("cases.line.event_received", { type: text("event_type"), source: text("source") })}</p>;
+      return (
+        <p className="text-sm">
+          {t("cases.line.event_received", {
+            type: labelFor(t, "event", text("event_type")),
+            source: labelFor(t, "source", text("source")),
+          })}
+        </p>
+      );
     case "rule_fired":
       return (
         <p className="text-sm">
@@ -82,21 +99,23 @@ function EventLine({ event }: { event: CaseEvent }) {
         </p>
       );
     case "task_sent":
-      return <p className="text-sm">{t("cases.line.task_sent", { task: text("task"), agent: text("agent") })}</p>;
-    case "result":
       return (
         <p className="text-sm">
-          <StatusBadge status={text("status") || "done"} /> {text("summary")}
-          {text("error") ? <span className="text-destructive"> · {text("error")}</span> : null}
+          {t("cases.line.task_sent", {
+            task: labelFor(t, "task", text("task")),
+            agent: labelFor(t, "agent", text("agent")),
+          })}
         </p>
       );
+    case "result":
+      return <ResultLine status={text("status") || "done"} summary={text("summary")} payload={p} />;
     case "approval_requested":
     case "approval_resolved": {
       const id = typeof p.approval_id === "number" ? p.approval_id : undefined;
       return (
         <p className="text-sm">
           {event.kind === "approval_requested"
-            ? t("cases.line.approval_requested", { agent: text("agent") })
+            ? t("cases.line.approval_requested", { agent: labelFor(t, "agent", text("agent")) })
             : t("cases.line.approval_resolved", { status: text("status"), by: text("by") || text("resolved_by") || "" })}
           {id !== undefined ? (
             <>
@@ -124,6 +143,34 @@ function EventLine({ event }: { event: CaseEvent }) {
     default:
       return <pre className="overflow-x-auto text-xs text-muted-foreground">{JSON.stringify(p)}</pre>;
   }
+}
+
+function ResultLine({ status, summary, payload }: { status: string; summary: string; payload: Record<string, unknown> }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  const failure = status === "failed" ? failureOf(payload) : null;
+  if (!failure) {
+    return (
+      <p className="text-sm">
+        <StatusBadge status={status} /> {summary}
+      </p>
+    );
+  }
+  return (
+    <div className="text-sm">
+      <StatusBadge status={status} />{" "}
+      <span className="text-destructive">{t("cases.line.failed", { message: failure.message })}</span>
+      {failure.details ? (
+        <>
+          {" "}
+          <button type="button" className="text-xs text-muted-foreground underline" onClick={() => setOpen((o) => !o)}>
+            {t("cases.line.details")}
+          </button>
+          {open ? <pre className="mt-1 max-h-64 overflow-auto rounded-md bg-muted p-2 text-xs">{failure.details}</pre> : null}
+        </>
+      ) : null}
+    </div>
+  );
 }
 
 export function RunsTable({ runs, showCase = false }: { runs: AgentRun[]; showCase?: boolean }) {

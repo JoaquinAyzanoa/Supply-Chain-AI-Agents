@@ -16,6 +16,7 @@ from fastapi import APIRouter, Query
 from fastapi_injector import Injected
 
 from director.api.auth import Principal, Viewer
+from sc_core.infra import tracing
 from sc_core.infra.db import Database
 from sc_core.infra.settings import Settings
 from sc_core.odoo.models import AgentRun
@@ -112,7 +113,7 @@ def run_view(run: AgentRun) -> AgentRunView:
         input_tokens=run.input_tokens,
         output_tokens=run.output_tokens,
         cost_usd=round(run.cost_usd, 6),
-        trace_url=run.trace_url,
+        trace_url=tracing.browser_trace_url(run.trace_url),
     )
 
 

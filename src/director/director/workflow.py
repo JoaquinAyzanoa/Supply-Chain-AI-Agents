@@ -20,6 +20,7 @@ called per event. Building is cheap; the executors hold no state.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -207,6 +208,19 @@ class AgentProxyExecutor(Executor):
         await ctx.send_message(outcome)
 
 
+def _error_payload(text: str | None) -> dict[str, Any] | None:
+    """The ``{"code", "message", ...}`` document an agent answers with on failure."""
+    if not text or not text.lstrip().startswith("{"):
+        return None
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return None
+    if isinstance(data, dict) and ("message" in data or "code" in data):
+        return data
+    return None
+
+
 def outcome_from_reply(
     case: Case,
     agent: str,
@@ -230,7 +244,11 @@ def outcome_from_reply(
         )
     result = _parse_result(agent, reply.text)
     if result is None:
-        text = (reply.text or f"agent replied with status {reply.status} and no result")[:500]
+        failure = _error_payload(reply.text)
+        if failure is not None:  # the agent answered with an error document, not a result
+            text = f"{agent} failed: {failure.get('message') or failure.get('code')}"[:500]
+        else:
+            text = (reply.text or f"agent replied with status {reply.status} and no result")[:500]
         return AgentOutcome(
             case=case,
             agent=agent,
@@ -238,6 +256,7 @@ def outcome_from_reply(
             thread_id=thread_id,
             status="failed" if reply.status != "completed" else "no_action",
             summary=text,
+            error=failure,
         )
     if isinstance(result, InventoryPlanningResult):
         return AgentOutcome(

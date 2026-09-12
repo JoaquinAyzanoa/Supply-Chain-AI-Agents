@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
 import { CASE_KINDS, CASE_STATUSES, useCases, type CaseFilters } from "./api";
+import { shortCaseId } from "./labels";
 
 export function CasesPage() {
   const { t, locale } = useI18n();
@@ -87,7 +88,7 @@ export function CasesPage() {
                 </TableCell>
                 <TableCell className="font-medium">
                   <Link to="/cases/$caseId" params={{ caseId: row.case_id }} className="text-primary underline">
-                    {row.po_name ?? row.case_id.slice(0, 12)}
+                    {row.po_name ?? shortCaseId(row.case_id)}
                   </Link>
                 </TableCell>
                 <TableCell>

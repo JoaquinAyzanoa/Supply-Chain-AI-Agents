@@ -48,6 +48,16 @@ def configure_tracing(settings: Settings) -> Langfuse:
     return _client
 
 
+def browser_trace_url(stored: str | None) -> str | None:
+    """A trace link as a browser can open it: any ``.../trace/<id>`` re-homed on ``public_url``."""
+    if not stored:
+        return None
+    marker = "/trace/"
+    if _host and marker in stored:
+        return f"{_host}{marker}{stored.split(marker, 1)[1]}"
+    return stored
+
+
 def trace_url(trace_id: str | None) -> str | None:
     """Link to the trace in the Langfuse UI (``public_url``), or ``None`` when tracing is off."""
     if not trace_id or not _host:

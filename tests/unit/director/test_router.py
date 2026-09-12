@@ -145,15 +145,13 @@ def test_approval_resolved_is_mirrored() -> None:
         )
     )
     assert decided.case_kind == "rfq" and decided.po_name == "P00015"
-    assert (
-        decided.dispatches == [] and decided.note == "approval 101 (send_email) approved by admin"
-    )
+    assert decided.dispatches == [] and decided.note == "Approval #101 (email) approved by admin"
     other = route(
         ev.OdooApprovalResolved(
             source="odoo", case_id="c", approval_id=1, kind="something_new", status="rejected"
         )
     )
-    assert other.case_kind == "inbound" and other.note == "approval 1 (something_new) rejected"
+    assert other.case_kind == "inbound" and other.note == "Approval #1 (something new) rejected"
 
 
 def test_agent_run_finished_is_recorded() -> None:

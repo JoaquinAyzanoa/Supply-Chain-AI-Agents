@@ -63,6 +63,9 @@ class SupplierCommsAgent:
         token = current_budget.set(budget)  # every model call in this run counts against it
         try:
             state = await self._graph.ainvoke(initial, run_config(task.case_id))
+        except Exception as exc:
+            await self._fail(run_id, exc, budget)
+            raise
         finally:
             current_budget.reset(token)
         return await self._finish(state, budget)
@@ -80,9 +83,22 @@ class SupplierCommsAgent:
         token = current_budget.set(budget)
         try:
             state = await self._graph.ainvoke(Command(resume=decision), config)
+        except Exception as exc:
+            await self._fail(str(snapshot.values.get("run_id") or case_id), exc, budget)
+            raise
         finally:
             current_budget.reset(token)
         return await self._finish(state, budget)
+
+    async def _fail(self, run_id: str, exc: Exception, budget: RunBudget) -> None:
+        """Close the run log as failed; the error itself still propagates to the caller."""
+        message = getattr(exc, "message", None) or str(exc) or type(exc).__name__
+        try:
+            await self._ports.finish_run(
+                run_id, status="failed", summary=str(message)[:500], usage=budget.snapshot()
+            )
+        except Exception as inner:  # the log must never hide the original failure
+            logger.bind(run_id=run_id).warning("could not mark the run failed: {}", inner)
 
     async def pending_approval_id(self, case_id: str) -> int | None:
         """The approval a paused case is waiting for; ``None`` when finished or unknown."""

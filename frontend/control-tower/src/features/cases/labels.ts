@@ -1,0 +1,39 @@
+/**
+ * Human names for the identifiers the director records on cases: event types,
+ * task kinds, agents, sources and approval kinds. Unknown values fall back to
+ * the identifier with underscores and dots spaced out, never to nothing.
+ */
+import type { MessageKey } from "@/i18n";
+
+type T = (key: MessageKey | string, values?: Record<string, string | number>) => string;
+
+export function labelFor(t: T, prefix: "event" | "task" | "agent" | "source" | "approval", value: string): string {
+  const key = `${prefix}.${value}`;
+  const label = t(key);
+  return label === key ? value.replace(/[._]/g, " ") : label;
+}
+
+/** The agent's failure document, when a result payload's error or summary carries one. */
+export function failureOf(payload: Record<string, unknown>): { message: string; details: string | null } | null {
+  const error = payload.error;
+  if (error && typeof error === "object") {
+    const doc = error as Record<string, unknown>;
+    const message = typeof doc.message === "string" ? doc.message : typeof doc.code === "string" ? doc.code : "failed";
+    return { message, details: JSON.stringify(doc, null, 2) };
+  }
+  const summary = typeof payload.summary === "string" ? payload.summary : "";
+  if (summary.startsWith("{")) {
+    try {
+      const doc = JSON.parse(summary) as Record<string, unknown>;
+      return { message: String(doc.message ?? doc.code ?? "failed"), details: JSON.stringify(doc, null, 2) };
+    } catch {
+      /* not JSON after all */
+    }
+  }
+  return null;
+}
+
+/** ``case_9077ea2d…`` is for logs; people see ``#9077ea2d``. */
+export function shortCaseId(caseId: string): string {
+  return `#${caseId.replace(/^case_/, "").slice(0, 8)}`;
+}

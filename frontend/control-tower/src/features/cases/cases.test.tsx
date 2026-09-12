@@ -38,6 +38,16 @@ const DETAIL: CaseDetail = {
     { id: 3, at: "2026-09-12T09:00:01Z", kind: "task_sent", payload: { task: "follow_up", agent: "supplier_comms", thread_id: "followup_p00015" } },
     { id: 4, at: "2026-09-12T09:00:20Z", kind: "result", payload: { status: "awaiting_approval", summary: "Reminder drafted", run_id: "run_1" } },
     { id: 5, at: "2026-09-12T09:00:21Z", kind: "approval_requested", payload: { approval_id: 7, agent: "supplier_comms" } },
+    {
+      id: 6,
+      at: "2026-09-12T09:01:00Z",
+      kind: "result",
+      payload: {
+        status: "failed",
+        summary: "inventory_planning failed: The method 'x' does not exist",
+        error: { code: "odoo_rpc_error", message: "The method 'x' does not exist", traceback: "Traceback..." },
+      },
+    },
   ],
   runs: [
     {
@@ -113,12 +123,17 @@ describe("cases", () => {
     renderAt("/cases/case_a");
     const timeline = await screen.findByRole("list", { name: "Timeline" });
     const items = within(timeline).getAllByRole("listitem");
-    expect(items).toHaveLength(5);
-    expect(items[0]).toHaveTextContent("odoo.purchase_confirmed from odoo");
+    expect(items).toHaveLength(6);
+    expect(items[0]).toHaveTextContent("Purchase order confirmed · from Odoo");
     expect(items[1]).toHaveTextContent("rfq_silent · no reply for 3 days · follow_up");
-    expect(items[2]).toHaveTextContent("follow_up sent to supplier_comms");
+    expect(items[2]).toHaveTextContent("Reminder · sent to the supplier agent");
     expect(items[3]).toHaveTextContent("Reminder drafted");
     expect(within(items[4]!).getByRole("link", { name: "approval #7" })).toHaveAttribute("href", "/?id=7");
+    expect(items[5]).toHaveTextContent("Failed: The method 'x' does not exist");
+    expect(items[5]).not.toHaveTextContent("Traceback");
+    await userEvent.click(within(items[5]!).getByRole("button", { name: "Technical details" }));
+    expect(items[5]).toHaveTextContent("odoo_rpc_error");
+    expect(screen.getByText("Case #a")).toBeInTheDocument();
     const traces = screen.getAllByRole("link", { name: "Trace" }); // the case and its run
     expect(traces).toHaveLength(2);
     expect(traces[0]).toHaveAttribute("href", "http://langfuse/trace/tr1");
