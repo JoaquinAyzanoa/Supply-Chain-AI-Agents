@@ -15,6 +15,7 @@ import os
 import sys
 
 from director.api.auth import PostgresUserStore, hash_password
+from sc_core.app.run import use_selector_loop_on_windows
 from sc_core.infra.db import Database
 from sc_core.infra.settings import Settings
 
@@ -44,6 +45,7 @@ def main(argv: list[str] | None = None) -> int:
     password = args.password or os.environ.get("SC_UI_PASSWORD")
     if not password or len(password) < 8:
         raise SystemExit("a password of at least 8 characters is required (SC_UI_PASSWORD)")
+    use_selector_loop_on_windows()  # psycopg's async pool cannot run on the Proactor loop
     asyncio.run(create(args.email, args.name, args.role, password))
     return 0
 
