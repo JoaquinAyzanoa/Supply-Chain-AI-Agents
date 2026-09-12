@@ -948,12 +948,17 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "request_eta" | "follow_up" | "hold_until" | "close_case";
+            kind: "request_eta" | "follow_up" | "hold_until" | "close_case" | "link_email";
             /**
              * Note
              * @description what to stress, or the decision to record
              */
             note?: string | null;
+            /**
+             * Po Name
+             * @description link_email: the order
+             */
+            po_name?: string | null;
             /**
              * Until
              * @description hold_until: look at the case again then

@@ -136,6 +136,7 @@ class CaseStore(Protocol):
         partner_id: int | None = None,
         agent: str | None = None,
         next_action_at: datetime | None = _UNSET,
+        po_name: str | None = None,
     ) -> Case:
         """Set the given columns (``None`` means "leave as is", except ``next_action_at``)."""
         ...
@@ -265,6 +266,7 @@ class PostgresCaseStore:
         partner_id: int | None = None,
         agent: str | None = None,
         next_action_at: datetime | None = _UNSET,
+        po_name: str | None = None,
     ) -> Case:
         sets: list[str] = ["updated_at = %s"]
         params: list[Any] = [utc_now()]
@@ -272,6 +274,7 @@ class PostgresCaseStore:
             ("status", status),
             ("summary", summary),
             ("trace_id", trace_id),
+            ("po_name", po_name),
             ("conversation_id", conversation_id),
             ("partner_id", partner_id),
             ("agent", agent),
@@ -431,6 +434,7 @@ class MemoryCaseStore:
         partner_id: int | None = None,
         agent: str | None = None,
         next_action_at: datetime | None = _UNSET,
+        po_name: str | None = None,
     ) -> Case:
         if case_id not in self.cases:
             raise KeyError(f"unknown case {case_id}")
@@ -439,6 +443,7 @@ class MemoryCaseStore:
             ("status", status),
             ("summary", summary),
             ("trace_id", trace_id),
+            ("po_name", po_name),
             ("conversation_id", conversation_id),
             ("partner_id", partner_id),
             ("agent", agent),

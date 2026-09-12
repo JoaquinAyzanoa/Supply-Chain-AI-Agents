@@ -1527,7 +1527,8 @@
               "request_eta",
               "follow_up",
               "hold_until",
-              "close_case"
+              "close_case",
+              "link_email"
             ],
             "title": "Kind",
             "type": "string"
@@ -1544,6 +1545,19 @@
             ],
             "description": "what to stress, or the decision to record",
             "title": "Note"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "link_email: the order",
+            "title": "Po Name"
           },
           "until": {
             "anyOf": [

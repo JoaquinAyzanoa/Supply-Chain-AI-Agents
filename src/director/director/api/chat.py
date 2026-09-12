@@ -42,7 +42,7 @@ from sc_core.shared.time import local_today, utc_now
 
 router = APIRouter(prefix="/cases", tags=["chat"])
 
-ActionKind = Literal["request_eta", "follow_up", "hold_until", "close_case"]
+ActionKind = Literal["request_eta", "follow_up", "hold_until", "close_case", "link_email"]
 ORDER_ACTIONS: frozenset[str] = frozenset({"request_eta", "follow_up"})
 
 
@@ -52,6 +52,7 @@ class ProposedAction(StrictModel):
         default=None, max_length=1000, description="what to stress, or the decision to record"
     )
     until: date | None = Field(default=None, description="hold_until: look at the case again then")
+    po_name: str | None = Field(default=None, max_length=32, description="link_email: the order")
     explanation: str = Field(min_length=1, max_length=500, description="what will happen")
 
 
@@ -122,6 +123,7 @@ class CaseAssistant:
             today=local_today().isoformat(),
             case=self._describe_case(case),
             order=await self._describe_order(case),
+            email=describe_email(await self._cases.events(case.case_id)),
             policy=await self._describe_policy(),
             approvals=await self._describe_approvals(case),
             timeline=self._describe_timeline(await self._cases.events(case.case_id)),
@@ -137,7 +139,7 @@ class CaseAssistant:
             name="case_assistant",
             metadata={"case_id": case.case_id},
         )
-        return _sanitize(reply, case)
+        return _sanitize(reply, case, await self._cases.events(case.case_id))
 
     def _describe_case(self, case: Case) -> str:
         parts = [f"{case.code}, kind {case.kind}, status {case.status}"]
@@ -207,7 +209,7 @@ class CaseAssistant:
         return "\n".join(lines) or "- (nothing yet)"
 
 
-def _sanitize(reply: AssistantReply, case: Case) -> AssistantReply:
+def _sanitize(reply: AssistantReply, case: Case, events: Sequence[CaseEvent]) -> AssistantReply:
     """Drop actions the case cannot take (an email about no order, a hold without a date)."""
     action = reply.action
     if action is None:
@@ -216,7 +218,42 @@ def _sanitize(reply: AssistantReply, case: Case) -> AssistantReply:
         return reply.model_copy(update={"action": None})
     if action.kind == "hold_until" and action.until is None:
         return reply.model_copy(update={"action": None})
+    if action.kind == "link_email" and (not action.po_name or unlinked_message(events) is None):
+        return reply.model_copy(update={"action": None})
     return reply
+
+
+def unlinked_message(events: Sequence[CaseEvent]) -> str | None:
+    """The Graph id of the email this case is about, when the case has one."""
+    for event in reversed(events):
+        if event.kind in ("event_received", "escalated"):
+            message_id = event.payload.get("graph_message_id") or (
+                event.payload.get("details") or {}
+            ).get("graph_message_id")
+            if message_id:
+                return str(message_id)
+    return None
+
+
+def describe_email(events: Sequence[CaseEvent]) -> str:
+    facts = next(
+        (
+            e.payload
+            for e in reversed(events)
+            if e.kind == "event_received" and e.payload.get("graph_message_id")
+        ),
+        None,
+    )
+    if not facts:
+        return "(no email on this case)"
+    sender = facts.get("sender_address") or "unknown sender"
+    link = (
+        "a person can open it in Outlook from the case"
+        if facts.get("web_link")
+        else "no Outlook link"
+    )
+    attachments = "with attachments" if facts.get("has_attachments") else "no attachments"
+    return f"from {sender}, {attachments}, {link}; its text is not stored here"
 
 
 # --- the actions ----------------------------------------------------------------------------
@@ -251,7 +288,51 @@ class ChatActions:
             )
         if action.kind == "close_case":
             return await self._close(case, action, by)
+        if action.kind == "link_email":
+            return await self._link_email(case, action, by)
         raise HTTPException(status_code=422, detail=f"unknown action {action.kind}")
+
+    async def _link_email(self, case: Case, action: ProposedAction, by: Principal) -> str:
+        assert action.po_name is not None
+        message_id = unlinked_message(await self._deps.cases.events(case.case_id))
+        if message_id is None:
+            raise HTTPException(status_code=409, detail="this case has no email to link")
+        po_name = action.po_name.strip().upper()
+        thread_id = f"chat_{new_id('t')}"
+        task = SupplierCommsTask(
+            kind="resolve_unlinked",
+            case_id=thread_id,
+            graph_message_id=message_id,
+            candidate_po_names=[po_name],
+            assigned_po_name=po_name,
+            notes=f"{by.name} assigned this email to {po_name}",
+        )
+        await self._deps.cases.update(case.case_id, po_name=po_name)
+        await self._deps.cases.add_event(
+            case.case_id,
+            "task_sent",
+            {
+                "agent": "supplier_comms",
+                "task": task.kind,
+                "thread_id": thread_id,
+                "po_name": po_name,
+                "by": by.email,
+            },
+        )
+        try:
+            reply = await self._deps.agents.for_name("supplier_comms").send(
+                task.model_dump_json(), case_id=case.case_id
+            )
+        except ScError as exc:
+            outcome = outcome_from_reply(
+                case, "supplier_comms", task.kind, thread_id, None, error=exc
+            )
+        else:
+            outcome = outcome_from_reply(case, "supplier_comms", task.kind, thread_id, reply)
+        await consolidate_outcome(
+            self._deps.cases, self._deps.escalator, self._deps.conversations, outcome
+        )
+        return f"Email linked to {po_name}: {outcome.summary}"
 
     async def _send_task(self, case: Case, action: ProposedAction, by: Principal) -> str:
         assert case.po_name is not None

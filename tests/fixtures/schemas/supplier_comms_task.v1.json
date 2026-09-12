@@ -2,6 +2,19 @@
   "additionalProperties": false,
   "description": "What the director asks the supplier communications agent to do.",
   "properties": {
+    "assigned_po_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "resolve_unlinked: a person named the order; link it without asking the model",
+      "title": "Assigned Po Name"
+    },
     "candidate_po_names": {
       "description": "resolve_unlinked: orders the sender may refer to",
       "items": {

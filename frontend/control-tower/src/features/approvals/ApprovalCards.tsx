@@ -208,10 +208,28 @@ function detailLabel(t: (key: string) => string, key: string): string {
 
 export function EscalationCard({ payload, caseCode }: { payload: EscalationPayload; caseCode?: string | null }) {
   const { t } = useI18n();
-  const details = Object.entries(payload.details).filter(([, v]) => v !== null && v !== "" && v !== undefined);
+  const emailLink = payload.web_link ?? (typeof payload.details.web_link === "string" ? payload.details.web_link : null);
+  const sender = typeof payload.details.sender_address === "string" ? payload.details.sender_address : null;
+  const details = Object.entries(payload.details).filter(
+    ([k, v]) => v !== null && v !== "" && v !== undefined && !["web_link", "graph_message_id", "conversation_id", "sender_address", "has_attachments"].includes(k),
+  );
   return (
     <div className="flex flex-col gap-3 text-sm">
       <p className="whitespace-pre-line">{payload.reason}</p>
+      {sender || emailLink ? (
+        <p>
+          <span className="text-muted-foreground">{t("approvals.escalation.email")}: </span>
+          {sender ?? ""}
+          {emailLink ? (
+            <>
+              {sender ? " · " : ""}
+              <a href={emailLink} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                {t("approvals.escalation.open_email")}
+              </a>
+            </>
+          ) : null}
+        </p>
+      ) : null}
       {details.length ? (
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
           {details.map(([key, value]) => (

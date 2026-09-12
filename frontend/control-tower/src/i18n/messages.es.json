@@ -319,5 +319,10 @@
   "chat.action.follow_up": "Enviar un recordatorio al proveedor",
   "chat.action.hold_until": "Poner el caso en espera hasta una fecha",
   "chat.action.close_case": "Cerrar el caso",
-  "cases.event.chat": "Conversación"
+  "cases.event.chat": "Conversación",
+  "chat.action.link_email": "Vincular el correo a una orden",
+  "cases.line.email": "de {sender}",
+  "cases.line.open_email": "Abrir el correo en Outlook",
+  "approvals.escalation.email": "El correo",
+  "approvals.escalation.open_email": "Abrir el correo en Outlook"
 }

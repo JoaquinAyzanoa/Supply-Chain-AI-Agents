@@ -319,5 +319,10 @@
   "chat.action.follow_up": "Send the supplier a reminder",
   "chat.action.hold_until": "Hold the case until a date",
   "chat.action.close_case": "Close the case",
-  "cases.event.chat": "Conversation"
+  "cases.event.chat": "Conversation",
+  "chat.action.link_email": "Link the email to an order",
+  "cases.line.email": "from {sender}",
+  "cases.line.open_email": "Open the email in Outlook",
+  "approvals.escalation.email": "The email",
+  "approvals.escalation.open_email": "Open the email in Outlook"
 }

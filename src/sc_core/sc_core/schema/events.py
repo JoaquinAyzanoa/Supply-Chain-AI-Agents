@@ -68,6 +68,7 @@ class InboundMailUnlinked(BaseEvent):
     partner_id: int | None = None
     open_po_names: list[str] = []
     has_attachments: bool = False
+    web_link: str | None = Field(default=None, description="where a person opens it in Outlook")
 
 
 class ScheduledTick(BaseEvent):

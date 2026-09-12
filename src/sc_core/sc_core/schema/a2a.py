@@ -42,6 +42,10 @@ class SupplierCommsTask(StrictModel):
     candidate_po_names: list[str] = Field(
         default_factory=list, description="resolve_unlinked: orders the sender may refer to"
     )
+    assigned_po_name: str | None = Field(
+        default=None,
+        description="resolve_unlinked: a person named the order; link it without asking the model",
+    )
 
     @model_validator(mode="after")
     def _required_by_kind(self) -> SupplierCommsTask:

@@ -96,6 +96,7 @@ export const escalationPayload = z
     po_name: z.string().nullish(),
     trace_url: z.string().nullish(),
     history: z.array(z.string()).default([]),
+    web_link: z.string().nullish(),
   })
   .loose();
 export type EscalationPayload = z.infer<typeof escalationPayload>;

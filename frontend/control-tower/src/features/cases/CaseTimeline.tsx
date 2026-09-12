@@ -95,6 +95,15 @@ function EventLine({ event }: { event: CaseEvent }) {
             type: labelFor(t, "event", text("event_type")),
             source: labelFor(t, "source", text("source")),
           })}
+          {text("sender_address") ? ` · ${t("cases.line.email", { sender: text("sender_address") })}` : ""}
+          {text("web_link") ? (
+            <>
+              {" · "}
+              <a href={text("web_link")} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+                {t("cases.line.open_email")}
+              </a>
+            </>
+          ) : null}
         </p>
       );
     case "rule_fired":

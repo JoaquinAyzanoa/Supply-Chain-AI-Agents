@@ -172,6 +172,7 @@ class SyncRunner:
                 partner_id=outcome.hint.partner_id,
                 open_po_names=outcome.hint.open_po_names,
                 has_attachments=message.has_attachments,
+                web_link=message.web_link,
             )
         )
         await self._state.mark_processed(message.id, outcome="unlinked", case_id=case_id)

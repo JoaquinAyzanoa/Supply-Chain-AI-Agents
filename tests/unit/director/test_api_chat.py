@@ -284,3 +284,55 @@ async def test_actions_that_need_an_order_are_dropped_and_dismiss_works(
         ).status_code
         == 409
     )
+
+
+async def test_an_unmatched_email_can_be_linked_to_an_order_from_the_chat(
+    client: TestClient,
+    module: MemoryDirectorModule,
+    chat: ScriptedChatClient,
+    supplier: FakeAgentCaller,
+) -> None:
+    await _users(module)
+    case, _ = await module.cases.attach_or_create(kind="unlinked", po_name=None)
+    await module.cases.add_event(
+        case.case_id,
+        "event_received",
+        {
+            "event_type": "inbound_mail.unlinked",
+            "source": "mail_sync",
+            "graph_message_id": "AAMk1",
+            "sender_address": "ventas@x.com",
+            "web_link": "https://outlook/x",
+        },
+    )
+    approver = _token(client, "ana@x.com")
+    chat.responses.append(
+        AssistantReply(
+            reply="I will link it to P00068 and read it.",
+            action=ProposedAction(
+                kind="link_email", po_name="p00068", explanation="Link the email to P00068."
+            ),
+        )
+    )
+    turn = client.post(
+        f"/api/cases/{case.case_id}/chat", json={"text": "this is for P00068"}, headers=approver
+    )
+    proposed = turn.json()["messages"][1]
+    assert proposed["action"]["kind"] == "link_email"
+    assert "from ventas@x.com" in chat.last_prompt_text()
+    supplier.replies.append(
+        agent_reply(
+            "resolve_unlinked", "chat_x", "no_action", "email read: nothing new", po_name="P00068"
+        )
+    )
+    done = client.post(f"/api/cases/{case.case_id}/chat/{proposed['id']}/confirm", headers=approver)
+    assert done.status_code == 200 and done.json()["messages"][0]["text"].startswith(
+        "Email linked to P00068"
+    )
+    [sent] = supplier.sent
+    assert (
+        '"assigned_po_name":"P00068"' in sent.task_json
+        and '"graph_message_id":"AAMk1"' in sent.task_json
+    )
+    updated = await module.cases.get(case.case_id)
+    assert updated is not None and updated.po_name == "P00068"

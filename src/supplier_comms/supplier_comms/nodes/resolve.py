@@ -22,7 +22,7 @@ from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter, complete_structured, system, user
 from sc_core.prompts import get_prompt
 from supplier_comms.models import InboundMeta, PoContext, UnlinkedResolution
-from supplier_comms.nodes.common import finish, task_of
+from supplier_comms.nodes.common import fail, finish, task_of
 from supplier_comms.ports import AgentPorts
 from supplier_comms.render import lines_table
 from supplier_comms.state import Node
@@ -44,6 +44,20 @@ def make_resolve_unlinked(
         task = task_of(state)
         assert task.graph_message_id is not None
         meta = InboundMeta.model_validate(state["inbound_meta"])
+        if task.assigned_po_name:  # a person already decided: link and read the mail as usual
+            assigned = await ports.load_po(task.assigned_po_name)
+            if assigned is None:
+                return fail(f"order {task.assigned_po_name} not found in Odoo")
+            await ports.link_inbound(assigned.id, meta, case_id=state["case_id"])
+            logger.bind(po_name=assigned.name).info("unlinked mail assigned by a person")
+            decided = UnlinkedResolution(
+                po_name=assigned.name, confidence=1.0, reason="assigned by a person"
+            )
+            return {
+                "task": {**state["task"], "po_name": assigned.name},
+                "chosen_po_name": assigned.name,
+                "resolution": decided.model_dump(mode="json"),
+            }
         candidates = await _candidates(ports, task.candidate_po_names, meta)
         text = state.get("inbound_text") or ""
 

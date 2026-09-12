@@ -318,7 +318,7 @@ class ConsolidateExecutor(Executor):
     async def record(self, item: RecordOnly, ctx: WorkflowContext[Any, CaseUpdate]) -> None:
         cases, case, decided = self._deps.cases, item.case, item.route
         if decided.escalate:
-            status = await self._escalate(case, reason=decided.escalate, details={})
+            status = await self._escalate(case, reason=decided.escalate, details=decided.details)
             await ctx.yield_output(
                 CaseUpdate(case_id=case.case_id, status=status, kind="escalated")
             )
@@ -399,6 +399,27 @@ async def escalate_case(
     )
     updated = await cases.update(case.case_id, status="escalated", summary=escalation.summary)
     return updated.status
+
+
+EVENT_FACT_FIELDS = (
+    "po_name",
+    "graph_message_id",
+    "sender_address",
+    "web_link",
+    "has_attachments",
+    "approval_id",
+    "run_id",
+    "job_id",
+)
+
+
+def event_facts(event: BaseEvent) -> dict[str, Any]:
+    """The identifiers on an event worth keeping on the case (never message content)."""
+    return {
+        name: value
+        for name in EVENT_FACT_FIELDS
+        if (value := getattr(event, name, None)) is not None
+    }
 
 
 async def consolidate_outcome(
@@ -589,7 +610,12 @@ class Orchestrator:
         await self._deps.cases.add_event(
             case.case_id,
             "event_received",
-            {"event_id": event.event_id, "event_type": event.type, "source": event.source},
+            {
+                "event_id": event.event_id,
+                "event_type": event.type,
+                "source": event.source,
+                **event_facts(event),
+            },
         )
         if decided.snapshot:
             await self._deps.cases.add_event(case.case_id, "promise", decided.snapshot)

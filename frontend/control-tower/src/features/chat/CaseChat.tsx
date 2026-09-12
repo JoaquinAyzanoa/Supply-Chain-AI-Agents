@@ -157,6 +157,7 @@ function Bubble({
             {message.action_status === "dismissed" ? <Badge variant="secondary">{t("chat.dismissed")}</Badge> : null}
           </div>
           <p>{message.action.explanation}</p>
+          {message.action.po_name ? <p className="font-medium">{message.action.po_name}</p> : null}
           {message.action.until ? <p className="text-muted-foreground">{formatDate(message.action.until, locale)}</p> : null}
           {canDecide ? (
             <div className="mt-2 flex gap-2">
