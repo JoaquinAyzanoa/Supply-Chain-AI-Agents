@@ -186,6 +186,21 @@ mail-check:
     {{UV}} run python -m sc_core.mail.cli check
 
 # --------------------------------------------------------------------
+# Mail sync and scheduler
+
+# Run one inbox sync from the host with the same wiring as the service
+sync-once:
+    {{UV}} run --package mail_sync python -m mail_sync.cli sync-once
+
+# Ask the running scheduler to fire the mail sync job now (POST /jobs/mail_sync/run-now)
+sync-now:
+    {{UV}} run python scripts/run_job.py mail_sync
+
+# Fire any scheduler job by id (mail_sync, po_followups, inventory_planning, supplier_performance)
+run-job job="mail_sync":
+    {{UV}} run python scripts/run_job.py {{job}}
+
+# --------------------------------------------------------------------
 # Packaging & cleaning
 
 # Build wheels for every member into dist/
