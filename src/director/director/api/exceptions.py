@@ -100,7 +100,7 @@ async def build_board(
             "next_action": action,
             "next_action_at": step.due if step else None,
             "can_act": not fact.awaiting_human,
-            "odoo_url": record_url(settings.odoo.url, "purchase.order", fact.po_id),
+            "odoo_url": record_url(settings.odoo.browser_url, "purchase.order", fact.po_id),
         }
         open_cases = await cases.open_for_po(fact.po_name)
         if open_cases:
@@ -171,7 +171,7 @@ async def build_board(
                 approval_id=approval.id,
                 days=days,
                 next_action="expires" if approval.kind != "escalation" else "reminder",
-                odoo_url=record_url(settings.odoo.url, "sc.approval", approval.id),
+                odoo_url=record_url(settings.odoo.browser_url, "sc.approval", approval.id),
             )
         )
     return ExceptionsBoard(

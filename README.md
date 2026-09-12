@@ -355,8 +355,10 @@ default is English. Sessions are JWTs from `POST /api/auth/login`
 (`SC__UI__JWT_SECRET`, falling back to the events secret; TTL
 `SC__UI__JWT_TTL_MINUTES`). Live updates come over `GET /api/stream`
 (Server-Sent Events through Redis pub/sub), so screens refetch on change
-instead of polling. CI regenerates the client from the director's OpenAPI
-document and fails on drift.
+instead of polling. Links to Odoo and Langfuse use `SC__ODOO__PUBLIC_URL`
+and `SC__LANGFUSE__PUBLIC_URL` (what a browser can reach; compose sets
+them to `localhost`), not the in-network service URLs. CI regenerates the
+client from the director's OpenAPI document and fails on drift.
 
 ## Demo dataset
 

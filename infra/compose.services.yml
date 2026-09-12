@@ -17,8 +17,10 @@ services:
       SC__APP_DB__DSN: postgresql://app:app@app-db:5432/app
       SC__REDIS__DSN: redis://redis:6379/0
       SC__ODOO__URL: http://odoo:8069
+      SC__ODOO__PUBLIC_URL: http://localhost:${SC_ODOO_PORT:-8069}
       SC__EVENTS__DIRECTOR_URL: http://director:8000
       SC__LANGFUSE__HOST: http://langfuse-web:3000
+      SC__LANGFUSE__PUBLIC_URL: http://localhost:${SC_LANGFUSE_PORT:-3000}
     ports:
       - "${SC_MAIL_SYNC_PORT:-8011}:8000"
     depends_on:
@@ -50,6 +52,7 @@ services:
       SC__EVENTS__DIRECTOR_URL: http://director:8000
       SC__MAIL_SYNC__URL: http://mail_sync:8000
       SC__LANGFUSE__HOST: http://langfuse-web:3000
+      SC__LANGFUSE__PUBLIC_URL: http://localhost:${SC_LANGFUSE_PORT:-3000}
     ports:
       - "${SC_SCHEDULER_PORT:-8012}:8000"
     depends_on:

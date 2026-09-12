@@ -171,8 +171,8 @@ async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore
     why = await _why(cases, case.case_id) if case else None
     trace_id = case.trace_id if case else None
     links = ApprovalLinks(
-        odoo=record_url(settings.odoo.url, "sc.approval", approval.id),
-        order=record_url(settings.odoo.url, "purchase.order", approval.po_id.id)
+        odoo=record_url(settings.odoo.browser_url, "sc.approval", approval.id),
+        order=record_url(settings.odoo.browser_url, "purchase.order", approval.po_id.id)
         if approval.po_id
         else None,
         outlook=payload.get("web_link"),

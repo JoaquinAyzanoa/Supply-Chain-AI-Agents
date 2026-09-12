@@ -81,3 +81,18 @@ async def test_memory_reader_counts_reads() -> None:
     assert (await reader.current()).auto_send_partner_ids == [1]
     reader.set(RuntimeSettings(auto_send_partner_ids=[2]))
     assert (await reader.current()).auto_send_partner_ids == [2] and reader.reads == 2
+
+
+def test_browser_urls_default_to_the_service_urls() -> None:
+    inside = Settings(
+        _env_file=None,
+        service_name="t",
+        environment="test",
+        odoo={"url": "http://odoo:8069", "public_url": "http://localhost:8069/"},
+        langfuse={"host": "http://langfuse-web:3000", "public_url": "http://localhost:3000"},
+    )
+    assert inside.odoo.browser_url == "http://localhost:8069"
+    assert inside.langfuse.browser_url == "http://localhost:3000"
+    plain = Settings(_env_file=None, service_name="t", environment="test")
+    assert plain.odoo.browser_url == plain.odoo.url.rstrip("/")
+    assert plain.langfuse.browser_url == plain.langfuse.host
