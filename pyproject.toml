@@ -47,6 +47,7 @@ markers = [
 ]
 filterwarnings = [
   "ignore::DeprecationWarning:testcontainers.*",
+  'ignore:label\(\) is deprecated:DeprecationWarning',  # a2a-sdk protobuf validation
 ]
 
 [tool.ruff]

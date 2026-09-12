@@ -179,6 +179,17 @@ class SchedulerCfg(_Section):
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 
+class A2aCfg(_Section):
+    """Agent-to-agent calls (director -> agents). Bearer token on every call.
+
+    ``token`` empty means "use SC__EVENTS__SIGNING_SECRET", so one secret is
+    enough on a laptop; production sets a distinct token.
+    """
+
+    token: SecretStr = SecretStr("")
+    timeout_seconds: float = Field(default=300.0, gt=0)  # a graph run may take a while
+
+
 class AgentsCfg(_Section):
     """Shared by every LangGraph agent: who approves and how long they get."""
 
@@ -232,6 +243,11 @@ class Settings(BaseSettings):
     mail_sync: MailSyncCfg = Field(default_factory=MailSyncCfg)
     scheduler: SchedulerCfg = Field(default_factory=SchedulerCfg)
     agents: AgentsCfg = Field(default_factory=AgentsCfg)
+    a2a: A2aCfg = Field(default_factory=A2aCfg)
+
+    @property
+    def a2a_token(self) -> str:
+        return self.a2a.token.get_secret_value() or self.events.signing_secret.get_secret_value()
 
     def __init__(self, **values: Any) -> None:
         # pydantic-settings reads .env only for its own SC__ fields. Provider API

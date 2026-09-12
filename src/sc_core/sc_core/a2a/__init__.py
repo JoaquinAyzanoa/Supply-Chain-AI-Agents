@@ -1,6 +1,24 @@
 """Service-to-service plumbing.
 
-Phase 4 adds signed events (``events``): producers POST typed events to the
-director with an HMAC signature; the director verifies it before parsing.
-Phase 5 adds the A2A server and client helpers next to it.
+- ``events``: signed events from mail_sync, scheduler and Odoo to the director.
+- ``protocol``, ``server``, ``client``, ``trace``: agents exposed over A2A
+  (a2a-sdk 1.x on FastAPI) with bearer auth and Langfuse trace propagation.
+- ``testing``: doubles for callers and an in-process client.
 """
+
+from sc_core.a2a.client import A2AClient, AgentCaller
+from sc_core.a2a.protocol import AgentReply, AgentSpec, Skill, TaskHandler
+from sc_core.a2a.server import mount
+from sc_core.a2a.trace import propagate_from_metadata, trace_metadata
+
+__all__ = [
+    "A2AClient",
+    "AgentCaller",
+    "AgentReply",
+    "AgentSpec",
+    "Skill",
+    "TaskHandler",
+    "mount",
+    "propagate_from_metadata",
+    "trace_metadata",
+]
