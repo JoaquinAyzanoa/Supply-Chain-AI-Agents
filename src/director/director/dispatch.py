@@ -1,11 +1,9 @@
-"""Phase 5 stub routing: mail events go to the supplier communications agent.
+"""Interim dispatch: the routing table decides, the agent is called over A2A.
 
-``InboundMailLinked`` becomes a ``handle_inbound`` task and
-``InboundMailUnlinked`` a ``resolve_unlinked`` task, sent over A2A with the
-event's case id so the agent's spans nest under the mail_sync trace. The
-agent's reply is stored on the inbox row. Phase 6 replaces this with the
-routing table and the Microsoft Agent Framework workflow; the call shape
-stays.
+The tasks the router produces are sent with the event's case id so the
+agent's spans nest under the producer's trace, and the agent's reply is
+stored on the inbox row. The Microsoft Agent Framework workflow (P6-S3)
+replaces this class; the routing table stays.
 """
 
 from __future__ import annotations
@@ -15,11 +13,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from loguru import logger
 
+from director.router import Dispatch, UnroutableEvent, route
 from sc_core.a2a.client import AgentCaller
 from sc_core.infra import tracing
 from sc_core.infra.db import Database
-from sc_core.schema.a2a import SupplierCommsTask
-from sc_core.schema.events import BaseEvent, InboundMailLinked, InboundMailUnlinked
+from sc_core.schema.events import BaseEvent
 from sc_core.shared.errors import ScError
 
 
@@ -47,22 +45,13 @@ class MemoryEventResults:
         self.results[event_id] = result
 
 
-def task_for(event: BaseEvent) -> SupplierCommsTask | None:
-    if isinstance(event, InboundMailLinked):
-        return SupplierCommsTask(
-            kind="handle_inbound",
-            case_id=event.case_id,
-            po_name=event.po_name,
-            graph_message_id=event.graph_message_id,
-        )
-    if isinstance(event, InboundMailUnlinked):
-        return SupplierCommsTask(
-            kind="resolve_unlinked",
-            case_id=event.case_id,
-            graph_message_id=event.graph_message_id,
-            candidate_po_names=list(event.open_po_names),
-        )
-    return None
+def task_for(event: BaseEvent) -> Dispatch | None:
+    """The first agent task the router produces for ``event``, if any."""
+    try:
+        decided = route(event)
+    except UnroutableEvent:
+        return None
+    return decided.dispatches[0] if decided.dispatches else None
 
 
 class Dispatcher:
@@ -71,9 +60,10 @@ class Dispatcher:
         self._results = results
 
     async def dispatch(self, event: BaseEvent) -> dict[str, Any] | None:
-        task = task_for(event)
-        if task is None:
+        dispatch = task_for(event)
+        if dispatch is None:
             return None
+        task = dispatch.task
         log = logger.bind(event_id=event.event_id, case_id=event.case_id, kind=task.kind)
         try:
             if event.trace_id:

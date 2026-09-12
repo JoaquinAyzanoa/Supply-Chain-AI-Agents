@@ -6,8 +6,14 @@ import pytest
 from pydantic import ValidationError
 
 from sc_core.schema.events import (
+    EVENT_TYPES,
+    AgentRunFinished,
     InboundMailLinked,
     InboundMailUnlinked,
+    OdooApprovalResolved,
+    OdooOrderpointTriggered,
+    OdooPurchaseConfirmed,
+    OdooReceiptValidated,
     ScheduledTick,
     event_id_for,
     parse_event,
@@ -35,7 +41,31 @@ def test_parse_each_type_roundtrip() -> None:
         run_id="run_1",
         scheduled_at=utc_now(),
     )
-    for event in (linked, unlinked, tick):
+    confirmed = OdooPurchaseConfirmed(
+        source="odoo", case_id="odoo_po_1", po_id=1, po_name="P00001", partner_id=3
+    )
+    receipt = OdooReceiptValidated(
+        source="odoo", case_id="odoo_pick_1", picking_id=1, picking_name="WH/IN/00001"
+    )
+    orderpoint = OdooOrderpointTriggered(
+        source="odoo", case_id="odoo_op_1", orderpoint_id=1, product_id=2, qty_to_order=5
+    )
+    resolved = OdooApprovalResolved(
+        source="odoo", case_id="odoo_appr_1", approval_id=1, kind="send_email", status="approved"
+    )
+    finished = AgentRunFinished(
+        source="supplier_comms",
+        case_id="case_1",
+        agent="supplier_comms",
+        thread_id="case_1",
+        run_id="run_1",
+        task_kind="send_rfq",
+        status="sent",
+        summary="RFQ sent",
+    )
+    events = (linked, unlinked, tick, confirmed, receipt, orderpoint, resolved, finished)
+    assert {type(e) for e in events} == set(EVENT_TYPES)
+    for event in events:
         parsed = parse_event(event.model_dump_json())
         assert parsed == event and type(parsed) is type(event)
         assert parse_event(event.model_dump(mode="json")) == event
