@@ -157,6 +157,10 @@ odoo-upgrade module="sc_agents":
 odoo-apikey login="sc_agent_bot":
     {{UV}} run python scripts/odoo_apikey.py --login {{login}} --db {{ODOO_DB}}
 
+# Create the demo supplier (Proveedor Hidraulica) and an open RFQ for it in the local Odoo
+odoo-demo-supplier:
+    {{UV}} run python scripts/odoo_demo_supplier.py
+
 # Re-record the Odoo response cassettes (tests/fixtures/odoo) from the live container
 odoo-record:
     {{UV}} run python scripts/odoo_record.py

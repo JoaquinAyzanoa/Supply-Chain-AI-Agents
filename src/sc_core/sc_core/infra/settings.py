@@ -198,6 +198,8 @@ class A2aCfg(_Section):
 
     token: SecretStr = SecretStr("")
     timeout_seconds: float = Field(default=300.0, gt=0)  # a graph run may take a while
+    # Where the director reaches each agent (inside compose: http://<service>:8000).
+    supplier_comms_url: str = "http://localhost:8013"
 
 
 class AgentsCfg(_Section):

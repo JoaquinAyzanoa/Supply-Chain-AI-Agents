@@ -2136,6 +2136,9 @@ name = "supplier-comms"
 version = "0.1.0"
 source = { editable = "src/supplier_comms" }
 dependencies = [
+    { name = "fastapi" },
+    { name = "fastapi-injector" },
+    { name = "injector" },
     { name = "langgraph" },
     { name = "loguru" },
     { name = "pydantic" },
@@ -2144,6 +2147,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "fastapi-injector", specifier = ">=0.8.0" },
+    { name = "injector", specifier = ">=0.22.0" },
     { name = "langgraph", specifier = ">=1.2,<2" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic", specifier = ">=2.11.0" },

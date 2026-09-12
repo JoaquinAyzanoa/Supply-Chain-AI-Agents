@@ -50,15 +50,16 @@ def make_agent(
             approver_user_id=2,
             deadline_days=2,
         )
-        deps = Deps(
-            ports=ports,
-            chat=chat,
-            approvals=gateway,
-            langfuse=LangfuseCfg(enabled=False),
-            today=lambda: date(2026, 9, 12),
-            sleep=_no_sleep,
-            **overrides,
-        )
+        kwargs: dict[str, Any] = {
+            "ports": ports,
+            "chat": chat,
+            "approvals": gateway,
+            "langfuse": LangfuseCfg(enabled=False),
+            "today": lambda: date(2026, 9, 12),
+            "sleep": _no_sleep,
+        }
+        kwargs.update(overrides)
+        deps = Deps(**kwargs)
         return SupplierCommsAgent(
             build_graph(deps, memory_checkpointer()), model="fake-model", ports=ports
         )
