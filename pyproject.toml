@@ -47,6 +47,7 @@ markers = [
 ]
 filterwarnings = [
   "ignore::DeprecationWarning:testcontainers.*",
+  'ignore:label\(\) is deprecated:DeprecationWarning',  # a2a-sdk protobuf validation
 ]
 
 [tool.ruff]
@@ -69,7 +70,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["sc_core", "director", "mail_sync", "scheduler"]
+known-first-party = ["sc_core", "director", "mail_sync", "scheduler", "supplier_comms"]
 
 [tool.ruff.lint.per-file-ignores]
 # Odoo addons follow Odoo conventions: relative imports and star-less module inits.

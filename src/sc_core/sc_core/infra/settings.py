@@ -179,6 +179,37 @@ class SchedulerCfg(_Section):
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 
+class SupplierCommsCfg(_Section):
+    """The supplier communications agent."""
+
+    # How Odoo reaches this agent for approval callbacks (inside compose: http://supplier_comms:8000).
+    public_url: str = "http://localhost:8013"
+    # Odoo partner ids whose emails go out without a human approval. Default: nobody.
+    auto_send_partner_ids: list[int] = []
+    max_attachment_chars: int = Field(default=12_000, ge=0)
+
+
+class A2aCfg(_Section):
+    """Agent-to-agent calls (director -> agents). Bearer token on every call.
+
+    ``token`` empty means "use SC__EVENTS__SIGNING_SECRET", so one secret is
+    enough on a laptop; production sets a distinct token.
+    """
+
+    token: SecretStr = SecretStr("")
+    timeout_seconds: float = Field(default=300.0, gt=0)  # a graph run may take a while
+    # Where the director reaches each agent (inside compose: http://<service>:8000).
+    supplier_comms_url: str = "http://localhost:8013"
+
+
+class AgentsCfg(_Section):
+    """Shared by every LangGraph agent: who approves and how long they get."""
+
+    approver_user_id: int = Field(default=2, ge=1)  # Odoo demo: 2 = Administrator
+    approval_deadline_days: int = Field(default=2, ge=0)
+    max_tool_rounds: int = Field(default=6, ge=1)  # model <-> tools loop cap per node
+
+
 class HttpCfg(_Section):
     """HTTP server and middleware settings shared by every service."""
 
@@ -223,6 +254,13 @@ class Settings(BaseSettings):
     events: EventsCfg = Field(default_factory=EventsCfg)
     mail_sync: MailSyncCfg = Field(default_factory=MailSyncCfg)
     scheduler: SchedulerCfg = Field(default_factory=SchedulerCfg)
+    agents: AgentsCfg = Field(default_factory=AgentsCfg)
+    a2a: A2aCfg = Field(default_factory=A2aCfg)
+    supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
+
+    @property
+    def a2a_token(self) -> str:
+        return self.a2a.token.get_secret_value() or self.events.signing_secret.get_secret_value()
 
     def __init__(self, **values: Any) -> None:
         # pydantic-settings reads .env only for its own SC__ fields. Provider API

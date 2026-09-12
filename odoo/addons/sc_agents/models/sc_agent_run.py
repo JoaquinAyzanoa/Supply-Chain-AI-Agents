@@ -9,6 +9,7 @@ RUN_STATUSES = [
     ("awaiting_approval", "Awaiting approval"),
     ("rejected", "Rejected"),
     ("no_action", "No action"),
+    ("escalated", "Escalated to a person"),
     ("failed", "Failed"),
 ]
 

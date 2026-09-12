@@ -1,0 +1,136 @@
+"""Outbound flow: draft with a tool call -> approval -> send / reject / auto-send / failures."""
+
+from __future__ import annotations
+
+from typing import Any
+
+from sc_core.llm.testing import ScriptedChatClient, tool_call_result
+from sc_core.schema.a2a import SupplierCommsTask
+from supplier_comms.models import DraftOutput
+from supplier_comms.testing import SUPPLIER_EMAIL, FakePorts, demo_context
+from tests.unit.graph.toy import FakeApprovalPorts
+
+DRAFT = DraftOutput(
+    subject="Solicitud de cotización",
+    html_body="<p>Estimados, solicitamos cotización de la orden.</p><p>Equipo de Compras</p>",
+)
+
+
+def _script_draft(chat: ScriptedChatClient) -> None:
+    chat.responses.extend(
+        [
+            tool_call_result("get_po_lines", {"po_name": "P00015"}),
+            "Tengo las líneas; redacto el correo.",
+            DRAFT,
+        ]
+    )
+
+
+async def test_send_rfq_pauses_on_approval_then_sends(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
+) -> None:
+    _script_draft(chat)
+    agent = make_agent()
+    task = SupplierCommsTask(kind="send_rfq", case_id="case_rfq", po_name="P00015")
+
+    paused = await agent.run(task)
+    assert paused.status == "awaiting_approval" and paused.outcome.approval_id == 101
+    assert paused.outbound is not None and paused.outbound.draft_id == "draft1"
+    assert paused.outbound.subject == "[P00015] Solicitud de cotización"
+    assert paused.outbound.to == [SUPPLIER_EMAIL]
+
+    # the model was asked with tools, the tool ran, then the structured final call
+    assert (
+        chat.calls[0].options["tools"] and chat.calls[2].options["response_format"] == "DraftOutput"
+    )
+    assert "Bomba" in chat.last_prompt_text()  # tool result reached the model
+    # draft exists in Outlook with token and headers; the approval carries the full body
+    draft = ports.drafts["draft1"]
+    assert (
+        draft.subject == "[P00015] Solicitud de cotización" and draft.headers["x-sc-po"] == "P00015"
+    )
+    assert draft.headers["x-sc-case"] == "case_rfq"
+    payload = approval_ports.created[0]["payload"]
+    assert payload["html_body"] == DRAFT.html_body and payload["draft_id"] == "draft1"
+    assert (
+        approval_ports.created[0]["kind"] == "send_email"
+        and approval_ports.created[0]["po_id"] == 7
+    )
+    assert ports.sent_ids == []
+
+    sent = await agent.resume(
+        "case_rfq", {"approval_id": 101, "status": "approved", "resolved_by": "ana"}
+    )
+    assert sent.status == "sent" and sent.run_id == paused.run_id
+    assert ports.sent_ids == ["draft1"]
+    assert ports.outbound_records[0]["po_name"] == "P00015"
+    assert ports.outbound_records[0]["graph_message_id"] == "sent1"  # the sent copy, not the draft
+    assert ports.links[0] == {
+        "po_id": 7,
+        "graph_message_id": "sent1",
+        "direction": "out",
+        "case_id": "case_rfq",
+    }
+    assert "Abrir en Outlook" in ports.notes[-1][1]
+    assert sent.outbound is not None and sent.outbound.sent_message_id == "sent1"
+    assert len(approval_ports.created) == 1  # no second approval on resume
+
+
+async def test_reject_sends_nothing(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    _script_draft(chat)
+    agent = make_agent()
+    await agent.run(
+        SupplierCommsTask(kind="follow_up", case_id="c2", po_name="P00015", days_silent=4)
+    )
+    result = await agent.resume(
+        "c2", {"approval_id": 101, "status": "rejected", "reason": "esperar"}
+    )
+    assert result.status == "rejected" and "esperar" in result.outcome.summary
+    assert ports.sent_ids == [] and ports.links == []
+    assert "rechazado" in ports.notes[-1][1]
+    assert "Días sin respuesta del proveedor: 4" in chat.calls[0].messages[1]["contents"][0]["text"]
+
+
+async def test_auto_send_partner_skips_approval(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
+) -> None:
+    _script_draft(chat)
+    agent = make_agent(auto_send_partner_ids=frozenset({42}))
+    result = await agent.run(SupplierCommsTask(kind="request_eta", case_id="c3", po_name="P00015"))
+    assert result.status == "sent" and approval_ports.created == []
+    assert ports.sent_ids == ["draft1"]
+
+
+async def test_resume_after_finish_is_idempotent(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    _script_draft(chat)
+    agent = make_agent(auto_send_partner_ids=frozenset({42}))
+    first = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c4", po_name="P00015"))
+    again = await agent.resume("c4", {"approval_id": 0, "status": "approved"})
+    assert again.status == first.status == "sent" and ports.sent_ids == ["draft1"]
+
+
+async def test_unknown_po_and_supplier_without_email_fail_cleanly(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    agent = make_agent()
+    missing = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c5", po_name="P09999"))
+    assert missing.status == "failed" and "not found" in missing.outcome.summary
+    ports.contexts["P00016"] = demo_context(emails=[], name="P00016")
+    no_email = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c6", po_name="P00016"))
+    assert no_email.status == "failed" and "no email" in no_email.outcome.summary
+    assert chat.calls == []  # no model call without a recipient
+
+
+async def test_sent_copy_lookup_retries_then_falls_back(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    _script_draft(chat)
+    ports.find_sent_misses = 99
+    agent = make_agent(auto_send_partner_ids=frozenset({42}))
+    result = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c7", po_name="P00015"))
+    assert result.status == "sent"
+    assert ports.outbound_records[0]["graph_message_id"] == "draft1"  # fell back to the draft ids

@@ -273,7 +273,7 @@ async def test_approval_create_payload(odoo: ScriptedOdoo, client_factory: Facto
 async def test_approval_requires_target(client_factory: Factory) -> None:
     with pytest.raises(ValidationFailed):
         await ApprovalRepo(client_factory()).create(
-            kind="escalation", summary="x", payload={}, requested_by="a", case_id="c"
+            kind="po_change", summary="x", payload={}, requested_by="a", case_id="c"
         )
 
 

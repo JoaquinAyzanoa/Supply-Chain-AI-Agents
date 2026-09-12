@@ -21,7 +21,7 @@ from collections.abc import Sequence
 from typing import Any, Protocol, cast
 
 import openai
-from agent_framework import ChatResponse, Message
+from agent_framework import ChatResponse, Content, Message
 from agent_framework.openai import OpenAIChatCompletionClient
 from loguru import logger
 from pydantic import BaseModel
@@ -57,6 +57,16 @@ class ChatResult(StrictModel):
     usage: Usage
     cost_usd: float
     duration_ms: float
+
+    @property
+    def tool_calls(self) -> list[dict[str, Any]]:
+        """Function calls the model asked for: ``{call_id, name, arguments}`` dicts."""
+        return [
+            {"call_id": c["call_id"], "name": c["name"], "arguments": c.get("arguments") or "{}"}
+            for m in self.messages
+            for c in m.get("contents", [])
+            if c.get("type") == "function_call"
+        ]
 
 
 class ChatCompleter(Protocol):
@@ -227,7 +237,54 @@ def _make_inner(spec: ModelSpec, provider: ProviderSpec, cfg: LlmCfg) -> OpenAIC
         timeout=cfg.timeout_seconds,
         max_retries=cfg.max_retries,
     )
-    return OpenAIChatCompletionClient(model=spec.name, async_client=async_client)
+    # The framework would run its own tool-call loop inside get_response. We
+    # run the loop ourselves (sc_core.llm.tool_loop) so every provider call is
+    # one Langfuse generation and every tool call one traced span.
+    return OpenAIChatCompletionClient(
+        model=spec.name,
+        async_client=async_client,
+        function_invocation_configuration={"enabled": False},  # type: ignore[arg-type]
+        response_parser=_surface_reasoning,
+        message_preparer=_echo_reasoning,
+    )
+
+
+# DeepSeek (thinking mode) returns ``reasoning_content`` on tool-call turns and
+# refuses the next request unless it is echoed back on the assistant message.
+# The framework exposes hooks for exactly this; the reasoning also ends up in
+# the trace, which is what an auditor wants to see.
+def _surface_reasoning(message: Any, contents: list[Content]) -> list[Content]:
+    reasoning = getattr(message, "reasoning_content", None)
+    if reasoning:
+        return [Content.from_text_reasoning(text=str(reasoning)), *contents]
+    return contents
+
+
+def _echo_reasoning(message: Message, dicts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    if message.role != "assistant":
+        return dicts
+    reasoning = "".join(
+        str(getattr(c, "text", "") or "")
+        for c in message.contents
+        if getattr(c, "type", None) == "text_reasoning"
+    )
+    if not reasoning:
+        return dicts
+    # The default conversion also renders the reasoning as a plain assistant
+    # text message; drop that one and echo the reasoning where the API wants it.
+    kept = [
+        d
+        for d in dicts
+        if not (
+            d.get("role") == "assistant"
+            and not d.get("tool_calls")
+            and d.get("content") == reasoning
+        )
+    ] or dicts
+    for d in kept:
+        if d.get("role") == "assistant":
+            d["reasoning_content"] = reasoning
+    return kept
 
 
 def _to_result(response: ChatResponse[Any], spec: ModelSpec, seconds: float) -> ChatResult:

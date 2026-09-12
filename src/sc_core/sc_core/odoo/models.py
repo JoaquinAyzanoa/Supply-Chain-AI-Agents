@@ -304,7 +304,14 @@ ApprovalKind = Literal[
 ]
 ApprovalStatus = Literal["pending", "approved", "rejected", "expired"]
 RunStatus = Literal[
-    "running", "sent", "applied", "awaiting_approval", "rejected", "no_action", "failed"
+    "running",
+    "sent",
+    "applied",
+    "awaiting_approval",
+    "rejected",
+    "no_action",
+    "escalated",
+    "failed",
 ]
 MailDirection = Literal["in", "out"]
 LinkConfidence = Literal["exact", "sender_single_open_po", "agent", "human"]

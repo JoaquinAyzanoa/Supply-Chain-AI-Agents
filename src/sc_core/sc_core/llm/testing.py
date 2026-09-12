@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from agent_framework import Content, Message
 from pydantic import BaseModel
 
 from sc_core.llm.client import (
@@ -70,7 +71,7 @@ class Call:
 class ScriptedChatClient:
     """Answers with ``responses`` in order (a ``BaseModel`` is serialised to JSON)."""
 
-    responses: list[str | BaseModel | Exception] = field(default_factory=list)
+    responses: list[str | BaseModel | ChatResult | Exception] = field(default_factory=list)
     spec: ModelSpec = FAKE_SPEC
     calls: list[Call] = field(default_factory=list)
 
@@ -104,6 +105,8 @@ class ScriptedChatClient:
         item = self.responses.pop(0)
         if isinstance(item, Exception):
             raise item
+        if isinstance(item, ChatResult):
+            return item
         text = item.model_dump_json() if isinstance(item, BaseModel) else item
         return _result(text, self.spec)
 
@@ -218,3 +221,26 @@ class FailingChatClient:
 
     async def complete(self, messages: Sequence[MessageLike], **kwargs: Any) -> ChatResult:
         raise self._error
+
+
+def tool_call_result(
+    name: str,
+    arguments: dict[str, Any] | str,
+    *,
+    call_id: str = "call_1",
+    spec: ModelSpec = FAKE_SPEC,
+) -> ChatResult:
+    """A scripted response in which the model asks for one tool call."""
+    args = arguments if isinstance(arguments, str) else json.dumps(arguments, ensure_ascii=False)
+    message = Message(
+        "assistant", [Content.from_function_call(call_id=call_id, name=name, arguments=args)]
+    )
+    return ChatResult(
+        text="",
+        messages=[message_to_dict(message)],
+        finish_reason="tool_calls",
+        model=spec.name,
+        usage=Usage(input_tokens=10, output_tokens=5),
+        cost_usd=0.0,
+        duration_ms=1.0,
+    )

@@ -120,6 +120,10 @@ ps:
 llm-record:
     {{UV}} run python scripts/llm_record.py
 
+# Regenerate the A2A contract snapshots (tests/fixtures/schemas) after a deliberate change
+schema-snapshot:
+    {{UV}} run python scripts/schema_snapshot.py
+
 # Open the Langfuse UI (admin@scai.local / scai-admin-password on first boot)
 langfuse-open:
     {{UV}} run python -c "import webbrowser; webbrowser.open('http://localhost:3000')"
@@ -152,6 +156,10 @@ odoo-upgrade module="sc_agents":
 # Generate an API key for the bot user and store it in .env (SC__ODOO__API_KEY)
 odoo-apikey login="sc_agent_bot":
     {{UV}} run python scripts/odoo_apikey.py --login {{login}} --db {{ODOO_DB}}
+
+# Create the demo supplier (Proveedor Hidraulica) and an open RFQ for it in the local Odoo
+odoo-demo-supplier:
+    {{UV}} run python scripts/odoo_demo_supplier.py
 
 # Re-record the Odoo response cassettes (tests/fixtures/odoo) from the live container
 odoo-record:

@@ -38,7 +38,7 @@ just env         # create .env from .env.example
 just hooks       # pre-commit hooks
 just qa          # ruff, mypy, deptry per member
 just test        # unit tests
-just up          # postgres + redis + odoo + langfuse + director + mail_sync + scheduler
+just up          # postgres + redis + odoo + langfuse + director + mail_sync + scheduler + supplier_comms
 just odoo-init   # first time only: create the Odoo database
 curl localhost:8010/health/ready
 just down
@@ -52,8 +52,9 @@ just run director      # exactly what the container runs
 ```
 
 The director container publishes on host port 8010 by default (8000 is often
-taken on developer machines), mail_sync on 8011 and the scheduler on 8012;
-override with `SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`.
+taken on developer machines), mail_sync on 8011, the scheduler on 8012 and
+the supplier_comms agent on 8013; override with `SC_DIRECTOR_PORT`,
+`SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`, `SC_SUPPLIER_COMMS_PORT`.
 Odoo publishes on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
@@ -176,6 +177,42 @@ accepted events idempotently in `event_inbox`; a producer that cannot reach
 the director parks the event in its `event_outbox` and retries on the next
 run. Apply `migrations/002_mail_sync.sql` with `just migrate` before the
 first run.
+
+## Supplier communications agent
+
+`supplier_comms` is the first LangGraph agent. It runs in its own container
+and is reachable over A2A (agent card at `/.well-known/agent-card.json`,
+JSON-RPC at `/a2a` behind the bearer token `SC__A2A__TOKEN`, which falls back
+to the events secret). Five tasks:
+
+- `send_rfq`, `request_eta`, `follow_up`: draft an email from the order
+  lines with read-only tools (order lines, supplier price history, open
+  orders), create the Outlook draft, ask for a `send_email` approval in Odoo
+  with the full body, and send after approval. Suppliers listed in
+  `SC__SUPPLIER_COMMS__AUTO_SEND_PARTNER_IDS` skip the approval.
+- `handle_inbound`: classify the supplier's reply (quotation, ETA update,
+  question, other), extract prices, lead times and the delivery date, diff
+  against Odoo, ask for a `po_change` approval, then write planned dates and
+  price-list entries. Questions are answered in the thread; anything else
+  ends as no action.
+- `resolve_unlinked`: pick the order a message belongs to among candidates,
+  or escalate to a person.
+
+Approvals pause the graph: LangGraph checkpoints the state in the app
+database, Odoo shows the request (and a To-Do for `SC__AGENTS__APPROVER_USER_ID`),
+and the decision comes back to `POST /approvals/callback` on
+`SC__SUPPLIER_COMMS__PUBLIC_URL`, signed with the events secret. Callbacks are
+safe to repeat. Every run is a `sc.agent.run` in Odoo with a link to its
+Langfuse trace; the supplier's text lives in the state only while the run is
+active and is cleared before it ends.
+
+The director dispatches linked and unlinked mail events to the agent as
+soon as it accepts them (`SC__A2A__SUPPLIER_COMMS_URL`). Model answers for
+the unit tests are recorded cassettes (`just llm-record`). To try the loop
+on the demo supplier: `just odoo-demo-supplier` creates "Proveedor
+Hidraulica" with an open RFQ, and `just test-int` runs the live test (a real
+RFQ goes out to the supplier mailbox; set `SC_E2E_SUPPLIER=1` and reply from
+Gmail to also exercise the inbound half).
 
 ## Conventions
 
