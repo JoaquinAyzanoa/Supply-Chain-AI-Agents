@@ -9,8 +9,10 @@ irrelevant.
 
 from __future__ import annotations
 
+import time
 from typing import TYPE_CHECKING
 
+import httpx
 import psycopg
 import redis.asyncio as redis_async
 
@@ -53,6 +55,37 @@ def odoo(client: OdooClient) -> HealthCheck:
         await client.uid()
 
     check.__name__ = "odoo"
+    return check
+
+
+def langfuse(host: str) -> HealthCheck:
+    """Langfuse answers its public health endpoint."""
+
+    async def check() -> None:
+        async with httpx.AsyncClient(timeout=5.0) as http:
+            response = await http.get(f"{host.rstrip('/')}/api/public/health")
+            response.raise_for_status()
+
+    check.__name__ = "langfuse"
+    return check
+
+
+def llm_provider(base_url: str, api_key: str, *, cache_seconds: float = 300.0) -> HealthCheck:
+    """The model provider accepts the key (``GET /models``), cached to avoid hammering it."""
+    state: dict[str, float] = {"checked_at": 0.0}
+
+    async def check() -> None:
+        now = time.monotonic()
+        if now - state["checked_at"] < cache_seconds:
+            return
+        async with httpx.AsyncClient(timeout=10.0) as http:
+            response = await http.get(
+                f"{base_url.rstrip('/')}/models", headers={"Authorization": f"Bearer {api_key}"}
+            )
+            response.raise_for_status()
+        state["checked_at"] = now
+
+    check.__name__ = "llm_provider"
     return check
 
 
