@@ -18,9 +18,7 @@ class ProductIds:
 async def ensure_language(client: SeedClient, code: str) -> None:
     """Activate ``code`` (installs translations) when it is not active yet."""
     odoo = client.odoo
-    active = await odoo.search(
-        "res.lang", [["code", "=", code], ["active", "=", True]], limit=1
-    )
+    active = await odoo.search("res.lang", [["code", "=", code], ["active", "=", True]], limit=1)
     if active:
         return
     lang_ids = await odoo.execute(
@@ -88,7 +86,9 @@ async def ensure_products(
             "sale_ok": True,
             "uom_id": uom_id,
             "uom_po_id": uom_id,
-            "description_purchase": "Marca Sun Hydraulics. Indicar número de parte en la cotización.",
+            "description_purchase": (
+                "Marca Sun Hydraulics. Indicar número de parte en la cotización."
+            ),
         }
         template_id = await client.find_or_create(
             "product.template", [["default_code", "=", p.code]], values, update=True

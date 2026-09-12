@@ -1,6 +1,7 @@
 """Load the Sun Hydraulics demo dataset into the local Odoo (idempotent).
 
-    python scripts/odoo_seed.py [--only catalogue|stock|demand|supply] [--months N] [--seed N] [--dry-run]
+    python scripts/odoo_seed.py [--only catalogue|stock|demand|supply] [--months N]
+        [--seed N] [--dry-run]
 
 Runs as the administrator (password "admin" on the demo database, override
 with --password). Every record is looked up by its natural key first, so a
@@ -22,6 +23,7 @@ sys.path.insert(0, str(ROOT / "src" / "sc_core"))
 from odoo_seed_lib import catalogue, partners  # noqa: E402
 from odoo_seed_lib.client import SeedClient  # noqa: E402
 from odoo_seed_lib.dataset import DEFAULT_PATH, load  # noqa: E402
+
 from sc_core.infra.settings import Settings  # noqa: E402
 
 STAGES = ("catalogue", "stock", "demand", "supply")
@@ -30,12 +32,16 @@ STAGES = ("catalogue", "stock", "demand", "supply")
 async def run(args: argparse.Namespace) -> int:
     ds = load(Path(args.file) if args.file else DEFAULT_PATH)
     if args.months:
-        ds = ds.model_copy(update={"history": ds.history.model_copy(update={"months": args.months})})
+        ds = ds.model_copy(
+            update={"history": ds.history.model_copy(update={"months": args.months})}
+        )
     if args.seed is not None:
         ds = ds.model_copy(update={"seed": args.seed})
     stages = [args.only] if args.only else list(STAGES)
-    print(f"dataset: {len(ds.products)} products, {len(ds.suppliers)} suppliers, "
-          f"{len(ds.customers)} customers, {ds.history.months} months, seed {ds.seed}")
+    print(
+        f"dataset: {len(ds.products)} products, {len(ds.suppliers)} suppliers, "
+        f"{len(ds.customers)} customers, {ds.history.months} months, seed {ds.seed}"
+    )
     if args.dry_run:
         print("dry run: nothing written")
         return 0
@@ -51,8 +57,10 @@ async def run(args: argparse.Namespace) -> int:
         suppliers = await partners.ensure_suppliers(client, ds)
         rows = await partners.ensure_supplierinfo(client, ds, suppliers, products)
         customers = await partners.ensure_customers(client, ds)
-        print(f"catalogue: {len(products)} products, {rows} supplier terms, "
-              f"{len(customers)} customers")
+        print(
+            f"catalogue: {len(products)} products, {rows} supplier terms, "
+            f"{len(customers)} customers"
+        )
         if any(s in stages for s in ("stock", "demand", "supply")):
             from odoo_seed_lib import history
 
