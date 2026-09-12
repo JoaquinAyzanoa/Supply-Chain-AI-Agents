@@ -99,6 +99,47 @@ class MailCfg(_Section):
         return True
 
 
+class LlmCfg(_Section):
+    """Model assignment. Providers and model capabilities live in ``sc_core/llm/models.yaml``.
+
+    ``model`` maps an agent name (upper-case, e.g. ``SUPPLIER_COMMS``) to a
+    model name from the registry: ``SC__LLM__MODEL__SUPPLIER_COMMS=gpt-5.4``.
+    """
+
+    default_model: str = "deepseek-v4-flash"
+    model: dict[str, str] = {}
+    timeout_seconds: float = Field(default=120.0, gt=0)
+    max_retries: int = Field(default=2, ge=0)
+    # Per-run budget defaults; agents may lower them, never raise them.
+    budget_max_input_tokens: int = Field(default=400_000, ge=1)
+    budget_max_output_tokens: int = Field(default=60_000, ge=1)
+    budget_max_usd: float = Field(default=2.0, gt=0)
+    record_mode: Literal["off", "record", "replay"] = "off"  # test fixtures, see llm/testing.py
+
+    def model_for(self, agent_name: str) -> str:
+        # Environment keys arrive lower-cased from pydantic-settings; compare case-insensitively.
+        wanted = agent_name.lower()
+        for key, value in self.model.items():
+            if key.lower() == wanted:
+                return value
+        return self.default_model
+
+
+class LangfuseCfg(_Section):
+    """Self-hosted Langfuse (or Langfuse Cloud) for traces, prompts and datasets."""
+
+    enabled: bool = True
+    host: str = "http://localhost:3000"
+    public_key: str = ""
+    secret_key: SecretStr = SecretStr("")
+    prompt_cache_seconds: int = Field(default=300, ge=0)
+    mask_inputs: bool = False  # redact email text from traces (phase 10 decision)
+
+    @property
+    def configured(self) -> bool:
+        return self.enabled and bool(self.public_key and self.secret_key.get_secret_value())
+
+
 class HttpCfg(_Section):
     """HTTP server and middleware settings shared by every service."""
 
@@ -138,6 +179,8 @@ class Settings(BaseSettings):
     redis: RedisCfg = Field(default_factory=RedisCfg)
     odoo: OdooCfg = Field(default_factory=OdooCfg)
     mail: MailCfg = Field(default_factory=MailCfg)
+    llm: LlmCfg = Field(default_factory=LlmCfg)
+    langfuse: LangfuseCfg = Field(default_factory=LangfuseCfg)
 
     @property
     def is_dev(self) -> bool:

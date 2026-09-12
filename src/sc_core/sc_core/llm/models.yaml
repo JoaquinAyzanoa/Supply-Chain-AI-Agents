@@ -1,0 +1,44 @@
+# Providers and models known to sc_core.llm. Every provider speaks the OpenAI
+# chat API; only the base URL and the key differ. Prices are USD per million
+# tokens and only feed the cost recorded in Langfuse: keep them current.
+#
+# Capabilities are declared here so agents never branch on the provider.
+# They were set from documentation and MUST be confirmed by the phase 3
+# integration tests (tests/integration/llm) before being trusted.
+
+providers:
+  deepseek:
+    base_url: https://api.deepseek.com/v1
+    api_key_env: DEEPSEEK_API_KEY
+  openai:
+    base_url: https://api.openai.com/v1
+    api_key_env: OPENAI_API_KEY
+  local:
+    base_url: ${LOCAL_LLM_BASE_URL:-http://localhost:11434/v1}
+    api_key_env: LOCAL_LLM_API_KEY
+
+models:
+  deepseek-v4-flash:
+    provider: deepseek
+    context_window: 128000
+    max_output_tokens: 16000
+    parallel_tool_calls: true
+    json_schema_output: true
+    reasoning: false
+    price_per_mtok: { input: 0.14, output: 0.28 }
+  gpt-5.4:
+    provider: openai
+    context_window: 400000
+    max_output_tokens: 128000
+    parallel_tool_calls: true
+    json_schema_output: true
+    reasoning: true
+    price_per_mtok: { input: 2.50, output: 10.00 }
+  gpt-5.3:
+    provider: openai
+    context_window: 400000
+    max_output_tokens: 128000
+    parallel_tool_calls: true
+    json_schema_output: true
+    reasoning: true
+    price_per_mtok: { input: 2.00, output: 8.00 }

@@ -2,7 +2,7 @@
 name = "sc_core"
 version = "0.1.0"
 description = "Shared library for the Supply Chain AI Agents: settings, app factory, schemas, Odoo, mail and LLM clients"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.15"
 dependencies = [
   # Each library is added by the story that first imports it (deptry runs per member).
   "pydantic>=2.11.0",
@@ -18,6 +18,10 @@ dependencies = [
   "httpx>=0.27.0",
   "msal>=1.31.0",
   "pypdf>=5.0.0",
+  "pyyaml>=6.0",
+  "agent-framework-openai>=1.14.3,<2",
+  "langfuse>=4.0.0",
+  "openai>=1.60.0",
 ]
 
 [build-system]
@@ -33,3 +37,7 @@ packages = ["sc_core"]
 DEP003 = ["starlette"]
 # tzdata is data only (IANA zone files read by zoneinfo); it is never imported.
 DEP002 = ["tzdata"]
+
+[tool.deptry.package_module_name_map]
+# agent-framework-openai exposes its client under the shared `agent_framework` namespace.
+"agent-framework-openai" = ["agent_framework"]
