@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi_injector import Injected
 from loguru import logger
 
-from director.api.approvals import ApprovalsGateway
+from director.api.approvals import ApprovalsGateway, case_for
 from director.api.auth import Approver, Principal, Viewer
 from director.policies import FollowUpPolicy, PoFacts, next_action
 from director.store import CaseStore
@@ -159,7 +159,7 @@ async def build_board(
         days = (today - approval.create_date.date()).days
         if days < policy.approval_stale_days:
             continue
-        case = await cases.find_by_thread(approval.thread_id) if approval.thread_id else None
+        case = await case_for(cases, approval)
         stale.append(
             ExceptionItem(
                 kind="stale_approval",

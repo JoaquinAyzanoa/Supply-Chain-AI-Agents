@@ -212,3 +212,18 @@ async def test_plan_edits_are_validated_and_forwarded(
         ).status_code
         == 422
     )
+
+
+async def test_escalations_find_their_case_by_case_id(
+    client: TestClient, module: MemoryDirectorModule
+) -> None:
+    await _users(module)
+    case, _ = await module.cases.attach_or_create(kind="eta", po_name="P00066")
+    await module.cases.add_event(
+        case.case_id, "escalated", {"reason": "7 days late without a receipt", "approval_id": 9}
+    )
+    module.approvals.seed(
+        9, kind="escalation", summary="P00066 needs a person", thread_id=case.case_id
+    )
+    row = client.get("/api/approvals/9", headers=_token(client, "vic@x.com")).json()
+    assert row["case_id"] == case.case_id and row["why"] == "7 days late without a receipt"

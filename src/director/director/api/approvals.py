@@ -25,7 +25,7 @@ from loguru import logger
 from pydantic import Field, ValidationError
 
 from director.api.auth import Approver, Principal, Viewer
-from director.store import CaseStore
+from director.store import Case, CaseStore
 from sc_core.infra import tracing
 from sc_core.infra.settings import Settings
 from sc_core.odoo.links import record_url
@@ -167,7 +167,7 @@ class OdooApprovalsGateway:
 
 async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore) -> ApprovalView:
     payload = ApprovalRepo.payload_of(approval)
-    case = await cases.find_by_thread(approval.thread_id) if approval.thread_id else None
+    case = await case_for(cases, approval)
     why = await _why(cases, case.case_id) if case else None
     trace_id = case.trace_id if case else None
     links = ApprovalLinks(
@@ -199,6 +199,18 @@ async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore
     )
 
 
+async def case_for(cases: CaseStore, approval: Approval) -> Case | None:
+    """The case behind an approval: the thread a task was sent on, or the case itself.
+
+    Agents' approvals carry the task's thread id; the director's escalations
+    carry the case id directly.
+    """
+    thread_id = approval.thread_id or approval.case_id
+    if not thread_id:
+        return None
+    return await cases.find_by_thread(thread_id) or await cases.get(thread_id)
+
+
 async def _why(cases: CaseStore, case_id: str) -> str | None:
     """The last rule that fired, else the last agent summary, on the case."""
     events = await cases.events(case_id)
@@ -208,6 +220,9 @@ async def _why(cases: CaseStore, case_id: str) -> str | None:
     for event in reversed(events):
         if event.kind == "result" and event.payload.get("summary"):
             return str(event.payload["summary"])
+    for event in reversed(events):
+        if event.kind == "escalated" and event.payload.get("reason"):
+            return str(event.payload["reason"])
     return None
 
 
@@ -280,7 +295,7 @@ async def resolve_approval(
         )
     except ScError as exc:
         raise HTTPException(status_code=502, detail=f"Odoo refused: {exc.message}") from exc
-    case = await cases.find_by_thread(approval.thread_id) if approval.thread_id else None
+    case = await case_for(cases, approval)
     if case is not None:
         await cases.add_event(
             case.case_id,

@@ -199,6 +199,12 @@ export function PlanCard({ payload }: { payload: PlanPayload }) {
 
 // --- escalation -------------------------------------------------------------------------
 
+const DETAIL_KEYS = new Set(["rule", "days", "agent", "task", "error"]);
+
+function detailLabel(t: (key: string) => string, key: string): string {
+  return DETAIL_KEYS.has(key) ? t(`approvals.escalation.detail.${key}`) : key.replace(/_/g, " ");
+}
+
 export function EscalationCard({ payload }: { payload: EscalationPayload }) {
   const { t } = useI18n();
   const details = Object.entries(payload.details).filter(([, v]) => v !== null && v !== "" && v !== undefined);
@@ -209,7 +215,7 @@ export function EscalationCard({ payload }: { payload: EscalationPayload }) {
         <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
           {details.map(([key, value]) => (
             <div key={key} className="contents">
-              <dt className="text-muted-foreground">{key}</dt>
+              <dt className="text-muted-foreground">{detailLabel(t, key)}</dt>
               <dd>{typeof value === "string" ? value : JSON.stringify(value)}</dd>
             </div>
           ))}

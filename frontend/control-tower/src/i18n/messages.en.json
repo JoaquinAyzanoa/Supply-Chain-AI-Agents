@@ -296,5 +296,10 @@
   "settings.kind.send_po": "Purchase order emails",
   "settings.kind.follow_up": "Reminders",
   "settings.kind.request_eta": "Delivery date requests",
-  "settings.kind.reply": "Replies to supplier questions"
+  "settings.kind.reply": "Replies to supplier questions",
+  "approvals.escalation.detail.rule": "Rule that fired",
+  "approvals.escalation.detail.days": "Days",
+  "approvals.escalation.detail.agent": "Agent",
+  "approvals.escalation.detail.task": "Task",
+  "approvals.escalation.detail.error": "Error"
 }
