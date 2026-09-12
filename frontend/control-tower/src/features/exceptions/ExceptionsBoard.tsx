@@ -107,8 +107,8 @@ function ExceptionCard({ item }: { item: Item }) {
           </Button>
         ) : null}
         {item.case_id ? (
-          <Link to="/cases/$caseId" params={{ caseId: item.case_id }} className="text-xs text-primary underline">
-            {t("exceptions.case")}
+          <Link to="/cases/$caseId" params={{ caseId: item.case_code ?? item.case_id }} className="text-xs text-primary underline">
+            {item.case_code ?? t("exceptions.case")}
           </Link>
         ) : null}
         {item.approval_id ? (

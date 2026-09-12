@@ -50,8 +50,22 @@ TERMINAL_STATUSES: frozenset[str] = frozenset({"done", "rejected", "failed"})
 _UNSET: Any = object()
 
 
+def case_code(number: int | None, case_id: str) -> str:
+    """``C00012``: what people read and type; the id stays for logs and traces."""
+    return f"C{number:05d}" if number else f"#{case_id.removeprefix('case_')[:8]}"
+
+
+def parse_case_code(text: str) -> int | None:
+    """``C00012`` (or ``c12``) -> 12; anything else -> None."""
+    body = text.strip().upper()
+    if body.startswith("C") and body[1:].isdigit():
+        return int(body[1:])
+    return None
+
+
 class Case(StrictModel):
     case_id: str
+    number: int | None = None
     kind: CaseKind
     status: CaseStatus
     po_name: str | None = None
@@ -67,6 +81,10 @@ class Case(StrictModel):
     @property
     def is_open(self) -> bool:
         return self.status not in TERMINAL_STATUSES
+
+    @property
+    def code(self) -> str:
+        return case_code(self.number, self.case_id)
 
 
 class CaseEvent(StrictModel):
@@ -101,6 +119,10 @@ class CaseStore(Protocol):
         ...
 
     async def get(self, case_id: str) -> Case | None: ...
+
+    async def by_number(self, number: int) -> Case | None:
+        """The case people call ``C00012``."""
+        ...
 
     async def update(
         self,
@@ -154,8 +176,8 @@ def _pick(case: Case, *, po_name: str | None, conversation_id: str | None) -> Ca
 # --- Postgres -------------------------------------------------------------------------
 
 _CASE_COLUMNS = (
-    "case_id, kind, status, po_name, partner_id, conversation_id, agent, trace_id, summary, "
-    "created_at, updated_at, next_action_at"
+    "case_id, number, kind, status, po_name, partner_id, conversation_id, agent, trace_id, "
+    "summary, created_at, updated_at, next_action_at"
 )
 
 
@@ -186,9 +208,10 @@ class PostgresCaseStore:
             conversation_id=conversation_id,
             agent=agent,
         )
-        await self._db.execute(
+        row = await self._db.fetch_one(
             "INSERT INTO cases (case_id, kind, status, po_name, partner_id, conversation_id, "
-            "agent, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "agent, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "RETURNING number",
             (
                 case.case_id,
                 case.kind,
@@ -201,7 +224,8 @@ class PostgresCaseStore:
                 case.updated_at,
             ),
         )
-        return case, True
+        number = int(row["number"]) if row and row.get("number") is not None else None
+        return case.model_copy(update={"number": number}), True
 
     async def _fill_in(
         self, case: Case, partner_id: int | None, conversation_id: str | None
@@ -220,6 +244,12 @@ class PostgresCaseStore:
     async def get(self, case_id: str) -> Case | None:
         row = await self._db.fetch_one(
             f"SELECT {_CASE_COLUMNS} FROM cases WHERE case_id = %s", (case_id,)
+        )
+        return Case(**row) if row else None
+
+    async def by_number(self, number: int) -> Case | None:
+        row = await self._db.fetch_one(
+            f"SELECT {_CASE_COLUMNS} FROM cases WHERE number = %s", (number,)
         )
         return Case(**row) if row else None
 
@@ -344,6 +374,7 @@ class MemoryCaseStore:
     def __init__(self) -> None:
         self.cases: dict[str, Case] = {}
         self.case_events: list[CaseEvent] = []
+        self._next_number = 1
 
     async def attach_or_create(
         self,
@@ -370,6 +401,7 @@ class MemoryCaseStore:
                     )
         case = Case(
             case_id=new_id("case"),
+            number=self._next_number,
             kind=kind,
             status="open",
             po_name=po_name,
@@ -377,11 +409,15 @@ class MemoryCaseStore:
             conversation_id=conversation_id,
             agent=agent,
         )
+        self._next_number += 1
         self.cases[case.case_id] = case
         return case, True
 
     async def get(self, case_id: str) -> Case | None:
         return self.cases.get(case_id)
+
+    async def by_number(self, number: int) -> Case | None:
+        return next((c for c in self.cases.values() if c.number == number), None)
 
     async def update(
         self,

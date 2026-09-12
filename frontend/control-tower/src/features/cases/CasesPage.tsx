@@ -8,7 +8,6 @@ import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
 import { CASE_KINDS, CASE_STATUSES, useCases, type CaseFilters } from "./api";
-import { shortCaseId } from "./labels";
 
 export function CasesPage() {
   const { t, locale } = useI18n();
@@ -73,7 +72,7 @@ export function CasesPage() {
             <TableRow>
               <TableHead>{t("cases.col.updated")}</TableHead>
               <TableHead>{t("cases.col.kind")}</TableHead>
-              <TableHead>{t("cases.col.po")}</TableHead>
+              <TableHead>{t("cases.col.case")}</TableHead>
               <TableHead>{t("cases.col.status")}</TableHead>
               <TableHead>{t("cases.col.summary")}</TableHead>
               <TableHead>{t("cases.col.agent")}</TableHead>
@@ -87,9 +86,10 @@ export function CasesPage() {
                   <Badge variant="outline">{t(`cases.kind.${row.kind}`)}</Badge>
                 </TableCell>
                 <TableCell className="font-medium">
-                  <Link to="/cases/$caseId" params={{ caseId: row.case_id }} className="text-primary underline">
-                    {row.po_name ?? shortCaseId(row.case_id)}
+                  <Link to="/cases/$caseId" params={{ caseId: row.code }} className="text-primary underline">
+                    {row.code}
                   </Link>
+                  {row.po_name ? <span className="ml-2 text-muted-foreground">{row.po_name}</span> : null}
                 </TableCell>
                 <TableCell>
                   <StatusBadge status={row.status} />

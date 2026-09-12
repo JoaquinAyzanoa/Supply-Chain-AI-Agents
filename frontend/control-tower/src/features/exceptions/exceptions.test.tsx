@@ -20,6 +20,7 @@ const BOARD: Schemas["ExceptionsBoard"] = {
       po_name: "P00011",
       partner_id: 7,
       case_id: "case_x",
+      case_code: "C00007",
       days: 2,
       next_action: "request_eta (po_late)",
       next_action_at: "2026-09-13",
@@ -29,7 +30,7 @@ const BOARD: Schemas["ExceptionsBoard"] = {
     { kind: "late_po", title: "P00012", detail: "9 days past", po_name: "P00012", days: 9, can_act: false },
   ],
   rfqs_no_reply: [],
-  unlinked_mails: [{ kind: "unlinked_mail", title: "email without an order", detail: "case case_u (open)", case_id: "case_u", days: 1, can_act: false }],
+  unlinked_mails: [{ kind: "unlinked_mail", title: "email without an order", detail: "C00009 (open)", case_id: "case_u", case_code: "C00009", days: 1, can_act: false }],
   failed_runs: [],
   stale_approvals: [{ kind: "stale_approval", title: "Send reminder", detail: "send_email pending for 3 days", approval_id: 7, days: 3, next_action: "expires", can_act: false }],
 };
@@ -77,7 +78,7 @@ describe("exceptions board", () => {
     expect(late).toHaveTextContent("Next: request_eta (po_late)");
     expect(within(late).getAllByRole("button", { name: "Act now" })).toHaveLength(1); // P00012 waits for a person
     expect(within(screen.getByRole("region", { name: "Stale approvals" })).getByRole("link", { name: "Approval" })).toHaveAttribute("href", "/?id=7");
-    expect(within(screen.getByRole("region", { name: "Unlinked emails" })).getByRole("link", { name: "Case" })).toHaveAttribute("href", "/cases/case_u");
+    expect(within(screen.getByRole("region", { name: "Unlinked emails" })).getByRole("link", { name: "C00009" })).toHaveAttribute("href", "/cases/C00009");
     expect(screen.getByRole("region", { name: "Failed runs" })).toHaveTextContent("Nothing here.");
 
     await userEvent.click(within(late).getByRole("button", { name: "Act now" }));

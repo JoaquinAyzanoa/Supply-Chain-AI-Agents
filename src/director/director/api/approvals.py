@@ -58,6 +58,7 @@ class ApprovalView(StrictModel):
     po_name: str | None = None
     requested_by: str | None = None
     case_id: str | None = None
+    case_code: str | None = None
     thread_id: str | None = None
     created_at: datetime | None = None
     resolved_at: datetime | None = None
@@ -187,6 +188,7 @@ async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore
         po_name=approval.po_id.name if approval.po_id else None,
         requested_by=approval.requested_by,
         case_id=case.case_id if case else approval.case_id,
+        case_code=case.code if case else None,
         thread_id=approval.thread_id,
         created_at=approval.create_date,
         resolved_at=approval.resolved_at,

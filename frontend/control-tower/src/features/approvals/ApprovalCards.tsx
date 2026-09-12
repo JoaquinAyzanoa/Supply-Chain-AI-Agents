@@ -205,7 +205,7 @@ function detailLabel(t: (key: string) => string, key: string): string {
   return DETAIL_KEYS.has(key) ? t(`approvals.escalation.detail.${key}`) : key.replace(/_/g, " ");
 }
 
-export function EscalationCard({ payload }: { payload: EscalationPayload }) {
+export function EscalationCard({ payload, caseCode }: { payload: EscalationPayload; caseCode?: string | null }) {
   const { t } = useI18n();
   const details = Object.entries(payload.details).filter(([, v]) => v !== null && v !== "" && v !== undefined);
   return (
@@ -232,8 +232,8 @@ export function EscalationCard({ payload }: { payload: EscalationPayload }) {
         </div>
       ) : null}
       {payload.case_id ? (
-        <Link to="/cases/$caseId" params={{ caseId: payload.case_id }} className="text-primary underline">
-          {t("approvals.escalation.case")}
+        <Link to="/cases/$caseId" params={{ caseId: caseCode ?? payload.case_id }} className="text-primary underline">
+          {t("approvals.escalation.case")}{caseCode ? ` (${caseCode})` : ""}
         </Link>
       ) : null}
     </div>

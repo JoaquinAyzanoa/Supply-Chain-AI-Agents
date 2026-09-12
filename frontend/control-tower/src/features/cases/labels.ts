@@ -33,7 +33,7 @@ export function failureOf(payload: Record<string, unknown>): { message: string; 
   return null;
 }
 
-/** ``case_9077ea2d…`` is for logs; people see ``#9077ea2d``. */
-export function shortCaseId(caseId: string): string {
-  return `#${caseId.replace(/^case_/, "").slice(0, 8)}`;
+/** The API sends ``code`` (C00012); an id alone is shortened for the rare row without one. */
+export function shortCaseId(caseId: string, code?: string | null): string {
+  return code ?? `#${caseId.replace(/^case_/, "").slice(0, 8)}`;
 }

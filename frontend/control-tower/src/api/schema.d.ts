@@ -436,6 +436,8 @@ export interface components {
         };
         /** ApprovalView */
         ApprovalView: {
+            /** Case Code */
+            case_code?: string | null;
             /** Case Id */
             case_id?: string | null;
             /** Created At */
@@ -507,6 +509,11 @@ export interface components {
             agent?: string | null;
             /** Case Id */
             case_id: string;
+            /**
+             * Code
+             * @description what people read: C00012
+             */
+            code: string;
             /** Conversation Id */
             conversation_id?: string | null;
             /**
@@ -591,6 +598,8 @@ export interface components {
              * @default false
              */
             can_act: boolean;
+            /** Case Code */
+            case_code?: string | null;
             /** Case Id */
             case_id?: string | null;
             /**

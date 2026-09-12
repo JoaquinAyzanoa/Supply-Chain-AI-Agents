@@ -301,5 +301,6 @@
   "approvals.escalation.detail.days": "Days",
   "approvals.escalation.detail.agent": "Agent",
   "approvals.escalation.detail.task": "Task",
-  "approvals.escalation.detail.error": "Error"
+  "approvals.escalation.detail.error": "Error",
+  "cases.col.case": "Case"
 }

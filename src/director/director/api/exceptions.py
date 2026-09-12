@@ -53,6 +53,7 @@ class ExceptionItem(StrictModel):
     po_name: str | None = None
     partner_id: int | None = None
     case_id: str | None = None
+    case_code: str | None = None
     approval_id: int | None = None
     days: int = 0
     next_action: str | None = None
@@ -105,6 +106,7 @@ async def build_board(
         open_cases = await cases.open_for_po(fact.po_name)
         if open_cases:
             common["case_id"] = open_cases[0].case_id
+            common["case_code"] = open_cases[0].code
         if fact.is_confirmed_open and fact.date_planned and today > fact.date_planned:
             days = (today - fact.date_planned).days
             late.append(
@@ -134,8 +136,9 @@ async def build_board(
         ExceptionItem(
             kind="unlinked_mail",
             title=c.summary or "email without an order",
-            detail=f"case {c.case_id} ({c.status})",
+            detail=f"{c.code} ({c.status})",
             case_id=c.case_id,
+            case_code=c.code,
             days=(today - c.created_at.date()).days,
         )
         for c in await cases.list(kind="unlinked", limit=100)
@@ -148,6 +151,7 @@ async def build_board(
             detail=c.summary or "run failed",
             po_name=c.po_name,
             case_id=c.case_id,
+            case_code=c.code,
             days=(today - c.updated_at.date()).days,
         )
         for c in await cases.list(status="failed", limit=50)
@@ -168,6 +172,7 @@ async def build_board(
                 po_id=approval.po_id.id if approval.po_id else None,
                 po_name=approval.po_id.name if approval.po_id else None,
                 case_id=case.case_id if case else None,
+                case_code=case.code if case else None,
                 approval_id=approval.id,
                 days=days,
                 next_action="expires" if approval.kind != "escalation" else "reminder",

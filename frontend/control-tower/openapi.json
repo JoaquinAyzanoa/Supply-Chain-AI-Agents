@@ -270,6 +270,17 @@
       "ApprovalView": {
         "additionalProperties": false,
         "properties": {
+          "case_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Code"
+          },
           "case_id": {
             "anyOf": [
               {
@@ -497,6 +508,11 @@
             "title": "Case Id",
             "type": "string"
           },
+          "code": {
+            "description": "what people read: C00012",
+            "title": "Code",
+            "type": "string"
+          },
           "conversation_id": {
             "anyOf": [
               {
@@ -602,6 +618,7 @@
         },
         "required": [
           "case_id",
+          "code",
           "kind",
           "status",
           "created_at",
@@ -736,6 +753,17 @@
             "default": false,
             "title": "Can Act",
             "type": "boolean"
+          },
+          "case_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Code"
           },
           "case_id": {
             "anyOf": [

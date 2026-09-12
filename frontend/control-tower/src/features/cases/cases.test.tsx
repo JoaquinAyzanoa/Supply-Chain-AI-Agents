@@ -12,6 +12,7 @@ import type { CaseDetail, CaseView } from "./api";
 const CASES: CaseView[] = [
   {
     case_id: "case_a",
+    code: "C00001",
     kind: "rfq",
     status: "awaiting_approval",
     po_name: "P00015",
@@ -22,6 +23,7 @@ const CASES: CaseView[] = [
   },
   {
     case_id: "case_b",
+    code: "C00002",
     kind: "planning",
     status: "done",
     summary: "14 rules written",
@@ -84,7 +86,7 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     const status = url.searchParams.get("status");
     return jsonResponse(200, status ? CASES.filter((c) => c.status === status) : CASES);
   }
-  if (url.pathname === "/api/cases/case_a") return jsonResponse(200, DETAIL);
+  if (url.pathname === "/api/cases/case_a" || url.pathname === "/api/cases/C00001") return jsonResponse(200, DETAIL);
   return jsonResponse(404, { detail: "no" });
 }
 
@@ -111,7 +113,7 @@ describe("cases", () => {
 
   it("lists cases and filters by status through the URL", async () => {
     renderAt("/cases");
-    expect(await screen.findByRole("link", { name: "P00015" })).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "C00001" })).toHaveAttribute("href", "/cases/C00001");
     expect(screen.getByText("14 rules written")).toBeInTheDocument();
     await userEvent.selectOptions(screen.getByLabelText("Status"), "awaiting_approval");
     await waitFor(() => expect(window.location.search).toBe("?status=awaiting_approval"));
@@ -133,7 +135,7 @@ describe("cases", () => {
     expect(items[5]).not.toHaveTextContent("Traceback");
     await userEvent.click(within(items[5]!).getByRole("button", { name: "Technical details" }));
     expect(items[5]).toHaveTextContent("odoo_rpc_error");
-    expect(screen.getByText("Case #a")).toBeInTheDocument();
+    expect(screen.getByText("Case C00001")).toBeInTheDocument();
     const traces = screen.getAllByRole("link", { name: "Trace" }); // the case and its run
     expect(traces).toHaveLength(2);
     expect(traces[0]).toHaveAttribute("href", "http://langfuse/trace/tr1");

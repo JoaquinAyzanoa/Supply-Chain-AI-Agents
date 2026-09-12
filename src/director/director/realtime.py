@@ -51,6 +51,9 @@ class BroadcastingCaseStore:
     async def get(self, case_id: str) -> Case | None:
         return await self._inner.get(case_id)
 
+    async def by_number(self, number: int) -> Case | None:
+        return await self._inner.by_number(number)
+
     async def update(self, case_id: str, **changes: Any) -> Case:
         case = await self._inner.update(case_id, **changes)
         await self._publish_case(case)

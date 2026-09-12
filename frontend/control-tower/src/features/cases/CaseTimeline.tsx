@@ -44,7 +44,7 @@ export function CaseTimelinePage() {
             {t("cases.opened", { at: formatDateTime(item.created_at, locale) })}
             {item.next_action_at ? ` · ${t("cases.next_action", { at: formatDateTime(item.next_action_at, locale) })}` : ""}
             {" · "}
-            <span title={item.case_id}>{t("cases.id", { id: shortCaseId(item.case_id) })}</span>
+            <span title={item.case_id}>{t("cases.id", { id: shortCaseId(item.case_id, item.code) })}</span>
           </p>
           {events.length === 0 ? <Empty /> : null}
           <ol className="relative border-l pl-4" aria-label={t("cases.timeline")}>
@@ -71,9 +71,12 @@ export function CaseTimelinePage() {
 
 export function caseTitle(item: CaseView, t: ReturnType<typeof useI18n>["t"], locale: string): string {
   const kind = t(`cases.kind.${item.kind}`);
-  if (item.po_name) return t("cases.title.po", { po: item.po_name, kind });
-  if (item.kind === "planning") return t("cases.title.planning", { date: formatDate(item.created_at, locale) });
-  return t("cases.title.kind", { kind, date: formatDate(item.created_at, locale) });
+  const what = item.po_name
+    ? t("cases.title.po", { po: item.po_name, kind })
+    : item.kind === "planning"
+      ? t("cases.title.planning", { date: formatDate(item.created_at, locale) })
+      : t("cases.title.kind", { kind, date: formatDate(item.created_at, locale) });
+  return `${item.code} · ${what}`;
 }
 
 function EventLine({ event }: { event: CaseEvent }) {

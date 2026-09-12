@@ -119,7 +119,7 @@ export function ApprovalDetail({ approval, onBack }: { approval: Approval; onBac
         {email ? <EmailCard payload={email} editing={editing} edits={emailEdits} onEdits={setEmailEdits} /> : null}
         {changes ? <ChangesCard payload={changes} accepted={accepted} onToggle={toggle} /> : null}
         {plan ? <PlanCard payload={plan} /> : null}
-        {escalation ? <EscalationCard payload={escalation} /> : null}
+        {escalation ? <EscalationCard payload={escalation} caseCode={approval.case_code} /> : null}
         {kind === "other" ? (
           <pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">{JSON.stringify(approval.payload, null, 2)}</pre>
         ) : null}

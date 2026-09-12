@@ -14,10 +14,11 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_injector import Injected
+from pydantic import Field
 
 from director.api.auth import Principal, Viewer
 from director.api.runs import AgentRunView, RunsGateway, run_view
-from director.store import Case, CaseEvent, CaseKind, CaseStatus, CaseStore
+from director.store import Case, CaseEvent, CaseKind, CaseStatus, CaseStore, parse_case_code
 from sc_core.infra import tracing
 from sc_core.schema.base import StrictModel
 
@@ -26,6 +27,7 @@ router = APIRouter(prefix="/cases", tags=["cases"])
 
 class CaseView(StrictModel):
     case_id: str
+    code: str = Field(description="what people read: C00012")
     kind: CaseKind
     status: CaseStatus
     po_name: str | None = None
@@ -54,8 +56,19 @@ class CaseDetail(StrictModel):
 
 def case_view(case: Case) -> CaseView:
     return CaseView(
-        **case.model_dump(exclude={"trace_id"}), trace_url=tracing.trace_url(case.trace_id)
+        **case.model_dump(exclude={"trace_id", "number"}),
+        code=case.code,
+        trace_url=tracing.trace_url(case.trace_id),
     )
+
+
+async def load_case(cases: CaseStore, ref: str) -> Case:
+    """A case by id or by its code (``C00012``); 404 when neither matches."""
+    number = parse_case_code(ref)
+    case = await cases.by_number(number) if number is not None else await cases.get(ref)
+    if case is None:
+        raise HTTPException(status_code=404, detail=f"case {ref} not found")
+    return case
 
 
 def _event_view(event: CaseEvent) -> CaseEventView:
@@ -82,9 +95,8 @@ async def get_case(
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
     runs: RunsGateway = Injected(RunsGateway),  # type: ignore[type-abstract]
 ) -> CaseDetail:
-    case = await cases.get(case_id)
-    if case is None:
-        raise HTTPException(status_code=404, detail=f"case {case_id} not found")
+    case = await load_case(cases, case_id)
+    case_id = case.case_id
     events = await cases.events(case_id)
     # The agents log their runs under the thread ids the director sent tasks on.
     thread_ids = {
