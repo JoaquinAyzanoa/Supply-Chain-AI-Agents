@@ -85,7 +85,9 @@ def weekly_demand(
     return out
 
 
-def allocate(qty: int, weights: list[tuple[str, float]], rng: random.Random) -> list[tuple[str, int]]:
+def allocate(
+    qty: int, weights: list[tuple[str, float]], rng: random.Random
+) -> list[tuple[str, int]]:
     """Split ``qty`` units across customers by weight; drops zero shares."""
     if qty <= 0:
         return []
@@ -144,9 +146,13 @@ def build_plan(ds: Dataset, *, today: date | None = None) -> Plan:
                 terms = product.suppliers.get(key)
                 if terms is None:
                     continue
-                need = _demand_between(plan, product.code, next_month, next_month + timedelta(days=31))
+                need = _demand_between(
+                    plan, product.code, next_month, next_month + timedelta(days=31)
+                )
                 total = math.ceil(need * 1.05)
-                alternate_turn = "alternate" in product.suppliers and (i + _stable_hash(product.code)) % 3 == 0
+                alternate_turn = (
+                    "alternate" in product.suppliers and (i + _stable_hash(product.code)) % 3 == 0
+                )
                 alternate_qty = math.ceil(total * 0.5) if alternate_turn else 0
                 if key == "primary":
                     need = total - alternate_qty
@@ -166,7 +172,11 @@ def build_plan(ds: Dataset, *, today: date | None = None) -> Plan:
             planned = ordered + timedelta(days=delay)
             roll = rng.random()
             if roll < receipts.on_time_share:
-                outcome, received, rest = "on_time", planned - timedelta(days=rng.randint(0, 2)), None
+                outcome, received, rest = (
+                    "on_time",
+                    planned - timedelta(days=rng.randint(0, 2)),
+                    None,
+                )
             elif roll < receipts.on_time_share + receipts.late_share:
                 late = rng.randint(1, receipts.late_days_max)
                 outcome, received, rest = "late", planned + timedelta(days=late), None
@@ -195,7 +205,9 @@ def _stable_hash(text: str) -> int:
     return sum(ord(c) * (i + 1) for i, c in enumerate(text))
 
 
-def product_delay(ds: Dataset, supplier: str, lines: tuple[tuple[str, int], ...] | list[tuple[str, int]]) -> int:
+def product_delay(
+    ds: Dataset, supplier: str, lines: tuple[tuple[str, int], ...] | list[tuple[str, int]]
+) -> int:
     delays = [ds.product(code).suppliers[supplier].delay for code, _ in lines]
     return max(delays) if delays else 30
 

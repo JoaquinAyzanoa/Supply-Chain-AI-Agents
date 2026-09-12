@@ -1,25 +1,28 @@
-"""``POST /events``: accept signed events from mail_sync, scheduler and Odoo.
+"""``POST /events``: accept signed events from mail_sync, the scheduler, Odoo and agents.
 
 The signature is verified, the event parsed and stored in the inbox
 (idempotent by ``event_id``), and the producer gets 202 at once. A newly
-stored mail event is then handed to the supplier communications agent in a
-background task, so mail_sync never waits for a model run. Phase 6 replaces
-the dispatcher with the routing table; the contract stays.
+stored event is then handed to the orchestration workflow in a background
+task, so no producer ever waits for a model run. An unknown event type is a
+422 (the parser rejects it), never a crash.
 
-``POST /jobs/{job}``: placeholder targets for the scheduler's director jobs
-(follow-ups, planning, performance) until their agents exist. They validate
-the signature and record the tick so the scheduler sees a clean run.
+``POST /jobs/{job}``: the scheduler's director jobs (follow-ups, planning,
+performance). The tick is stored like any event and run in a background
+task (a follow-up run can take longer than the scheduler waits); the job's
+summary lands on the tick's inbox row (``event_inbox.result``).
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi_injector import Injected
 from loguru import logger
 from pydantic import ValidationError
 
-from director.dispatch import Dispatcher
 from director.inbox import EventInbox
+from director.workflow import Orchestrator
 from sc_core.a2a.events import SignedBody
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import ScheduledTick, parse_event
@@ -35,6 +38,7 @@ class Accepted(StrictModel):
     event_id: str
     event_type: str
     dispatched: bool = False
+    result: dict[str, Any] | None = None
 
 
 @router.post("/events", status_code=202, response_model=Accepted)
@@ -42,7 +46,7 @@ async def receive_event(
     background: BackgroundTasks,
     body: bytes = SignedBody,
     inbox: EventInbox = Injected(EventInbox),  # type: ignore[type-abstract]
-    dispatcher: Dispatcher = Injected(Dispatcher),
+    orchestrator: Orchestrator = Injected(Orchestrator),
 ) -> Accepted:
     try:
         event = parse_event(body)
@@ -53,8 +57,8 @@ async def receive_event(
         "event {}", "accepted" if stored else "duplicate"
     )
     dispatched = False
-    if stored and event.type.startswith("inbound_mail."):
-        background.add_task(dispatcher.dispatch, event)
+    if stored:
+        background.add_task(orchestrator.handle, event)
         dispatched = True
     return Accepted(
         accepted=True,
@@ -68,8 +72,10 @@ async def receive_event(
 @router.post("/jobs/{job}", status_code=202, response_model=Accepted)
 async def receive_job(
     job: str,
+    background: BackgroundTasks,
     body: bytes = SignedBody,
     inbox: EventInbox = Injected(EventInbox),  # type: ignore[type-abstract]
+    orchestrator: Orchestrator = Injected(Orchestrator),
 ) -> Accepted:
     if job not in JOB_NAMES:
         raise HTTPException(status_code=404, detail=f"unknown job {job!r}")
@@ -78,7 +84,9 @@ async def receive_job(
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
     stored = await inbox.store(tick)
-    logger.bind(job=job, run_id=tick.run_id).info("job tick recorded; handler arrives in phase 6")
-    return Accepted(
-        accepted=True, duplicate=not stored, event_id=tick.event_id, event_type=tick.type
-    )
+    if not stored:
+        logger.bind(job=job, run_id=tick.run_id).info("job tick already handled")
+        return Accepted(accepted=True, duplicate=True, event_id=tick.event_id, event_type=tick.type)
+    background.add_task(orchestrator.run_tick, tick)
+    logger.bind(job=job, run_id=tick.run_id).info("job started in the background")
+    return Accepted(accepted=True, event_id=tick.event_id, event_type=tick.type, dispatched=True)

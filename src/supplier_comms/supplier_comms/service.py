@@ -12,6 +12,7 @@ from typing import Any
 
 from injector import Module, provider, singleton
 
+from sc_core.a2a.events import EventPublisher, PostgresOutbox
 from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
@@ -105,6 +106,12 @@ class SupplierCommsModule(Module):
     @singleton
     def provide_agent_provider(self, settings: Settings, deps: Deps, db: Database) -> AgentProvider:
         return AgentProvider(settings, deps, db)
+
+    @provider
+    @singleton
+    def provide_publisher(self, settings: Settings, db: Database) -> EventPublisher:
+        """Tells the director how a run paused on an approval ended (``agent.run_finished``)."""
+        return EventPublisher(settings.events, outbox=PostgresOutbox(db))
 
 
 def module_list() -> list[Any]:

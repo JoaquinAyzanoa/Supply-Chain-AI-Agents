@@ -1,53 +1,164 @@
 """ASGI entrypoint for the director service.
 
-Phase 4: signed events from mail_sync and the scheduler land in the event
-inbox. Phase 5: mail events are dispatched to the supplier communications
-agent over A2A. Phase 6 adds the orchestration workflow; phase 8 the
-Control Tower API.
+Signed events from mail_sync, the scheduler, Odoo and the agents land in
+the event inbox and are handed to the orchestration workflow in a
+background task. Phase 8 adds the Control Tower API.
 """
 
 from __future__ import annotations
 
 from fastapi import FastAPI
-from injector import Binder, Module, provider, singleton
+from injector import Module, provider, singleton
 from loguru import logger
 
 from director import __version__
-from director.dispatch import Dispatcher, EventResults, PostgresEventResults
-from director.inbox import EventInbox, PostgresEventInbox
+from director.agents import Agents, build_agents
+from director.concurrency import PoLocks
+from director.conversations import PostgresConversationLookup, PostgresMailActivity
+from director.escalation import (
+    Escalator,
+    LoggingEscalator,
+    OdooApprovals,
+    OdooEscalationPorts,
+    OdooEscalator,
+)
+from director.handlers.followups import FollowUpJob
+from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
+from director.jobs import JobRunner
+from director.policies import FollowUpPolicy
 from director.routers import events
-from sc_core.a2a.client import A2AClient, AgentCaller
+from director.store import CaseStore, PostgresCaseStore
+from director.workflow import Deps, Orchestrator
 from sc_core.app import create_application
 from sc_core.infra.db import Database
-from sc_core.infra.module import DbModule, OdooModule
+from sc_core.infra.locks import RedisLock
+from sc_core.infra.module import (
+    AsyncRedis,
+    ChatClientFactory,
+    DbModule,
+    LlmModule,
+    OdooModule,
+    RedisModule,
+)
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
+from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo, PurchaseOrderRepo
 
 settings = Settings(service_name="director")
 
 
-class InboxModule(Module):
-    def configure(self, binder: Binder) -> None:
-        binder.bind(EventInbox, to=PostgresEventInbox, scope=singleton)  # type: ignore[type-abstract]
-        binder.bind(EventResults, to=PostgresEventResults, scope=singleton)  # type: ignore[type-abstract]
+class DirectorModule(Module):
+    """Explicit providers: injector only auto-constructs ``@inject``-decorated classes."""
 
     @provider
     @singleton
-    def provide_supplier_comms(self, settings: Settings) -> AgentCaller:  # type: ignore[type-abstract]
-        return A2AClient(
-            settings.a2a.supplier_comms_url,
-            token=settings.a2a_token,
-            timeout_seconds=settings.a2a.timeout_seconds,
+    def provide_inbox(self, db: Database) -> EventInbox:  # type: ignore[type-abstract]
+        return PostgresEventInbox(db)
+
+    @provider
+    @singleton
+    def provide_results(self, db: Database) -> EventResults:  # type: ignore[type-abstract]
+        return PostgresEventResults(db)
+
+    @provider
+    @singleton
+    def provide_cases(self, db: Database) -> CaseStore:  # type: ignore[type-abstract]
+        return PostgresCaseStore(db)
+
+    @provider
+    @singleton
+    def provide_escalator(
+        self,
+        settings: Settings,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        chats: ChatClientFactory,
+        approvals: ApprovalRepo,
+        activities: ActivityRepo,
+        orders: PurchaseOrderRepo,
+    ) -> Escalator:  # type: ignore[type-abstract]
+        if not settings.odoo.configured:
+            return LoggingEscalator()
+        ports = OdooEscalationPorts(
+            approvals, activities, orders, approver_user_id=settings.agents.approver_user_id
+        )
+        return OdooEscalator(
+            chats.for_agent("director"),
+            ports,
+            cases,
+            deadline_days=settings.agents.approval_deadline_days,
+            langfuse=settings.langfuse,
         )
 
     @provider
     @singleton
-    def provide_dispatcher(
+    def provide_jobs(
         self,
-        supplier_comms: AgentCaller,  # type: ignore[type-abstract]
+        settings: Settings,
+        orders: PurchaseOrderRepo,
+        db: Database,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+        approvals: ApprovalRepo,
+    ) -> JobRunner:  # type: ignore[type-abstract]
+        return FollowUpJob(
+            policy=FollowUpPolicy.from_settings(settings.director),
+            orders=orders,
+            mail=PostgresMailActivity(db),
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            approvals=OdooApprovals(approvals, orders),
+            conversations=PostgresConversationLookup(db),
+        )
+
+    @provider
+    @singleton
+    def provide_agents(self, settings: Settings) -> Agents:
+        return build_agents(settings)
+
+    @provider
+    @singleton
+    def provide_deps(
+        self,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+        jobs: JobRunner,  # type: ignore[type-abstract]
+        db: Database,
+    ) -> Deps:
+        return Deps(
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            jobs=jobs,
+            conversations=PostgresConversationLookup(db),
+        )
+
+    @provider
+    @singleton
+    def provide_orchestrator(
+        self,
+        settings: Settings,
+        deps: Deps,
         results: EventResults,  # type: ignore[type-abstract]
-    ) -> Dispatcher:
-        return Dispatcher(supplier_comms, results)
+        inbox: EventInbox,  # type: ignore[type-abstract]
+        redis: AsyncRedis,
+        orders: PurchaseOrderRepo,
+    ) -> Orchestrator:
+        locks = PoLocks(
+            RedisLock(redis),
+            ttl_seconds=settings.director.lock_ttl_seconds,
+            wait_seconds=settings.director.lock_wait_seconds,
+        )
+        return Orchestrator(
+            deps,
+            results,
+            inbox=inbox,
+            locks=locks,
+            orders=orders,
+            reconcile_since_days=settings.director.reconcile_since_days,
+        )
 
 
 def build_app() -> FastAPI:
@@ -55,9 +166,9 @@ def build_app() -> FastAPI:
         settings,
         version=__version__,
         routers=[events.router],
-        modules=[DbModule(), OdooModule(), InboxModule()],
+        modules=[DbModule(), RedisModule(), OdooModule(), LlmModule(), DirectorModule()],
         startup=[_open_db, _connect_odoo],
-        shutdown=[_close_odoo, _close_db],
+        shutdown=[_close_odoo, _close_agents, _close_db],
     )
     return application
 
@@ -68,6 +179,10 @@ async def _open_db() -> None:
 
 async def _close_db() -> None:
     await app.state.injector.get(Database).close()
+
+
+async def _close_agents() -> None:
+    await app.state.injector.get(Agents).aclose()
 
 
 async def _connect_odoo() -> None:

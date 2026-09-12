@@ -1,7 +1,7 @@
 """Event contract.
 
 Every event that moves between services (mail_sync → director, scheduler →
-director, Odoo webhook → director) extends ``BaseEvent``. The base carries
+director, Odoo → director, agents → director) extends ``BaseEvent``. The base carries
 what routing, tracing and idempotent handling need; subclasses add the
 business payload and fix ``type`` to a literal so events can be parsed as a
 discriminated union.
@@ -80,17 +80,105 @@ class ScheduledTick(BaseEvent):
     trigger: Literal["cron", "manual"] = "cron"
 
 
+# --- phase 6: Odoo business events and agent completions ------------------------
+#
+# Odoo emits these from the sc_agents addon (automation rules and the approval
+# model), signed with the events secret like every other producer. Payloads are
+# record ids, names, dates and amounts: the orchestrator reads details by id.
+
+
+class OdooPurchaseConfirmed(BaseEvent):
+    """A purchase order reached state ``purchase`` (the promise to the supplier is made)."""
+
+    type: Literal["odoo.purchase_confirmed"] = "odoo.purchase_confirmed"
+    po_id: int
+    po_name: str
+    partner_id: int
+    date_planned: AwareDatetime | None = None
+    amount_total: float = 0.0
+    currency: str | None = None
+    line_count: int = Field(default=0, ge=0)
+
+
+class OdooReceiptValidated(BaseEvent):
+    """An incoming picking was set to ``done``."""
+
+    type: Literal["odoo.receipt_validated"] = "odoo.receipt_validated"
+    picking_id: int
+    picking_name: str
+    po_id: int | None = None
+    po_name: str | None = None
+    partner_id: int | None = None
+    date_done: AwareDatetime | None = None
+
+
+class OdooOrderpointTriggered(BaseEvent):
+    """A reorder rule's forecast fell below its minimum (phase 7 planning input)."""
+
+    type: Literal["odoo.orderpoint_triggered"] = "odoo.orderpoint_triggered"
+    orderpoint_id: int
+    product_id: int
+    product_code: str | None = None
+    qty_to_order: float = Field(ge=0)
+
+
+class OdooApprovalResolved(BaseEvent):
+    """A human resolved an ``sc.approval``; mirrored so the case shows the decision."""
+
+    type: Literal["odoo.approval_resolved"] = "odoo.approval_resolved"
+    approval_id: int
+    kind: str
+    status: Literal["approved", "rejected", "expired"]
+    thread_id: str | None = Field(default=None, description="the agent thread that waits")
+    po_id: int | None = None
+    po_name: str | None = None
+    resolved_by: str | None = Field(default=None, description="Odoo login, for the audit line")
+
+
+class AgentRunFinished(BaseEvent):
+    """An agent finished a run it had paused on an approval (director was not on that hop)."""
+
+    type: Literal["agent.run_finished"] = "agent.run_finished"
+    agent: str
+    thread_id: str = Field(description="the task's case_id, i.e. the agent thread")
+    run_id: str
+    task_kind: str
+    status: str
+    summary: str = Field(max_length=500)
+    po_name: str | None = None
+    approval_id: int | None = None
+    sent_message_id: str | None = Field(
+        default=None, description="Graph id of the email sent after the resume, if any"
+    )
+
+
 AnyEvent = Annotated[
-    InboundMailLinked | InboundMailUnlinked | ScheduledTick,
+    InboundMailLinked
+    | InboundMailUnlinked
+    | ScheduledTick
+    | OdooPurchaseConfirmed
+    | OdooReceiptValidated
+    | OdooOrderpointTriggered
+    | OdooApprovalResolved
+    | AgentRunFinished,
     Field(discriminator="type"),
 ]
+
+EVENT_TYPES: tuple[type[BaseEvent], ...] = (
+    InboundMailLinked,
+    InboundMailUnlinked,
+    ScheduledTick,
+    OdooPurchaseConfirmed,
+    OdooReceiptValidated,
+    OdooOrderpointTriggered,
+    OdooApprovalResolved,
+    AgentRunFinished,
+)
 
 _adapter: TypeAdapter[Any] = TypeAdapter(AnyEvent)
 
 
-def parse_event(
-    data: dict[str, Any] | bytes | str,
-) -> InboundMailLinked | InboundMailUnlinked | ScheduledTick:
+def parse_event(data: dict[str, Any] | bytes | str) -> BaseEvent:
     """Parse a payload into the concrete event; unknown ``type`` or extra fields fail."""
     if isinstance(data, dict):
         return _adapter.validate_python(data)  # type: ignore[no-any-return]

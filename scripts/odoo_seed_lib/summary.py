@@ -33,7 +33,8 @@ async def report(
         on_hand[product_ids[int(q["product_id"][0])]] += float(q["quantity"])
     negatives = [c for c, q in on_hand.items() if q < 0]
     lines.append(
-        "  on hand: " + ", ".join(f"{c} {int(q)}" for c, q in on_hand.items())
+        "  on hand: "
+        + ", ".join(f"{c} {int(q)}" for c, q in on_hand.items())
         + (f"  NEGATIVE: {negatives}" if negatives else "")
     )
 
@@ -97,7 +98,11 @@ async def report(
     # open supply
     open_orders = await odoo.search_read(
         "purchase.order",
-        [["state", "=", "purchase"], ["receipt_status", "!=", "full"], ["partner_id", "in", list(suppliers.values())]],
+        [
+            ["state", "=", "purchase"],
+            ["receipt_status", "!=", "full"],
+            ["partner_id", "in", list(suppliers.values())],
+        ],
         ["name", "date_planned"],
     )
     lines.append(

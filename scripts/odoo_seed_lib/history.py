@@ -271,7 +271,9 @@ async def purchase(
         await _validate_picking(client, pickings[0], first, p.received, backorder=True)
         if p.received_rest is not None:
             rest = await odoo.search(
-                "stock.picking", [["purchase_id", "=", po_id], ["state", "!=", "done"]], order="id asc"
+                "stock.picking",
+                [["purchase_id", "=", po_id], ["state", "!=", "done"]],
+                order="id asc",
             )
             if rest:
                 remaining = {pid: qty - first[pid] for pid, qty in quantities.items()}
@@ -405,7 +407,9 @@ async def repair_open_pickings(client: SeedClient) -> int:
                 )
                 for move in remaining:
                     await odoo.write(
-                        "stock.move", [move["id"]], {"quantity": move["product_uom_qty"], "picked": True}
+                        "stock.move",
+                        [move["id"]],
+                        {"quantity": move["product_uom_qty"], "picked": True},
                     )
                 await odoo.write("stock.picking", rest, {"scheduled_date": stamp(rest_day, 8)})
                 await validate(client, rest, backorder=False)
@@ -451,6 +455,14 @@ async def open_supply(
         delay = product_delay(ds, entry.supplier, lines)
         ordered = planned - timedelta(days=delay)
         await _create_confirmed_po(
-            client, ds, entry.supplier, suppliers[entry.supplier], lines, products, ordered, planned, ref
+            client,
+            ds,
+            entry.supplier,
+            suppliers[entry.supplier],
+            lines,
+            products,
+            ordered,
+            planned,
+            ref,
         )
         client.created["purchase.order"] = client.created.get("purchase.order", 0) + 1

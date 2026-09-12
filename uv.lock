@@ -511,6 +511,7 @@ name = "director"
 version = "0.1.0"
 source = { editable = "src/director" }
 dependencies = [
+    { name = "agent-framework-core" },
     { name = "fastapi" },
     { name = "fastapi-injector" },
     { name = "injector" },
@@ -521,6 +522,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "agent-framework-core", specifier = ">=1.18,<2" },
     { name = "fastapi", specifier = ">=0.116.1" },
     { name = "fastapi-injector", specifier = ">=0.8.0" },
     { name = "injector", specifier = ">=0.22.0" },

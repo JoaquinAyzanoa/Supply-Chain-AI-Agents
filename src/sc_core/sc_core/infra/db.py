@@ -13,10 +13,14 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from psycopg import AsyncConnection
+from psycopg.errors import ForeignKeyViolation
 from psycopg.rows import dict_row
 from psycopg_pool import AsyncConnectionPool
 
 from sc_core.infra.settings import AppDbCfg
+
+# Re-exported so services can react to constraint errors without depending on psycopg.
+__all__ = ["Database", "ForeignKeyViolation"]
 
 
 class Database:

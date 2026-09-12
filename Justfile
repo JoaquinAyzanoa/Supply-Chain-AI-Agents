@@ -124,6 +124,10 @@ llm-record:
 schema-snapshot:
     {{UV}} run python scripts/schema_snapshot.py
 
+# Publish every local prompt (sc_core, supplier_comms, director) to Langfuse Prompt Management
+langfuse-prompts:
+    {{UV}} run python scripts/langfuse_prompts.py
+
 # Open the Langfuse UI (admin@scai.local / scai-admin-password on first boot)
 langfuse-open:
     {{UV}} run python -c "import webbrowser; webbrowser.open('http://localhost:3000')"
@@ -156,6 +160,10 @@ odoo-upgrade module="sc_agents":
 # Generate an API key for the bot user and store it in .env (SC__ODOO__API_KEY)
 odoo-apikey login="sc_agent_bot":
     {{UV}} run python scripts/odoo_apikey.py --login {{login}} --db {{ODOO_DB}}
+
+# Point the Odoo addon at the director (system parameters: url + events secret); safe to repeat
+odoo-configure director_url="http://director:8000":
+    {{UV}} run python scripts/odoo_configure.py --director-url {{director_url}}
 
 # Load the Sun Hydraulics demo dataset (odoo/demo) into the local Odoo; safe to repeat
 odoo-seed *args:

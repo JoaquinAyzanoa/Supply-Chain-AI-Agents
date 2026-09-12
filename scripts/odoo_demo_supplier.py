@@ -1,6 +1,7 @@
 """Create the demo supplier and an open RFQ for it in the local Odoo (idempotent).
 
-    python scripts/odoo_demo_supplier.py [--email ventas.hidraulica.sc@gmail.com] [--name "Proveedor Hidraulica"]
+    python scripts/odoo_demo_supplier.py [--email ventas.hidraulica.sc@gmail.com]
+        [--name "Proveedor Hidraulica"]
 
 Prints the partner id and the RFQ name the phase 5 end-to-end test uses.
 The partner is created as the administrator (the bot deliberately cannot

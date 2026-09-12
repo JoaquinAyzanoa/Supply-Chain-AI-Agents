@@ -40,6 +40,8 @@ just qa          # ruff, mypy, deptry per member
 just test        # unit tests
 just up          # postgres + redis + odoo + langfuse + director + mail_sync + scheduler + supplier_comms
 just odoo-init   # first time only: create the Odoo database
+just odoo-apikey # API key for the bot user, written to .env
+just odoo-configure  # tell the Odoo addon where the director is and the events secret
 just odoo-seed   # demo dataset: Sun Hydraulics catalogue, two years of history (about 15 min)
 curl localhost:8010/health/ready
 just down
@@ -148,6 +150,13 @@ LLM tests run offline: unit tests use scripted clients or recorded cassettes
 when `DEEPSEEK_API_KEY` is set, the provider capability checks that back the
 flags in `models.yaml`.
 
+`just langfuse-prompts` publishes every local prompt file (`sc_core`,
+`supplier_comms`, `director`) to Langfuse Prompt Management with the
+`production` label, so `get_prompt` serves them from Langfuse instead of
+logging a fallback on every call; edit a prompt there and the agents pick it
+up within `SC__LANGFUSE__PROMPT_CACHE_SECONDS`.
+
+
 ## Mail sync and scheduler
 
 Two deterministic services run without any model call.
@@ -207,13 +216,63 @@ safe to repeat. Every run is a `sc.agent.run` in Odoo with a link to its
 Langfuse trace; the supplier's text lives in the state only while the run is
 active and is cleared before it ends.
 
-The director dispatches linked and unlinked mail events to the agent as
-soon as it accepts them (`SC__A2A__SUPPLIER_COMMS_URL`). Model answers for
-the unit tests are recorded cassettes (`just llm-record`). To try the loop
+The director hands linked and unlinked mail events to the agent as soon
+as it accepts them (`SC__A2A__SUPPLIER_COMMS_URL`). Model answers for the
+unit tests are recorded cassettes (`just llm-record`). To try the loop
 on the demo supplier: `just odoo-demo-supplier` creates "Proveedor
 Hidraulica" with an open RFQ, and `just test-int` runs the live test (a real
 RFQ goes out to the supplier mailbox; set `SC_E2E_SUPPLIER=1` and reply from
 Gmail to also exercise the inbound half).
+
+## Orchestrator
+
+`director` is the only service that knows the agents exist. Every event
+(`POST /events`, signed) is routed by a table, never by a model:
+`inbound_mail.linked` → `handle_inbound`, `inbound_mail.unlinked` →
+`resolve_unlinked` or straight to a person when the sender is unknown,
+`odoo.purchase_confirmed` → `send_po`, `odoo.receipt_validated` and
+`odoo.orderpoint_triggered` recorded for phases 9 and 7, `odoo.approval_resolved`
+and `agent.run_finished` mirrored on the case. The work itself runs as a
+Microsoft Agent Framework workflow built per event: route → one A2A proxy
+per agent (at most `SC__A2A__MAX_CONCURRENT` runs in flight) → consolidate.
+
+Every piece of work belongs to a **case** (`cases`, `case_events`,
+migration 004): one purchase order story, attached by order and Outlook
+conversation, with the case id as the Langfuse session. Each agent task
+runs on its own thread (the event's id) so a second email on a paused
+thread never clobbers the run waiting for approval. Case events keep
+identifiers and short summaries only.
+
+Odoo emits its events itself: the `sc_agents` addon posts the same signed
+envelope every producer uses, after commit, when an order is confirmed, a
+receipt validated or an approval resolved (`just odoo-configure` stores the
+director url and the events secret as system parameters). Agents publish
+`agent.run_finished` after a resume, so a case leaves `awaiting_approval`
+even though the approval callback never passes through the director.
+
+The daily `po_followups` job (`just run-job po_followups`) applies the
+follow-up policy: silent RFQs get a `follow_up` after `SC__DIRECTOR__RFQ_NO_REPLY_DAYS`
+(3 then 7 days) and are escalated after that, orders past their planned
+date get a `request_eta` after one day and are escalated after four, orders
+due within five days get one ETA request, pending approvals are reminded
+after two days and expired after seven. Each rule fires once per order and
+is written to `case_events` as `rule_fired`, so the UI can explain every
+email. At most `SC__DIRECTOR__MAX_ACTIONS_PER_RUN` emails and escalations
+go out per run (the rest waits for the next one). The same job replays
+events that were deferred (order locked) and reconciles orders confirmed
+while an event was missed, looking back `SC__DIRECTOR__RECONCILE_SINCE_DAYS`
+but never before the orchestrator's first case. Jobs run in the background;
+their summary lands on the tick's `event_inbox` row.
+
+Escalations are `sc.approval` records of kind `escalation` on the order,
+with a three-sentence summary written by the model (the director's only
+model call, replayed in tests from `tests/fixtures/llm/director.json`), the
+reason and the Langfuse trace link, plus a To-Do for the approver. A
+resolved escalation closes its case; escalations are reminded but never
+expired. One run
+per order at a time is guaranteed by a Redis lock (`po:<name>`); an event
+that cannot get it within `SC__DIRECTOR__LOCK_WAIT_SECONDS` stays in the
+inbox for the replay.
 
 ## Demo dataset
 
@@ -229,7 +288,8 @@ per-product demand profiles with a fixed RNG seed, dated back so the planning
 and performance agents see real history. It prints a summary (stock, demand
 shape, on-time share and observed lead time per supplier, open incoming
 orders) and is safe to run again. A fresh demo: `just odoo-reset`,
-`just odoo-init`, `just odoo-apikey`, `just odoo-seed`. See `odoo/demo/README.md`.
+`just odoo-init`, `just odoo-apikey`, `just odoo-configure`, `just odoo-seed`.
+See `odoo/demo/README.md`.
 
 The supplier agent can also send a confirmed order as Odoo's own "Orden de
 Compra" PDF (task `send_po`): the report is rendered over RPC, attached to

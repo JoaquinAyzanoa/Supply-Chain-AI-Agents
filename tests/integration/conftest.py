@@ -112,6 +112,15 @@ async def graph(mail_provider: DelegatedTokenProvider) -> AsyncIterator[GraphMai
 
 
 @pytest.fixture
+async def live_db(live_settings: Settings) -> AsyncIterator[Database]:
+    """The compose application database (not the throwaway one), for end-to-end checks."""
+    database = Database(live_settings.app_db)
+    await database.open()
+    yield database
+    await database.close()
+
+
+@pytest.fixture
 async def odoo(live_settings: Settings) -> AsyncIterator[OdooClient]:
     async with OdooClient(live_settings.odoo) as client:
         yield client

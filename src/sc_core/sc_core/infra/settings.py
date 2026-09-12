@@ -198,8 +198,25 @@ class A2aCfg(_Section):
 
     token: SecretStr = SecretStr("")
     timeout_seconds: float = Field(default=300.0, gt=0)  # a graph run may take a while
+    max_concurrent: int = Field(default=4, ge=1)  # runs in flight per agent (director side)
     # Where the director reaches each agent (inside compose: http://<service>:8000).
     supplier_comms_url: str = "http://localhost:8013"
+
+
+class DirectorCfg(_Section):
+    """Orchestrator policy: follow-up cadence, escalation thresholds, per-order locking."""
+
+    rfq_no_reply_days: list[int] = [3, 7]  # follow_up after these days of silence, then escalate
+    po_eta_request_before_days: int = Field(default=5, ge=0)  # ask to confirm the date this early
+    po_late_days: list[int] = [1, 4]  # past date_planned: request_eta, then escalate
+    approval_stale_days: int = Field(default=2, ge=0)  # remind the approver
+    approval_expire_days: int = Field(default=7, ge=0)  # expire the approval, escalate the case
+    lock_ttl_seconds: int = Field(default=900, ge=1)  # one run per order at a time
+    lock_wait_seconds: float = Field(default=120.0, ge=0)  # how long an event waits for the lock
+    max_actions_per_run: int = Field(
+        default=20, ge=1
+    )  # follow-up job: emails + escalations per run
+    reconcile_since_days: int = Field(default=3, ge=0)  # missed confirmations looked back this far
 
 
 class AgentsCfg(_Section):
@@ -256,6 +273,7 @@ class Settings(BaseSettings):
     scheduler: SchedulerCfg = Field(default_factory=SchedulerCfg)
     agents: AgentsCfg = Field(default_factory=AgentsCfg)
     a2a: A2aCfg = Field(default_factory=A2aCfg)
+    director: DirectorCfg = Field(default_factory=DirectorCfg)
     supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
 
     @property
