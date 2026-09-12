@@ -40,6 +40,7 @@ just qa          # ruff, mypy, deptry per member
 just test        # unit tests
 just up          # postgres + redis + odoo + langfuse + director + mail_sync + scheduler + supplier_comms
 just odoo-init   # first time only: create the Odoo database
+just odoo-seed   # demo dataset: Sun Hydraulics catalogue, two years of history (about 15 min)
 curl localhost:8010/health/ready
 just down
 ```
@@ -213,6 +214,26 @@ on the demo supplier: `just odoo-demo-supplier` creates "Proveedor
 Hidraulica" with an open RFQ, and `just test-int` runs the live test (a real
 RFQ goes out to the supplier mailbox; set `SC_E2E_SUPPLIER=1` and reply from
 Gmail to also exercise the inbound half).
+
+## Demo dataset
+
+`odoo/demo/sun_hydraulics.yaml` describes a small Peruvian distributor of Sun
+Hydraulics components: 14 products (counterbalance, relief, needle, flow
+control, check, directional, reducing and logic cartridges, a line body, a
+coil, a seal kit), two suppliers with prices and lead times (the demo
+mailbox as primary, an alternate with no email), four customers, stock,
+reorder rules with three deliberate flaws, and the parameters of two years
+of history. `just odoo-seed` loads it as the administrator: the catalogue,
+then delivered sales orders and received purchases generated from the
+per-product demand profiles with a fixed RNG seed, dated back so the planning
+and performance agents see real history. It prints a summary (stock, demand
+shape, on-time share and observed lead time per supplier, open incoming
+orders) and is safe to run again. A fresh demo: `just odoo-reset`,
+`just odoo-init`, `just odoo-apikey`, `just odoo-seed`. See `odoo/demo/README.md`.
+
+The supplier agent can also send a confirmed order as Odoo's own "Orden de
+Compra" PDF (task `send_po`): the report is rendered over RPC, attached to
+the cover email, listed in the approval and sent after it.
 
 ## Conventions
 
