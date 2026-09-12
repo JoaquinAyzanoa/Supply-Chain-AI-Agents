@@ -133,14 +133,18 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         return await self.get(po_id)
 
     async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
-        """Every open order plus those closed since ``closed_since`` (the board's cards)."""
-        open_states = ["draft", "sent", "to approve", "purchase"]
+        """The board's cards: every order still moving, plus those received or closed
+        since ``closed_since`` (older ones would bury the live columns)."""
         return await self.find(
             [
                 "|",
-                ["state", "in", open_states],
+                ["state", "in", ["draft", "sent", "to approve"]],
+                "|",
                 "&",
-                ["state", "in", ["done", "cancel"]],
+                ["state", "=", "purchase"],
+                ["receipt_status", "!=", "full"],
+                "&",
+                ["state", "in", ["purchase", "done", "cancel"]],
                 ["write_date", ">=", closed_since.isoformat()],
             ],
             order="date_planned asc, id desc",
