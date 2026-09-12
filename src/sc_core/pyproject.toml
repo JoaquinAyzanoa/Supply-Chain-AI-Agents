@@ -7,6 +7,7 @@ dependencies = [
   # Each library is added by the story that first imports it (deptry runs per member).
   "pydantic>=2.11.0",
   "pydantic-settings>=2.10.1",
+  "python-dotenv>=1.0.0",  # exports provider API keys from .env on the host
   "loguru>=0.7.3",
   "fastapi>=0.116.1",
   "uvicorn[standard]>=0.35.0",

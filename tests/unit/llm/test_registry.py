@@ -77,3 +77,15 @@ def test_settings_model_assignment(clean_env: pytest.MonkeyPatch) -> None:
     clean_env.setenv("SC__LANGFUSE__PUBLIC_KEY", "pk")
     clean_env.setenv("SC__LANGFUSE__SECRET_KEY", "sk")
     assert Settings(_env_file=None).langfuse.configured is True
+
+
+def test_settings_exports_provider_keys_from_env_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """DEEPSEEK_API_KEY in .env must reach os.environ, where the registry reads it."""
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
+    env_file = tmp_path / ".env"
+    env_file.write_text("DEEPSEEK_API_KEY=sk-from-file\nSC__SERVICE_NAME=t\n", encoding="utf-8")
+    settings = Settings(_env_file=env_file)
+    assert settings.service_name == "t"
+    assert Registry.load().provider("deepseek").api_key() == "sk-from-file"
