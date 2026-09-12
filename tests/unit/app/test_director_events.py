@@ -165,6 +165,11 @@ def test_job_stub_records_tick_and_rejects_unknown_job(
     )
     ok = _post(client, "/jobs/po-followups", encode_event(tick))
     assert ok.status_code == 202 and inbox.of_type("scheduler.tick")
+    # the job ran inside the request (memory module: recorded no-op) and reported back
+    [update] = ok.json()["result"]["updates"]
+    assert update["kind"] == "job" and update["detail"]["status"] == "not_implemented"
+    again = _post(client, "/jobs/po-followups", encode_event(tick))
+    assert again.json()["duplicate"] is True and again.json()["result"] is None
     assert _post(client, "/jobs/nope", encode_event(tick)).status_code == 404
     assert agent.sent == []  # ticks are not dispatched to the supplier agent
 

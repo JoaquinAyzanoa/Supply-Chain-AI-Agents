@@ -6,13 +6,15 @@ stored event is then handed to the orchestration workflow in a background
 task, so no producer ever waits for a model run. An unknown event type is a
 422 (the parser rejects it), never a crash.
 
-``POST /jobs/{job}``: placeholder targets for the scheduler's director jobs
-(follow-ups, planning, performance) until P6-S5 wires them through the
-workflow. They validate the signature and record the tick so the scheduler
-sees a clean run.
+``POST /jobs/{job}``: the scheduler's director jobs (follow-ups, planning,
+performance). The tick is stored like any event and run through the
+workflow *before* answering, so the scheduler's run record carries the
+job's summary and a failure shows up as one.
 """
 
 from __future__ import annotations
+
+from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from fastapi_injector import Injected
@@ -36,6 +38,7 @@ class Accepted(StrictModel):
     event_id: str
     event_type: str
     dispatched: bool = False
+    result: dict[str, Any] | None = None
 
 
 @router.post("/events", status_code=202, response_model=Accepted)
@@ -71,6 +74,7 @@ async def receive_job(
     job: str,
     body: bytes = SignedBody,
     inbox: EventInbox = Injected(EventInbox),  # type: ignore[type-abstract]
+    orchestrator: Orchestrator = Injected(Orchestrator),
 ) -> Accepted:
     if job not in JOB_NAMES:
         raise HTTPException(status_code=404, detail=f"unknown job {job!r}")
@@ -79,7 +83,14 @@ async def receive_job(
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
     stored = await inbox.store(tick)
-    logger.bind(job=job, run_id=tick.run_id).info("job tick recorded; handler arrives in phase 6")
+    if not stored:
+        logger.bind(job=job, run_id=tick.run_id).info("job tick already handled")
+        return Accepted(accepted=True, duplicate=True, event_id=tick.event_id, event_type=tick.type)
+    result = await orchestrator.handle(tick)
     return Accepted(
-        accepted=True, duplicate=not stored, event_id=tick.event_id, event_type=tick.type
+        accepted=True,
+        event_id=tick.event_id,
+        event_type=tick.type,
+        dispatched=True,
+        result=result,
     )

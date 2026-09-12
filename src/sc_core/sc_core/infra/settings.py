@@ -203,6 +203,18 @@ class A2aCfg(_Section):
     supplier_comms_url: str = "http://localhost:8013"
 
 
+class DirectorCfg(_Section):
+    """Orchestrator policy: follow-up cadence, escalation thresholds, per-order locking."""
+
+    rfq_no_reply_days: list[int] = [3, 7]  # follow_up after these days of silence, then escalate
+    po_eta_request_before_days: int = Field(default=5, ge=0)  # ask to confirm the date this early
+    po_late_days: list[int] = [1, 4]  # past date_planned: request_eta, then escalate
+    approval_stale_days: int = Field(default=2, ge=0)  # remind the approver
+    approval_expire_days: int = Field(default=7, ge=0)  # expire the approval, escalate the case
+    lock_ttl_seconds: int = Field(default=900, ge=1)  # one run per order at a time
+    lock_wait_seconds: float = Field(default=120.0, ge=0)  # how long an event waits for the lock
+
+
 class AgentsCfg(_Section):
     """Shared by every LangGraph agent: who approves and how long they get."""
 
@@ -257,6 +269,7 @@ class Settings(BaseSettings):
     scheduler: SchedulerCfg = Field(default_factory=SchedulerCfg)
     agents: AgentsCfg = Field(default_factory=AgentsCfg)
     a2a: A2aCfg = Field(default_factory=A2aCfg)
+    director: DirectorCfg = Field(default_factory=DirectorCfg)
     supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
 
     @property

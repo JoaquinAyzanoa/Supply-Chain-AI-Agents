@@ -13,10 +13,12 @@ from loguru import logger
 
 from director import __version__
 from director.agents import Agents, build_agents
-from director.conversations import PostgresConversationLookup
+from director.conversations import PostgresConversationLookup, PostgresMailActivity
 from director.escalation import Escalator, LoggingEscalator
+from director.handlers.followups import FollowUpJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
-from director.jobs import JobRunner, NoJobs
+from director.jobs import JobRunner
+from director.policies import FollowUpPolicy
 from director.routers import events
 from director.store import CaseStore, PostgresCaseStore
 from director.workflow import Deps, Orchestrator
@@ -25,6 +27,7 @@ from sc_core.infra.db import Database
 from sc_core.infra.module import DbModule, OdooModule
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
+from sc_core.odoo.repositories import PurchaseOrderRepo
 
 settings = Settings(service_name="director")
 
@@ -54,8 +57,24 @@ class DirectorModule(Module):
 
     @provider
     @singleton
-    def provide_jobs(self) -> JobRunner:  # type: ignore[type-abstract]
-        return NoJobs()
+    def provide_jobs(
+        self,
+        settings: Settings,
+        orders: PurchaseOrderRepo,
+        db: Database,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+    ) -> JobRunner:  # type: ignore[type-abstract]
+        return FollowUpJob(
+            policy=FollowUpPolicy.from_settings(settings.director),
+            orders=orders,
+            mail=PostgresMailActivity(db),
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            conversations=PostgresConversationLookup(db),
+        )
 
     @provider
     @singleton

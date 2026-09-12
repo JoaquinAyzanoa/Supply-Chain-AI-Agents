@@ -183,27 +183,35 @@ class AgentProxyExecutor(Executor):
             reply = await proxy.send(task.model_dump_json(), case_id=case.case_id)
         except ScError as exc:
             log.opt(exception=True).error("agent call failed: {}", exc.message)
-            await ctx.send_message(
-                AgentOutcome(
-                    case=case,
-                    agent=self._agent,
-                    task_kind=task.kind,
-                    thread_id=task.case_id,
-                    status="failed",
-                    summary=f"{self._agent} unreachable: {exc.message}"[:500],
-                    error=exc.to_dict(),
-                )
+            outcome = outcome_from_reply(
+                case, self._agent, task.kind, task.case_id, None, error=exc
             )
-            return
-        await ctx.send_message(
-            outcome_from_reply(case, self._agent, task.kind, task.case_id, reply)
-        )
+        else:
+            outcome = outcome_from_reply(case, self._agent, task.kind, task.case_id, reply)
+        await ctx.send_message(outcome)
 
 
 def outcome_from_reply(
-    case: Case, agent: str, task_kind: str, thread_id: str, reply: Any
+    case: Case,
+    agent: str,
+    task_kind: str,
+    thread_id: str,
+    reply: Any,
+    *,
+    error: ScError | None = None,
 ) -> AgentOutcome:
-    """Parse the agent's JSON result; anything else is a failure with the text as summary."""
+    """Parse the agent's JSON result; a transport error or other text is a failure."""
+    if error is not None or reply is None:
+        message = error.message if error is not None else "no reply"
+        return AgentOutcome(
+            case=case,
+            agent=agent,
+            task_kind=task_kind,
+            thread_id=thread_id,
+            status="failed",
+            summary=f"{agent} unreachable: {message}"[:500],
+            error=error.to_dict() if error is not None else None,
+        )
     try:
         result = SupplierCommsResult.model_validate_json(reply.text)
     except ValidationError:
@@ -241,58 +249,9 @@ class ConsolidateExecutor(Executor):
     async def agent_result(
         self, outcome: AgentOutcome, ctx: WorkflowContext[Any, CaseUpdate]
     ) -> None:
-        cases = self._deps.cases
-        case = outcome.case
-        await cases.add_event(
-            case.case_id,
-            "result",
-            {
-                "agent": outcome.agent,
-                "task": outcome.task_kind,
-                "thread_id": outcome.thread_id,
-                "run_id": outcome.run_id,
-                "status": outcome.status,
-                "summary": outcome.summary,
-                "approval_id": outcome.approval_id,
-                "error": outcome.error,
-            },
-        )
-        conversation = None
-        if outcome.sent_message_id:
-            conversation = await self._deps.conversations.conversation_for(outcome.sent_message_id)
-        status = case_status_for(outcome.status)
-        await cases.update(
-            case.case_id,
-            status=status,
-            summary=outcome.summary,
-            agent=outcome.agent,
-            conversation_id=conversation,
-        )
-        if outcome.approval_id is not None:
-            await cases.add_event(
-                case.case_id,
-                "approval_requested",
-                {"approval_id": outcome.approval_id, "agent": outcome.agent},
-            )
-        if outcome.status in NEEDS_HUMAN:
-            status = await self._escalate(
-                case,
-                reason=outcome.summary,
-                details={"agent": outcome.agent, "task": outcome.task_kind, "error": outcome.error},
-            )
+        deps = self._deps
         await ctx.yield_output(
-            CaseUpdate(
-                case_id=case.case_id,
-                status=status,
-                kind="agent",
-                detail={
-                    "agent": outcome.agent,
-                    "task": outcome.task_kind,
-                    "status": outcome.status,
-                    "summary": outcome.summary,
-                    "approval_id": outcome.approval_id,
-                },
-            )
+            await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
         )
 
     @handler
@@ -327,25 +286,93 @@ class ConsolidateExecutor(Executor):
         await ctx.yield_output(CaseUpdate(case_id=case.case_id, status=status, kind="note"))
 
     async def _escalate(self, case: Case, *, reason: str, details: dict[str, Any]) -> CaseStatus:
-        escalation = await self._deps.escalator.escalate(case, reason=reason, details=details)
-        await self._deps.cases.add_event(
-            case.case_id,
-            "escalated",
-            {
-                "reason": reason,
-                "summary": escalation.summary,
-                "approval_id": escalation.approval_id,
-                "trace_url": escalation.trace_url,
-            },
+        return await escalate_case(
+            self._deps.cases, self._deps.escalator, case, reason=reason, details=details
         )
-        updated = await self._deps.cases.update(
-            case.case_id, status="escalated", summary=escalation.summary
-        )
-        return updated.status
 
 
 async def _has_agent_work(cases: CaseStore, case_id: str) -> bool:
     return any(e.kind == "task_sent" for e in await cases.events(case_id))
+
+
+async def escalate_case(
+    cases: CaseStore, escalator: Escalator, case: Case, *, reason: str, details: dict[str, Any]
+) -> CaseStatus:
+    """Hand the case to a person and record it; returns the new case status."""
+    escalation = await escalator.escalate(case, reason=reason, details=details)
+    await cases.add_event(
+        case.case_id,
+        "escalated",
+        {
+            "reason": reason,
+            "summary": escalation.summary,
+            "approval_id": escalation.approval_id,
+            "trace_url": escalation.trace_url,
+        },
+    )
+    updated = await cases.update(case.case_id, status="escalated", summary=escalation.summary)
+    return updated.status
+
+
+async def consolidate_outcome(
+    cases: CaseStore,
+    escalator: Escalator,
+    conversations: ConversationLookup,
+    outcome: AgentOutcome,
+) -> CaseUpdate:
+    """Write an agent outcome on its case; escalate when a human is needed."""
+    case = outcome.case
+    await cases.add_event(
+        case.case_id,
+        "result",
+        {
+            "agent": outcome.agent,
+            "task": outcome.task_kind,
+            "thread_id": outcome.thread_id,
+            "run_id": outcome.run_id,
+            "status": outcome.status,
+            "summary": outcome.summary,
+            "approval_id": outcome.approval_id,
+            "error": outcome.error,
+        },
+    )
+    conversation = None
+    if outcome.sent_message_id:
+        conversation = await conversations.conversation_for(outcome.sent_message_id)
+    status = case_status_for(outcome.status)
+    await cases.update(
+        case.case_id,
+        status=status,
+        summary=outcome.summary,
+        agent=outcome.agent,
+        conversation_id=conversation,
+    )
+    if outcome.approval_id is not None:
+        await cases.add_event(
+            case.case_id,
+            "approval_requested",
+            {"approval_id": outcome.approval_id, "agent": outcome.agent},
+        )
+    if outcome.status in NEEDS_HUMAN:
+        status = await escalate_case(
+            cases,
+            escalator,
+            case,
+            reason=outcome.summary,
+            details={"agent": outcome.agent, "task": outcome.task_kind, "error": outcome.error},
+        )
+    return CaseUpdate(
+        case_id=case.case_id,
+        status=status,
+        kind="agent",
+        detail={
+            "agent": outcome.agent,
+            "task": outcome.task_kind,
+            "status": outcome.status,
+            "summary": outcome.summary,
+            "approval_id": outcome.approval_id,
+        },
+    )
 
 
 # --- building and running -----------------------------------------------------------

@@ -129,6 +129,10 @@ class CaseStore(Protocol):
         """The case a task was sent on (``task_sent`` event with that ``thread_id``)."""
         ...
 
+    async def rules_fired(self, po_name: str) -> list[str]:
+        """Keys of the policy rules already fired on any case of the order, oldest first."""
+        ...
+
     async def list(
         self,
         *,
@@ -287,6 +291,15 @@ class PostgresCaseStore:
         )
         return await self.get(row["case_id"]) if row else None
 
+    async def rules_fired(self, po_name: str) -> list[str]:
+        rows = await self._db.fetch_all(
+            "SELECT coalesce(e.payload->>'key', e.payload->>'rule') AS key "
+            "FROM case_events e JOIN cases c USING (case_id) "
+            "WHERE c.po_name = %s AND e.kind = 'rule_fired' ORDER BY e.id",
+            (po_name,),
+        )
+        return [str(r["key"]) for r in rows if r["key"]]
+
     async def list(
         self,
         *,
@@ -413,6 +426,14 @@ class MemoryCaseStore:
             if event.kind == "task_sent" and event.payload.get("thread_id") == thread_id:
                 return self.cases.get(event.case_id)
         return None
+
+    async def rules_fired(self, po_name: str) -> list[str]:
+        ids = {c.case_id for c in self.cases.values() if c.po_name == po_name}
+        return [
+            str(e.payload.get("key") or e.payload["rule"])
+            for e in self.case_events
+            if e.case_id in ids and e.kind == "rule_fired" and e.payload.get("rule")
+        ]
 
     async def list(
         self,

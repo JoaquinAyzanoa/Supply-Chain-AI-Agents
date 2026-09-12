@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import base64
-from datetime import date, datetime
+from collections.abc import Sequence
+from datetime import date, datetime, timedelta
 from typing import Any
 
 from sc_core.odoo.models import (
@@ -75,6 +76,23 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
             ],
             order="date_planned asc",
         )
+
+    async def open_due_within(self, as_of: date, days: int) -> list[PurchaseOrder]:
+        """Confirmed orders due between ``as_of`` and ``as_of + days`` without a full receipt."""
+        return await self.find(
+            [
+                ["state", "in", OPEN_STATES],
+                ["date_planned", ">=", to_odoo_date(as_of)],
+                ["date_planned", "<", to_odoo_date(as_of + timedelta(days=days + 1))],
+                ["receipt_status", "!=", "full"],
+            ],
+            order="date_planned asc",
+        )
+
+    async def by_names(self, names: Sequence[str]) -> list[PurchaseOrder]:
+        if not names:
+            return []
+        return await self.find([["name", "in", list(names)]], order="name asc")
 
     async def open_rfqs(self, *, sent_before: datetime | None = None) -> list[PurchaseOrder]:
         domain: list[Any] = [["state", "in", ["sent"]]]
