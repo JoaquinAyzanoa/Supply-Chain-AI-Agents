@@ -164,6 +164,7 @@ class PurchaseOrderLine(OdooModel):
     date_planned: datetime | None = None
     qty_received: float = 0.0
     qty_invoiced: float = 0.0
+    qty_to_invoice: float = 0.0
     state: PurchaseState | None = None
 
     @property
@@ -260,6 +261,70 @@ class StockMove(OdooModel):
     picking_id: Ref | None = None
     purchase_line_id: Ref | None = None
     date: datetime | None = None
+
+
+class StockMoveLine(OdooModel):
+    """What was counted on a receipt line (``quantity``), against its move."""
+
+    ODOO_MODEL: ClassVar[str] = "stock.move.line"
+
+    product_id: Ref
+    move_id: Ref | None = None
+    picking_id: Ref | None = None
+    quantity: float = 0.0  # counted, in the line's unit
+    quantity_product_uom: float = 0.0  # the same, in the product's unit
+    picked: bool = False
+    state: str
+    date: datetime | None = None
+    lot_id: Ref | None = None
+
+
+# --- accounting ----------------------------------------------------------------
+
+BillState = Literal["draft", "posted", "cancel"]
+
+
+class AccountMove(OdooModel):
+    """A vendor bill (``move_type`` in_invoice / in_refund). Read and drafted, never posted."""
+
+    ODOO_MODEL: ClassVar[str] = "account.move"
+
+    name: str | None = None
+    move_type: str
+    state: BillState
+    partner_id: Ref | None = None
+    invoice_date: date | None = None
+    invoice_date_due: date | None = None
+    ref: str | None = None  # the supplier's invoice number
+    payment_reference: str | None = None
+    invoice_origin: str | None = None
+    amount_untaxed: float = 0.0
+    amount_total: float = 0.0
+    amount_residual: float = 0.0
+    currency_id: Ref | None = None
+    payment_state: str | None = None
+    purchase_id: Ref | None = None
+    invoice_line_ids: list[int] = []
+    create_date: datetime | None = None
+
+    @property
+    def is_draft(self) -> bool:
+        return self.state == "draft"
+
+
+class AccountMoveLine(OdooModel):
+    ODOO_MODEL: ClassVar[str] = "account.move.line"
+
+    move_id: Ref
+    product_id: Ref | None = None
+    name: str | None = None
+    quantity: float = 0.0
+    price_unit: float = 0.0
+    discount: float = 0.0
+    price_subtotal: float = 0.0
+    price_total: float = 0.0
+    purchase_line_id: Ref | None = None
+    display_type: str | None = None
 
 
 # --- partners and activities -------------------------------------------------

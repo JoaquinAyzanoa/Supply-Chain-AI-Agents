@@ -402,6 +402,8 @@ and performance agents see real history. It prints a summary (stock, demand
 shape, on-time share and observed lead time per supplier, open incoming
 orders) and is safe to run again. A fresh demo: `just odoo-reset`,
 `just odoo-init`, `just odoo-apikey`, `just odoo-configure`, `just odoo-seed`.
+An existing database gets a new module with `just odoo-install <module>`
+(phase 9 needs `account`: `just odoo-install account`).
 See `odoo/demo/README.md`.
 
 The supplier agent can also send a confirmed order as Odoo's own "Orden de
