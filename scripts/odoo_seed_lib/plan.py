@@ -135,19 +135,25 @@ def build_plan(ds: Dataset, *, today: date | None = None) -> Plan:
     pindex = 0
     for i, month in enumerate(months):
         next_month = months[i + 1] if i + 1 < len(months) else end + timedelta(days=30)
+        # Next month's demand plus 5 % is what gets bought in total; every third
+        # month half of it goes to the alternate supplier (when the product has
+        # one) and the primary gets the rest, so stock does not pile up.
         for key in ds.suppliers:
             lines: list[tuple[str, int]] = []
             for product in ds.products:
                 terms = product.suppliers.get(key)
                 if terms is None:
                     continue
-                if key != "primary" and (i + hash(product.code)) % 3 != 0:
-                    continue  # the alternate supplier gets every third month
                 need = _demand_between(plan, product.code, next_month, next_month + timedelta(days=31))
+                total = math.ceil(need * 1.05)
+                alternate_turn = "alternate" in product.suppliers and (i + _stable_hash(product.code)) % 3 == 0
+                alternate_qty = math.ceil(total * 0.5) if alternate_turn else 0
                 if key == "primary":
-                    need = math.ceil(need * 1.05)
+                    need = total - alternate_qty
+                elif alternate_turn:
+                    need = alternate_qty
                 else:
-                    need = math.ceil(need * 0.5)
+                    continue
                 if need <= 0:
                     continue
                 moq = max(terms.min_qty, 1)
@@ -182,6 +188,11 @@ def build_plan(ds: Dataset, *, today: date | None = None) -> Plan:
             )
     _cover_shortfalls(ds, plan)
     return plan
+
+
+def _stable_hash(text: str) -> int:
+    """Deterministic across processes (``hash`` of str is salted per process)."""
+    return sum(ord(c) * (i + 1) for i, c in enumerate(text))
 
 
 def product_delay(ds: Dataset, supplier: str, lines: tuple[tuple[str, int], ...] | list[tuple[str, int]]) -> int:

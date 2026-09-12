@@ -67,6 +67,8 @@ async def run(
         await chronological(client, ds, plan, products, suppliers, customers, wh, stages)
     if "supply" in stages:
         await open_supply(client, ds, plan, products, suppliers, wh)
+    if "demand" in stages or "supply" in stages:
+        await repair_open_pickings(client)
     return plan
 
 
@@ -232,14 +234,9 @@ async def deliveries_batch(
     full = [pid for pid, so in picking_so.items() if so not in backorder_sos]
     partial = [pid for pid, so in picking_so.items() if so in backorder_sos]
     if full:
-        await odoo.call("stock.picking", "button_validate", full)
-    for pid in partial:
-        result = await odoo.call("stock.picking", "button_validate", [pid])
-        if isinstance(result, dict) and result.get("res_model") == "stock.backorder.confirmation":
-            wizard = await odoo.create(
-                "stock.backorder.confirmation", {"pick_ids": [(6, 0, [pid])]}
-            )
-            await odoo.call("stock.backorder.confirmation", "process", [wizard])
+        await validate(client, full, backorder=False)
+    if partial:
+        await validate(client, partial, backorder=True)
     await _backdate_moves(client, [int(m["id"]) for m in moves], day)
     done_pickings = await odoo.search(
         "stock.picking", [["id", "in", picking_ids], ["state", "=", "done"]]
@@ -350,17 +347,73 @@ async def _validate_picking(
         await odoo.write("stock.move", [move["id"]], {"quantity": qty, "picked": True})
     # the scheduled date is frozen once the transfer is done: set it first
     await odoo.write("stock.picking", [picking_id], {"scheduled_date": stamp(day, 8)})
-    result = await odoo.call("stock.picking", "button_validate", [picking_id])
-    if isinstance(result, dict) and result.get("res_model") == "stock.backorder.confirmation":
-        wizard = await odoo.create(
-            "stock.backorder.confirmation",
-            {"pick_ids": [(6, 0, [picking_id])]},
-        )
-        method = "process" if backorder else "process_cancel_backorder"
-        await odoo.call("stock.backorder.confirmation", method, [wizard])
+    await validate(client, [picking_id], backorder=backorder)
     move_ids = [m["id"] for m in moves]
     await _backdate_moves(client, move_ids, day)
     await odoo.write("stock.picking", [picking_id], {"date_done": stamp(day, 15)})
+
+
+async def validate(client: SeedClient, picking_ids: list[int], *, backorder: bool) -> None:
+    """``button_validate`` without the backorder wizard.
+
+    ``skip_backorder`` makes Odoo decide by itself: a backorder for what was
+    not received (``backorder=True``) or none at all when the picking is in
+    ``picking_ids_not_to_backorder``.
+    """
+    context: dict[str, Any] = {"skip_backorder": True}
+    if not backorder:
+        context["picking_ids_not_to_backorder"] = picking_ids
+    await client.odoo.call("stock.picking", "button_validate", picking_ids, context=context)
+
+
+async def repair_open_pickings(client: SeedClient) -> int:
+    """Finish seeded pickings an earlier run left half done (quantities set, never validated).
+
+    Receipts get validated on the date they were meant to and their backorder a
+    week later; customer deliveries keep their backorder open (that is the
+    3 % of partial deliveries by design).
+    """
+    odoo = client.odoo
+    stuck = await odoo.search_read(
+        "stock.picking",
+        [
+            ["state", "in", ["assigned", "confirmed"]],
+            ["date_done", "!=", False],
+            "|",
+            ["purchase_id.sc_external_ref", "like", "seed-po-%"],
+            ["sale_id.client_order_ref", "like", "SEED-SO-%"],
+        ],
+        ["id", "date_done", "picking_type_code", "purchase_id"],
+    )
+    fixed = 0
+    for picking in stuck:
+        day = date.fromisoformat(str(picking["date_done"])[:10])
+        await validate(client, [int(picking["id"])], backorder=True)
+        moves = await odoo.search("stock.move", [["picking_id", "=", int(picking["id"])]])
+        await _backdate_moves(client, moves, day)
+        await odoo.write("stock.picking", [int(picking["id"])], {"date_done": stamp(day, 15)})
+        fixed += 1
+        if picking["picking_type_code"] == "incoming":
+            rest = await odoo.search(
+                "stock.picking",
+                [["backorder_id", "=", int(picking["id"])], ["state", "!=", "done"]],
+            )
+            if rest:
+                rest_day = day + timedelta(days=7)
+                remaining = await odoo.search_read(
+                    "stock.move", [["picking_id", "in", rest]], ["id", "product_uom_qty"]
+                )
+                for move in remaining:
+                    await odoo.write(
+                        "stock.move", [move["id"]], {"quantity": move["product_uom_qty"], "picked": True}
+                    )
+                await odoo.write("stock.picking", rest, {"scheduled_date": stamp(rest_day, 8)})
+                await validate(client, rest, backorder=False)
+                await _backdate_moves(client, [m["id"] for m in remaining], rest_day)
+                await odoo.write("stock.picking", rest, {"date_done": stamp(rest_day, 15)})
+    if fixed:
+        print(f"  repaired {fixed} half-done picking(s) from an earlier run")
+    return fixed
 
 
 async def _backdate_moves(client: SeedClient, move_ids: list[int], day: date) -> None:
