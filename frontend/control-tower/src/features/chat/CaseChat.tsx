@@ -40,10 +40,8 @@ export function CaseChat({ caseRef, compact = false }: { caseRef: string; compac
   const ask = useMutation({
     mutationFn: async (question: string) =>
       unwrap(await api.POST("/api/cases/{ref}/chat", { params: { path: { ref: caseRef } }, body: { text: question } })),
-    onSuccess: () => {
-      setText("");
-      refresh();
-    },
+    onSuccess: refresh,
+    onError: (_error, question) => setText((current) => current || question), // give the text back
   });
   const confirm = useMutation({
     mutationFn: async (messageId: number) =>
@@ -68,8 +66,12 @@ export function CaseChat({ caseRef, compact = false }: { caseRef: string; compac
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const question = text.trim();
-    if (question && !ask.isPending) ask.mutate(question);
+    if (!question || ask.isPending) return;
+    setText(""); // the box empties at once; the message shows below while the director works
+    ask.mutate(question);
   };
+  const pendingQuestion = ask.isPending ? ask.variables : undefined;
+  const echoed = pendingQuestion !== undefined && messages.some((m) => m.role === "user" && m.text === pendingQuestion);
   const busy = ask.isPending || confirm.isPending || dismiss.isPending;
   const error = ask.error ?? confirm.error ?? dismiss.error;
 
@@ -92,6 +94,11 @@ export function CaseChat({ caseRef, compact = false }: { caseRef: string; compac
             locale={locale}
           />
         ))}
+        {pendingQuestion !== undefined && !echoed ? (
+          <div className="flex flex-col items-end gap-1">
+            <div className="max-w-[85%] whitespace-pre-line rounded-lg bg-primary px-3 py-2 text-sm text-primary-foreground">{pendingQuestion}</div>
+          </div>
+        ) : null}
         {ask.isPending ? <p className="text-xs text-muted-foreground">{t("chat.thinking")}</p> : null}
         {error ? (
           <p className="text-xs text-destructive" role="alert">

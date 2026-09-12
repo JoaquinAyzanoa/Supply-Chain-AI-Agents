@@ -92,6 +92,7 @@ describe("case chat", () => {
     await userEvent.type(within(panel).getByLabelText("Message to the director"), "Ask them for a firm date{Enter}");
     await waitFor(() => expect(posted).toHaveLength(1));
     expect(posted[0]?.body).toEqual({ text: "Ask them for a firm date" });
+    expect(within(panel).getByLabelText("Message to the director")).toHaveValue(""); // emptied at once
     const action = await within(panel).findByTestId("proposed-action");
     expect(action).toHaveTextContent("Ask the supplier for a delivery date");
     expect(action).toHaveTextContent("Ask the supplier for a firm delivery date on P00066.");
