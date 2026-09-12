@@ -5,6 +5,8 @@ from the UI). Everything an agent writes on a PO is visible in the "AI Agent"
 tab and explained in the chatter.
 """
 
+import base64
+
 from odoo.exceptions import UserError
 
 from odoo import fields, models
@@ -66,6 +68,16 @@ class PurchaseOrder(models.Model):
         if not approval or approval.status != "pending":
             raise UserError(self.env._("There is no pending approval on this order."))
         return approval
+
+    def sc_report_pdf(self):
+        """Base64 of Odoo's own purchase order report for these orders.
+
+        Report rendering is a private method, so the agents get this public
+        wrapper. The result is the same PDF a user prints from the order.
+        """
+        report = self.env.ref("purchase.action_report_purchase_order")
+        pdf, _content_type = report.sudo()._render_qweb_pdf(report.id, self.ids)
+        return base64.b64encode(pdf).decode("ascii")
 
 
 class PurchaseOrderLine(models.Model):

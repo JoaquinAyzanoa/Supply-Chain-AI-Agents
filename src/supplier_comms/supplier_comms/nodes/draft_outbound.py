@@ -33,6 +33,7 @@ KIND_TO_DRAFT: dict[str, DraftKind] = {
     "send_rfq": "rfq",
     "request_eta": "request_eta",
     "follow_up": "follow_up",
+    "send_po": "send_po",
 }
 
 FINAL_INSTRUCTION = (
@@ -55,6 +56,8 @@ def make_draft_outbound(
         kind = KIND_TO_DRAFT.get(task.kind, "reply")  # inbound questions are answered in-thread
         if not ctx.supplier_emails:
             return fail(f"supplier {ctx.partner_name} has no email address in Odoo")
+        if kind == "send_po" and ctx.state not in ("purchase", "done"):
+            return fail(f"{ctx.name} is not a confirmed order (state {ctx.state}); nothing to send")
 
         tone = get_prompt("supplier_tone", cfg=langfuse)
         formats = get_prompt("formats", cfg=langfuse)
@@ -89,8 +92,12 @@ def make_draft_outbound(
             reply_to_message_id=task.graph_message_id if kind == "reply" else None,
         )
         logger.bind(po_name=ctx.name, kind=kind, tool_calls=loop.tool_calls).info("draft ready")
+        attachments = [f"{ctx.name}.pdf"] if kind == "send_po" else []
         return {
-            "outbound": outbound.model_dump(mode="json", exclude={"html_body"}),
+            "outbound": {
+                **outbound.model_dump(mode="json", exclude={"html_body"}),
+                "attachments": attachments,
+            },
             "outbound_html": outbound.html_body,
             "tool_exchange": tool_exchange_summary(loop.history),
         }

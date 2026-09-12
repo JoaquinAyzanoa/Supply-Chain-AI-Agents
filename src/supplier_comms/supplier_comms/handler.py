@@ -37,6 +37,12 @@ SKILLS = [
         id="follow_up", name="Follow up", description="Remind a silent supplier", tags=["outbound"]
     ),
     Skill(
+        id="send_po",
+        name="Send purchase order",
+        description="Send the confirmed order as PDF and ask for a delivery confirmation",
+        tags=["outbound"],
+    ),
+    Skill(
         id="handle_inbound",
         name="Handle inbound",
         description="Interpret a supplier reply and propose order changes",

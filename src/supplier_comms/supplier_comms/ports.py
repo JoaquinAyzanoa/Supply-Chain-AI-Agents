@@ -8,11 +8,12 @@ are free; the only writes are the ones an approved decision unlocks
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from typing import Any, Protocol, cast
 
 from sc_core.mail import normalize, pdf, po_token
-from sc_core.mail.models import MessageIds, OutboundMessage
+from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from sc_core.mail.outbound import OutboundMailStore
 from sc_core.mail.protocol import MailClient
 from sc_core.odoo.client import OdooClient
@@ -51,8 +52,15 @@ class AgentPorts(Protocol):
     async def create_draft(self, message: OutboundMessage) -> MessageIds: ...
 
     async def reply_draft(
-        self, message_id: str, html_body: str, *, headers: dict[str, str]
+        self,
+        message_id: str,
+        html_body: str,
+        *,
+        headers: dict[str, str],
+        attachments: Sequence[Attachment] = (),
     ) -> MessageIds: ...
+
+    async def report_pdf(self, po_id: int) -> bytes: ...
 
     async def send_draft(self, draft_id: str) -> None: ...
 
@@ -232,9 +240,19 @@ class LivePorts:
         return await self._graph.create_draft(message)
 
     async def reply_draft(
-        self, message_id: str, html_body: str, *, headers: dict[str, str]
+        self,
+        message_id: str,
+        html_body: str,
+        *,
+        headers: dict[str, str],
+        attachments: Sequence[Attachment] = (),
     ) -> MessageIds:
-        return await self._graph.reply_draft(message_id, html_body, headers=headers)
+        return await self._graph.reply_draft(
+            message_id, html_body, headers=headers, attachments=attachments
+        )
+
+    async def report_pdf(self, po_id: int) -> bytes:
+        return await self._pos.report_pdf(po_id)
 
     async def send_draft(self, draft_id: str) -> None:
         await self._graph.send_draft(draft_id)

@@ -16,6 +16,7 @@ Failures can be injected with ``fail_next``.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from itertools import count
 from typing import Any
@@ -165,7 +166,12 @@ class FakeGraph:
         self.sent.append((sent_ids, message))
 
     async def reply_draft(
-        self, message_id: str, html_body: str, *, headers: dict[str, str] | None = None
+        self,
+        message_id: str,
+        html_body: str,
+        *,
+        headers: dict[str, str] | None = None,
+        attachments: Sequence[Attachment] = (),
     ) -> MessageIds:
         self._check_failure()
         original = self._find(message_id)
@@ -180,6 +186,7 @@ class FakeGraph:
             "reply_to": message_id,
             "html_body": html_body,
             "headers": headers or {},
+            "attachments": list(attachments),
         }
         self.draft_ids[ids.id] = ids
         return ids

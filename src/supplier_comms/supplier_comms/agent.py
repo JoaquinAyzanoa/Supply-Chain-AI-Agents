@@ -118,6 +118,7 @@ class SupplierCommsAgent:
                 kind=outbound["kind"],
                 to=outbound["to"],
                 subject=outbound["subject"],
+                attachments=list(outbound.get("attachments") or []),
                 draft_id=outbound.get("draft_id"),
                 sent_message_id=sent.get("sent_message_id"),
                 web_link=sent.get("web_link") or outbound.get("web_link"),

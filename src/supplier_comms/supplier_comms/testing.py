@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from itertools import count
 from typing import Any
 
-from sc_core.mail.models import MessageIds, OutboundMessage
+from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from supplier_comms.models import InboundMeta, LineView, PoContext
 
 SUPPLIER_EMAIL = "ventas.hidraulica.sc@gmail.com"
@@ -70,6 +71,7 @@ class FakePorts:
     metas: dict[str, InboundMeta] = field(default_factory=dict)
     partners: dict[str, int] = field(default_factory=dict)  # email -> commercial partner id
     runs: dict[str, dict[str, Any]] = field(default_factory=dict)
+    pdf_bytes: bytes = b"%PDF-1.4 fake purchase order"
     attachments: dict[str, list[str]] = field(default_factory=dict)
     date_changes: list[dict[str, Any]] = field(default_factory=list)
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
@@ -100,11 +102,24 @@ class FakePorts:
         return ids
 
     async def reply_draft(
-        self, message_id: str, html_body: str, *, headers: dict[str, str]
+        self,
+        message_id: str,
+        html_body: str,
+        *,
+        headers: dict[str, str],
+        attachments: Sequence[Attachment] = (),
     ) -> MessageIds:
         ids = self._ids("reply")
-        self.drafts[ids.id] = {"reply_to": message_id, "html_body": html_body, "headers": headers}
+        self.drafts[ids.id] = {
+            "reply_to": message_id,
+            "html_body": html_body,
+            "headers": headers,
+            "attachments": list(attachments),
+        }
         return ids
+
+    async def report_pdf(self, po_id: int) -> bytes:
+        return self.pdf_bytes
 
     async def send_draft(self, draft_id: str) -> None:
         if draft_id not in self.drafts:
