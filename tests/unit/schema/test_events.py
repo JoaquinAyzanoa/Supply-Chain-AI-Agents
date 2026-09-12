@@ -1,59 +1,57 @@
-"""Tests for sc_core.schema.events."""
+"""Typed events: discriminated parsing and deterministic ids."""
 
-from datetime import UTC, datetime
-from typing import Literal
+from __future__ import annotations
 
 import pytest
-from pydantic import TypeAdapter, ValidationError
+from pydantic import ValidationError
 
-from sc_core.schema.events import BaseEvent
-
-
-class PingEvent(BaseEvent):
-    type: Literal["ping"] = "ping"
-    payload: str
-
-
-class PongEvent(BaseEvent):
-    type: Literal["pong"] = "pong"
+from sc_core.schema.events import (
+    InboundMailLinked,
+    InboundMailUnlinked,
+    ScheduledTick,
+    event_id_for,
+    parse_event,
+)
+from sc_core.shared.time import utc_now
 
 
-def test_defaults_are_filled() -> None:
-    evt = PingEvent(source="mail_sync", case_id="case_1", payload="x")
-    assert evt.event_id.startswith("evt_")
-    assert evt.occurred_at.tzinfo is not None
-    assert evt.occurred_at.utcoffset().total_seconds() == 0  # type: ignore[union-attr]
-    assert evt.schema_version == 1
-    assert evt.trace_id is None
-
-
-def test_required_fields() -> None:
-    with pytest.raises(ValidationError):
-        PingEvent(source="", case_id="c", payload="x")
-    with pytest.raises(ValidationError):
-        PingEvent(source="s", case_id="", payload="x")
-
-
-def test_naive_datetime_rejected() -> None:
-    with pytest.raises(ValidationError):
-        PingEvent(source="s", case_id="c", payload="x", occurred_at=datetime(2026, 1, 1))  # noqa: DTZ001
-
-
-def test_round_trip_json_and_discriminated_union() -> None:
-    adapter: TypeAdapter[PingEvent | PongEvent] = TypeAdapter(PingEvent | PongEvent)
-    original = PingEvent(
-        source="s", case_id="c", payload="hola", occurred_at=datetime(2026, 9, 8, tzinfo=UTC)
+def test_parse_each_type_roundtrip() -> None:
+    linked = InboundMailLinked(
+        source="mail_sync",
+        case_id="case_1",
+        po_id=7,
+        po_name="P00015",
+        graph_message_id="AAMk1",
+        confidence="exact",
+        rule="header",
     )
-    parsed = adapter.validate_json(original.model_dump_json())
-    assert parsed == original
-    assert isinstance(
-        adapter.validate_json('{"type":"pong","source":"s","case_id":"c"}'), PongEvent
+    unlinked = InboundMailUnlinked(
+        source="mail_sync", case_id="case_2", graph_message_id="AAMk2", open_po_names=["P00016"]
     )
+    tick = ScheduledTick(
+        source="scheduler",
+        case_id="run_1",
+        job_id="mail_sync",
+        run_id="run_1",
+        scheduled_at=utc_now(),
+    )
+    for event in (linked, unlinked, tick):
+        parsed = parse_event(event.model_dump_json())
+        assert parsed == event and type(parsed) is type(event)
+        assert parse_event(event.model_dump(mode="json")) == event
 
 
-def test_with_trace_returns_copy() -> None:
-    evt = PongEvent(source="s", case_id="c")
-    traced = evt.with_trace("trace-1")
-    assert traced.trace_id == "trace-1"
-    assert evt.trace_id is None
-    assert traced.event_id == evt.event_id
+def test_unknown_type_and_extra_fields_rejected() -> None:
+    with pytest.raises(ValidationError):
+        parse_event({"type": "nope", "source": "x", "case_id": "c"})
+    with pytest.raises(ValidationError):
+        InboundMailUnlinked(  # type: ignore[call-arg]
+            source="s", case_id="c", graph_message_id="m", subject="never"
+        )
+
+
+def test_event_id_is_deterministic_per_type_and_message() -> None:
+    a = event_id_for("inbound_mail.linked", "AAMk1")
+    assert a == event_id_for("inbound_mail.linked", "AAMk1") and a.startswith("evt_")
+    assert a != event_id_for("inbound_mail.unlinked", "AAMk1")
+    assert a != event_id_for("inbound_mail.linked", "AAMk2")

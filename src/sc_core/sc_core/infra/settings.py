@@ -143,6 +143,42 @@ class LangfuseCfg(_Section):
         return self.enabled and bool(self.public_key and self.secret_key.get_secret_value())
 
 
+class EventsCfg(_Section):
+    """Service-to-director events (mail_sync, scheduler, Odoo webhooks).
+
+    Every event is POSTed with an HMAC-SHA256 signature over the body so the
+    director only accepts events from processes that hold the shared secret.
+    """
+
+    signing_secret: SecretStr = SecretStr("")
+    director_url: str = "http://localhost:8010"  # inside compose: http://director:8000
+    timeout_seconds: float = Field(default=10.0, gt=0)
+    max_attempts: int = Field(default=3, ge=1)
+    backoff_seconds: float = Field(default=0.5, ge=0)
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.signing_secret.get_secret_value())
+
+
+class MailSyncCfg(_Section):
+    """The inbox poller. The 30-minute cadence itself lives in ``scheduler``."""
+
+    page_size: int = Field(default=50, ge=1, le=500)
+    lock_ttl_seconds: int = Field(default=25 * 60, ge=1)
+    url: str = "http://localhost:8011"  # inside compose: http://mail_sync:8000
+
+
+class SchedulerCfg(_Section):
+    """Cron table. Crons are five-field crontab strings evaluated in ``Settings.timezone``."""
+
+    mail_sync_cron: str = "*/30 * * * *"
+    po_followups_cron: str = "0 9 * * 1-5"
+    inventory_planning_cron: str = "0 6 * * *"
+    supplier_performance_cron: str = "0 7 * * 1"
+    dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
+
+
 class HttpCfg(_Section):
     """HTTP server and middleware settings shared by every service."""
 
@@ -184,6 +220,9 @@ class Settings(BaseSettings):
     mail: MailCfg = Field(default_factory=MailCfg)
     llm: LlmCfg = Field(default_factory=LlmCfg)
     langfuse: LangfuseCfg = Field(default_factory=LangfuseCfg)
+    events: EventsCfg = Field(default_factory=EventsCfg)
+    mail_sync: MailSyncCfg = Field(default_factory=MailSyncCfg)
+    scheduler: SchedulerCfg = Field(default_factory=SchedulerCfg)
 
     def __init__(self, **values: Any) -> None:
         # pydantic-settings reads .env only for its own SC__ fields. Provider API

@@ -10,9 +10,12 @@ readiness check. Later phases add ``MailModule`` and ``LlmModule``.
 from __future__ import annotations
 
 from injector import Binder, Module, provider, singleton
+from redis import asyncio as redis_async
 
 from sc_core.infra.health.registry import HealthRegistry
 from sc_core.infra.settings import Settings
+
+AsyncRedis = redis_async.Redis
 
 
 class CoreModule(Module):
@@ -23,6 +26,42 @@ class CoreModule(Module):
     def configure(self, binder: Binder) -> None:
         binder.bind(Settings, to=self._settings, scope=singleton)
         binder.bind(HealthRegistry, to=self._health, scope=singleton)
+
+
+class DbModule(Module):
+    """Async pool on the application database plus the ``postgres`` readiness check.
+
+    The pool is opened lazily on first use so building the injector never
+    touches the network; services call ``open()`` in a startup hook.
+    """
+
+    def __init__(self, *, critical: bool = True) -> None:
+        self._critical = critical
+
+    @provider
+    @singleton
+    def provide_db(self, settings: Settings, health: HealthRegistry) -> Database:
+        from sc_core.infra.health import checks
+
+        health.register(
+            "postgres", checks.postgres(str(settings.app_db.dsn)), critical=self._critical
+        )
+        return Database(settings.app_db)
+
+
+class RedisModule(Module):
+    """One async Redis client per process (locks, pub/sub) and its readiness check."""
+
+    def __init__(self, *, critical: bool = True) -> None:
+        self._critical = critical
+
+    @provider
+    @singleton
+    def provide_redis(self, settings: Settings, health: HealthRegistry) -> AsyncRedis:
+        from sc_core.infra.health import checks
+
+        health.register("redis", checks.redis(str(settings.redis.dsn)), critical=self._critical)
+        return redis_async.from_url(str(settings.redis.dsn), decode_responses=False)
 
 
 class OdooModule(Module):
@@ -156,6 +195,7 @@ class LlmModule(Module):
 
 # Imported after the classes so the provider annotations resolve at runtime
 # without a circular import at module load (repositories import settings).
+from sc_core.infra.db import Database  # noqa: E402
 from sc_core.llm.client import ChatCompleter  # noqa: E402
 from sc_core.llm.registry import Registry  # noqa: E402
 from sc_core.mail.auth import TokenCacheStore, TokenProvider, build_token_provider  # noqa: E402
