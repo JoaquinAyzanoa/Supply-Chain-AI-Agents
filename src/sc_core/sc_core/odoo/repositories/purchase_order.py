@@ -161,15 +161,12 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         await self._write([po_id], {"sc_needs_human": value})
 
     async def post_note(self, po_id: int, body_html: str) -> int:
-        """Internal chatter note (not sent to followers by email)."""
-        result = await self._c.call(
-            self._name,
-            "message_post",
-            [po_id],
-            body=body_html,
-            message_type="comment",
-            subtype_xmlid="mail.mt_note",
-        )
+        """Internal chatter note (not sent to followers by email), rendered as HTML.
+
+        Odoo escapes plain strings given to ``message_post`` over RPC, so the
+        addon's ``sc_post_note`` marks the body as safe markup.
+        """
+        result = await self._c.call(self._name, "sc_post_note", [po_id], body=body_html)
         return int(result[0] if isinstance(result, list) else result)
 
     async def cancel(self, po_id: int) -> None:

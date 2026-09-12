@@ -36,6 +36,33 @@ MESSAGES: dict[str, dict[Language, str]] = {
     "signature": {"en": "Purchasing Team", "es": "Equipo de Compras"},
     "common.no_reason": {"en": "no reason given", "es": "sin motivo"},
     "common.open_outlook": {"en": "Open in Outlook", "es": "Abrir en Outlook"},
+    "common.open_control_tower": {
+        "en": "Review in the Control Tower",
+        "es": "Revisar en la Torre de Control",
+    },
+    "approval.todo": {"en": "Approval needed: {summary}", "es": "Aprobación pendiente: {summary}"},
+    "note.to": {"en": "To", "es": "Para"},
+    "note.subject": {"en": "Subject", "es": "Asunto"},
+    "note.attachments": {"en": "Attachments", "es": "Adjuntos"},
+    "note.product": {"en": "Product", "es": "Producto"},
+    "note.change": {"en": "Change", "es": "Cambio"},
+    "note.before": {"en": "Before", "es": "Antes"},
+    "note.after": {"en": "After", "es": "Después"},
+    "note.source": {"en": "Source", "es": "Fuente"},
+    "note.needs_review": {"en": "needs review", "es": "requiere revisión"},
+    "note.field.date_planned": {"en": "delivery date", "es": "fecha de entrega"},
+    "note.field.price": {"en": "price", "es": "precio"},
+    "note.field.product_qty": {"en": "quantity", "es": "cantidad"},
+    "note.field.lead_time": {"en": "lead time", "es": "plazo de entrega"},
+    "note.field.lead_days": {"en": "lead time", "es": "plazo de entrega"},
+    "note.plan_totals": {
+        "en": "{lines} lines to act on: {rfqs} RFQ lines, {rules} rule changes, "
+        "{exceptions} exceptions.",
+        "es": "{lines} líneas por actuar: {rfqs} líneas de RFQ, {rules} cambios de regla, "
+        "{exceptions} excepciones.",
+    },
+    "note.exceptions": {"en": "Exceptions", "es": "Excepciones"},
+    "note.history": {"en": "What happened so far", "es": "Lo ocurrido hasta ahora"},
     "common.awaiting_approval": {
         "en": "waiting for human approval",
         "es": "esperando aprobación humana",
@@ -56,27 +83,16 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "es": "proveedor en la lista de envío automático",
     },
     "send.note": {
-        "en": (
-            "<p>Agent supplier_comms sent {label} to {to} (subject: "
-            "{subject}, case {case}).{link}</p>"
-        ),
-        "es": (
-            "<p>Agente supplier_comms envió {label} a {to} (asunto: "
-            "{subject}, caso {case}).{link}</p>"
-        ),
+        "en": "<p>{label} sent to {to}.<br/>Subject: {subject}.{link}</p>",
+        "es": "<p>{label} enviada a {to}.<br/>Asunto: {subject}.{link}</p>",
     },
     "send.summary": {
         "en": "{label} sent to {partner} for {po}",
         "es": "{label} enviada a {partner} por {po}",
     },
     "send.rejected_note": {
-        "en": (
-            "<p>Sending rejected by {who}: {reason}. The draft stays in Outlook (case {case}).</p>"
-        ),
-        "es": (
-            "<p>Envío rechazado por {who}: {reason}. El borrador sigue "
-            "en Outlook (caso {case}).</p>"
-        ),
+        "en": "<p>Sending rejected by {who}: {reason}. The draft stays in Outlook.</p>",
+        "es": "<p>Envío rechazado por {who}: {reason}. El borrador sigue en Outlook.</p>",
     },
     "send.rejected_summary": {
         "en": "sending rejected by {who}: {reason}",
@@ -87,14 +103,8 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "es": "Cambios propuestos en {po}: {summary}",
     },
     "changes.applied_note": {
-        "en": (
-            "<p>Agent supplier_comms applied {n} change(s) approved by "
-            "{who} (case {case}, run {run}).</p>"
-        ),
-        "es": (
-            "<p>Agente supplier_comms aplicó {n} cambio(s) aprobado(s) "
-            "por {who} (caso {case}, run {run}).</p>"
-        ),
+        "en": "<p>{n} change(s) approved by {who} applied to the order:</p>",
+        "es": "<p>{n} cambio(s) aprobado(s) por {who} aplicado(s) a la orden:</p>",
     },
     "changes.pending_note": {
         "en": "<p>Pending manual review:</p>",
@@ -109,8 +119,8 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "es": ", {n} pendiente(s) de revisión",
     },
     "changes.rejected_note": {
-        "en": "<p>Proposed changes rejected by {who}: {reason} (case {case}).</p>",
-        "es": "<p>Cambios propuestos rechazados por {who}: {reason} (caso {case}).</p>",
+        "en": "<p>Proposed changes rejected by {who}: {reason}.</p>",
+        "es": "<p>Cambios propuestos rechazados por {who}: {reason}.</p>",
     },
     "changes.rejected_summary": {
         "en": "changes rejected by {who}: {reason}",
@@ -143,13 +153,8 @@ MESSAGES: dict[str, dict[Language, str]] = {
     "escalation.reason": {"en": "Reason: {reason}", "es": "Motivo: {reason}"},
     "escalation.trace": {"en": "Trace in Langfuse", "es": "Traza en Langfuse"},
     "approval.reminder": {
-        "en": (
-            "<p>Reminder: approval #{id} ({kind}) has been pending for {days} days: {summary}</p>"
-        ),
-        "es": (
-            "<p>Recordatorio: la aprobación #{id} ({kind}) lleva {days} "
-            "días pendiente: {summary}</p>"
-        ),
+        "en": '<p>Reminder: "{summary}" has been waiting for a decision for {days} days.</p>',
+        "es": '<p>Recordatorio: "{summary}" lleva {days} días esperando una decisión.</p>',
     },
     "approval.expired": {
         "en": "no answer from the approver in {days} days",

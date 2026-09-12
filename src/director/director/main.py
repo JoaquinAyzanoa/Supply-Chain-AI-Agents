@@ -118,6 +118,7 @@ class DirectorModule(Module):
             deadline_days=settings.agents.approval_deadline_days,
             langfuse=settings.langfuse,
             language=settings.agents.language,
+            control_tower_url=settings.ui.public_url,
         )
 
     @provider

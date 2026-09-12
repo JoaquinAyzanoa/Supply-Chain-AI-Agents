@@ -357,7 +357,8 @@ default is English. Sessions are JWTs from `POST /api/auth/login`
 (Server-Sent Events through Redis pub/sub), so screens refetch on change
 instead of polling. Links to Odoo and Langfuse use `SC__ODOO__PUBLIC_URL`
 and `SC__LANGFUSE__PUBLIC_URL` (what a browser can reach; compose sets
-them to `localhost`), not the in-network service URLs. CI regenerates the
+them to `localhost`), not the in-network service URLs; notes and To-Dos in
+Odoo link back to the Control Tower through `SC__UI__PUBLIC_URL`. CI regenerates the
 client from the director's OpenAPI document and fails on drift.
 
 ## Demo dataset

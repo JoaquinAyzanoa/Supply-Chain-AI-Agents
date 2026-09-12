@@ -100,6 +100,8 @@ class SupplierCommsModule(Module):
             callback_secret=settings.events.signing_secret.get_secret_value() or None,
             approver_user_id=settings.agents.approver_user_id,
             deadline_days=settings.agents.approval_deadline_days,
+            language=settings.agents.language,
+            control_tower_url=settings.ui.public_url,
         )
         return Deps(
             ports=ports,

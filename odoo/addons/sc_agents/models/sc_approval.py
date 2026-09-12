@@ -23,7 +23,7 @@ from odoo import api, fields, models
 _logger = logging.getLogger(__name__)
 
 APPROVAL_KINDS = [
-    ("send_email", "Send email"),
+    ("send_email", "Email to the supplier"),
     ("po_change", "Purchase order change"),
     ("orderpoint_change", "Reorder rule change"),
     ("planning_run", "Planning run"),
@@ -115,8 +115,7 @@ class ScApproval(models.Model):
             self.po_id.write({"sc_pending_approval_id": self.id, "sc_needs_human": True})
             self.po_id.message_post(
                 body=self.env._(
-                    "AI agent %(agent)s requests approval (%(kind)s): %(summary)s",
-                    agent=self.requested_by or "-",
+                    "Approval needed (%(kind)s): %(summary)s",
                     kind=dict(APPROVAL_KINDS).get(self.kind, self.kind),
                     summary=self.summary,
                 ),

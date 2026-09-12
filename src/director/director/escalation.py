@@ -153,8 +153,6 @@ class OdooApprovals:
             t(
                 "approval.reminder",
                 self._language,
-                id=approval.id,
-                kind=approval.kind,
                 days=days_pending,
                 summary=approval.summary,
             ),
@@ -174,10 +172,12 @@ class OdooEscalator:
         deadline_days: int = 2,
         langfuse: LangfuseCfg | None = None,
         language: Language = "en",
+        control_tower_url: str | None = None,
     ) -> None:
         self._chat = chat
         self._ports = ports
         self._cases = cases
+        self._control_tower_url = control_tower_url
         self._deadline_days = deadline_days
         self._langfuse = langfuse
         self._language = language
@@ -203,8 +203,14 @@ class OdooEscalator:
             summary=summary, payload=payload, case_id=case.case_id, po_id=po_id
         )
         note = f"<p>{summary}</p><p>{t('escalation.reason', self._language, reason=reason)}</p>"
+        links = []
+        if self._control_tower_url:
+            url = f"{self._control_tower_url.rstrip('/')}/?id={approval_id}"
+            links.append(f'<a href="{url}">{t("common.open_control_tower", self._language)}</a>')
         if trace_url:
-            note += f'<p><a href="{trace_url}">{t("escalation.trace", self._language)}</a></p>'
+            links.append(f'<a href="{trace_url}">{t("escalation.trace", self._language)}</a>')
+        if links:
+            note += f"<p>{' · '.join(links)}</p>"
         res_model, res_id = ("purchase.order", po_id) if po_id else ("sc.approval", approval_id)
         try:
             await self._ports.schedule_review(

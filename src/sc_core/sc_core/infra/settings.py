@@ -257,6 +257,8 @@ class UiCfg(_Section):
     login_rate_per_minute: int = Field(default=5, ge=1)
     static_dir: str = "frontend/control-tower/dist"  # served under / when it exists
     sse_heartbeat_seconds: float = Field(default=15.0, gt=0)  # keeps /api/stream alive
+    # Where a person's browser opens the Control Tower (links in Odoo notes and To-Dos).
+    public_url: str = "http://localhost:8010"
 
 
 class AgentsCfg(_Section):

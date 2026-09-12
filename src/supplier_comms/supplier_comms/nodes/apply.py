@@ -102,14 +102,7 @@ def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
         who = decision.resolved_by if decision and decision.resolved_by else "-"
         await ports.post_note(
             ctx.id,
-            t(
-                "changes.applied_note",
-                language,
-                n=len(applied),
-                who=esc(who),
-                case=esc(state["case_id"]),
-                run=esc(run_id),
-            )
+            t("changes.applied_note", language, n=len(applied), who=esc(who))
             + changes_html(applied, language)
             + (
                 t("changes.pending_note", language) + changes_html(skipped, language)
@@ -139,13 +132,7 @@ def make_change_rejected(ports: AgentPorts, *, language: Language = "en") -> Nod
         )
         await ports.post_note(
             ctx.id,
-            t(
-                "changes.rejected_note",
-                language,
-                who=esc(who),
-                reason=esc(reason),
-                case=esc(state["case_id"]),
-            ),
+            t("changes.rejected_note", language, who=esc(who), reason=esc(reason)),
         )
         return finish("rejected", t("changes.rejected_summary", language, who=who, reason=reason))
 

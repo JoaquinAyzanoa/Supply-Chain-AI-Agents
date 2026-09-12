@@ -156,10 +156,9 @@ def make_send(
             t(
                 "send.note",
                 language,
-                label=esc(label),
+                label=esc(label[:1].upper() + label[1:]),
                 to=esc(", ".join(outbound["to"])),
                 subject=esc(outbound["subject"]),
-                case=esc(state["case_id"]),
                 link=link,
             ),
         )
@@ -184,13 +183,7 @@ def make_rejected(ports: AgentPorts, *, language: Language = "en") -> Node:
         )
         await ports.post_note(
             ctx.id,
-            t(
-                "send.rejected_note",
-                language,
-                who=esc(who),
-                reason=esc(reason),
-                case=esc(state["case_id"]),
-            ),
+            t("send.rejected_note", language, who=esc(who), reason=esc(reason)),
         )
         return finish("rejected", t("send.rejected_summary", language, who=who, reason=reason))
 

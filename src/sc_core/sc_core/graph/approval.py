@@ -29,6 +29,7 @@ from langgraph.types import interrupt
 from loguru import logger
 from pydantic import Field
 
+from sc_core.i18n import Language, t
 from sc_core.odoo.models import ApprovalKind
 from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo
 from sc_core.schema.base import StrictModel
@@ -121,6 +122,8 @@ class ApprovalGateway:
         callback_secret: str | None,
         approver_user_id: int,
         deadline_days: int,
+        language: Language = "en",
+        control_tower_url: str | None = None,
     ) -> None:
         self._ports = ports
         self._agent = agent_name
@@ -128,6 +131,8 @@ class ApprovalGateway:
         self._callback_secret = callback_secret
         self._approver = approver_user_id
         self._deadline_days = deadline_days
+        self._language = language
+        self._control_tower_url = control_tower_url
 
     # --- node 1 -------------------------------------------------------------------
 
@@ -170,8 +175,10 @@ class ApprovalGateway:
                 res_model=review_model,
                 res_id=review_id,
                 user_id=self._approver,
-                summary=f"AI agent ({self._agent}): {req.summary}",
-                note_html=render_note(req),
+                summary=t("approval.todo", self._language, summary=req.summary)[:200],
+                note_html=render_note(
+                    req, language=self._language, control_tower_url=self._control_tower_url
+                ),
                 days=self._deadline_days,
             )
         logger.bind(approval_id=approval_id, kind=req.kind, step=step).info("approval requested")
@@ -251,18 +258,10 @@ def pending_for(state: dict[str, Any], step: str) -> dict[str, Any] | None:
     return None
 
 
-def render_note(req: ApprovalRequest) -> str:
-    """Human-readable HTML for the Odoo activity: the summary and the payload as a list."""
-    items = "".join(
-        f"<li><b>{_esc(str(k))}</b>: {_esc(_short(v))}</li>" for k, v in req.payload.items()
-    )
-    return f"<p>{_esc(req.summary)}</p><ul>{items}</ul>"
+def render_note(
+    req: ApprovalRequest, *, language: Language = "en", control_tower_url: str | None = None
+) -> str:
+    """The approver's To-Do note (see :mod:`sc_core.graph.notes`)."""
+    from sc_core.graph.notes import render_note as _render
 
-
-def _short(value: Any, limit: int = 300) -> str:
-    text = str(value)
-    return text if len(text) <= limit else text[: limit - 1] + "…"
-
-
-def _esc(text: str) -> str:
-    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+    return _render(req, language=language, control_tower_url=control_tower_url)
