@@ -16,6 +16,7 @@ odoo/
 | `just up` | starts `odoo-db` and `odoo` with the rest of the stack |
 | `just odoo-init` | creates database `scai` with demo data and installs the modules below (idempotent; re-running re-installs nothing) |
 | `just odoo-upgrade [module]` | upgrades a module after code changes (default `sc_agents`) |
+| `just odoo-configure` | sets the system parameters the addon uses to reach the director (`sc_agents.director_url`, `sc_agents.events_secret`) |
 | `just odoo-shell` | Odoo Python shell against `scai` |
 | `just odoo-reset` | stops Odoo and deletes its database and filestore volumes |
 | `just logs odoo` | follows the server log |
@@ -33,7 +34,7 @@ Override the host port with `SC_ODOO_PORT`.
 | `stock`, `purchase_stock` | warehouses, reorder rules, receipts, lead times |
 | `sale_management` | confirmed demand for the planner |
 | `purchase_requisition` | calls for tender (one RFQ to several suppliers) |
-| `base_automation` | outgoing webhooks on business events (phase 6) |
+| `base_automation` | rules that emit signed events to the director when an order is confirmed or a receipt validated (phase 6) |
 
 Also present: `account`, pulled in automatically as a dependency of
 `purchase`. Phase 9 (invoice matching) uses it without any further install.

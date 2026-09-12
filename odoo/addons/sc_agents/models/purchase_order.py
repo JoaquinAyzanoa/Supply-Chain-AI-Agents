@@ -11,6 +11,8 @@ from odoo.exceptions import UserError
 
 from odoo import fields, models
 
+from .sc_event import iso_utc
+
 ETA_SOURCES = [
     ("supplier", "Supplier"),
     ("tracking", "Tracking"),
@@ -68,6 +70,31 @@ class PurchaseOrder(models.Model):
         if not approval or approval.status != "pending":
             raise UserError(self.env._("There is no pending approval on this order."))
         return approval
+
+    def sc_emit_confirmed(self):
+        """Tell the orchestrator these orders were confirmed (automation rule, state -> purchase).
+
+        The payload is the promise made to the supplier: planned date, amount
+        and line count. Phase 9 compares receipts against it.
+        """
+        emitter = self.env["sc.event.emitter"]
+        for order in self.filtered(lambda o: o.state == "purchase"):
+            emitter.sc_emit(
+                "odoo.purchase_confirmed",
+                f"odoo_po_{order.id}_purchase",
+                {
+                    "po_id": order.id,
+                    "po_name": order.name,
+                    "partner_id": order.partner_id.id,
+                    "date_planned": iso_utc(order.date_planned),
+                    "amount_total": order.amount_total,
+                    "currency": order.currency_id.name or None,
+                    "line_count": len(order.order_line),
+                },
+                order.id,
+                "purchase",
+            )
+        return True
 
     def sc_report_pdf(self):
         """Base64 of Odoo's own purchase order report for these orders.

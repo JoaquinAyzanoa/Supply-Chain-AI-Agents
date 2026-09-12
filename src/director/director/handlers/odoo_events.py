@@ -32,6 +32,16 @@ def on_po_confirmed(event: BaseEvent) -> Route:
         po_name=event.po_name,
         partner_id=event.partner_id,
         dispatches=[Dispatch(agent="supplier_comms", task=task)],
+        snapshot={
+            "po_id": event.po_id,
+            "po_name": event.po_name,
+            "partner_id": event.partner_id,
+            "date_planned": event.date_planned,
+            "amount_total": event.amount_total,
+            "currency": event.currency,
+            "line_count": event.line_count,
+            "confirmed_at": event.occurred_at,
+        },
     )
 
 

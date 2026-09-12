@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS case_events (
     case_id  text NOT NULL REFERENCES cases (case_id),
     at       timestamptz NOT NULL DEFAULT now(),
     kind     text NOT NULL,                 -- event_received | task_sent | result | approval_requested
-                                            -- | approval_resolved | rule_fired | escalated | note
+                                            -- | approval_resolved | rule_fired | escalated | promise | note
     payload  jsonb NOT NULL                 -- ids and summaries only
 );
 CREATE INDEX IF NOT EXISTS case_events_case_idx ON case_events (case_id, id);

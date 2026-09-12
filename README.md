@@ -40,6 +40,8 @@ just qa          # ruff, mypy, deptry per member
 just test        # unit tests
 just up          # postgres + redis + odoo + langfuse + director + mail_sync + scheduler + supplier_comms
 just odoo-init   # first time only: create the Odoo database
+just odoo-apikey # API key for the bot user, written to .env
+just odoo-configure  # tell the Odoo addon where the director is and the events secret
 just odoo-seed   # demo dataset: Sun Hydraulics catalogue, two years of history (about 15 min)
 curl localhost:8010/health/ready
 just down
@@ -229,7 +231,8 @@ per-product demand profiles with a fixed RNG seed, dated back so the planning
 and performance agents see real history. It prints a summary (stock, demand
 shape, on-time share and observed lead time per supplier, open incoming
 orders) and is safe to run again. A fresh demo: `just odoo-reset`,
-`just odoo-init`, `just odoo-apikey`, `just odoo-seed`. See `odoo/demo/README.md`.
+`just odoo-init`, `just odoo-apikey`, `just odoo-configure`, `just odoo-seed`.
+See `odoo/demo/README.md`.
 
 The supplier agent can also send a confirmed order as Odoo's own "Orden de
 Compra" PDF (task `send_po`): the report is rendered over RPC, attached to

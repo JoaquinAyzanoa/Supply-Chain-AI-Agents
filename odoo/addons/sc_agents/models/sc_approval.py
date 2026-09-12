@@ -135,7 +135,27 @@ class ScApproval(models.Model):
         )
         self._sc_release_record()
         self._sc_notify_callback()
+        self._sc_emit_resolved()
         return True
+
+    def _sc_emit_resolved(self):
+        """Mirror the decision to the orchestrator so the case shows who decided."""
+        self.ensure_one()
+        self.env["sc.event.emitter"].sc_emit(
+            "odoo.approval_resolved",
+            f"odoo_approval_{self.id}",
+            {
+                "approval_id": self.id,
+                "kind": self.kind,
+                "status": self.status,
+                "thread_id": self.thread_id or None,
+                "po_id": self.po_id.id or None,
+                "po_name": self.po_id.name or None,
+                "resolved_by": self.resolved_by_id.login if self.resolved_by_id else None,
+            },
+            self.id,
+            self.status,
+        )
 
     def _sc_release_record(self):
         self.ensure_one()

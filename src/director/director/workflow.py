@@ -398,6 +398,8 @@ class Orchestrator:
             "event_received",
             {"event_id": event.event_id, "event_type": event.type, "source": event.source},
         )
+        if decided.snapshot:
+            await self._deps.cases.add_event(case.case_id, "promise", decided.snapshot)
         result: dict[str, Any]
         with _trace(event, case):
             if trace_id := tracing.current_trace_id():

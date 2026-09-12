@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+    Business events for the orchestrator. Each rule runs a small server
+    action that calls the model's sc_emit_* method, which posts a signed
+    event after the transaction commits (see models/sc_event.py).
+
+    Reorder rules are not watched here: the planning job (phase 7) reads
+    stock.warehouse.orderpoint.qty_to_order itself once a day. Approvals emit
+    from sc.approval.resolve() directly.
+    -->
+    <data noupdate="1">
+        <record id="param_director_url" model="ir.config_parameter">
+            <field name="key">sc_agents.director_url</field>
+            <field name="value">http://director:8000</field>
+        </record>
+        <record id="param_events_secret" model="ir.config_parameter">
+            <field name="key">sc_agents.events_secret</field>
+            <field name="value"></field>
+        </record>
+    </data>
+
+    <record id="automation_po_confirmed" model="base.automation">
+        <field name="name">SC agents: purchase order confirmed</field>
+        <field name="model_id" ref="purchase.model_purchase_order"/>
+        <field name="trigger">on_state_set</field>
+        <field name="trg_selection_field_id" ref="purchase.selection__purchase_order__state__purchase"/>
+        <field name="action_server_ids" eval="[(0, 0, {
+            'name': 'SC agents: emit odoo.purchase_confirmed',
+            'model_id': ref('purchase.model_purchase_order'),
+            'state': 'code',
+            'code': 'records.sc_emit_confirmed()',
+        })]"/>
+    </record>
+
+    <record id="automation_receipt_validated" model="base.automation">
+        <field name="name">SC agents: receipt validated</field>
+        <field name="model_id" ref="stock.model_stock_picking"/>
+        <field name="trigger">on_state_set</field>
+        <field name="trg_selection_field_id" ref="stock.selection__stock_picking__state__done"/>
+        <field name="action_server_ids" eval="[(0, 0, {
+            'name': 'SC agents: emit odoo.receipt_validated',
+            'model_id': ref('stock.model_stock_picking'),
+            'state': 'code',
+            'code': 'records.sc_emit_receipt_validated()',
+        })]"/>
+    </record>
+</odoo>

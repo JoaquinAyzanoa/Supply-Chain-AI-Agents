@@ -15,7 +15,7 @@ threads; see ``store.py``.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Literal
+from typing import Any, Literal
 
 from director.store import CaseKind
 from sc_core.schema.a2a import SupplierCommsTask
@@ -54,6 +54,8 @@ class Route(StrictModel):
     """Scheduler job to run in-process (follow-ups, planning, performance)."""
     note: str | None = None
     """Something to record on the case when there is nothing to send."""
+    snapshot: dict[str, Any] | None = None
+    """Facts worth keeping on the case as a ``promise`` event (PO confirmed: date, amount)."""
 
 
 Handler = Callable[[BaseEvent], Route]

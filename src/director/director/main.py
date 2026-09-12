@@ -8,7 +8,7 @@ background task. Phase 8 adds the Control Tower API.
 from __future__ import annotations
 
 from fastapi import FastAPI
-from injector import Binder, Module, provider, singleton
+from injector import Module, provider, singleton
 from loguru import logger
 
 from director import __version__
@@ -30,12 +30,32 @@ settings = Settings(service_name="director")
 
 
 class DirectorModule(Module):
-    def configure(self, binder: Binder) -> None:
-        binder.bind(EventInbox, to=PostgresEventInbox, scope=singleton)  # type: ignore[type-abstract]
-        binder.bind(EventResults, to=PostgresEventResults, scope=singleton)  # type: ignore[type-abstract]
-        binder.bind(CaseStore, to=PostgresCaseStore, scope=singleton)  # type: ignore[type-abstract]
-        binder.bind(Escalator, to=LoggingEscalator, scope=singleton)  # type: ignore[type-abstract]
-        binder.bind(JobRunner, to=NoJobs, scope=singleton)  # type: ignore[type-abstract]
+    """Explicit providers: injector only auto-constructs ``@inject``-decorated classes."""
+
+    @provider
+    @singleton
+    def provide_inbox(self, db: Database) -> EventInbox:  # type: ignore[type-abstract]
+        return PostgresEventInbox(db)
+
+    @provider
+    @singleton
+    def provide_results(self, db: Database) -> EventResults:  # type: ignore[type-abstract]
+        return PostgresEventResults(db)
+
+    @provider
+    @singleton
+    def provide_cases(self, db: Database) -> CaseStore:  # type: ignore[type-abstract]
+        return PostgresCaseStore(db)
+
+    @provider
+    @singleton
+    def provide_escalator(self) -> Escalator:  # type: ignore[type-abstract]
+        return LoggingEscalator()
+
+    @provider
+    @singleton
+    def provide_jobs(self) -> JobRunner:  # type: ignore[type-abstract]
+        return NoJobs()
 
     @provider
     @singleton

@@ -4,12 +4,15 @@ from fastapi.testclient import TestClient
 from loguru import logger
 
 
-def test_director_app_serves_system_routes() -> None:
+def test_director_app_serves_system_routes_and_wires_the_orchestrator() -> None:
     from director.main import app, settings
+    from director.workflow import Orchestrator
 
     assert settings.service_name == "director"
     with TestClient(app) as c:
         live = c.get("/health/live").json()
         assert live["service"] == "director"
         assert c.get("/discovery").json()["service"] == "director"
+        # every dependency of the workflow resolves (no lazy DI failure on the first event)
+        assert isinstance(app.state.injector.get(Orchestrator), Orchestrator)
     logger.remove()

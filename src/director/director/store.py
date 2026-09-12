@@ -40,6 +40,7 @@ CaseEventKind = Literal[
     "approval_resolved",
     "rule_fired",
     "escalated",
+    "promise",
     "note",
 ]
 
