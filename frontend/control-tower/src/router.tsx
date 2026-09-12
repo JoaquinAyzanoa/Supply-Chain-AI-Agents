@@ -12,10 +12,10 @@ import { atLeast, authStore } from "@/auth/store";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/routes/login";
 import { ApprovalsInbox, type ApprovalsSearch } from "@/features/approvals/ApprovalsInbox";
+import { CaseTimelinePage } from "@/features/cases/CaseTimeline";
+import { CasesPage } from "@/features/cases/CasesPage";
+import { ExceptionsBoardPage } from "@/features/exceptions/ExceptionsBoard";
 import {
-  CaseDetailPage,
-  CasesPage,
-  ExceptionsPage,
   PlanningPage,
   PlanningRunPage,
   RunsPage,
@@ -70,9 +70,20 @@ export const approvalsRoute = createRoute({
   validateSearch: (search): ApprovalsSearch => approvalsSearch.parse(search),
   component: ApprovalsInbox,
 });
-export const casesRoute = child("/cases", CasesPage);
-export const caseRoute = child("/cases/$caseId", CaseDetailPage);
-export const exceptionsRoute = child("/exceptions", ExceptionsPage);
+const casesSearch = z.object({
+  status: z.string().optional(),
+  kind: z.string().optional(),
+  po: z.string().optional(),
+});
+
+export const casesRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/cases",
+  validateSearch: (search) => casesSearch.parse(search),
+  component: CasesPage,
+});
+export const caseRoute = child("/cases/$caseId", CaseTimelinePage);
+export const exceptionsRoute = child("/exceptions", ExceptionsBoardPage);
 export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
 export const runsRoute = child("/runs", RunsPage);

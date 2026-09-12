@@ -20,9 +20,6 @@ function Soon({ titleKey }: { titleKey: MessageKey }) {
   );
 }
 
-export const CasesPage = () => <Soon titleKey="cases.title" />;
-export const CaseDetailPage = () => <Soon titleKey="cases.title" />;
-export const ExceptionsPage = () => <Soon titleKey="exceptions.title" />;
 export const PlanningPage = () => <Soon titleKey="planning.title" />;
 export const PlanningRunPage = () => <Soon titleKey="planning.title" />;
 export const RunsPage = () => <Soon titleKey="runs.title" />;
