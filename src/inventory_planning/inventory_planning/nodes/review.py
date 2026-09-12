@@ -23,6 +23,7 @@ from inventory_planning.nodes.compute_policy import compute_line
 from inventory_planning.nodes.detect_exceptions import detect
 from inventory_planning.nodes.explain import line_facts
 from inventory_planning.nodes.propose import dataset_of, lines_of, params_of, task_of
+from inventory_planning.policy import ProductParams
 from inventory_planning.state import Node
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter, complete_structured, system, user
@@ -99,7 +100,7 @@ def _apply_decision(
     decision: ReviewDecision,
     product: ProductData,
     state: dict[str, Any],
-    params: dict[str, Any],
+    params: dict[int, ProductParams],
     cfg: PlanningCfg,
 ) -> ReplenishmentLine:
     note = f"Revisión: {decision.reason}"
