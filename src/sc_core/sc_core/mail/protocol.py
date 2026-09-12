@@ -7,6 +7,7 @@ protocol structurally. Services and repositories type their dependency as
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any, Protocol
 
 from sc_core.mail.models import Attachment, DeltaPage, InboundMessage, MessageIds, OutboundMessage
@@ -32,7 +33,12 @@ class MailClient(Protocol):
     async def send_draft(self, draft_id: str) -> None: ...
 
     async def reply_draft(
-        self, message_id: str, html_body: str, *, headers: dict[str, str] | None = None
+        self,
+        message_id: str,
+        html_body: str,
+        *,
+        headers: dict[str, str] | None = None,
+        attachments: Sequence[Attachment] = (),
     ) -> MessageIds: ...
 
     async def find_sent(self, internet_message_id: str) -> MessageIds | None: ...

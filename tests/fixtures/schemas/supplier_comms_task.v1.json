@@ -47,6 +47,7 @@
         "send_rfq",
         "request_eta",
         "follow_up",
+        "send_po",
         "handle_inbound",
         "resolve_unlinked"
       ],

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 from datetime import date, datetime
 from typing import Any
 
@@ -14,7 +15,7 @@ from sc_core.odoo.models import (
     to_odoo_datetime,
 )
 from sc_core.odoo.repositories.base import Repo
-from sc_core.shared.errors import ValidationFailed
+from sc_core.shared.errors import ExternalServiceError, ValidationFailed
 
 OPEN_STATES = ["purchase"]
 RFQ_STATES = ["draft", "sent", "to approve"]
@@ -148,3 +149,15 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
 
     async def cancel(self, po_id: int) -> None:
         await self._c.call(self._name, "button_cancel", [po_id])
+
+    async def report_pdf(self, po_id: int) -> bytes:
+        """Odoo's own purchase order report ("Orden de Compra") as PDF bytes."""
+        encoded = await self._c.call(self._name, "sc_report_pdf", [po_id])
+        if not encoded:
+            raise ExternalServiceError(
+                "odoo returned an empty purchase order report",
+                service="odoo",
+                details={"po_id": po_id},
+                retryable=False,
+            )
+        return base64.b64decode(encoded)

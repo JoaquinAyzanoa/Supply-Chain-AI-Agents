@@ -8,6 +8,7 @@ is ever written to a database or a log. Persist identifiers (``id``,
 
 from __future__ import annotations
 
+import base64
 from datetime import datetime
 from typing import Any
 
@@ -115,6 +116,7 @@ class OutboundMessage(StrictModel):
     html_body: str
     cc: list[str] = []
     headers: dict[str, str] = {}
+    attachments: list[Attachment] = []  # inline file attachments (small: a PDF, not media)
 
     def tagged(self, po_name: str, case_id: str | None = None) -> OutboundMessage:
         """Copy with the order token in the subject and the tracking headers set."""
@@ -142,4 +144,16 @@ class OutboundMessage(StrictModel):
             node["internetMessageHeaders"] = [
                 {"name": k, "value": v} for k, v in self.headers.items()
             ]
+        if self.attachments:
+            node["attachments"] = [attachment_node(a) for a in self.attachments]
         return node
+
+
+def attachment_node(attachment: Attachment) -> dict[str, Any]:
+    """Graph ``fileAttachment`` with the content inline (fine below a few MB)."""
+    return {
+        "@odata.type": "#microsoft.graph.fileAttachment",
+        "name": attachment.name,
+        "contentType": attachment.content_type,
+        "contentBytes": base64.b64encode(attachment.data).decode("ascii"),
+    }

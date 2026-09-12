@@ -65,7 +65,8 @@ def test_agent_card_lists_the_five_skills() -> None:
         "send_rfq",
         "request_eta",
         "follow_up",
+        "send_po",
         "handle_inbound",
         "resolve_unlinked",
     ]
-    assert len(SKILLS) == 5
+    assert len(SKILLS) == 6

@@ -141,7 +141,7 @@ ODOO_MODULES := "base,contacts,mail,product,purchase,stock,purchase_stock,sale_m
 # Create the Odoo database with demo data and install the modules (idempotent)
 odoo-init:
     {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{ODOO_MODULES}} --stop-after-init
-    {{COMPOSE}} restart odoo
+    {{COMPOSE}} up -d odoo
 
 # Install one Odoo module into the existing database
 odoo-install module="sc_agents":

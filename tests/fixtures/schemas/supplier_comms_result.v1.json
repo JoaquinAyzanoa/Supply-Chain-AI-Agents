@@ -61,6 +61,14 @@
     "OutboundSummary": {
       "additionalProperties": false,
       "properties": {
+        "attachments": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Attachments",
+          "type": "array"
+        },
         "draft_id": {
           "anyOf": [
             {
@@ -78,6 +86,7 @@
             "rfq",
             "request_eta",
             "follow_up",
+            "send_po",
             "reply"
           ],
           "title": "Kind",
@@ -489,6 +498,7 @@
         "send_rfq",
         "request_eta",
         "follow_up",
+        "send_po",
         "handle_inbound",
         "resolve_unlinked"
       ],

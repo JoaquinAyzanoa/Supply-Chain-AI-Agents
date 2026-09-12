@@ -21,7 +21,9 @@ from sc_core.schema.base import StrictModel
 
 # --- tasks ------------------------------------------------------------------------
 
-TaskKind = Literal["send_rfq", "request_eta", "follow_up", "handle_inbound", "resolve_unlinked"]
+TaskKind = Literal[
+    "send_rfq", "request_eta", "follow_up", "send_po", "handle_inbound", "resolve_unlinked"
+]
 
 
 class SupplierCommsTask(StrictModel):
@@ -42,7 +44,13 @@ class SupplierCommsTask(StrictModel):
 
     @model_validator(mode="after")
     def _required_by_kind(self) -> SupplierCommsTask:
-        needs_po = self.kind in ("send_rfq", "request_eta", "follow_up", "handle_inbound")
+        needs_po = self.kind in (
+            "send_rfq",
+            "request_eta",
+            "follow_up",
+            "send_po",
+            "handle_inbound",
+        )
         needs_message = self.kind in ("handle_inbound", "resolve_unlinked")
         if needs_po and not self.po_name:
             raise ValueError(f"{self.kind} needs po_name")
@@ -115,7 +123,7 @@ class ChangeProposal(StrictModel):
         return [c for c in self.changes if not c.needs_review]
 
 
-DraftKind = Literal["rfq", "request_eta", "follow_up", "reply"]
+DraftKind = Literal["rfq", "request_eta", "follow_up", "send_po", "reply"]
 
 
 class OutboundDraft(StrictModel):
@@ -135,6 +143,7 @@ class OutboundSummary(StrictModel):
     kind: DraftKind
     to: list[str]
     subject: str
+    attachments: list[str] = []
     draft_id: str | None = None
     sent_message_id: str | None = None
     web_link: str | None = None

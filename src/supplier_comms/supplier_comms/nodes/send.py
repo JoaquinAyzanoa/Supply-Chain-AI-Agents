@@ -17,7 +17,7 @@ from loguru import logger
 
 from sc_core.graph import ApprovalRequest, decision_for
 from sc_core.mail import po_token
-from sc_core.mail.models import MessageIds, OutboundMessage
+from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from supplier_comms.nodes.common import context_of, esc, finish, task_of
 from supplier_comms.ports import AgentPorts
 from supplier_comms.state import Node
@@ -29,6 +29,7 @@ KIND_LABEL = {
     "rfq": "solicitud de cotización",
     "request_eta": "solicitud de fecha de entrega",
     "follow_up": "recordatorio",
+    "send_po": "orden de compra",
     "reply": "respuesta",
 }
 
@@ -41,12 +42,19 @@ def make_create_draft(ports: AgentPorts) -> Node:
         ctx = context_of(state)
         html = state.get("outbound_html") or ""
         headers = po_token.headers_for(ctx.name, state["case_id"])
+        attachments = await _attachments(ports, ctx.id, outbound.get("attachments") or [])
         if outbound.get("reply_to_message_id"):
-            ids = await ports.reply_draft(outbound["reply_to_message_id"], html, headers=headers)
+            ids = await ports.reply_draft(
+                outbound["reply_to_message_id"], html, headers=headers, attachments=attachments
+            )
         else:
             ids = await ports.create_draft(
                 OutboundMessage(
-                    to=outbound["to"], subject=outbound["subject"], html_body=html, headers=headers
+                    to=outbound["to"],
+                    subject=outbound["subject"],
+                    html_body=html,
+                    headers=headers,
+                    attachments=attachments,
                 )
             )
         outbound.update(
@@ -79,6 +87,7 @@ def make_send_approval(
                 "po_name": ctx.name,
                 "draft_id": outbound.get("draft_id"),
                 "web_link": outbound.get("web_link"),
+                "attachments": outbound.get("attachments") or [],
             },
             po_id=ctx.id,
             auto_approve=auto,
@@ -134,6 +143,18 @@ def make_rejected(ports: AgentPorts) -> Node:
         return finish("rejected", f"envío rechazado por {who}: {reason}")
 
     return rejected
+
+
+async def _attachments(ports: AgentPorts, po_id: int, names: list[str]) -> list[Attachment]:
+    """The order PDF, fetched from Odoo at draft time (never stored in the state)."""
+    out: list[Attachment] = []
+    for name in names:
+        if name.lower().endswith(".pdf"):
+            data = await ports.report_pdf(po_id)
+            out.append(
+                Attachment(name=name, content_type="application/pdf", size=len(data), data=data)
+            )
+    return out
 
 
 async def _sent_ids(

@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Sequence
 from typing import Any
 
 import httpx
@@ -34,6 +34,7 @@ from sc_core.mail.models import (
     InboundMessage,
     MessageIds,
     OutboundMessage,
+    attachment_node,
 )
 
 GRAPH_BASE = "https://graph.microsoft.com/v1.0"
@@ -258,12 +259,19 @@ class GraphMailClient:
         await self._request("POST", f"{self._mailbox()}/messages/{draft_id}/send")
 
     async def reply_draft(
-        self, message_id: str, html_body: str, *, headers: dict[str, str] | None = None
+        self,
+        message_id: str,
+        html_body: str,
+        *,
+        headers: dict[str, str] | None = None,
+        attachments: Sequence[Attachment] = (),
     ) -> MessageIds:
         """Create a reply draft in the same conversation (Graph sets In-Reply-To/References)."""
         node: dict[str, Any] = {"body": {"contentType": "html", "content": html_body}}
         if headers:
             node["internetMessageHeaders"] = [{"name": k, "value": v} for k, v in headers.items()]
+        if attachments:
+            node["attachments"] = [attachment_node(a) for a in attachments]
         response = await self._request(
             "POST", f"{self._mailbox()}/messages/{message_id}/createReply", json={"message": node}
         )
