@@ -159,6 +159,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       return json(route, 200, { id, status: body.status, resolved_by: user.name, callback_status: "sent" });
     }
     if (path === "/api/cases") return json(route, 200, []);
+    if (path.endsWith("/chat") && request.method() === "GET") return json(route, 200, []);
     if (path === "/api/exceptions") return json(route, 200, { as_of: "2026-09-14", late_pos: [], rfqs_no_reply: [], unlinked_mails: [], failed_runs: [], stale_approvals: [] });
     if (path === "/api/planning/runs") return json(route, 200, [state.run]);
     if (path === "/api/planning/runs/run_1") return json(route, 200, { run: state.run, lines: state.lines });

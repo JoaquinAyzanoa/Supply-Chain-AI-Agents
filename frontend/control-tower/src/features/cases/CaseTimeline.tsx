@@ -16,6 +16,7 @@ import { useI18n } from "@/i18n";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
 import { useCase, type AgentRun, type CaseEvent, type CaseView } from "./api";
+import { CaseChat } from "@/features/chat/CaseChat";
 import { failureOf, labelFor, shortCaseId } from "./labels";
 
 export function CaseTimelinePage() {
@@ -60,9 +61,12 @@ export function CaseTimelinePage() {
             ))}
           </ol>
         </section>
-        <aside>
-          <h2 className="mb-2 text-sm font-semibold">{t("cases.runs")}</h2>
-          {runs.length === 0 ? <p className="text-sm text-muted-foreground">{t("cases.no_runs")}</p> : <RunsTable runs={runs} />}
+        <aside className="flex flex-col gap-4">
+          <CaseChat caseRef={item.code} compact />
+          <div>
+            <h2 className="mb-2 text-sm font-semibold">{t("cases.runs")}</h2>
+            {runs.length === 0 ? <p className="text-sm text-muted-foreground">{t("cases.no_runs")}</p> : <RunsTable runs={runs} />}
+          </div>
         </aside>
       </div>
     </div>
@@ -135,6 +139,13 @@ function EventLine({ event }: { event: CaseEvent }) {
       return <p className="text-sm">{text("summary") || text("reason")}</p>;
     case "note":
       return <p className="text-sm">{text("text")}</p>;
+    case "chat":
+      return (
+        <p className="text-sm">
+          <span className="text-muted-foreground">{text("role") === "user" ? (text("by") || t("chat.someone")) : t("chat.director")}: </span>
+          {text("text")}
+        </p>
+      );
     case "promise":
       return (
         <p className="text-sm text-muted-foreground">

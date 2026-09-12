@@ -86,6 +86,7 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     const status = url.searchParams.get("status");
     return jsonResponse(200, status ? CASES.filter((c) => c.status === status) : CASES);
   }
+  if (url.pathname.endsWith("/chat")) return jsonResponse(200, []);
   if (url.pathname === "/api/cases/case_a" || url.pathname === "/api/cases/C00001") return jsonResponse(200, DETAIL);
   return jsonResponse(404, { detail: "no" });
 }

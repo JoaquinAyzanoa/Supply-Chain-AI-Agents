@@ -235,8 +235,11 @@ class FollowUpJob:
                     last_outbound_at=last_out,
                     last_inbound_at=last_in,
                     rules_fired=await self._cases.rules_fired(name),
+                    # a person has it, or put it on hold until a later date (chat: hold_until)
                     awaiting_human=any(
-                        c.status in ("awaiting_approval", "escalated") for c in open_cases
+                        c.status in ("awaiting_approval", "escalated")
+                        or (c.next_action_at is not None and c.next_action_at.date() > today)
+                        for c in open_cases
                     ),
                 )
             )

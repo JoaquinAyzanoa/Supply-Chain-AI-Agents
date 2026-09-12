@@ -328,6 +328,10 @@ The people's side of the system: a React app served by the director under
   through the bot, so Odoo fires the same agent callback as its own buttons.
 - **Cases**: one PO-centred timeline from the event received through rules,
   tasks, results and approvals to the agent runs (model, tokens, cost).
+  Every case has a **chat with the director**: questions are answered from
+  the case, the order and the policy; instructions ("ask them for a firm
+  date", "wait until the 20th", "close this, I cancelled the order") come
+  back as a proposed action that an approver confirms before it runs.
 - **Exceptions**: late orders, silent RFQs, unlinked emails, failed runs and
   stale approvals, each with the policy's next step and "act now".
 - **Planning**: the run's lines grouped by supplier, editable quantities and

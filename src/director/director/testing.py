@@ -11,6 +11,7 @@ from injector import Binder, Module, singleton
 from director.agents import AgentProxy, Agents
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
+from director.api.chat import CaseAssistant, ChatActions
 from director.api.exceptions import ExceptionsSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
@@ -28,6 +29,9 @@ from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app.realtime import MemoryRealtime, Realtime
 from sc_core.infra.locks import MemoryLock
+from sc_core.infra.settings import LangfuseCfg
+from sc_core.llm.client import ChatCompleter
+from sc_core.llm.testing import ScriptedChatClient
 from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, Ref
 
 
@@ -73,6 +77,7 @@ class MemoryDirectorModule(Module):
         jobs: JobRunner | None = None,
         orders: ConfirmedOrders | None = None,
         lock_wait_seconds: float = 2.0,
+        chat: ChatCompleter | None = None,
     ) -> None:
         self.inbox = inbox or MemoryEventInbox()
         self.results = results or MemoryEventResults(self.inbox)
@@ -91,6 +96,8 @@ class MemoryDirectorModule(Module):
         self.planning = MemoryPlanningReadStore()
         self.demand = MemoryDemandSource()
         self.exceptions = MemoryExceptionsSource()
+        self.chat = chat or ScriptedChatClient()
+        self.orders_lookup = MemoryOrderLookup()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -118,6 +125,19 @@ class MemoryDirectorModule(Module):
         binder.bind(ExceptionsSource, to=self.exceptions, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(Agents, to=self.deps.agents, scope=singleton)
         binder.bind(Deps, to=self.deps, scope=singleton)
+        binder.bind(
+            CaseAssistant,
+            to=CaseAssistant(
+                self.chat,
+                cases=self.case_store,
+                approvals=self.approvals,
+                orders=self.orders_lookup,
+                policy=self.exceptions,
+                langfuse=LangfuseCfg(enabled=False),
+            ),
+            scope=singleton,
+        )
+        binder.bind(ChatActions, to=ChatActions(self.deps, self.approvals), scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(ApprovalsGateway, to=self.approvals, scope=singleton)  # type: ignore[type-abstract]
@@ -293,3 +313,11 @@ class MemoryDemandSource:
     ) -> dict[str, Any]:
         self.calls.append((product_id, days))
         return self.histories.get(product_id) or {"days": []}
+
+
+class MemoryOrderLookup:
+    def __init__(self) -> None:
+        self.orders: dict[str, Any] = {}
+
+    async def by_names(self, names: Sequence[str]) -> list[Any]:
+        return [self.orders[n] for n in names if n in self.orders]

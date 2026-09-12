@@ -61,6 +61,7 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   const request = input instanceof Request ? input : new Request(String(input), init);
   const url = new URL(request.url);
   if (url.pathname === "/api/auth/me") return jsonResponse(200, { email: "ana@x.com", name: "Ana", role: "approver" });
+  if (url.pathname.endsWith("/chat")) return jsonResponse(200, []);
   if (url.pathname === "/api/approvals") return jsonResponse(200, url.searchParams.get("status") === "pending" ? pending : ROWS);
   const one = url.pathname.match(/^\/api\/approvals\/(\d+)$/);
   if (one) {

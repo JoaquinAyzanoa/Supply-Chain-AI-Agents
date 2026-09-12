@@ -302,5 +302,22 @@
   "approvals.escalation.detail.agent": "Agente",
   "approvals.escalation.detail.task": "Tarea",
   "approvals.escalation.detail.error": "Error",
-  "cases.col.case": "Caso"
+  "cases.col.case": "Caso",
+  "chat.title": "Hablar con el director",
+  "chat.empty": "Pregunta qué pasa o dile al director qué hacer. Responde con el caso, la orden y la política; las instrucciones se muestran para confirmar antes de que ocurra nada.",
+  "chat.placeholder": "¿Por qué está atrasada? · Pídeles una fecha firme · Espera hasta el 20 · Cierra esto, cancelé la orden",
+  "chat.input": "Mensaje para el director",
+  "chat.send": "Enviar",
+  "chat.thinking": "El director está revisando el caso…",
+  "chat.director": "Director",
+  "chat.someone": "Alguien",
+  "chat.confirm": "Confirmar",
+  "chat.dismiss": "Descartar",
+  "chat.confirmed": "hecho",
+  "chat.dismissed": "descartado",
+  "chat.action.request_eta": "Pedir al proveedor una fecha de entrega",
+  "chat.action.follow_up": "Enviar un recordatorio al proveedor",
+  "chat.action.hold_until": "Poner el caso en espera hasta una fecha",
+  "chat.action.close_case": "Cerrar el caso",
+  "cases.event.chat": "Conversación"
 }

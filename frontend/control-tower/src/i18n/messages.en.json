@@ -302,5 +302,22 @@
   "approvals.escalation.detail.agent": "Agent",
   "approvals.escalation.detail.task": "Task",
   "approvals.escalation.detail.error": "Error",
-  "cases.col.case": "Case"
+  "cases.col.case": "Case",
+  "chat.title": "Talk to the director",
+  "chat.empty": "Ask what is going on, or tell the director what to do. It answers from the case, the order and the policy; instructions are shown for confirmation before anything happens.",
+  "chat.placeholder": "Why is this late? · Ask them for a firm date · Wait until the 20th · Close this, I cancelled the order",
+  "chat.input": "Message to the director",
+  "chat.send": "Send",
+  "chat.thinking": "The director is looking at the case…",
+  "chat.director": "Director",
+  "chat.someone": "Someone",
+  "chat.confirm": "Confirm",
+  "chat.dismiss": "Dismiss",
+  "chat.confirmed": "done",
+  "chat.dismissed": "dismissed",
+  "chat.action.request_eta": "Ask the supplier for a delivery date",
+  "chat.action.follow_up": "Send the supplier a reminder",
+  "chat.action.hold_until": "Hold the case until a date",
+  "chat.action.close_case": "Close the case",
+  "cases.event.chat": "Conversation"
 }

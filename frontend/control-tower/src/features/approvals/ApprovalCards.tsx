@@ -11,6 +11,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useI18n } from "@/i18n";
 import { formatDate, formatNumber } from "@/lib/utils";
+import { CaseChat } from "@/features/chat/CaseChat";
 import { EmailPreview } from "./EmailPreview";
 import type { ChangePayload, EmailPayload, EscalationPayload, PlanPayload, ProposedChange } from "./types";
 
@@ -231,6 +232,7 @@ export function EscalationCard({ payload, caseCode }: { payload: EscalationPaylo
           </ol>
         </div>
       ) : null}
+      {payload.case_id ? <CaseChat caseRef={caseCode ?? payload.case_id} compact /> : null}
       {payload.case_id ? (
         <Link to="/cases/$caseId" params={{ caseId: caseCode ?? payload.case_id }} className="text-primary underline">
           {t("approvals.escalation.case")}{caseCode ? ` (${caseCode})` : ""}

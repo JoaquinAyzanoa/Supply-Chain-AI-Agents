@@ -123,6 +123,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/cases/{ref}/chat": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Chat */
+        get: operations["read_chat_api_cases__ref__chat_get"];
+        put?: never;
+        /** Ask */
+        post: operations["ask_api_cases__ref__chat_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{ref}/chat/{message_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Action */
+        post: operations["confirm_action_api_cases__ref__chat__message_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cases/{ref}/chat/{message_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Action */
+        post: operations["dismiss_action_api_cases__ref__chat__message_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/exceptions": {
         parameters: {
             query?: never;
@@ -547,6 +599,38 @@ export interface components {
              */
             updated_at: string;
         };
+        /** ChatMessage */
+        ChatMessage: {
+            action?: components["schemas"]["ProposedAction"] | null;
+            /** Action Status */
+            action_status?: ("proposed" | "confirmed" | "dismissed") | null;
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** By */
+            by?: string | null;
+            /** Id */
+            id: number;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "director";
+            /** Text */
+            text: string;
+        };
+        /** ChatRequest */
+        ChatRequest: {
+            /** Text */
+            text: string;
+        };
+        /** ChatTurn */
+        ChatTurn: {
+            /** Messages */
+            messages: components["schemas"]["ChatMessage"][];
+        };
         /** CheckResult */
         CheckResult: {
             /** Critical */
@@ -852,6 +936,29 @@ export interface components {
              * @enum {string}
              */
             role: "viewer" | "approver" | "admin";
+        };
+        /** ProposedAction */
+        ProposedAction: {
+            /**
+             * Explanation
+             * @description what will happen
+             */
+            explanation: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "request_eta" | "follow_up" | "hold_until" | "close_case";
+            /**
+             * Note
+             * @description what to stress, or the decision to record
+             */
+            note?: string | null;
+            /**
+             * Until
+             * @description hold_until: look at the case again then
+             */
+            until?: string | null;
         };
         /** ReplenishmentLine */
         ReplenishmentLine: {
@@ -1332,6 +1439,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CaseDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_chat_api_cases__ref__chat_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatMessage"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ask_api_cases__ref__chat_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChatRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatTurn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_action_api_cases__ref__chat__message_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatTurn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_action_api_cases__ref__chat__message_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                ref: string;
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChatTurn"];
                 };
             };
             /** @description Validation Error */

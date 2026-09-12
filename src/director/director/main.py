@@ -19,6 +19,7 @@ from director.agents import Agents, build_agents
 from director.api import api_router
 from director.api.approvals import ApprovalsGateway, OdooApprovalsGateway
 from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
+from director.api.chat import CaseAssistant, ChatActions
 from director.api.exceptions import ExceptionsSource
 from director.api.planning import (
     DemandSource,
@@ -151,6 +152,36 @@ class DirectorModule(Module):
     @singleton
     def provide_exceptions(self, followups: FollowUpJob) -> ExceptionsSource:  # type: ignore[type-abstract]
         return followups
+
+    @provider
+    @singleton
+    def provide_case_assistant(
+        self,
+        settings: Settings,
+        chats: ChatClientFactory,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        orders: PurchaseOrderRepo,
+        followups: FollowUpJob,
+    ) -> CaseAssistant:
+        return CaseAssistant(
+            chats.for_agent("director"),
+            cases=cases,
+            approvals=approvals,
+            orders=orders,
+            policy=followups,
+            language=settings.agents.language,
+            langfuse=settings.langfuse,
+        )
+
+    @provider
+    @singleton
+    def provide_chat_actions(
+        self,
+        deps: Deps,
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+    ) -> ChatActions:
+        return ChatActions(deps, approvals)
 
     @provider
     @singleton

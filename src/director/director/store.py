@@ -42,6 +42,7 @@ CaseEventKind = Literal[
     "escalated",
     "promise",
     "note",
+    "chat",
 ]
 
 TERMINAL_STATUSES: frozenset[str] = frozenset({"done", "rejected", "failed"})
