@@ -357,3 +357,96 @@ async def test_per_agent_semaphore_bounds_concurrency(cases: MemoryCaseStore) ->
 )
 def test_case_status_mapping(outcome: str, expected: str) -> None:
     assert case_status_for(outcome) == expected
+
+
+async def test_resolved_escalation_closes_the_case(
+    orchestrator: Orchestrator,
+    cases: MemoryCaseStore,
+    agent: FakeAgentCaller,
+    escalator: MemoryEscalator,
+) -> None:
+    agent.replies.append(agent_reply("handle_inbound", "case_msg1", "failed", "Odoo write failed"))
+    await orchestrator.handle(linked())
+    [case] = cases.cases.values()
+    assert case.status == "escalated"
+    resolved = ev.OdooApprovalResolved(
+        source="odoo",
+        case_id="odoo_appr_9",
+        approval_id=9,
+        kind="escalation",
+        status="approved",
+        thread_id=case.case_id,  # escalations are created on the case id
+        po_name="P00015",
+        resolved_by="admin",
+    )
+    await orchestrator.handle(resolved)
+    assert len(cases.cases) == 1 and cases.cases[case.case_id].status == "done"
+    rejected = resolved.model_copy(update={"status": "rejected", "event_id": "evt_r"})
+    # a done case never reopens: the decision is recorded as a new case's note
+    await orchestrator.handle(rejected)
+    assert cases.cases[case.case_id].status == "done"
+    assert len(escalator.calls) == 1  # an escalation decision never escalates again
+
+
+async def test_expired_escalation_stays_with_the_person(
+    orchestrator: Orchestrator,
+    cases: MemoryCaseStore,
+    agent: FakeAgentCaller,
+    escalator: MemoryEscalator,
+) -> None:
+    agent.replies.append(agent_reply("handle_inbound", "case_msg1", "failed", "boom"))
+    await orchestrator.handle(linked())
+    [case] = cases.cases.values()
+    expired = ev.OdooApprovalResolved(
+        source="odoo",
+        case_id="odoo_appr_9",
+        approval_id=9,
+        kind="escalation",
+        status="expired",
+        thread_id=case.case_id,
+    )
+    await orchestrator.handle(expired)
+    assert cases.cases[case.case_id].status == "escalated" and len(escalator.calls) == 1
+
+
+async def test_run_finished_after_approval_teaches_the_thread(
+    orchestrator: Orchestrator, cases: MemoryCaseStore, agent: FakeAgentCaller
+) -> None:
+    agent.replies.append(
+        agent_reply(
+            "send_po",
+            "odoo_po_66_purchase",
+            "awaiting_approval",
+            "draft",
+            approval_id=5,
+            po_name="P00066",
+        )
+    )
+    await orchestrator.handle(po_confirmed())
+    [case] = cases.cases.values()
+    assert case.conversation_id is None
+    finished = ev.AgentRunFinished(
+        source="supplier_comms",
+        case_id="odoo_po_66_purchase",
+        agent="supplier_comms",
+        thread_id="odoo_po_66_purchase",
+        run_id="run_1",
+        task_kind="send_po",
+        status="sent",
+        summary="order sent",
+        po_name="P00066",
+        approval_id=5,
+        sent_message_id="AAMkSent",
+    )
+    await orchestrator.handle(finished)
+    updated = cases.cases[case.case_id]
+    assert updated.status == "done" and updated.conversation_id == "conv-out"
+    # the supplier's reply on that thread now attaches... to a new case, since this one is done,
+    # but a reply on a still-open case would: check the attach rule with an open case
+    agent.replies.append(
+        agent_reply("handle_inbound", "case_msg9", "no_action", "ok", po_name="P00066")
+    )
+    await orchestrator.handle(
+        linked(case_id="case_msg9", po_name="P00066", conversation_id="conv-out")
+    )
+    assert len(cases.cases) == 2

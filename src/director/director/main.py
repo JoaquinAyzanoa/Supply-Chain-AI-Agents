@@ -151,7 +151,14 @@ class DirectorModule(Module):
             ttl_seconds=settings.director.lock_ttl_seconds,
             wait_seconds=settings.director.lock_wait_seconds,
         )
-        return Orchestrator(deps, results, inbox=inbox, locks=locks, orders=orders)
+        return Orchestrator(
+            deps,
+            results,
+            inbox=inbox,
+            locks=locks,
+            orders=orders,
+            reconcile_since_days=settings.director.reconcile_since_days,
+        )
 
 
 def build_app() -> FastAPI:

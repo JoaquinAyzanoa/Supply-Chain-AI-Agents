@@ -147,6 +147,9 @@ class AgentRunFinished(BaseEvent):
     summary: str = Field(max_length=500)
     po_name: str | None = None
     approval_id: int | None = None
+    sent_message_id: str | None = Field(
+        default=None, description="Graph id of the email sent after the resume, if any"
+    )
 
 
 AnyEvent = Annotated[

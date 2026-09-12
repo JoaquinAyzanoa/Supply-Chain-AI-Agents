@@ -7,9 +7,9 @@ task, so no producer ever waits for a model run. An unknown event type is a
 422 (the parser rejects it), never a crash.
 
 ``POST /jobs/{job}``: the scheduler's director jobs (follow-ups, planning,
-performance). The tick is stored like any event and run through the
-workflow *before* answering, so the scheduler's run record carries the
-job's summary and a failure shows up as one.
+performance). The tick is stored like any event and run in a background
+task (a follow-up run can take longer than the scheduler waits); the job's
+summary lands on the tick's inbox row (``event_inbox.result``).
 """
 
 from __future__ import annotations
@@ -72,6 +72,7 @@ async def receive_event(
 @router.post("/jobs/{job}", status_code=202, response_model=Accepted)
 async def receive_job(
     job: str,
+    background: BackgroundTasks,
     body: bytes = SignedBody,
     inbox: EventInbox = Injected(EventInbox),  # type: ignore[type-abstract]
     orchestrator: Orchestrator = Injected(Orchestrator),
@@ -86,14 +87,6 @@ async def receive_job(
     if not stored:
         logger.bind(job=job, run_id=tick.run_id).info("job tick already handled")
         return Accepted(accepted=True, duplicate=True, event_id=tick.event_id, event_type=tick.type)
-    result = await orchestrator.handle(tick)
-    if job == "po-followups":  # the daily housekeeping rides on the same tick
-        result["replay"] = await orchestrator.replay_unhandled()
-        result["reconcile"] = await orchestrator.reconcile()
-    return Accepted(
-        accepted=True,
-        event_id=tick.event_id,
-        event_type=tick.type,
-        dispatched=True,
-        result=result,
-    )
+    background.add_task(orchestrator.run_tick, tick)
+    logger.bind(job=job, run_id=tick.run_id).info("job started in the background")
+    return Accepted(accepted=True, event_id=tick.event_id, event_type=tick.type, dispatched=True)

@@ -6,9 +6,10 @@ This helper posts the same JSON envelope every other producer uses
 (``sc_core.schema.events.BaseEvent``), signed with the shared events secret
 (``X-SC-Signature: sha256=<hex>``), to ``<director_url>/events``.
 
-The request is sent from a post-commit hook: the orchestrator reads the
-record by id right away, and it must see the committed state. Delivery is
-best effort and never raises; the orchestrator's daily reconciliation
+The request is sent after commit (the orchestrator reads the record by
+id right away, and it must see the committed state) from a short-lived
+thread, so a slow or absent director never holds an Odoo worker. Delivery
+is best effort and never raises; the orchestrator's daily reconciliation
 covers what was missed. Event ids are deterministic (same record, same
 change → same id) so a repeated delivery is a duplicate, not a repeat.
 
@@ -22,6 +23,7 @@ import hashlib
 import hmac
 import json
 import logging
+import threading
 from datetime import UTC, datetime
 
 import requests
@@ -110,5 +112,8 @@ class ScEventEmitter(models.AbstractModel):
             except requests.RequestException as exc:
                 _logger.warning("sc_agents: could not send %s %s: %s", event_type, event_id, exc)
 
-        self.env.cr.postcommit.add(deliver)
+        def start():
+            threading.Thread(target=deliver, name=f"sc-event-{event_id}", daemon=True).start()
+
+        self.env.cr.postcommit.add(start)
         return event_id

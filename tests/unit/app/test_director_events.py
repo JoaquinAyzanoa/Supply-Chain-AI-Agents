@@ -153,8 +153,8 @@ def test_signed_but_malformed_event_is_422(client: TestClient) -> None:
     assert response.status_code == 422
 
 
-def test_job_stub_records_tick_and_rejects_unknown_job(
-    client: TestClient, inbox: MemoryEventInbox, agent: FakeAgentCaller
+def test_job_tick_runs_in_the_background_and_rejects_unknown_job(
+    client: TestClient, inbox: MemoryEventInbox, agent: FakeAgentCaller, results: MemoryEventResults
 ) -> None:
     tick = ScheduledTick(
         source="scheduler",
@@ -165,11 +165,15 @@ def test_job_stub_records_tick_and_rejects_unknown_job(
     )
     ok = _post(client, "/jobs/po-followups", encode_event(tick))
     assert ok.status_code == 202 and inbox.of_type("scheduler.tick")
-    # the job ran inside the request (memory module: recorded no-op) and reported back
-    [update] = ok.json()["result"]["updates"]
+    assert ok.json()["dispatched"] is True and ok.json()["result"] is None
+    # the background task ran inside the TestClient request; its summary is on the inbox row
+    recorded = results.results[tick.event_id]
+    [update] = recorded["updates"]
     assert update["kind"] == "job" and update["detail"]["status"] == "not_implemented"
+    assert recorded["replay"] == {"replayed": 0, "events": {}}
+    assert recorded["reconcile"]["checked"] == 0  # no orders port on the memory module
     again = _post(client, "/jobs/po-followups", encode_event(tick))
-    assert again.json()["duplicate"] is True and again.json()["result"] is None
+    assert again.json()["duplicate"] is True and again.json()["dispatched"] is False
     assert _post(client, "/jobs/nope", encode_event(tick)).status_code == 404
     assert agent.sent == []  # ticks are not dispatched to the supplier agent
 

@@ -422,3 +422,62 @@ async def test_stale_approvals_are_reminded_once_and_expired(
     assert again["approvals"] == {"reminded": [4], "expired": []}  # 2 was reminded already
     notes = [e.payload for e in cases.case_events if e.kind == "note"]
     assert [n["approval_id"] for n in notes] == [2, 3]
+
+
+async def test_action_cap_defers_the_rest_to_the_next_run(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    cases, agent, escalator = MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator()
+    agent.replies.extend(
+        [
+            agent_reply("follow_up", "t1", "sent", "sent", po_name="P00010"),
+            agent_reply("request_eta", "t2", "sent", "sent", po_name="P00011"),
+        ]
+    )
+    orders, mail = seeded
+    job = FollowUpJob(
+        policy=POLICY.model_copy(update={"max_actions_per_run": 2}),
+        orders=orders,
+        mail=mail,
+        cases=cases,
+        agents=Agents(supplier_comms=AgentProxy("supplier_comms", agent)),
+        escalator=escalator,
+        today=lambda: TODAY,
+    )
+    first = await job.run("po_followups", tick("po_followups", "run_1"))
+    assert first["tasks_sent"] == 2 and first["escalated"] == 0
+    assert first["skipped"] == ["P00012", "P00013"]
+    assert await cases.rules_fired("P00012") == []  # nothing recorded: it fires next time
+
+    agent.replies.append(agent_reply("request_eta", "t3", "sent", "sent", po_name="P00013"))
+    second = await job.run("po_followups", tick("po_followups", "run_2"))
+    assert second["escalated"] == 1 and second["tasks_sent"] == 1 and second["skipped"] == []
+
+
+async def test_escalation_approvals_are_reminded_but_never_expired(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    cases, agent, escalator = MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator()
+    old = _approval(7, "t-esc", date(2026, 9, 1)).model_copy(update={"kind": "escalation"})
+    approvals = FakeApprovals([old])
+    orders, mail = seeded
+    agent.replies.extend(
+        [
+            agent_reply("follow_up", "t1", "sent", "sent", po_name="P00010"),
+            agent_reply("request_eta", "t2", "sent", "sent", po_name="P00011"),
+            agent_reply("request_eta", "t3", "sent", "sent", po_name="P00013"),
+        ]
+    )
+    job = FollowUpJob(
+        policy=POLICY,
+        orders=orders,
+        mail=mail,
+        cases=cases,
+        agents=Agents(supplier_comms=AgentProxy("supplier_comms", agent)),
+        escalator=escalator,
+        approvals=approvals,
+        today=lambda: TODAY,
+    )
+    summary = await job.run("po_followups", tick("po_followups", "run_1"))
+    assert summary["approvals"] == {"reminded": [7], "expired": []}
+    assert approvals.expired == [] and approvals.reminded == [(7, 13)]

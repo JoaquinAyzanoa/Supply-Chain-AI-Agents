@@ -150,6 +150,13 @@ LLM tests run offline: unit tests use scripted clients or recorded cassettes
 when `DEEPSEEK_API_KEY` is set, the provider capability checks that back the
 flags in `models.yaml`.
 
+`just langfuse-prompts` publishes every local prompt file (`sc_core`,
+`supplier_comms`, `director`) to Langfuse Prompt Management with the
+`production` label, so `get_prompt` serves them from Langfuse instead of
+logging a fallback on every call; edit a prompt there and the agents pick it
+up within `SC__LANGFUSE__PROMPT_CACHE_SECONDS`.
+
+
 ## Mail sync and scheduler
 
 Two deterministic services run without any model call.
@@ -250,13 +257,19 @@ date get a `request_eta` after one day and are escalated after four, orders
 due within five days get one ETA request, pending approvals are reminded
 after two days and expired after seven. Each rule fires once per order and
 is written to `case_events` as `rule_fired`, so the UI can explain every
-email. The same job replays events that were deferred (order locked) and
-reconciles orders confirmed while an event was missed.
+email. At most `SC__DIRECTOR__MAX_ACTIONS_PER_RUN` emails and escalations
+go out per run (the rest waits for the next one). The same job replays
+events that were deferred (order locked) and reconciles orders confirmed
+while an event was missed, looking back `SC__DIRECTOR__RECONCILE_SINCE_DAYS`
+but never before the orchestrator's first case. Jobs run in the background;
+their summary lands on the tick's `event_inbox` row.
 
 Escalations are `sc.approval` records of kind `escalation` on the order,
 with a three-sentence summary written by the model (the director's only
 model call, replayed in tests from `tests/fixtures/llm/director.json`), the
-reason and the Langfuse trace link, plus a To-Do for the approver. One run
+reason and the Langfuse trace link, plus a To-Do for the approver. A
+resolved escalation closes its case; escalations are reminded but never
+expired. One run
 per order at a time is guaranteed by a Redis lock (`po:<name>`); an event
 that cannot get it within `SC__DIRECTOR__LOCK_WAIT_SECONDS` stays in the
 inbox for the replay.

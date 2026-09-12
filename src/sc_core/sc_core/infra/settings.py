@@ -213,6 +213,10 @@ class DirectorCfg(_Section):
     approval_expire_days: int = Field(default=7, ge=0)  # expire the approval, escalate the case
     lock_ttl_seconds: int = Field(default=900, ge=1)  # one run per order at a time
     lock_wait_seconds: float = Field(default=120.0, ge=0)  # how long an event waits for the lock
+    max_actions_per_run: int = Field(
+        default=20, ge=1
+    )  # follow-up job: emails + escalations per run
+    reconcile_since_days: int = Field(default=3, ge=0)  # missed confirmations looked back this far
 
 
 class AgentsCfg(_Section):

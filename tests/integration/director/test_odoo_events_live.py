@@ -13,14 +13,12 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections.abc import AsyncIterator
 from typing import Any
 from uuid import uuid4
 
 import pytest
 
 from sc_core.infra.db import Database
-from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.models import NewOrderLine
 from sc_core.odoo.repositories import PartnerRepo, PurchaseOrderRepo
@@ -29,14 +27,6 @@ from sc_core.schema.events import event_id_for
 pytestmark = [pytest.mark.integration, pytest.mark.odoo, pytest.mark.graph, pytest.mark.llm]
 
 SUPPLIER_EMAIL = "ventas.hidraulica.sc@gmail.com"
-
-
-@pytest.fixture
-async def live_db(live_settings: Settings) -> AsyncIterator[Database]:
-    database = Database(live_settings.app_db)
-    await database.open()
-    yield database
-    await database.close()
 
 
 async def _wait_for(fetch: Any, *, seconds: float = 60.0) -> Any:

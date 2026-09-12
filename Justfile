@@ -124,6 +124,10 @@ llm-record:
 schema-snapshot:
     {{UV}} run python scripts/schema_snapshot.py
 
+# Publish every local prompt (sc_core, supplier_comms, director) to Langfuse Prompt Management
+langfuse-prompts:
+    {{UV}} run python scripts/langfuse_prompts.py
+
 # Open the Langfuse UI (admin@scai.local / scai-admin-password on first boot)
 langfuse-open:
     {{UV}} run python -c "import webbrowser; webbrowser.open('http://localhost:3000')"

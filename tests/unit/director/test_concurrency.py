@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 
 from director.testing import MemoryDirectorModule
@@ -115,12 +115,17 @@ async def test_reconcile_opens_cases_for_missed_confirmations_only() -> None:
     from tests.unit.director.helpers import po_confirmed
 
     await module.inbox.store(po_confirmed(event_id=arrived_id, po_id=70, po_name="P00070"))
+    # the orchestrator has been around since before these confirmations
+    first_case, _ = await module.cases.attach_or_create(kind="eta", po_name="P00001")
+    module.cases.cases[first_case.case_id] = first_case.model_copy(
+        update={"created_at": datetime(2026, 9, 1, tzinfo=UTC), "status": "done"}
+    )
 
     result = await module.orchestrator.reconcile(today=date(2026, 9, 14), since_days=3)
     assert orders.asked == [date(2026, 9, 11)]
     assert result == {"checked": 2, "opened": ["P00071"]}
     assert caller.order == ["start odoo_po_71_purchase", "end odoo_po_71_purchase"]
-    sent = list(module.cases.cases.values())
+    sent = [c for c in module.cases.cases.values() if c.case_id != first_case.case_id]
     assert [c.po_name for c in sent] == ["P00071"] and sent[0].kind == "eta"
     assert event_id_for("odoo.purchase_confirmed", 71, "purchase") in module.inbox.events
     promise = [e for e in module.cases.case_events if e.kind == "promise"]
@@ -128,3 +133,36 @@ async def test_reconcile_opens_cases_for_missed_confirmations_only() -> None:
 
     again = await module.orchestrator.reconcile(today=date(2026, 9, 14), since_days=3)
     assert again == {"checked": 2, "opened": []}
+
+
+async def test_reconcile_never_looks_before_the_first_case() -> None:
+    caller = SlowCaller(delay=0)
+    orders = FakeConfirmed([_confirmed(50, "P00050", date(2026, 9, 12))])
+    module = MemoryDirectorModule(supplier_comms=caller, orders=orders)
+    assert await module.orchestrator.reconcile(today=date(2026, 9, 14)) == {
+        "checked": 0,
+        "opened": [],
+        "skipped": "no cases yet",
+    }
+    # the first case exists from today: an order confirmed the day before was not missed
+    await module.cases.attach_or_create(kind="eta", po_name="P00099")
+    first = await module.cases.earliest_created_at()
+    assert first is not None
+    orders.orders = [_confirmed(50, "P00050", first.date() - timedelta(days=1))]
+    result = await module.orchestrator.reconcile(today=first.date(), since_days=3)
+    assert orders.asked[-1] == first.date() and result == {"checked": 0, "opened": []}
+
+
+async def test_run_tick_records_replay_and_reconcile_on_the_inbox_row() -> None:
+    from tests.unit.director.helpers import tick
+
+    module = MemoryDirectorModule()
+    event = tick("po_followups", "run_9")
+    await module.inbox.store(event)
+    result = await module.orchestrator.run_tick(event)
+    assert result["replay"] == {"replayed": 0, "events": {}}
+    assert result["reconcile"]["checked"] == 0
+    assert module.results.results[event.event_id] == result
+    other = tick("inventory_planning", "run_10")
+    await module.inbox.store(other)
+    assert "replay" not in await module.orchestrator.run_tick(other)

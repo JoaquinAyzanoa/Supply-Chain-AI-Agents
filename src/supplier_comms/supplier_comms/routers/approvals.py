@@ -103,4 +103,5 @@ def run_finished(result: SupplierCommsResult, approval_id: int) -> AgentRunFinis
         summary=result.outcome.summary,
         po_name=result.po_name,
         approval_id=approval_id,
+        sent_message_id=result.outbound.sent_message_id if result.outbound else None,
     )

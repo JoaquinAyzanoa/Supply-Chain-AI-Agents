@@ -54,6 +54,7 @@ class MemoryDirectorModule(Module):
     ) -> None:
         self.inbox = inbox or MemoryEventInbox()
         self.results = results or MemoryEventResults(self.inbox)
+        self.results.attach(self.inbox)
         self.cases = cases or MemoryCaseStore()
         self.escalator = escalator or MemoryEscalator()
         self.lock = MemoryLock()

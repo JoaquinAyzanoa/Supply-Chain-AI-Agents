@@ -110,12 +110,22 @@ class FollowUpJob:
         decisions = [d for d in (decide(f, self._policy, today) for f in facts) if d]
         sent = escalated = 0
         outcomes: list[dict[str, Any]] = []
+        skipped: list[str] = []
         for decision in decisions:
+            # Every action is a model run and an email or an escalation: cap them per run.
+            # What is skipped is not recorded on the case, so it fires on the next run.
+            if sent + escalated >= self._policy.max_actions_per_run:
+                skipped.append(decision.po_name)
+                continue
             fact = next(f for f in facts if f.po_name == decision.po_name)
             outcome = await self.act(decision, fact, tick, today)
             outcomes.append(outcome)
             sent += outcome.get("task") is not None
             escalated += bool(outcome.get("escalated"))
+        if skipped:
+            logger.bind(run_id=tick.run_id, skipped=len(skipped)).warning(
+                "follow-up cap reached; remaining orders wait for the next run"
+            )
         reviewed = await self.review_approvals(today)
         logger.bind(run_id=tick.run_id, orders=len(facts), decisions=len(decisions)).info(
             "follow-up job done"
@@ -127,6 +137,7 @@ class FollowUpJob:
             "tasks_sent": sent,
             "escalated": escalated,
             "decisions": outcomes,
+            "skipped": skipped,
             "approvals": reviewed,
         }
 
@@ -139,7 +150,8 @@ class FollowUpJob:
                 continue
             days = (today - _as_date(approval.create_date)).days
             case = await self._cases.find_by_thread(approval.thread_id or "")
-            if days >= self._policy.approval_expire_days:
+            # An escalation is already a person's to answer: remind, never expire.
+            if days >= self._policy.approval_expire_days and approval.kind != "escalation":
                 reason = f"sin respuesta del aprobador en {days} días"
                 await self._approvals.expire(approval.id, reason=reason)
                 expired.append(approval.id)

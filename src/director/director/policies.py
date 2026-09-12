@@ -41,6 +41,7 @@ class FollowUpPolicy(StrictModel):
     po_late_days: list[int] = [1, 4]
     approval_stale_days: int = 2
     approval_expire_days: int = 7
+    max_actions_per_run: int = 20
 
     @classmethod
     def from_settings(cls, cfg: DirectorCfg) -> FollowUpPolicy:
@@ -50,6 +51,7 @@ class FollowUpPolicy(StrictModel):
             po_late_days=list(cfg.po_late_days),
             approval_stale_days=cfg.approval_stale_days,
             approval_expire_days=cfg.approval_expire_days,
+            max_actions_per_run=cfg.max_actions_per_run,
         )
 
 

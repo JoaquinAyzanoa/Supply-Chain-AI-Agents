@@ -102,6 +102,10 @@ class MemoryEventResults:
         self.results: dict[str, dict[str, Any]] = {}
         self._inbox = inbox
 
+    def attach(self, inbox: MemoryEventInbox) -> None:
+        """Mark rows handled on ``inbox`` too (what the Postgres pair does in one table)."""
+        self._inbox = inbox
+
     async def record(self, event_id: str, result: dict[str, Any]) -> None:
         self.results[event_id] = result
         if self._inbox is not None:

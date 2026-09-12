@@ -41,7 +41,14 @@ from sc_core.infra import tracing
 from sc_core.odoo.models import PurchaseOrder
 from sc_core.schema.a2a import OutcomeStatus, SupplierCommsResult
 from sc_core.schema.base import StrictModel
-from sc_core.schema.events import BaseEvent, OdooPurchaseConfirmed, ScheduledTick, event_id_for
+from sc_core.schema.events import (
+    AgentRunFinished,
+    BaseEvent,
+    OdooApprovalResolved,
+    OdooPurchaseConfirmed,
+    ScheduledTick,
+    event_id_for,
+)
 from sc_core.shared.errors import ScError
 from sc_core.shared.time import local_today
 
@@ -283,16 +290,43 @@ class ConsolidateExecutor(Executor):
         note = decided.note or f"{item.event.type} recorded"
         await cases.add_event(case.case_id, "note", {"text": note, "event_type": item.event.type})
         status = case.status
-        if getattr(item.event, "status", None) == "expired":
-            status = await self._escalate(case, reason=note, details={})
+        if isinstance(item.event, OdooApprovalResolved):
+            status = await self._approval_resolved(case, item.event, note)
+        elif isinstance(item.event, AgentRunFinished):
+            status = await self._run_finished(case, item.event, note)
         elif case.status == "open" and not await _has_agent_work(cases, case.case_id):
             status = (await cases.update(case.case_id, status="done", summary=note)).status
-        elif item.event.type == "agent.run_finished":
-            finished = case_status_for(str(getattr(item.event, "status", "failed")))
-            status = (await cases.update(case.case_id, status=finished, summary=note)).status
-            if finished in ("failed", "escalated"):
-                status = await self._escalate(case, reason=note, details={})
         await ctx.yield_output(CaseUpdate(case_id=case.case_id, status=status, kind="note"))
+
+    async def _approval_resolved(
+        self, case: Case, event: OdooApprovalResolved, note: str
+    ) -> CaseStatus:
+        """A person decided. An escalation's decision closes the case; other kinds are the
+        agent's business (its own completion event follows), except an expiry, which
+        nobody answered and therefore needs a person."""
+        cases = self._deps.cases
+        if event.kind == "escalation":
+            if event.status == "approved":
+                return (await cases.update(case.case_id, status="done", summary=note)).status
+            if event.status == "rejected":
+                return (await cases.update(case.case_id, status="rejected", summary=note)).status
+            return case.status  # expired escalation: still a person's to pick up
+        if event.status == "expired" and case.status != "escalated":
+            return await self._escalate(case, reason=note, details={})
+        return case.status
+
+    async def _run_finished(self, case: Case, event: AgentRunFinished, note: str) -> CaseStatus:
+        cases = self._deps.cases
+        conversation = None
+        if event.sent_message_id:
+            conversation = await self._deps.conversations.conversation_for(event.sent_message_id)
+        finished = case_status_for(event.status)
+        updated = await cases.update(
+            case.case_id, status=finished, summary=note, conversation_id=conversation
+        )
+        if finished in ("failed", "escalated"):
+            return await self._escalate(case, reason=note, details={})
+        return updated.status
 
     async def _escalate(self, case: Case, *, reason: str, details: dict[str, Any]) -> CaseStatus:
         return await escalate_case(
@@ -423,12 +457,14 @@ class Orchestrator:
         inbox: EventInbox | None = None,
         locks: PoLocks | None = None,
         orders: ConfirmedOrders | None = None,
+        reconcile_since_days: int = 3,
     ) -> None:
         self._deps = deps
         self._results = results
         self._inbox = inbox
         self._locks = locks or PoLocks(None)
         self._orders = orders
+        self._reconcile_since_days = reconcile_since_days
 
     async def handle(self, event: BaseEvent) -> dict[str, Any]:
         log = logger.bind(event_id=event.event_id, event_type=event.type)
@@ -457,15 +493,32 @@ class Orchestrator:
             outcomes[event.event_id] = str(result.get("status") or "handled")
         return {"replayed": len(outcomes), "events": outcomes}
 
-    async def reconcile(self, *, today: date | None = None, since_days: int = 3) -> dict[str, Any]:
+    async def run_tick(self, tick: ScheduledTick) -> dict[str, Any]:
+        """A scheduler tick in the background: the job, then (daily) housekeeping."""
+        result = await self.handle(tick)
+        if tick.job_id == "po_followups" and result.get("status") not in ("deferred", "unroutable"):
+            result["replay"] = await self.replay_unhandled()
+            result["reconcile"] = await self.reconcile()
+            await self._results.record(tick.event_id, result)
+        return result
+
+    async def reconcile(
+        self, *, today: date | None = None, since_days: int | None = None
+    ) -> dict[str, Any]:
         """Open cases for orders confirmed while an event was missed (Odoo down, director down).
 
         The synthesised event has the same deterministic id the addon would
         have used, so an event that did arrive is a duplicate and nothing runs.
+        Orders confirmed before the orchestrator's first case are never
+        reconciled: nothing was missed before it existed.
         """
         if self._inbox is None or self._orders is None:
             return {"checked": 0, "opened": []}
-        since = (today or local_today()) - timedelta(days=since_days)
+        first = await self._deps.cases.earliest_created_at()
+        if first is None:
+            return {"checked": 0, "opened": [], "skipped": "no cases yet"}
+        days = self._reconcile_since_days if since_days is None else since_days
+        since = max((today or local_today()) - timedelta(days=days), first.date())
         opened: list[str] = []
         orders = await self._orders.confirmed_since(since)
         for po in orders:

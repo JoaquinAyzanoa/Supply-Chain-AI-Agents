@@ -2,8 +2,9 @@
 
 Backdates ``date_planned`` of an open seeded order for the demo supplier,
 fires ``po_followups`` through the scheduler's run-now endpoint (scheduler →
-director → supplier_comms, all in containers) and expects a pending
-``send_email`` approval on that order in Odoo.
+director → supplier_comms, all in containers), waits for the tick's summary
+on the director's inbox row and expects a pending ``send_email`` approval
+on that order in Odoo.
 
 Needs the rebuilt stack (`just up`, `just migrate`), the seeded dataset and
 ``SC_E2E_FOLLOWUPS=1`` (a real model run; the email waits for approval).
@@ -11,12 +12,14 @@ Needs the rebuilt stack (`just up`, `just migrate`), the seeded dataset and
 
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import UTC, datetime, timedelta
 
 import httpx
 import pytest
 
+from sc_core.infra.db import Database
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import ApprovalRepo, PartnerRepo, PurchaseOrderRepo
 
@@ -26,7 +29,7 @@ SUPPLIER_EMAIL = "ventas.hidraulica.sc@gmail.com"
 
 
 async def test_backdated_order_gets_an_eta_request(
-    odoo: OdooClient, odoo_admin: OdooClient
+    odoo: OdooClient, odoo_admin: OdooClient, live_db: Database
 ) -> None:
     if os.environ.get("SC_E2E_FOLLOWUPS") != "1":
         pytest.skip("set SC_E2E_FOLLOWUPS=1 to run the follow-up job end to end")
@@ -62,7 +65,22 @@ async def test_backdated_order_gets_an_eta_request(
     assert response.status_code == 200, response.text
     run = response.json()
     assert run["status"] == "ok", run
-    assert '"tasks_sent"' in (run.get("summary") or ""), run
+
+    # the director answered 202 and ran the job in the background: wait for its summary
+    summary = None
+    for _ in range(150):
+        row = await live_db.fetch_one(
+            "SELECT result FROM event_inbox WHERE event_type = 'scheduler.tick' "
+            "AND payload->>'run_id' = %s AND handled_at IS NOT NULL",
+            (run["run_id"],),
+        )
+        if row and row["result"] and "replay" in row["result"]:
+            summary = row["result"]
+            break
+        await asyncio.sleep(4)
+    assert summary is not None, "the follow-up job did not finish in time"
+    [update] = summary["updates"]
+    assert update["kind"] == "job" and update["detail"]["tasks_sent"] >= 1, update
 
     pending = await ApprovalRepo(odoo_admin).pending_for_po(po.id)
     assert pending, f"no approval on {po.name} after the follow-up job"

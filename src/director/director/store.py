@@ -133,6 +133,10 @@ class CaseStore(Protocol):
         """Keys of the policy rules already fired on any case of the order, oldest first."""
         ...
 
+    async def earliest_created_at(self) -> datetime | None:
+        """When the orchestrator opened its first case; ``None`` before any."""
+        ...
+
     async def list(
         self,
         *,
@@ -300,6 +304,10 @@ class PostgresCaseStore:
         )
         return [str(r["key"]) for r in rows if r["key"]]
 
+    async def earliest_created_at(self) -> datetime | None:
+        row = await self._db.fetch_one("SELECT min(created_at) AS first FROM cases")
+        return row["first"] if row else None
+
     async def list(
         self,
         *,
@@ -434,6 +442,9 @@ class MemoryCaseStore:
             for e in self.case_events
             if e.case_id in ids and e.kind == "rule_fired" and e.payload.get("rule")
         ]
+
+    async def earliest_created_at(self) -> datetime | None:
+        return min((c.created_at for c in self.cases.values()), default=None)
 
     async def list(
         self,

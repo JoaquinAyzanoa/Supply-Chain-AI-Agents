@@ -141,6 +141,7 @@ async def test_callback_resumes_once_and_is_idempotent(
     assert finished.thread_id == "case_cb" and finished.status == "sent"  # type: ignore[attr-defined]
     assert finished.approval_id == 101 and finished.po_name == "P00015"  # type: ignore[attr-defined]
     assert finished.event_id.startswith("evt_") and finished.run_id == paused.run_id  # type: ignore[attr-defined]
+    assert finished.sent_message_id == "sent1"  # type: ignore[attr-defined]
 
 
 async def test_callback_for_the_wrong_approval_is_refused(
