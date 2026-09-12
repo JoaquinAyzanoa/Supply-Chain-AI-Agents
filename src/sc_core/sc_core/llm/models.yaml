@@ -22,8 +22,8 @@ models:
     provider: deepseek
     context_window: 128000
     max_output_tokens: 16000
-    parallel_tool_calls: true
-    json_schema_output: true
+    parallel_tool_calls: true      # confirmed 2026-09-12: two tool calls in one turn
+    json_schema_output: false      # confirmed 2026-09-12: 400 "response_format type is unavailable"; json_object works
     reasoning: false
     price_per_mtok: { input: 0.14, output: 0.28 }
   gpt-5.4:

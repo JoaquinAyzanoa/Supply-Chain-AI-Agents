@@ -1,0 +1,81 @@
+{
+ "entries": [
+  {
+   "key": "8d0f9067350ab66fb3b00b96",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Extrae la fecha de entrega del correo del proveedor. Hoy es 2026-09-12.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Confirmamos que la orden P00015 llega el 20 de octubre de 2026.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Responde únicamente con un objeto JSON válido que cumpla este esquema, sin texto adicional:\n{\"properties\": {\"eta_date\": {\"pattern\": \"^\\\\d{4}-\\\\d{2}-\\\\d{2}$\", \"title\": \"Eta Date\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"required\": [\"eta_date\", \"confidence\"], \"title\": \"Eta\", \"type\": \"object\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.0,
+     "max_tokens": null,
+     "response_format": {
+      "type": "json_object"
+     },
+     "tools": []
+    }
+   },
+   "result": {
+    "text": "{\"eta_date\": \"2026-10-20\", \"confidence\": 0.95}",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text",
+        "text": "{\"eta_date\": \"2026-10-20\", \"confidence\": 0.95}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "stop",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 211,
+     "output_tokens": 54
+    },
+    "cost_usd": 4.466e-05,
+    "duration_ms": 1539.9864999999409
+   }
+  }
+ ]
+}

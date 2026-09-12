@@ -94,12 +94,16 @@ async def test_parallel_tool_calls_capability(llm_settings: Settings) -> None:
 
 
 async def test_json_schema_capability(llm_settings: Settings) -> None:
-    """Strict json_schema response_format is accepted and honoured by the provider."""
+    """The json_schema_output flag matches what the provider does with a strict schema.
+
+    Providers that reject the format answer 400; the flag must then be false so
+    ``complete_structured`` falls back to json_object mode.
+    """
     registry = Registry.load()
     spec = registry.model(llm_settings.llm.default_model)
     provider = registry.provider(spec.provider)
     client = openai.AsyncOpenAI(api_key=provider.api_key(), base_url=provider.base_url)
-    response = await client.chat.completions.create(
+    request = dict(
         model=spec.name,
         temperature=0,
         messages=[{"role": "user", "content": "Devuelve eta_date 2026-10-20 con confidence 0.9."}],
@@ -120,7 +124,12 @@ async def test_json_schema_capability(llm_settings: Settings) -> None:
             },
         },
     )
+    if not spec.json_schema_output:
+        with pytest.raises(openai.BadRequestError):
+            await client.chat.completions.create(**request)  # type: ignore[arg-type]
+        return
+    response = await client.chat.completions.create(**request)  # type: ignore[arg-type]
     payload = json.loads(response.choices[0].message.content or "{}")
     assert payload == {"eta_date": "2026-10-20", "confidence": 0.9}, (
-        f"json_schema not honoured by {spec.name}; set json_schema_output accordingly"
+        f"json_schema not honoured by {spec.name}; set json_schema_output: false"
     )
