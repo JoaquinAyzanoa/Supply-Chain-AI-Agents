@@ -179,6 +179,16 @@ class SchedulerCfg(_Section):
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 
+class SupplierCommsCfg(_Section):
+    """The supplier communications agent."""
+
+    # How Odoo reaches this agent for approval callbacks (inside compose: http://supplier_comms:8000).
+    public_url: str = "http://localhost:8013"
+    # Odoo partner ids whose emails go out without a human approval. Default: nobody.
+    auto_send_partner_ids: list[int] = []
+    max_attachment_chars: int = Field(default=12_000, ge=0)
+
+
 class A2aCfg(_Section):
     """Agent-to-agent calls (director -> agents). Bearer token on every call.
 
@@ -244,6 +254,7 @@ class Settings(BaseSettings):
     scheduler: SchedulerCfg = Field(default_factory=SchedulerCfg)
     agents: AgentsCfg = Field(default_factory=AgentsCfg)
     a2a: A2aCfg = Field(default_factory=A2aCfg)
+    supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
 
     @property
     def a2a_token(self) -> str:
