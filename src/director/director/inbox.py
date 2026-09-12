@@ -1,11 +1,14 @@
-"""Where accepted events land until the orchestrator (phase 6) handles them.
+"""Where accepted events land, and where the orchestrator leaves its outcome.
 
 The primary key on ``event_id`` makes redelivery idempotent: a producer that
 retries after a timeout, or replays its outbox, never creates a second row.
+``EventResults.record`` marks the row handled with a small JSON outcome
+(case id, statuses); rows still unhandled are replayed by the daily job.
 """
 
 from __future__ import annotations
 
+import json
 from typing import Any, Protocol, runtime_checkable
 
 from sc_core.infra.db import Database
@@ -44,3 +47,27 @@ class MemoryEventInbox:
 
     def of_type(self, event_type: str) -> list[Any]:
         return [e for e in self.events.values() if e.type == event_type]
+
+
+@runtime_checkable
+class EventResults(Protocol):
+    async def record(self, event_id: str, result: dict[str, Any]) -> None: ...
+
+
+class PostgresEventResults:
+    def __init__(self, db: Database) -> None:
+        self._db = db
+
+    async def record(self, event_id: str, result: dict[str, Any]) -> None:
+        await self._db.execute(
+            "UPDATE event_inbox SET handled_at = now(), result = %s::jsonb WHERE event_id = %s",
+            (json.dumps(result, default=str), event_id),
+        )
+
+
+class MemoryEventResults:
+    def __init__(self) -> None:
+        self.results: dict[str, dict[str, Any]] = {}
+
+    async def record(self, event_id: str, result: dict[str, Any]) -> None:
+        self.results[event_id] = result

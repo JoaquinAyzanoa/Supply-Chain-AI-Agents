@@ -124,6 +124,10 @@ class CaseStore(Protocol):
 
     async def open_for_po(self, po_name: str) -> list[Case]: ...
 
+    async def find_by_thread(self, thread_id: str) -> Case | None:
+        """The case a task was sent on (``task_sent`` event with that ``thread_id``)."""
+        ...
+
     async def list(
         self,
         *,
@@ -274,6 +278,14 @@ class PostgresCaseStore:
         )
         return [Case(**row) for row in rows]
 
+    async def find_by_thread(self, thread_id: str) -> Case | None:
+        row = await self._db.fetch_one(
+            "SELECT case_id FROM case_events WHERE kind = 'task_sent' "
+            "AND payload->>'thread_id' = %s ORDER BY id DESC LIMIT 1",
+            (thread_id,),
+        )
+        return await self.get(row["case_id"]) if row else None
+
     async def list(
         self,
         *,
@@ -394,6 +406,12 @@ class MemoryCaseStore:
     async def open_for_po(self, po_name: str) -> list[Case]:
         found = [c for c in self.cases.values() if c.po_name == po_name and c.is_open]
         return sorted(found, key=lambda c: c.created_at, reverse=True)
+
+    async def find_by_thread(self, thread_id: str) -> Case | None:
+        for event in reversed(self.case_events):
+            if event.kind == "task_sent" and event.payload.get("thread_id") == thread_id:
+                return self.cases.get(event.case_id)
+        return None
 
     async def list(
         self,

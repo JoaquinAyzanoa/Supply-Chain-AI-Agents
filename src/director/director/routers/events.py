@@ -1,14 +1,15 @@
-"""``POST /events``: accept signed events from mail_sync, scheduler and Odoo.
+"""``POST /events``: accept signed events from mail_sync, the scheduler, Odoo and agents.
 
 The signature is verified, the event parsed and stored in the inbox
 (idempotent by ``event_id``), and the producer gets 202 at once. A newly
-stored mail event is then handed to the supplier communications agent in a
-background task, so mail_sync never waits for a model run. Phase 6 replaces
-the dispatcher with the routing table; the contract stays.
+stored event is then handed to the orchestration workflow in a background
+task, so no producer ever waits for a model run. An unknown event type is a
+422 (the parser rejects it), never a crash.
 
 ``POST /jobs/{job}``: placeholder targets for the scheduler's director jobs
-(follow-ups, planning, performance) until their agents exist. They validate
-the signature and record the tick so the scheduler sees a clean run.
+(follow-ups, planning, performance) until P6-S5 wires them through the
+workflow. They validate the signature and record the tick so the scheduler
+sees a clean run.
 """
 
 from __future__ import annotations
@@ -18,8 +19,8 @@ from fastapi_injector import Injected
 from loguru import logger
 from pydantic import ValidationError
 
-from director.dispatch import Dispatcher
 from director.inbox import EventInbox
+from director.workflow import Orchestrator
 from sc_core.a2a.events import SignedBody
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import ScheduledTick, parse_event
@@ -42,7 +43,7 @@ async def receive_event(
     background: BackgroundTasks,
     body: bytes = SignedBody,
     inbox: EventInbox = Injected(EventInbox),  # type: ignore[type-abstract]
-    dispatcher: Dispatcher = Injected(Dispatcher),
+    orchestrator: Orchestrator = Injected(Orchestrator),
 ) -> Accepted:
     try:
         event = parse_event(body)
@@ -53,8 +54,8 @@ async def receive_event(
         "event {}", "accepted" if stored else "duplicate"
     )
     dispatched = False
-    if stored and event.type.startswith("inbound_mail."):
-        background.add_task(dispatcher.dispatch, event)
+    if stored:
+        background.add_task(orchestrator.handle, event)
         dispatched = True
     return Accepted(
         accepted=True,

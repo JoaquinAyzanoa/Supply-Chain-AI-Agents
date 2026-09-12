@@ -12,11 +12,9 @@ from loguru import logger
 from pydantic import SecretStr
 
 from director import __version__
-from director.dispatch import MemoryEventResults
-from director.inbox import MemoryEventInbox
+from director.inbox import MemoryEventInbox, MemoryEventResults
 from director.routers import events
 from director.testing import MemoryDirectorModule
-from sc_core.a2a import AgentReply
 from sc_core.a2a.events import SIGNATURE_HEADER, HmacSigner, encode_event
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app import create_application
@@ -24,6 +22,7 @@ from sc_core.infra.settings import Settings
 from sc_core.schema.events import InboundMailLinked, InboundMailUnlinked, ScheduledTick
 from sc_core.shared.errors import ExternalServiceError
 from sc_core.shared.time import utc_now
+from tests.unit.director.helpers import agent_reply
 
 SECRET = "director-secret"
 
@@ -89,7 +88,7 @@ def test_valid_signature_stores_once_and_dispatches_once(
     client: TestClient, inbox: MemoryEventInbox, agent: FakeAgentCaller, results: MemoryEventResults
 ) -> None:
     agent.replies.append(
-        AgentReply(status="input_required", text='{"outcome": {"status": "awaiting_approval"}}')
+        agent_reply("handle_inbound", "case_1", "awaiting_approval", "proposal", approval_id=1)
     )
     event = _linked()
     first = _post(client, "/events", encode_event(event))
@@ -104,16 +103,18 @@ def test_valid_signature_stores_once_and_dispatches_once(
     assert len(agent.sent) == 1
     task = json.loads(agent.sent[0].task_json)
     assert task["kind"] == "handle_inbound" and task["po_name"] == "P00015"
-    assert task["graph_message_id"] == "AAMk1" and agent.sent[0].case_id == "case_1"
+    assert task["graph_message_id"] == "AAMk1" and task["case_id"] == "case_1"
+    assert agent.sent[0].case_id.startswith("case_")  # the orchestrator's case: Langfuse session
     recorded = results.results[event.event_id]
-    assert recorded["status"] == "input_required" and recorded["task"] == "handle_inbound"
+    [update] = recorded["updates"]
+    assert update["status"] == "awaiting_approval" and update["detail"]["task"] == "handle_inbound"
 
 
 def test_unlinked_event_becomes_resolve_task(
     client: TestClient, agent: FakeAgentCaller, results: MemoryEventResults
 ) -> None:
     agent.replies.append(
-        AgentReply(status="completed", text='{"outcome": {"status": "escalated"}}')
+        agent_reply("resolve_unlinked", "case_2", "escalated", "could not pick", po_name=None)
     )
     event = InboundMailUnlinked(
         source="mail_sync",
@@ -126,7 +127,8 @@ def test_unlinked_event_becomes_resolve_task(
     assert _post(client, "/events", encode_event(event)).status_code == 202
     task = json.loads(agent.sent[0].task_json)
     assert task["kind"] == "resolve_unlinked" and task["candidate_po_names"] == ["P00015", "P00016"]
-    assert results.results[event.event_id]["reply"]["outcome"]["status"] == "escalated"
+    [update] = results.results[event.event_id]["updates"]
+    assert update["status"] == "escalated"
 
 
 def test_agent_failure_is_recorded_not_raised(
@@ -135,7 +137,8 @@ def test_agent_failure_is_recorded_not_raised(
     agent.replies.append(ExternalServiceError("agent down", service="a2a"))
     event = _linked()
     assert _post(client, "/events", encode_event(event)).status_code == 202
-    assert results.results[event.event_id]["error"]["code"] == "external_service_error"
+    [update] = results.results[event.event_id]["updates"]
+    assert update["status"] == "escalated" and "agent down" in update["detail"]["summary"]
 
 
 def test_bad_or_missing_signature_is_401(client: TestClient, inbox: MemoryEventInbox) -> None:
