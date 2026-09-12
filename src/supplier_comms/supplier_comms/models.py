@@ -28,6 +28,7 @@ class PoContext(StrictModel):
     state: str
     partner_id: int
     partner_name: str
+    partner_lang: str | None = None  # Odoo language of the supplier, e.g. es_PE
     supplier_emails: list[str]
     currency: str | None = None
     currency_id: int | None = None
@@ -40,7 +41,7 @@ class PoContext(StrictModel):
 class UnlinkedResolution(BaseModel):
     """The model's pick among candidate orders for a message the rules could not link."""
 
-    po_name: str | None = Field(default=None, description="orden elegida; vacío si ninguna")
+    po_name: str | None = Field(default=None, description="chosen order; empty when none")
     confidence: float = Field(ge=0, le=1)
     reason: str = Field(min_length=1, max_length=500)
 

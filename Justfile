@@ -124,6 +124,48 @@ llm-record:
 schema-snapshot:
     {{UV}} run python scripts/schema_snapshot.py
 
+# Create or update a Control Tower user (password from SC_UI_PASSWORD or --password)
+ui-create-user email name role="approver" *args:
+    {{UV}} run python scripts/ui_create_user.py --email {{email}} --name "{{name}}" --role {{role}} {{args}}
+
+# --------------------------------------------------------------------
+# Control Tower (frontend/control-tower)
+
+UI := "frontend/control-tower"
+
+# Install the frontend dependencies (npm ci when the lockfile exists)
+ui-install:
+    npm --prefix {{UI}} install
+
+# Run the Vite dev server with /api proxied to the director (VITE_DIRECTOR_URL overrides)
+ui-dev:
+    npm --prefix {{UI}} run dev
+
+# Export the director's OpenAPI document and regenerate the typed client
+ui-openapi:
+    {{UV}} run python scripts/export_openapi.py
+    npm --prefix {{UI}} run openapi
+
+# Typecheck, unit tests and a production build of the frontend
+ui-check:
+    npm --prefix {{UI}} run check
+
+# Build the frontend bundle into frontend/control-tower/dist (served by the director)
+ui-build:
+    npm --prefix {{UI}} run build
+
+# Run the frontend unit tests
+ui-test:
+    npm --prefix {{UI}} run test
+
+# Run the browser tests (Playwright, desktop and phone) against the built bundle
+ui-e2e:
+    npm --prefix {{UI}} run e2e
+
+# Build the director image with the Control Tower built in
+image-director:
+    docker build -f docker/director.Dockerfile -t scai/director .
+
 # Publish every local prompt (sc_core, supplier_comms, director) to Langfuse Prompt Management
 langfuse-prompts:
     {{UV}} run python scripts/langfuse_prompts.py

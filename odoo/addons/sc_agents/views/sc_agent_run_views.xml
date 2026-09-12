@@ -11,6 +11,9 @@
                 <field name="status" widget="badge"/>
                 <field name="model"/>
                 <field name="summary"/>
+                <field name="cost_usd" optional="show" sum="Total"/>
+                <field name="input_tokens" optional="hide" sum="Total"/>
+                <field name="output_tokens" optional="hide" sum="Total"/>
                 <field name="finished_at" optional="hide"/>
                 <field name="trace_url" widget="url" optional="show"/>
             </list>
@@ -36,6 +39,12 @@
                             <field name="started_at"/>
                             <field name="finished_at"/>
                             <field name="trace_url" widget="url"/>
+                        </group>
+                        <group string="LLM usage">
+                            <field name="llm_calls"/>
+                            <field name="input_tokens"/>
+                            <field name="output_tokens"/>
+                            <field name="cost_usd"/>
                         </group>
                     </group>
                     <field name="summary"/>

@@ -7,6 +7,7 @@ tab and explained in the chatter.
 
 import base64
 
+from markupsafe import Markup
 from odoo.exceptions import UserError
 
 from odoo import fields, models
@@ -14,9 +15,9 @@ from odoo import fields, models
 from .sc_event import iso_utc
 
 ETA_SOURCES = [
-    ("supplier", "Supplier"),
-    ("tracking", "Tracking"),
-    ("estimated", "Estimated"),
+    ("supplier", "confirmed by the supplier"),
+    ("tracking", "from carrier tracking"),
+    ("estimated", "estimated"),
 ]
 
 
@@ -53,6 +54,13 @@ class PurchaseOrder(models.Model):
         copy=False,
         ondelete="set null",
     )
+    sc_supplier_confirmed = fields.Boolean(
+        string="Supplier confirmed",
+        default=False,
+        help="The supplier acknowledged the order (by email through the agent, or marked by "
+        "a buyer on the Control Tower when the supplier never writes back).",
+    )
+    sc_supplier_confirmed_at = fields.Datetime(string="Supplier confirmed at", readonly=True)
     sc_approval_ids = fields.One2many("sc.approval", "po_id", string="Approvals")
     sc_agent_run_ids = fields.One2many("sc.agent.run", "po_id", string="Agent runs")
     sc_mail_link_ids = fields.One2many("sc.mail.link", "po_id", string="Mail links")
@@ -96,6 +104,37 @@ class PurchaseOrder(models.Model):
             )
         return True
 
+    def sc_set_supplier_confirmed(self, value):
+        """Mark (or unmark) the supplier's confirmation; called by the Control Tower."""
+        self.write(
+            {
+                "sc_supplier_confirmed": bool(value),
+                "sc_supplier_confirmed_at": fields.Datetime.now() if value else False,
+            }
+        )
+        return True
+
+    def sc_mark_done(self):
+        """Lock a fully received order (Odoo's own ``button_done``)."""
+        for order in self:
+            order.button_done()
+        return True
+
+    def sc_post_note(self, body):
+        """Post an internal note whose body is HTML written by an agent.
+
+        ``message_post`` escapes plain strings (RPC callers cannot send
+        ``Markup``), so this wrapper marks the body as markup; Odoo still
+        sanitises it.
+        """
+        message_ids = []
+        for order in self:
+            message = order.message_post(
+                body=Markup(body), message_type="comment", subtype_xmlid="mail.mt_note"
+            )
+            message_ids.append(message.id)
+        return message_ids
+
     def sc_report_pdf(self):
         """Base64 of Odoo's own purchase order report for these orders.
 
@@ -122,10 +161,9 @@ class PurchaseOrderLine(models.Model):
             line.order_id.message_post(
                 # Keyword names must not collide with env._'s own "source" parameter.
                 body=self.env._(
-                    "ETA of %(product)s set to %(date)s by agent run %(run)s (origin: %(origin)s)",
+                    "Delivery date of %(product)s set to %(date)s by the AI agent (%(origin)s).",
                     product=line.product_id.display_name,
                     date=when,
-                    run=run_id,
                     origin=label,
                 ),
                 message_type="comment",

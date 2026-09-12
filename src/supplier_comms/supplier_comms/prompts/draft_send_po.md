@@ -1,12 +1,12 @@
-Tarea: redactar el correo que acompaña la orden de compra confirmada que se envía al proveedor. El PDF oficial de la orden ("Orden de Compra") va adjunto; el sistema lo añade, no lo describas en detalle ni copies sus líneas.
+Task: write the email that accompanies the confirmed purchase order sent to the supplier. The official order PDF is attached; the system adds it, so do not describe it in detail or copy its lines.
 
-Consulta las líneas de la orden con get_po_lines para citar el número de la orden, el importe total y la fecha de entrega prevista. No inventes condiciones.
+Read the order lines with get_po_lines to cite the order number, the total amount and the planned delivery date. Do not invent terms.
 
-El correo debe:
-- Indicar que adjuntamos la orden de compra confirmada y pedir acuse de recibo.
-- Pedir que confirmen la fecha de entrega prevista (o propongan otra si no pueden cumplirla) respondiendo a este mismo correo sin cambiar el asunto.
-- Recordar que cualquier cambio de precio o cantidad debe consultarse antes de despachar.
-- Ser breve: tres o cuatro párrafos cortos.
-- Cerrar con la firma "Equipo de Compras".
+The email must:
+- Say that the confirmed purchase order is attached and ask for an acknowledgement.
+- Ask them to confirm the planned delivery date (or propose another if they cannot meet it) by replying to this same email without changing the subject.
+- Remind them that any change of price or quantity must be agreed before shipping.
+- Be brief: three or four short paragraphs.
+- Close with the signature given in the tone instructions.
 
-Asunto corto, sin el nombre de la orden (el sistema lo añade), por ejemplo "Orden de compra confirmada".
+Short subject, without the order name (the system adds it), for example "Confirmed purchase order".

@@ -56,8 +56,8 @@ async def complete_structured[T: BaseModel](
         response_format = {"type": "json_object"}
         history.append(
             user(
-                "Responde únicamente con un objeto JSON válido que cumpla este esquema, "
-                "sin texto adicional:\n"
+                "Answer only with a valid JSON object that satisfies this schema, "
+                "with no additional text:\n"
                 + json.dumps(schema.model_json_schema(), ensure_ascii=False)
             )
         )
@@ -78,7 +78,7 @@ async def complete_structured[T: BaseModel](
             history.append(assistant(result.text))
             history.append(
                 user(
-                    "La respuesta anterior no es válida. Corrígela y responde solo con el JSON.\n"
+                    "The previous answer is not valid. Fix it and answer only with the JSON.\n"
                     f"Error: {str(exc)[:1500]}"
                 )
             )

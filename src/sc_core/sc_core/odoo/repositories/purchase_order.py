@@ -132,6 +132,36 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         po_id = await self._c.create(self._name, values)
         return await self.get(po_id)
 
+    async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
+        """The board's cards: every order still moving, plus those received or closed
+        since ``closed_since`` (older ones would bury the live columns)."""
+        return await self.find(
+            [
+                "|",
+                ["state", "in", ["draft", "sent", "to approve"]],
+                "|",
+                "&",
+                ["state", "=", "purchase"],
+                ["receipt_status", "!=", "full"],
+                "|",
+                "&",
+                ["state", "=", "purchase"],
+                ["effective_date", ">=", closed_since.isoformat()],
+                "&",
+                ["state", "in", ["done", "cancel"]],
+                ["write_date", ">=", closed_since.isoformat()],
+            ],
+            order="date_planned asc, id desc",
+            limit=500,
+        )
+
+    async def mark_done(self, po_id: int) -> None:
+        """Lock a received order (``button_done`` through the addon)."""
+        await self._c.call(self._name, "sc_mark_done", [po_id])
+
+    async def set_supplier_confirmed(self, po_id: int, value: bool) -> None:
+        await self._c.call(self._name, "sc_set_supplier_confirmed", [po_id], value=value)
+
     async def confirm(self, po_id: int) -> PurchaseOrder:
         """RFQ -> purchase order (``button_confirm``)."""
         await self._c.call(self._name, "button_confirm", [po_id])
@@ -161,15 +191,12 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         await self._write([po_id], {"sc_needs_human": value})
 
     async def post_note(self, po_id: int, body_html: str) -> int:
-        """Internal chatter note (not sent to followers by email)."""
-        result = await self._c.call(
-            self._name,
-            "message_post",
-            [po_id],
-            body=body_html,
-            message_type="comment",
-            subtype_xmlid="mail.mt_note",
-        )
+        """Internal chatter note (not sent to followers by email), rendered as HTML.
+
+        Odoo escapes plain strings given to ``message_post`` over RPC, so the
+        addon's ``sc_post_note`` marks the body as safe markup.
+        """
+        result = await self._c.call(self._name, "sc_post_note", [po_id], body=body_html)
         return int(result[0] if isinstance(result, list) else result)
 
     async def cancel(self, po_id: int) -> None:

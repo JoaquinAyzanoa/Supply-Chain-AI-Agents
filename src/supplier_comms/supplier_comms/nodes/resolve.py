@@ -22,7 +22,7 @@ from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter, complete_structured, system, user
 from sc_core.prompts import get_prompt
 from supplier_comms.models import InboundMeta, PoContext, UnlinkedResolution
-from supplier_comms.nodes.common import finish, task_of
+from supplier_comms.nodes.common import fail, finish, task_of
 from supplier_comms.ports import AgentPorts
 from supplier_comms.render import lines_table
 from supplier_comms.state import Node
@@ -44,6 +44,20 @@ def make_resolve_unlinked(
         task = task_of(state)
         assert task.graph_message_id is not None
         meta = InboundMeta.model_validate(state["inbound_meta"])
+        if task.assigned_po_name:  # a person already decided: link and read the mail as usual
+            assigned = await ports.load_po(task.assigned_po_name)
+            if assigned is None:
+                return fail(f"order {task.assigned_po_name} not found in Odoo")
+            await ports.link_inbound(assigned.id, meta, case_id=state["case_id"])
+            logger.bind(po_name=assigned.name).info("unlinked mail assigned by a person")
+            decided = UnlinkedResolution(
+                po_name=assigned.name, confidence=1.0, reason="assigned by a person"
+            )
+            return {
+                "task": {**state["task"], "po_name": assigned.name},
+                "chosen_po_name": assigned.name,
+                "resolution": decided.model_dump(mode="json"),
+            }
         candidates = await _candidates(ports, task.candidate_po_names, meta)
         text = state.get("inbound_text") or ""
 
@@ -142,17 +156,17 @@ def _pick(resolution: UnlinkedResolution | None, candidates: list[PoContext]) ->
 
 def _render(candidates: list[PoContext], meta: InboundMeta, text: str, today: date) -> str:
     parts = [
-        f"Fecha de hoy: {today.isoformat()}",
-        f"Remitente: {meta.sender_address or '-'}",
-        f"Token de orden en el asunto: {meta.subject_token or 'ninguno'}",
-        "Órdenes candidatas:",
+        f"Today's date: {today.isoformat()}",
+        f"Sender: {meta.sender_address or '-'}",
+        f"Order token in the subject: {meta.subject_token or 'none'}",
+        "Candidate orders:",
     ]
     for ctx in candidates:
         parts.append(
-            f"- {ctx.name} | proveedor: {ctx.partner_name} | estado: {ctx.state} | "
-            f"fecha prevista: {ctx.date_planned.isoformat() if ctx.date_planned else '-'}"
+            f"- {ctx.name} | supplier: {ctx.partner_name} | state: {ctx.state} | "
+            f"planned date: {ctx.date_planned.isoformat() if ctx.date_planned else '-'}"
         )
         parts.append(lines_table(ctx))
-    parts.append("Correo del proveedor:")
+    parts.append("Supplier's email:")
     parts.append(text.strip())
     return "\n".join(parts)

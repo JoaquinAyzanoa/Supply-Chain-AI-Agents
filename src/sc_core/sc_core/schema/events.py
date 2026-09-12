@@ -68,6 +68,7 @@ class InboundMailUnlinked(BaseEvent):
     partner_id: int | None = None
     open_po_names: list[str] = []
     has_attachments: bool = False
+    web_link: str | None = Field(default=None, description="where a person opens it in Outlook")
 
 
 class ScheduledTick(BaseEvent):
@@ -133,6 +134,8 @@ class OdooApprovalResolved(BaseEvent):
     po_id: int | None = None
     po_name: str | None = None
     resolved_by: str | None = Field(default=None, description="Odoo login, for the audit line")
+    resolved_by_name: str | None = Field(default=None, description="the person, when known")
+    resolved_via: Literal["odoo", "api"] | None = None
 
 
 class AgentRunFinished(BaseEvent):

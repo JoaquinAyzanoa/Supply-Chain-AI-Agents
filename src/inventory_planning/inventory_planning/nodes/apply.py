@@ -27,6 +27,7 @@ from inventory_planning.runs import RunStore
 from inventory_planning.state import Node
 from sc_core.graph import ApprovalRequest
 from sc_core.graph.approval import decision_for
+from sc_core.i18n import Language, t
 from sc_core.odoo.models import NewOrderLine
 from sc_core.schema.a2a import AppliedSummary
 from sc_core.schema.events import RfqDrafted, event_id_for
@@ -36,7 +37,9 @@ PLAN_STEP = "planning_run"
 ACTIONABLE = ("update_rule", "create_rfq", "update_rule_and_rfq")
 
 
-def make_plan_approval() -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
+def make_plan_approval(
+    *, language: Language = "en"
+) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         proposal = ReplenishmentProposal.model_validate(state["proposal"])
         totals = proposal.totals
@@ -52,11 +55,13 @@ def make_plan_approval() -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest
             for ln in proposal.lines
             if ln.exception
         ]
-        summary = (
-            f"Plan de reposición {proposal.as_of.isoformat()}: "
-            f"{int(totals.get('rfq_lines', 0))} cotizaciones, "
-            f"{int(totals.get('rules_changed', 0))} reglas, "
-            f"{int(totals.get('exceptions', 0))} excepciones"
+        summary = t(
+            "plan.approval_summary",
+            language,
+            date=proposal.as_of.isoformat(),
+            rfqs=int(totals.get("rfq_lines", 0)),
+            rules=int(totals.get("rules_changed", 0)),
+            exceptions=int(totals.get("exceptions", 0)),
         )
         return ApprovalRequest(
             kind="planning_run",
@@ -122,10 +127,13 @@ def make_apply(
     *,
     publish: Callable[[RfqDrafted], Awaitable[Any]],
     today: Callable[[], date],
+    language: Language = "en",
 ) -> Node:
     async def apply(state: Any) -> dict[str, Any]:
         if task_of(state).kind == "what_if":  # never reached by the graph; belt and braces
-            return {"outcome": {"status": "failed", "summary": "what_if runs never write"}}
+            return {
+                "outcome": {"status": "failed", "summary": t("plan.what_if_never_writes", language)}
+            }
         dataset = dataset_of(state)
         decision = decision_for(state, PLAN_STEP)
         lines = accepted_lines(lines_of(state), decision.model_dump() if decision else None)
@@ -204,9 +212,9 @@ def make_apply(
         )
         logger.bind(run_id=state["run_id"], **summary.model_dump()).info("plan applied")
         text = (
-            f"{rules_written} reglas escritas, {len(created)} solicitudes de cotización creadas"
+            t("plan.applied", language, rules=rules_written, rfqs=len(created))
             + (f" ({', '.join(created)})" if created else "")
-            + (f", {len(existing_rfqs)} ya existían" if existing_rfqs else "")
+            + (t("plan.existing", language, n=len(existing_rfqs)) if existing_rfqs else "")
         )
         return {
             "applied": summary.model_dump(mode="json"),
@@ -216,7 +224,7 @@ def make_apply(
     return apply
 
 
-def make_rejected(runs: RunStore) -> Node:
+def make_rejected(runs: RunStore, *, language: Language = "en") -> Node:
     async def rejected(state: Any) -> dict[str, Any]:
         decision = decision_for(state, PLAN_STEP)
         await runs.set_status(
@@ -224,8 +232,9 @@ def make_rejected(runs: RunStore) -> Node:
             "rejected",
             approval_id=decision.approval_id if decision and decision.approval_id else None,
         )
-        reason = (decision.reason if decision else None) or "rechazado por el aprobador"
-        return {"outcome": {"status": "rejected", "summary": f"plan rechazado: {reason}"[:500]}}
+        reason = (decision.reason if decision else None) or t("plan.rejected_default", language)
+        summary = t("plan.rejected", language, reason=reason)
+        return {"outcome": {"status": "rejected", "summary": summary[:500]}}
 
     return rejected
 

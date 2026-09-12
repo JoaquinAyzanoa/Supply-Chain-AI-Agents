@@ -138,6 +138,7 @@ class PurchaseOrder(OdooModel):
     sc_eta_source: EtaSource | None = None
     sc_eta_confidence: float = 0.0
     sc_needs_human: bool = False
+    sc_supplier_confirmed: bool = False
     sc_pending_approval_id: Ref | None = None
 
     @property
@@ -332,8 +333,11 @@ class Approval(OdooModel):
     run_id: str | None = None
     thread_id: str | None = None
     resolved_by_id: Ref | None = None
+    resolved_by_name: str | None = None
+    resolved_via: Literal["odoo", "api"] | None = None
     resolved_at: datetime | None = None
     reason: str | None = None
+    details_json: str | None = None
     callback_status: Literal["none", "sent", "failed"] | None = None
     callback_error: str | None = None
     create_date: datetime | None = None
@@ -356,6 +360,10 @@ class AgentRun(OdooModel):
     summary: str | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    llm_calls: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float = 0.0
 
 
 class MailLink(OdooModel):

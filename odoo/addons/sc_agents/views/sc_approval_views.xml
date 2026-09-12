@@ -44,6 +44,8 @@
                         </group>
                         <group string="Decision">
                             <field name="resolved_by_id"/>
+                            <field name="resolved_by_name" invisible="not resolved_by_name"/>
+                            <field name="resolved_via" invisible="not resolved_via"/>
                             <field name="resolved_at"/>
                             <field name="reason"/>
                             <field name="callback_status"/>

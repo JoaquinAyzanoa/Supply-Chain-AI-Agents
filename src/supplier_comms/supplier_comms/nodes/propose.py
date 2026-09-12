@@ -17,6 +17,7 @@ from typing import Any
 
 from loguru import logger
 
+from sc_core.i18n import Language, t
 from sc_core.schema.a2a import ChangeProposal, ProposedChange, QuotationData
 from supplier_comms.models import LineView, PoContext
 from supplier_comms.nodes.common import context_of, finish
@@ -25,7 +26,9 @@ from supplier_comms.state import Node
 REVIEW_THRESHOLD = 0.7
 
 
-def build_proposal(ctx: PoContext, data: QuotationData) -> ChangeProposal:
+def build_proposal(
+    ctx: PoContext, data: QuotationData, language: Language = "en"
+) -> ChangeProposal:
     changes: list[ProposedChange] = []
     low = data.confidence < REVIEW_THRESHOLD
 
@@ -59,7 +62,7 @@ def build_proposal(ctx: PoContext, data: QuotationData) -> ChangeProposal:
                         after=_money(quoted.unit_price, quoted.currency or data.currency),
                         confidence=quoted.confidence,
                         needs_review=True,
-                        review_reason="producto no emparejado con una línea de la orden",
+                        review_reason=t("changes.unmatched", language),
                     )
                 )
             continue
@@ -94,15 +97,15 @@ def build_proposal(ctx: PoContext, data: QuotationData) -> ChangeProposal:
                 )
             )
 
-    summary = _summary(changes, data)
+    summary = _summary(changes, data, language)
     return ChangeProposal(changes=changes, summary=summary)
 
 
-def make_propose_changes() -> Node:
+def make_propose_changes(*, language: Language = "en") -> Node:
     async def propose_changes(state: Any) -> dict[str, Any]:
         ctx = context_of(state)
         data = QuotationData.model_validate(state["extracted"])
-        proposal = build_proposal(ctx, data)
+        proposal = build_proposal(ctx, data, language)
         if not proposal.changes:
             logger.bind(po_name=ctx.name).info("nothing to change")
             return finish(
@@ -130,23 +133,23 @@ def _reason(mismatch: bool, low: bool, line: LineView) -> str | None:
     return None
 
 
-def _summary(changes: list[ProposedChange], data: QuotationData) -> str:
+def _summary(changes: list[ProposedChange], data: QuotationData, language: Language) -> str:
     if not changes:
-        return "sin cambios respecto a Odoo"
+        return t("changes.none", language)
     dates = [c for c in changes if c.field == "date_planned"]
     prices = [c for c in changes if c.field == "price"]
     leads = [c for c in changes if c.field == "lead_days"]
     parts = []
     if dates:
-        parts.append(f"fecha de entrega {dates[0].after} en {len(dates)} línea(s)")
+        parts.append(t("changes.dates", language, date=dates[0].after, n=len(dates)))
     if prices:
-        parts.append(f"{len(prices)} precio(s)")
+        parts.append(t("changes.prices", language, n=len(prices)))
     if leads:
-        parts.append(f"{len(leads)} plazo(s)")
+        parts.append(t("changes.leads", language, n=len(leads)))
     review = sum(1 for c in changes if c.needs_review)
     text = ", ".join(parts)
     if review:
-        text += f"; {review} para revisar"
+        text += t("changes.to_review", language, n=review)
     if data.eta_date_raw and dates:
-        text += f' (proveedor: "{data.eta_date_raw}")'
+        text += t("changes.supplier_wrote", language, raw=data.eta_date_raw)
     return text[:500]

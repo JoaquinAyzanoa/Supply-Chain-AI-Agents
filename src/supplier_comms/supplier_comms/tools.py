@@ -11,16 +11,16 @@ from supplier_comms.ports import AgentPorts
 
 
 class PoLinesArgs(BaseModel):
-    po_name: str = Field(description="Nombre de la orden, por ejemplo P00015")
+    po_name: str = Field(description="Order name, for example P00015")
 
 
 class PriceHistoryArgs(BaseModel):
-    partner_id: int = Field(description="Id del proveedor en Odoo")
-    product_id: int | None = Field(default=None, description="Id del producto; vacío = todos")
+    partner_id: int = Field(description="Supplier id in Odoo")
+    product_id: int | None = Field(default=None, description="Product id; empty = all")
 
 
 class OpenPosArgs(BaseModel):
-    partner_id: int = Field(description="Id del proveedor en Odoo")
+    partner_id: int = Field(description="Supplier id in Odoo")
 
 
 def build_toolbox(ports: AgentPorts) -> ToolBox:
@@ -42,19 +42,19 @@ def build_toolbox(ports: AgentPorts) -> ToolBox:
         [
             Tool(
                 "get_po_lines",
-                "Líneas de una orden: producto, cantidad, unidad, precio y fecha prevista.",
+                "Lines of an order: product, quantity, unit, price and planned date.",
                 PoLinesArgs,
                 get_po_lines,
             ),
             Tool(
                 "get_supplier_price_history",
-                "Precios acordados anteriormente con el proveedor (tarifas en Odoo).",
+                "Prices previously agreed with the supplier (price lists in Odoo).",
                 PriceHistoryArgs,
                 get_supplier_price_history,
             ),
             Tool(
                 "get_open_pos_for_supplier",
-                "Órdenes abiertas con el proveedor: nombre, estado, fecha prevista, importe.",
+                "Open orders with the supplier: name, state, planned date, amount.",
                 OpenPosArgs,
                 get_open_pos_for_supplier,
             ),

@@ -13,10 +13,13 @@ from director.agents import AgentProxy, Agents
 from director.conversations import MemoryMailActivity
 from director.escalation import MemoryEscalator
 from director.handlers.followups import FollowUpJob, OrdersPort
-from director.policies import Decision, FollowUpPolicy, PoFacts, decide
+from director.policies import Decision, FollowUpPolicy, PoFacts, decide, next_action
 from director.store import MemoryCaseStore
 from sc_core.a2a.testing import FakeAgentCaller
+from sc_core.infra.runtime_settings import MemoryRuntimeSettingsReader
 from sc_core.odoo.models import Approval, PurchaseOrder, Ref
+from sc_core.schema.runtime_settings import RuntimeSettings
+from sc_core.shared.errors import NotFound
 
 from .helpers import agent_reply, tick
 
@@ -414,7 +417,7 @@ async def test_stale_approvals_are_reminded_once_and_expired(
     summary = await job.run("po_followups", tick("po_followups", "run_1"))
     assert summary["approvals"] == {"reminded": [2, 4], "expired": [3]}
     assert approvals.reminded == [(2, 3), (4, 4)]
-    assert approvals.expired[0][0] == 3 and "8 días" in approvals.expired[0][1]
+    assert approvals.expired[0][0] == 3 and "8 days" in approvals.expired[0][1]
     # the three orders wait for a human: only P00013 (due soon) got a task
     assert [json.loads(t.task_json)["po_name"] for t in agent.sent] == ["P00013"]
 
@@ -481,3 +484,134 @@ async def test_escalation_approvals_are_reminded_but_never_expired(
     summary = await job.run("po_followups", tick("po_followups", "run_1"))
     assert summary["approvals"] == {"reminded": [7], "expired": []}
     assert approvals.expired == [] and approvals.reminded == [(7, 13)]
+
+
+@pytest.mark.parametrize(
+    ("facts", "expected"),
+    [
+        # RFQ: the next follow-up is due 3 days after our last email, then 7, then a person
+        (
+            _facts(last_outbound_at=date(2026, 9, 12)),
+            ("rfq_silent", "follow_up", False, date(2026, 9, 15)),
+        ),
+        (
+            _facts(last_outbound_at=date(2026, 9, 9), rules_fired=["rfq_silent"]),
+            ("rfq_silent", "follow_up", False, date(2026, 9, 16)),
+        ),
+        (
+            _facts(last_outbound_at=date(2026, 9, 7), rules_fired=["rfq_silent", "rfq_silent"]),
+            ("rfq_unanswered", None, True, date(2026, 9, 15)),
+        ),
+        (_facts(last_outbound_at=date(2026, 9, 1), last_inbound_at=date(2026, 9, 2)), None),
+        (_facts(last_outbound_at=None), None),
+        (_facts(awaiting_human=True), None),
+        # confirmed orders: ask before the date, then request an ETA, then escalate
+        (
+            _facts(
+                state="purchase",
+                receipt_status="pending",
+                date_planned=date(2026, 9, 20),
+                last_outbound_at=None,
+            ),
+            ("eta_before_due", "request_eta", False, date(2026, 9, 15)),
+        ),
+        (
+            _facts(
+                state="purchase",
+                receipt_status="pending",
+                date_planned=date(2026, 9, 12),
+                last_outbound_at=None,
+            ),
+            ("po_late", "request_eta", False, date(2026, 9, 13)),
+        ),
+        (
+            _facts(
+                state="purchase",
+                receipt_status="pending",
+                date_planned=date(2026, 9, 12),
+                rules_fired=["po_late:2026-09-12"],
+                last_outbound_at=None,
+            ),
+            ("po_late_escalate", None, True, date(2026, 9, 16)),
+        ),
+        (
+            _facts(
+                state="purchase",
+                receipt_status="pending",
+                date_planned=date(2026, 9, 12),
+                rules_fired=["po_late_escalate:2026-09-12"],
+                last_outbound_at=None,
+            ),
+            None,
+        ),
+    ],
+)
+def test_next_action_table(facts: PoFacts, expected: tuple[Any, ...] | None) -> None:
+    step = next_action(facts, POLICY, TODAY)
+    if expected is None:
+        assert step is None
+    else:
+        assert step is not None
+        assert (step.rule, step.task, step.escalate, step.due) == expected
+
+
+async def test_act_now_runs_the_policy_step_or_chases_anyway(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    cases, agent, escalator = MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator()
+    agent.replies.extend(
+        [
+            agent_reply(
+                "follow_up", "followup_p00010_2026-09-14", "sent", "sent", po_name="P00010"
+            ),
+            agent_reply(
+                "follow_up", "followup_p00016_2026-09-14", "sent", "sent", po_name="P00016"
+            ),
+        ]
+    )
+    job = _job(seeded, cases, agent, escalator)
+    # P00010 is due a follow-up today: the policy's own step runs
+    outcome = await job.act_now("P00010", requested_by="ana@x.com")
+    assert outcome["rule"] == "rfq_silent" and outcome["status"] == "done"
+    # P00016 was answered: the policy would wait, so a chase is forced and recorded as manual
+    outcome = await job.act_now("P00016", requested_by="ana@x.com")
+    assert outcome["rule"] == "manual" and outcome["task"] == "follow_up"
+    fired = [e.payload for e in cases.case_events if e.kind == "rule_fired"]
+    assert fired[1]["rule"] == "manual" and "ana@x.com" in fired[1]["reason"]
+    sent = [json.loads(t.task_json)["po_name"] for t in agent.sent]
+    assert sent == ["P00010", "P00016"]
+    with pytest.raises(NotFound):
+        await job.act_now("P00014", requested_by="ana@x.com")  # not due: never gathered
+
+
+async def test_runtime_settings_replace_the_policy_per_run(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    cases, agent, escalator = MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator()
+    orders, mail = seeded
+    reader = MemoryRuntimeSettingsReader(RuntimeSettings(rfq_no_reply_days=[10, 20]))
+    job = FollowUpJob(
+        policy=POLICY,
+        orders=orders,
+        mail=mail,
+        cases=cases,
+        agents=Agents(supplier_comms=AgentProxy("supplier_comms", agent)),
+        escalator=escalator,
+        today=lambda: TODAY,
+        runtime=reader,
+    )
+    assert (await job.effective_policy()).rfq_no_reply_days == [10, 20]
+    agent.replies.extend(
+        [
+            agent_reply(
+                "request_eta", "followup_p00011_2026-09-14", "sent", "asked", po_name="P00011"
+            ),
+            agent_reply(
+                "request_eta", "followup_p00013_2026-09-14", "sent", "asked", po_name="P00013"
+            ),
+        ]
+    )
+    summary = await job.run("po_followups", tick("po_followups", "run_1"))
+    # the 3-day-silent RFQ is not chased under the 10-day runtime threshold
+    sent = [json.loads(t.task_json)["po_name"] for t in agent.sent]
+    assert sent == ["P00011", "P00013"] and summary["tasks_sent"] == 2

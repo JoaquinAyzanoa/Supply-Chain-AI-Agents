@@ -73,7 +73,7 @@ async def test_auto_approval_never_pauses() -> None:
 
 def test_render_note_escapes_and_truncates() -> None:
     req = ApprovalRequest(
-        kind="po_change", summary="a <b>", payload={"x": "<script>", "long": "y" * 400}
+        kind="orderpoint_change", summary="a <b>", payload={"x": "<script>", "long": "y" * 400}
     )
     html = render_note(req)
     assert "&lt;script&gt;" in html and "a &lt;b&gt;" in html

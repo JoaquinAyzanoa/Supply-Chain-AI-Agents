@@ -147,4 +147,4 @@ def test_receipt_and_approval_events_are_recorded(
     kinds = {c.kind for c in cases.cases.values()}
     assert kinds == {"receipt", "rfq"}
     notes = [e.payload["text"] for e in cases.case_events if e.kind == "note"]
-    assert any("WH/IN/00005" in n for n in notes) and any("approval 7" in n for n in notes)
+    assert any("WH/IN/00005" in n for n in notes) and any("Approval #7" in n for n in notes)

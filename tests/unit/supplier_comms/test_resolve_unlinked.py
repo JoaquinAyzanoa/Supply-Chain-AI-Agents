@@ -118,3 +118,27 @@ async def test_candidates_come_from_the_sender_when_the_event_had_none(
     )
     result = await make_agent().run(_task("case_u5", []))
     assert result.chosen_po_name == "P00015" and ports.links[0]["po_id"] == 7
+
+
+async def test_an_order_assigned_by_a_person_is_linked_without_the_model(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    ports.contexts["P00016"] = demo_context(name="P00016")
+    ports.inbound[MSG] = "Buenas, adjuntamos la cotización solicitada."
+    chat.responses.append(Classification(kind="other", confidence=0.9, reason="acknowledgement"))
+    agent = make_agent()
+    result = await agent.run(
+        SupplierCommsTask(
+            kind="resolve_unlinked",
+            case_id="case_assigned",
+            graph_message_id=MSG,
+            candidate_po_names=["P00016"],
+            assigned_po_name="P00016",
+        )
+    )
+    assert result.status == "no_action"
+    assert (
+        ports.links[0]["po_id"] == ports.contexts["P00016"].id
+        and ports.links[0]["direction"] == "in"
+    )
+    assert chat.calls[0].options["response_format"] != "UnlinkedResolution"  # never asked to pick

@@ -223,3 +223,11 @@ __marimo__/
 .github/
 blueprints/
 CLAUDE.md
+
+# Frontend (Control Tower)
+node_modules/
+frontend/**/dist/
+frontend/**/playwright-report/
+frontend/**/test-results/
+!frontend/**/lib/
+test-results/

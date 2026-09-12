@@ -23,6 +23,7 @@ def demo_context(
         state="purchase",
         partner_id=partner_id,
         partner_name="Proveedor Hidraulica",
+        partner_lang="es_PE",  # the demo supplier reads Spanish; the instance may be English
         supplier_emails=[SUPPLIER_EMAIL] if emails is None else emails,
         currency="PEN",
         currency_id=3,
@@ -63,6 +64,7 @@ class FakePorts:
     open_orders: list[dict[str, Any]] = field(default_factory=list)
     drafts: dict[str, OutboundMessage | dict[str, Any]] = field(default_factory=dict)
     sent_ids: list[str] = field(default_factory=list)
+    updated_drafts: list[dict[str, Any]] = field(default_factory=list)
     outbound_records: list[dict[str, Any]] = field(default_factory=list)
     links: list[dict[str, Any]] = field(default_factory=list)
     notes: list[tuple[int, str]] = field(default_factory=list)
@@ -125,6 +127,21 @@ class FakePorts:
         if draft_id not in self.drafts:
             raise AssertionError(f"unknown draft {draft_id}")
         self.sent_ids.append(draft_id)
+
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None:
+        message = self.drafts[draft_id]
+        if isinstance(message, OutboundMessage):
+            self.drafts[draft_id] = message.model_copy(
+                update={
+                    "subject": subject if subject is not None else message.subject,
+                    "html_body": html_body if html_body is not None else message.html_body,
+                }
+            )
+        self.updated_drafts.append(
+            {"draft_id": draft_id, "subject": subject, "html_body": html_body}
+        )
 
     async def find_sent(self, internet_message_id: str) -> MessageIds | None:
         if self.find_sent_misses > 0:
@@ -197,9 +214,11 @@ class FakePorts:
         if fields["run_id"] not in self.runs:
             self.runs[fields["run_id"]] = {**fields, "status": "running"}
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None:
         self.runs.setdefault(run_id, {"run_id": run_id})
-        self.runs[run_id].update(status=status, summary=summary)
+        self.runs[run_id].update(status=status, summary=summary, usage=usage)
 
     async def inbound_meta(self, message_id: str) -> InboundMeta:
         return self.metas.get(message_id) or InboundMeta(graph_message_id=message_id)

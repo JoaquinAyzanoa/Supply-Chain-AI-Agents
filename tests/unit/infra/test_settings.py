@@ -82,3 +82,19 @@ def test_get_settings_is_cached_until_reset(clean_env: pytest.MonkeyPatch) -> No
 
     reset_settings_cache()
     assert get_settings().service_name == "second"
+
+
+def test_trace_links_are_rehomed_on_the_browser_url(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    from sc_core.infra import tracing
+
+    monkeypatch.setattr(tracing, "_host", "http://localhost:3000")
+    assert (
+        tracing.browser_trace_url("http://langfuse-web:3000/trace/abc")
+        == "http://localhost:3000/trace/abc"
+    )
+    assert tracing.browser_trace_url(None) is None
+    assert tracing.browser_trace_url("https://elsewhere/x") == "https://elsewhere/x"
+    monkeypatch.setattr(tracing, "_host", "")
+    assert tracing.browser_trace_url("http://langfuse-web:3000/trace/abc") == (
+        "http://langfuse-web:3000/trace/abc"
+    )

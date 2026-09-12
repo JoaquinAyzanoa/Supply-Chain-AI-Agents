@@ -276,9 +276,12 @@ class FakeWritePorts:
     async def start_run(self, **fields: Any) -> None:
         self.runs[fields["run_id"]] = {**fields, "status": "running"}
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None:
         self.runs.setdefault(run_id, {})["status"] = status
         self.runs[run_id]["summary"] = summary
+        self.runs[run_id]["usage"] = usage
 
 
 class FakePublisher:

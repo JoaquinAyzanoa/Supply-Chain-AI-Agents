@@ -11,6 +11,7 @@ from sc_core.a2a.events import EventPublisher, PostgresOutbox
 from sc_core.infra.db import Database
 from sc_core.infra.locks import RedisLock
 from sc_core.infra.module import AsyncRedis
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.mail.protocol import MailClient
 from sc_core.odoo.repositories import MailLinkRepo, PartnerRepo, PurchaseOrderRepo
@@ -39,11 +40,13 @@ class MailSyncModule(Module):
         purchase_orders: PurchaseOrderRepo,
         mail_links: MailLinkRepo,
         partners: PartnerRepo,
+        runtime: RuntimeSettingsReader,
     ) -> SyncRunner:
         ports = OdooPorts(
             purchase_orders=purchase_orders, mail_links=mail_links, partners=partners, state=state
         )
         return SyncRunner(
+            runtime=runtime,
             graph=graph,
             state=state,
             ports=ports,

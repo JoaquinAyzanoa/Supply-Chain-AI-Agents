@@ -37,12 +37,14 @@ class ApprovalCallback(BaseModel):
     thread_id: str = Field(min_length=1)
     kind: str | None = None
     resolved_by: str | None = None
+    resolved_by_name: str | None = None
     reason: str | None = None
-    accepted_line_ids: list[str] | None = None
+    details: dict[str, Any] | None = None  # nested, as Odoo forwards the Control Tower's decision
+    accepted_line_ids: list[str] | None = None  # or flat, from a direct caller
     edits: dict[str, dict[str, float]] | None = None
 
     def decision(self) -> dict[str, Any]:
-        details: dict[str, Any] = {}
+        details: dict[str, Any] = dict(self.details or {})
         if self.accepted_line_ids is not None:
             details["accepted_line_ids"] = self.accepted_line_ids
         if self.edits:
@@ -50,7 +52,7 @@ class ApprovalCallback(BaseModel):
         return {
             "approval_id": self.approval_id,
             "status": self.status,
-            "resolved_by": self.resolved_by or None,
+            "resolved_by": self.resolved_by_name or self.resolved_by or None,
             "reason": self.reason or None,
             "details": details or None,
         }

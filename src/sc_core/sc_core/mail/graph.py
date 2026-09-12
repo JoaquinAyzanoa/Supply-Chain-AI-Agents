@@ -258,6 +258,18 @@ class GraphMailClient:
         """Send an existing draft. Its id changes when it moves to Sent Items."""
         await self._request("POST", f"{self._mailbox()}/messages/{draft_id}/send")
 
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None:
+        """Change a draft's subject and/or body before it is sent (an approver's edit)."""
+        changes: dict[str, Any] = {}
+        if subject is not None:
+            changes["subject"] = subject
+        if html_body is not None:
+            changes["body"] = {"contentType": "HTML", "content": html_body}
+        if changes:
+            await self._request("PATCH", f"{self._mailbox()}/messages/{draft_id}", json=changes)
+
     async def reply_draft(
         self,
         message_id: str,

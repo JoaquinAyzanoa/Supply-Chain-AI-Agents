@@ -184,3 +184,26 @@ async def test_failing_message_keeps_delta_and_retries_next_run(world: dict[str,
     report = await world["runner"].run()
     assert report.status == "ok" and report.linked == 1
     assert world["state"].delta_links["me"] == "fake-delta:2"
+
+
+async def test_system_senders_are_ignored_without_events(world: dict[str, Any]) -> None:
+    from mail_sync.ignore import is_ignored
+
+    assert is_ignored(
+        "Account-Security-NoReply@accountprotection.microsoft.com",
+        ["accountprotection.microsoft.com"],
+    )
+    assert is_ignored("member_services@outlook.com", ["member_services@outlook.com"])
+    assert not is_ignored("ventas@outlook.com", ["member_services@outlook.com"])
+    assert is_ignored("x@mail.microsoftonline.com", ["*@microsoftonline.com"])
+    assert not is_ignored(None, ["anything"])
+
+    graph: FakeGraph = world["graph"]
+    graph.receive(
+        subject="New sign-in detected",
+        sender="account-security-noreply@accountprotection.microsoft.com",
+    )
+    graph.receive(subject="[P00015] quote", sender=SUPPLIER)
+    report = await world["runner"].run()
+    assert report.ignored == 1 and report.linked == 1
+    assert len(world["director"].events) == 1

@@ -22,7 +22,9 @@ from sc_core.a2a.events import EventPublisher, PostgresOutbox
 from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
+from sc_core.llm import default_budget
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo
 
@@ -44,6 +46,8 @@ class AgentProvider:
                         build_graph(self._deps, checkpointer),
                         model=self._settings.llm.model_for(AGENT_NAME),
                         writes=self._deps.writes,
+                        language=self._settings.agents.language,
+                        budget=lambda: default_budget(self._settings),
                     )
         return self._agent
 
@@ -64,6 +68,7 @@ class InventoryPlanningModule(Module):
         db: Database,
         chats: ChatClientFactory,
         publisher: EventPublisher,
+        runtime: RuntimeSettingsReader,
     ) -> Deps:
         gateway = ApprovalGateway(
             OdooApprovalPorts(ApprovalRepo(odoo), ActivityRepo(odoo)),
@@ -72,6 +77,8 @@ class InventoryPlanningModule(Module):
             callback_secret=settings.events.signing_secret.get_secret_value() or None,
             approver_user_id=settings.agents.approver_user_id,
             deadline_days=settings.agents.approval_deadline_days,
+            language=settings.agents.language,
+            control_tower_url=settings.ui.public_url,
         )
         return Deps(
             data=LiveDataPorts(odoo),
@@ -81,6 +88,8 @@ class InventoryPlanningModule(Module):
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,
             cfg=settings.planning,
+            runtime=runtime,
+            language=settings.agents.language,
             publish=publisher.publish,
             langfuse=settings.langfuse,
         )

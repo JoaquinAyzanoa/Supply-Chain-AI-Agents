@@ -163,7 +163,7 @@ up within `SC__LANGFUSE__PROMPT_CACHE_SECONDS`.
 Two deterministic services run without any model call.
 
 **scheduler** fires the cron table with signed HTTP dispatches: the inbox
-sync every 30 minutes and, for the director, the follow-up, planning and
+sync every 5 minutes and, for the director, the follow-up, planning and
 performance jobs (their handlers arrive with the agents). Crons are
 `SC__SCHEDULER__*_CRON` in `SC__TIMEZONE`; `GET :8012/jobs` shows next fire
 times and the last run; `just sync-now` (or `just run-job <id>`) fires one
@@ -314,6 +314,79 @@ per order at a time is guaranteed by a Redis lock (`po:<name>`); an event
 that cannot get it within `SC__DIRECTOR__LOCK_WAIT_SECONDS` stays in the
 inbox for the replay.
 
+## Control Tower
+
+The people's side of the system: a React app served by the director under
+`/` (the API lives under `/api`, OpenAPI at `/docs` in dev). Screens:
+
+- **Board** (the landing page): every purchase order as a card in the column
+  its life is at: proposals, quotation requested, quotation received, order
+  confirmed, to receive, received, closed. The card's edge tells the delivery
+  state (green on time, amber due soon, red late with the days); its frame
+  tells what a person owes it (amber: an approval, purple: an escalation,
+  dashed: on hold); the body shows supplier, amount, planned date, the last
+  email and the agents' next step. Approvers drag cards where Odoo allows
+  (send a proposal, confirm an RFQ, close or cancel an order, with a note
+  that lands in the chatter); the other columns follow emails and receipts.
+  A card opens a side panel with the facts, the pending approval resolvable
+  in place, the case history and the "Talk to your AI" chat. Filters:
+  search, supplier, buyer, "only with problems". "Check the mailbox" reads the
+  inbox right away instead of waiting for the next scheduled poll and says
+  what it found.
+- **Approvals**: the inbox. Emails are previewed sanitised (no scripts, no
+  remote images) and can be edited before sending; order changes show a
+  before/after table with per-line toggles; planning runs link to their
+  review; escalations show the model's summary and the last events. Every
+  card says why the agent proposed it and links to Odoo, the Outlook draft
+  and the Langfuse trace. Approving here resolves the `sc.approval` in Odoo
+  through the bot, so Odoo fires the same agent callback as its own buttons.
+- **History** (the last 7 days by default): one PO-centred timeline per case, from
+  the event received through rules, tasks, results and approvals to the agent runs.
+  Every case has a **"Talk to your AI" chat** (the director agent): questions are answered from
+  the case, the order and the policy; instructions ("ask them for a firm
+  date", "wait until the 20th", "close this, I cancelled the order") come
+  back as a proposed action that an approver confirms before it runs. An
+  email asked for in the chat is always shown for approval before it goes
+  out, whatever the automatic-send rules say, and replaces any earlier
+  draft still waiting for that order.
+- **Act now** lives on the board card: a late order or a silent RFQ can run the
+  policy's next step at once instead of waiting for its day. (The former
+  Exceptions page is still served at `/exceptions` but no longer in the menu:
+  the "only with problems" filter, the inbox and the runs screen cover it.)
+- **Planning**: the run's lines grouped by supplier, editable quantities and
+  min/max, a per-line drawer with the explanation, the 90-day demand and a
+  what-if simulation; approving the selected lines is one resume call.
+- **Runs**: agent runs with model, tokens, cost and duration; scheduler runs.
+- **Settings** (admins): model per agent, follow-up policy, which suppliers
+  and which email kinds go out without approval (for example reminders and
+  delivery date requests automatic, RFQs and purchase orders approved), and
+  planning defaults; versioned in `settings_history` and picked up by every
+  service within a minute (no restart).
+
+Setup and daily use:
+
+```bash
+just ui-create-user ana@example.com "Ana" approver   # roles: viewer | approver | admin
+just ui-install          # npm install
+just ui-dev              # Vite on http://localhost:5173 with /api proxied to the director
+just ui-check            # typecheck, unit tests, production build
+just ui-e2e              # Playwright: approve and planning flows, roles, axe, phone viewport
+just ui-openapi          # regenerate openapi.json and the typed client after an API change
+just image-director      # the director image with the bundle built in
+```
+
+The UI has an EN/ES switch (`messages.en.json` / `messages.es.json`); the
+default is English. Sessions are JWTs from `POST /api/auth/login`
+(`SC__UI__JWT_SECRET`, falling back to the events secret; TTL
+`SC__UI__JWT_TTL_MINUTES`). Live updates come over `GET /api/stream`
+(Server-Sent Events through Redis pub/sub), so screens refetch on change
+instead of polling; the same events feed the bell (new approvals,
+escalations, failed runs) and the pending count on the Approvals entry. Links to Odoo and Langfuse use `SC__ODOO__PUBLIC_URL`
+and `SC__LANGFUSE__PUBLIC_URL` (what a browser can reach; compose sets
+them to `localhost`), not the in-network service URLs; notes and To-Dos in
+Odoo link back to the Control Tower through `SC__UI__PUBLIC_URL`. CI regenerates the
+client from the director's OpenAPI document and fails on drift.
+
 ## Demo dataset
 
 `odoo/demo/sun_hydraulics.yaml` describes a small Peruvian distributor of Sun
@@ -334,6 +407,19 @@ See `odoo/demo/README.md`.
 The supplier agent can also send a confirmed order as Odoo's own "Orden de
 Compra" PDF (task `send_po`): the report is rendered over RPC, attached to
 the cover email, listed in the approval and sent after it.
+
+## Language
+
+Everything internal is English: prompts, reasoning, tool calls, logs, traces
+and case events. Only what people read follows a language. Emails to
+suppliers are written in the supplier's Odoo language (`res.partner.lang`),
+falling back to the instance language; explanations, run summaries,
+escalation summaries, approval titles and chatter notes follow
+`SC__AGENTS__LANGUAGE` (`en` or `es`, default `en`); the Control Tower has
+its own EN/ES switch per user. Those strings
+live in one catalog, `sc_core.i18n`, and every prompt that produces text for
+a person takes the language as a variable. Odoo renders PDFs and its own UI
+in the partner's and the user's language on its own.
 
 ## Conventions
 

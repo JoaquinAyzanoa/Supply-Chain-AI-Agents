@@ -64,6 +64,10 @@ class AgentPorts(Protocol):
 
     async def send_draft(self, draft_id: str) -> None: ...
 
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None: ...
+
     async def find_sent(self, internet_message_id: str) -> MessageIds | None: ...
 
     async def record_outbound(self, *, ids: MessageIds, po_name: str, case_id: str) -> None: ...
@@ -102,7 +106,9 @@ class AgentPorts(Protocol):
         trace_url: str | None,
     ) -> None: ...
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None: ...
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None: ...
 
 
 class LivePorts:
@@ -152,6 +158,7 @@ class LivePorts:
             state=po.state,
             partner_id=company.id,
             partner_name=company.name,
+            partner_lang=partner.lang or company.lang,
             supplier_emails=emails,
             currency=currency,
             currency_id=po.currency_id.id if po.currency_id else None,
@@ -257,6 +264,11 @@ class LivePorts:
     async def send_draft(self, draft_id: str) -> None:
         await self._graph.send_draft(draft_id)
 
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None:
+        await self._graph.update_draft(draft_id, subject=subject, html_body=html_body)
+
     async def find_sent(self, internet_message_id: str) -> MessageIds | None:
         return await self._graph.find_sent(internet_message_id)
 
@@ -335,8 +347,10 @@ class LivePorts:
             trace_url=trace_url,
         )
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
-        await self._runs.finish(run_id, cast(RunStatus, status), summary[:500])
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None:
+        await self._runs.finish(run_id, cast(RunStatus, status), summary[:500], usage)
 
     # --- unlinked mail ------------------------------------------------------------
 

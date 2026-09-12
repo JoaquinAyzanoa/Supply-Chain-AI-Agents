@@ -57,6 +57,18 @@ class RunBudget:
         }
 
 
+def fresh_budget() -> RunBudget:
+    """A budget with the configuration defaults (agents built without settings, tests)."""
+    from sc_core.infra.settings import LlmCfg
+
+    cfg = LlmCfg()
+    return RunBudget(
+        max_input_tokens=cfg.budget_max_input_tokens,
+        max_output_tokens=cfg.budget_max_output_tokens,
+        max_usd=cfg.budget_max_usd,
+    )
+
+
 @dataclass
 class _Holder:
     budget: RunBudget | None = field(default=None)

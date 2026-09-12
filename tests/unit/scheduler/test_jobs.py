@@ -12,7 +12,7 @@ from scheduler.jobs import Job, job_table
 def test_default_table_targets_and_crons() -> None:
     jobs = {j.id: j for j in job_table(Settings(_env_file=None))}
     assert set(jobs) == {"mail_sync", "po_followups", "inventory_planning", "supplier_performance"}
-    assert jobs["mail_sync"].cron == "*/30 * * * *"
+    assert jobs["mail_sync"].cron == "*/5 * * * *"
     assert jobs["mail_sync"].target == "http://localhost:8011/jobs/sync"
     assert jobs["po_followups"].target == "http://localhost:8010/jobs/po-followups"
     for job in jobs.values():

@@ -18,7 +18,7 @@
    }
   },
   {
-   "key": "40713296a7b8768ae2a1af69",
+   "key": "4d034647048de20a409f2d72",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -59,6 +59,7 @@
        "sc_eta_source",
        "sc_eta_confidence",
        "sc_needs_human",
+       "sc_supplier_confirmed",
        "sc_pending_approval_id"
       ],
       "offset": 0,
@@ -83,9 +84,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-09-10 20:21:42",
-      "date_approve": "2026-09-08 20:21:42",
-      "date_planned": "2026-09-08 20:21:42",
+      "date_order": "2026-09-14 14:13:23",
+      "date_approve": "2026-09-12 14:13:23",
+      "date_planned": "2026-09-14 14:13:23",
       "amount_untaxed": 6936.0,
       "amount_total": 6936.0,
       "currency_id": [
@@ -94,7 +95,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -111,8 +112,12 @@
       "sc_external_ref": false,
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       12,
+       "sc.approval,12"
+      ]
      }
     ]
    }
@@ -184,16 +189,16 @@
        "P00015"
       ],
       "picking_type_code": "incoming",
-      "scheduled_date": "2026-09-08 20:21:42",
-      "date_deadline": "2026-09-08 20:21:42",
+      "scheduled_date": "2026-09-12 14:13:23",
+      "date_deadline": "2026-09-12 14:13:23",
       "date_done": false,
       "move_ids": [
        30,
        31
       ],
-      "sc_eta_source": "supplier",
+      "sc_eta_source": false,
       "sc_needs_human": false,
-      "sc_last_run_id": "run_int"
+      "sc_last_run_id": false
      }
     ]
    }
@@ -256,7 +261,7 @@
        26,
        "[FURN_6667] Acoustic Bloc Screens (White)"
       ],
-      "date": "2026-09-08 20:21:42"
+      "date": "2026-09-12 14:13:23"
      },
      {
       "id": 31,
@@ -275,7 +280,7 @@
        27,
        "[FURN_9001] Flipover"
       ],
-      "date": "2026-09-08 20:21:42"
+      "date": "2026-09-12 14:13:23"
      }
     ]
    }

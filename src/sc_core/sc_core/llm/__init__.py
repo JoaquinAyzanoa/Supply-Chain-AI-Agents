@@ -26,16 +26,22 @@ from sc_core.llm.registry import ModelSpec, Registry
 from sc_core.llm.structured import StructuredOutputFailed, complete_structured
 
 
-def get_chat_client(agent_name: str, *, settings: Settings | None = None) -> ChatCompleter:
-    """The client for ``agent_name``, honouring ``SC__LLM__RECORD_MODE`` for cassettes."""
+def get_chat_client(
+    agent_name: str, *, settings: Settings | None = None, model: str | None = None
+) -> ChatCompleter:
+    """The client for ``agent_name`` (``model`` overrides the configured one).
+
+    Honours ``SC__LLM__RECORD_MODE`` for cassettes.
+    """
     settings = settings or get_settings()
     cfg = settings.llm
+    model_name = model or cfg.model_for(agent_name)
     if cfg.record_mode == "replay":
         from sc_core.llm.testing import ChatCassette, ReplayChatClient
 
-        spec = Registry.load().model(cfg.model_for(agent_name))
+        spec = Registry.load().model(model_name)
         return ReplayChatClient(ChatCassette.load(_cassette_path(agent_name)), spec)
-    client: ChatCompleter = TracedChatClient.build(agent_name, cfg=cfg)
+    client: ChatCompleter = TracedChatClient.build(agent_name, cfg=cfg, model=model_name)
     if cfg.record_mode == "record":
         from sc_core.llm.testing import ChatCassette, RecordingChatClient
 

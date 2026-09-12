@@ -41,7 +41,7 @@ async def test_discontinued_note_puts_the_product_on_hold(
             context="regla de reposición disparada",
         )
     )
-    assert result.status == "no_action" and "en espera: CBEA-LHN" in result.outcome.summary
+    assert result.status == "no_action" and "on hold: CBEA-LHN" in result.outcome.summary
     assert result.proposal is not None and len(result.proposal.lines) == 1
     line = result.proposal.lines[0]
     assert line.action == "hold" and line.order_qty == 0.0
@@ -49,7 +49,7 @@ async def test_discontinued_note_puts_the_product_on_hold(
     assert approval_ports.created == [] and writes.rfqs == {} and writes.orderpoints == []
     facts = chat.calls[0].messages[1]["contents"][0]["text"]
     assert "descontinuado" in facts and "regla de reposición disparada" in facts
-    assert "proveedores alternativos: Distribuidor Alterno" in facts
+    assert "alternate suppliers: Distribuidor Alterno" in facts
 
 
 async def test_switch_supplier_recomputes_with_the_alternate(
@@ -71,7 +71,7 @@ async def test_switch_supplier_recomputes_with_the_alternate(
     assert result.proposal is not None
     line = result.proposal.lines[0]
     assert line.supplier_id == 21 and line.lead_time_days == 18 and line.unit_price == 114.0
-    assert line.explanation is not None and line.explanation.startswith("Revisión:")
+    assert line.explanation is not None and line.explanation.startswith("Review:")
     assert result.status == "awaiting_approval"  # an order from the alternate still needs approval
 
 
@@ -118,6 +118,6 @@ async def test_what_if_changes_numbers_and_writes_nothing(
     assert base.proposal is not None and higher.proposal is not None
     a, b = base.proposal.lines[0], higher.proposal.lines[0]
     assert b.service_level == 0.99 and b.lead_time_days == 45 and b.ss > a.ss and b.rop > a.rop
-    assert base.outcome.summary.startswith("simulación:")
+    assert base.outcome.summary.startswith("simulation:")
     assert approval_ports.created == [] and writes.rfqs == {} and writes.orderpoints == []
     assert writes.runs["run_" + base.run_id[4:]]["status"] == "no_action"

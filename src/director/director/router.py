@@ -50,6 +50,8 @@ class Route(StrictModel):
     dispatches: list[Dispatch] = []
     escalate: str | None = None
     """Reason to hand the event to a human right away (no agent can act)."""
+    details: dict[str, Any] = {}
+    """Facts for that escalation (the email's sender and link, for example)."""
     job: str | None = None
     """Scheduler job to run in-process (follow-ups, planning, performance)."""
     note: str | None = None

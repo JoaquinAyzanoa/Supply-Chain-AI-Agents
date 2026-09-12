@@ -42,6 +42,7 @@ CaseEventKind = Literal[
     "escalated",
     "promise",
     "note",
+    "chat",
 ]
 
 TERMINAL_STATUSES: frozenset[str] = frozenset({"done", "rejected", "failed"})
@@ -50,8 +51,22 @@ TERMINAL_STATUSES: frozenset[str] = frozenset({"done", "rejected", "failed"})
 _UNSET: Any = object()
 
 
+def case_code(number: int | None, case_id: str) -> str:
+    """``C00012``: what people read and type; the id stays for logs and traces."""
+    return f"C{number:05d}" if number else f"#{case_id.removeprefix('case_')[:8]}"
+
+
+def parse_case_code(text: str) -> int | None:
+    """``C00012`` (or ``c12``) -> 12; anything else -> None."""
+    body = text.strip().upper()
+    if body.startswith("C") and body[1:].isdigit():
+        return int(body[1:])
+    return None
+
+
 class Case(StrictModel):
     case_id: str
+    number: int | None = None
     kind: CaseKind
     status: CaseStatus
     po_name: str | None = None
@@ -67,6 +82,10 @@ class Case(StrictModel):
     @property
     def is_open(self) -> bool:
         return self.status not in TERMINAL_STATUSES
+
+    @property
+    def code(self) -> str:
+        return case_code(self.number, self.case_id)
 
 
 class CaseEvent(StrictModel):
@@ -102,6 +121,10 @@ class CaseStore(Protocol):
 
     async def get(self, case_id: str) -> Case | None: ...
 
+    async def by_number(self, number: int) -> Case | None:
+        """The case people call ``C00012``."""
+        ...
+
     async def update(
         self,
         case_id: str,
@@ -113,6 +136,7 @@ class CaseStore(Protocol):
         partner_id: int | None = None,
         agent: str | None = None,
         next_action_at: datetime | None = _UNSET,
+        po_name: str | None = None,
     ) -> Case:
         """Set the given columns (``None`` means "leave as is", except ``next_action_at``)."""
         ...
@@ -142,8 +166,12 @@ class CaseStore(Protocol):
         *,
         status: CaseStatus | None = None,
         po_name: str | None = None,
+        kind: CaseKind | None = None,
+        since: datetime | None = None,
         limit: int = 50,
-    ) -> list[Case]: ...
+    ) -> list[Case]:
+        """Cases updated since ``since`` (all when ``None``), newest first."""
+        ...
 
 
 def _pick(case: Case, *, po_name: str | None, conversation_id: str | None) -> Case | None:
@@ -153,8 +181,8 @@ def _pick(case: Case, *, po_name: str | None, conversation_id: str | None) -> Ca
 # --- Postgres -------------------------------------------------------------------------
 
 _CASE_COLUMNS = (
-    "case_id, kind, status, po_name, partner_id, conversation_id, agent, trace_id, summary, "
-    "created_at, updated_at, next_action_at"
+    "case_id, number, kind, status, po_name, partner_id, conversation_id, agent, trace_id, "
+    "summary, created_at, updated_at, next_action_at"
 )
 
 
@@ -185,9 +213,10 @@ class PostgresCaseStore:
             conversation_id=conversation_id,
             agent=agent,
         )
-        await self._db.execute(
+        row = await self._db.fetch_one(
             "INSERT INTO cases (case_id, kind, status, po_name, partner_id, conversation_id, "
-            "agent, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+            "agent, created_at, updated_at) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s) "
+            "RETURNING number",
             (
                 case.case_id,
                 case.kind,
@@ -200,7 +229,8 @@ class PostgresCaseStore:
                 case.updated_at,
             ),
         )
-        return case, True
+        number = int(row["number"]) if row and row.get("number") is not None else None
+        return case.model_copy(update={"number": number}), True
 
     async def _fill_in(
         self, case: Case, partner_id: int | None, conversation_id: str | None
@@ -222,6 +252,12 @@ class PostgresCaseStore:
         )
         return Case(**row) if row else None
 
+    async def by_number(self, number: int) -> Case | None:
+        row = await self._db.fetch_one(
+            f"SELECT {_CASE_COLUMNS} FROM cases WHERE number = %s", (number,)
+        )
+        return Case(**row) if row else None
+
     async def update(
         self,
         case_id: str,
@@ -233,6 +269,7 @@ class PostgresCaseStore:
         partner_id: int | None = None,
         agent: str | None = None,
         next_action_at: datetime | None = _UNSET,
+        po_name: str | None = None,
     ) -> Case:
         sets: list[str] = ["updated_at = %s"]
         params: list[Any] = [utc_now()]
@@ -240,6 +277,7 @@ class PostgresCaseStore:
             ("status", status),
             ("summary", summary),
             ("trace_id", trace_id),
+            ("po_name", po_name),
             ("conversation_id", conversation_id),
             ("partner_id", partner_id),
             ("agent", agent),
@@ -313,6 +351,8 @@ class PostgresCaseStore:
         *,
         status: CaseStatus | None = None,
         po_name: str | None = None,
+        kind: CaseKind | None = None,
+        since: datetime | None = None,
         limit: int = 50,
     ) -> list[Case]:
         where: list[str] = []
@@ -323,6 +363,12 @@ class PostgresCaseStore:
         if po_name is not None:
             where.append("po_name = %s")
             params.append(po_name)
+        if kind is not None:
+            where.append("kind = %s")
+            params.append(kind)
+        if since is not None:
+            where.append("updated_at >= %s")
+            params.append(since)
         clause = f"WHERE {' AND '.join(where)}" if where else ""
         params.append(limit)
         rows = await self._db.fetch_all(
@@ -339,6 +385,7 @@ class MemoryCaseStore:
     def __init__(self) -> None:
         self.cases: dict[str, Case] = {}
         self.case_events: list[CaseEvent] = []
+        self._next_number = 1
 
     async def attach_or_create(
         self,
@@ -365,6 +412,7 @@ class MemoryCaseStore:
                     )
         case = Case(
             case_id=new_id("case"),
+            number=self._next_number,
             kind=kind,
             status="open",
             po_name=po_name,
@@ -372,11 +420,15 @@ class MemoryCaseStore:
             conversation_id=conversation_id,
             agent=agent,
         )
+        self._next_number += 1
         self.cases[case.case_id] = case
         return case, True
 
     async def get(self, case_id: str) -> Case | None:
         return self.cases.get(case_id)
+
+    async def by_number(self, number: int) -> Case | None:
+        return next((c for c in self.cases.values() if c.number == number), None)
 
     async def update(
         self,
@@ -389,6 +441,7 @@ class MemoryCaseStore:
         partner_id: int | None = None,
         agent: str | None = None,
         next_action_at: datetime | None = _UNSET,
+        po_name: str | None = None,
     ) -> Case:
         if case_id not in self.cases:
             raise KeyError(f"unknown case {case_id}")
@@ -397,6 +450,7 @@ class MemoryCaseStore:
             ("status", status),
             ("summary", summary),
             ("trace_id", trace_id),
+            ("po_name", po_name),
             ("conversation_id", conversation_id),
             ("partner_id", partner_id),
             ("agent", agent),
@@ -451,11 +505,16 @@ class MemoryCaseStore:
         *,
         status: CaseStatus | None = None,
         po_name: str | None = None,
+        kind: CaseKind | None = None,
+        since: datetime | None = None,
         limit: int = 50,
     ) -> list[Case]:
         found = [
             c
             for c in self.cases.values()
-            if (status is None or c.status == status) and (po_name is None or c.po_name == po_name)
+            if (status is None or c.status == status)
+            and (po_name is None or c.po_name == po_name)
+            and (kind is None or c.kind == kind)
+            and (since is None or c.updated_at >= since)
         ]
         return sorted(found, key=lambda c: c.updated_at, reverse=True)[:limit]

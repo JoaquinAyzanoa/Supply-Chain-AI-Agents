@@ -180,11 +180,11 @@ async def test_explain_fills_only_the_explanation_of_exception_lines() -> None:
     assert len(chat.calls) == 1  # the plain line never reached the model
     assert out[1] == plain and out[1].explanation is None
     assert out[0].explanation is not None and out[0].explanation.startswith("Riesgo de quiebre")
-    assert "Acción:" in out[0].explanation
+    assert "Action:" in out[0].explanation
     for name in NUMERIC:  # the guard: nothing but the explanation changed
         assert getattr(out[0], name) == getattr(flagged, name), name
     prompt_text = chat.calls[0].messages[1]["contents"][0]["text"]
-    assert "punto de pedido: 44.26" in prompt_text and "cantidad a pedir: 23.26" in prompt_text
+    assert "reorder point: 44.26" in prompt_text and "quantity to order: 23.26" in prompt_text
 
 
 async def test_model_failure_leaves_a_placeholder_and_the_numbers() -> None:
@@ -193,7 +193,7 @@ async def test_model_failure_leaves_a_placeholder_and_the_numbers() -> None:
     flagged = detect(_line(), PARAMS)
     [out] = await explain_lines(chat, [flagged], as_of=date(2026, 9, 14), langfuse=NO_LANGFUSE)
     assert out.explanation is not None and out.explanation.startswith(
-        "stockout_risk: sin explicación"
+        "stockout_risk: no explanation"
     )
     assert out.rop == flagged.rop and out.order_qty == flagged.order_qty
 
@@ -214,22 +214,22 @@ async def test_run_summary_uses_totals_and_falls_back_to_facts() -> None:
     )
     assert text.startswith("Se revisaron")
     facts = chat.calls[0].messages[1]["contents"][0]["text"]
-    assert "valor de las cotizaciones (PEN): 2,419" in facts and "CBEA-LHN: stockout_risk" in facts
+    assert "RFQ value (PEN): 2,419" in facts and "CBEA-LHN: stockout_risk" in facts
     chat.responses.append(ExternalServiceError("down", service="llm"))
     fallback = await explain_run(
         chat, lines, totals, as_of=date(2026, 9, 14), warehouse_code="WH", langfuse=NO_LANGFUSE
     )
-    assert fallback.startswith("fecha: 2026-09-14")
+    assert fallback.startswith("date: 2026-09-14")
 
 
 def test_line_facts_mentions_every_number_the_model_may_use() -> None:
     text = line_facts(detect(_line(), PARAMS))
     for fragment in (
-        "stock disponible: 20",
-        "plazo de entrega: 30",
-        "regla actual: min 4 / max 56",
-        "regla propuesta: min 45 / max 52",
-        "104 semanas",
+        "stock on hand: 20",
+        "lead time: 30",
+        "current rule: min 4 / max 56",
+        "proposed rule: min 45 / max 52",
+        "104 weeks",
     ):
         assert fragment in text, fragment
 

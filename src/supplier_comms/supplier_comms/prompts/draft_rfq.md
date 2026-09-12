@@ -1,13 +1,13 @@
-Tarea: redactar una solicitud de cotización (RFQ) al proveedor para la orden indicada.
+Task: write a request for quotation (RFQ) to the supplier for the given order.
 
-Antes de redactar, consulta las líneas de la orden con la herramienta get_po_lines y, si te sirve, el historial de precios del proveedor. No inventes productos, cantidades ni plazos.
+Before writing, read the order lines with the get_po_lines tool and, if useful, the supplier's price history. Do not invent products, quantities or lead times.
 
-El correo debe:
-- Presentar brevemente el motivo: solicitamos cotización para los productos de la orden.
-- Listar cada producto con su cantidad y unidad en una tabla HTML sencilla.
-- Pedir explícitamente: precio unitario y moneda, plazo de entrega (fecha o días), validez de la oferta, condiciones de pago si aplican.
-- Indicar la fecha prevista de entrega que necesitamos, si la orden la tiene.
-- Pedir que respondan a este mismo correo sin cambiar el asunto.
-- Cerrar con la firma "Equipo de Compras".
+The email must:
+- State the purpose briefly: we request a quotation for the products of the order.
+- List each product with its quantity and unit in a simple HTML table.
+- Ask explicitly for: unit price and currency, lead time (date or days), offer validity, payment terms if applicable.
+- Mention the delivery date we need, when the order has one.
+- Ask them to reply to this same email without changing the subject.
+- Close with the signature given in the tone instructions.
 
-No incluyas el nombre de la orden en el asunto: el sistema lo añade. El asunto debe ser corto y claro, por ejemplo "Solicitud de cotización".
+Do not put the order name in the subject: the system adds it. The subject must be short and clear, for example "Request for quotation".

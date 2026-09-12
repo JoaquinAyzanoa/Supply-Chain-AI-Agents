@@ -450,3 +450,15 @@ async def test_run_finished_after_approval_teaches_the_thread(
         linked(case_id="case_msg9", po_name="P00066", conversation_id="conv-out")
     )
     assert len(cases.cases) == 2
+
+
+async def test_error_document_reply_becomes_a_readable_failure(
+    orchestrator: Orchestrator, cases: MemoryCaseStore, agent: FakeAgentCaller
+) -> None:
+    doc = '{"code": "odoo_rpc_error", "message": "The method x does not exist", "traceback": "..."}'
+    agent.replies.append(AgentReply(status="failed", text=doc))
+    await orchestrator.handle(linked())
+    [case] = cases.cases.values()
+    assert case.summary == "supplier_comms failed: The method x does not exist"
+    result = next(e for e in cases.case_events if e.kind == "result")
+    assert result.payload["error"]["code"] == "odoo_rpc_error"

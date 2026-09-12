@@ -49,7 +49,7 @@ async def test_invalid_then_valid_retries_with_error_context() -> None:
     assert result.eta_date == "2026-10-20"
     assert len(client.calls) == 2
     second = client.last_prompt_text()
-    assert "20/10" in second and "no es válida" in second and "Error:" in second
+    assert "20/10" in second and "not valid" in second and "Error:" in second
 
 
 async def test_two_failures_raise_with_both_errors() -> None:
@@ -67,4 +67,4 @@ async def test_json_object_mode_when_schema_unsupported() -> None:
     await complete_structured(client, [{"role": "user", "content": "q"}], Eta)
     call = client.calls[0]
     assert call.options["response_format"] == {"type": "json_object"}
-    assert "esquema" in client.last_prompt_text() and "eta_date" in client.last_prompt_text()
+    assert "schema" in client.last_prompt_text() and "eta_date" in client.last_prompt_text()

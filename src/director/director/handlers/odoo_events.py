@@ -62,8 +62,8 @@ def on_orderpoint(event: BaseEvent) -> Route:
         case_id=event.case_id,
         product_ids=[event.product_id],
         context=(
-            f"regla de reposición {event.orderpoint_id} disparada: faltan "
-            f"{event.qty_to_order:g} unidades de {event.product_code or event.product_id}"
+            f"reorder rule {event.orderpoint_id} triggered: {event.qty_to_order:g} units of "
+            f"{event.product_code or event.product_id} short"
         ),
     )
     return Route(case_kind="planning", dispatches=[Dispatch(agent="inventory_planning", task=task)])
@@ -71,12 +71,32 @@ def on_orderpoint(event: BaseEvent) -> Route:
 
 def on_approval_resolved(event: BaseEvent) -> Route:
     assert isinstance(event, OdooApprovalResolved)
-    who = f" by {event.resolved_by}" if event.resolved_by else ""
     return Route(
         case_kind=_case_kind_for_approval(event.kind),
         po_name=event.po_name,
-        note=f"approval {event.approval_id} ({event.kind}) {event.status}{who}",
+        note=approval_note(event),
     )
+
+
+_APPROVAL_LABELS: dict[str, str] = {
+    "send_email": "email",
+    "po_change": "order change",
+    "planning_run": "planning run",
+    "escalation": "escalation",
+    "unlinked_mail": "unlinked email",
+    "orderpoint_change": "reorder rule change",
+}
+
+
+def approval_note(event: OdooApprovalResolved) -> str:
+    """``Approval #20 (planning run) expired: nobody answered in time``."""
+    label = _APPROVAL_LABELS.get(event.kind, event.kind.replace("_", " "))
+    person = event.resolved_by_name or event.resolved_by
+    if event.status == "expired":
+        outcome = "expired: nobody answered in time"
+    else:
+        outcome = f"{event.status} by {person}" if person else event.status
+    return f"Approval #{event.approval_id} ({label}) {outcome}"
 
 
 _APPROVAL_CASE_KINDS: dict[str, CaseKind] = {
