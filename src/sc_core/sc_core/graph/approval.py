@@ -194,11 +194,15 @@ class ApprovalGateway:
         *,
         step: str,
         build: RequestBuilder,
-        after: str,
+        after: str | None,
         approved: str,
         rejected: str,
     ) -> str:
-        """Add ``<step>.request`` -> ``<step>.await`` after ``after``; branch on the decision."""
+        """Add ``<step>.request`` -> ``<step>.await`` after ``after``; branch on the decision.
+
+        ``after=None`` adds no incoming edge: the caller routes to
+        ``<step>.request`` itself (a conditional edge, for instance).
+        """
         request_node, await_node = f"{step}.request", f"{step}.await"
 
         async def request(state: Any) -> dict[str, Any]:
@@ -209,7 +213,8 @@ class ApprovalGateway:
 
         graph.add_node(request_node, request)
         graph.add_node(await_node, wait)
-        graph.add_edge(after, request_node)
+        if after is not None:
+            graph.add_edge(after, request_node)
         graph.add_edge(request_node, await_node)
         graph.add_conditional_edges(
             await_node, decided(step), {"approved": approved, "rejected": rejected}

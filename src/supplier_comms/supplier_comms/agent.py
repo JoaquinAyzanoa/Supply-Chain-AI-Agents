@@ -7,19 +7,24 @@ from typing import Any
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.types import Command
 from loguru import logger
+from pydantic import BaseModel
 
 from sc_core.graph import run_config
 from sc_core.graph.approval import pending_for
 from sc_core.infra import tracing
 from sc_core.schema.a2a import (
+    ChangeProposal,
+    Classification,
     OutboundSummary,
     Outcome,
+    QuotationData,
     SupplierCommsResult,
     SupplierCommsTask,
 )
 from sc_core.shared.errors import NotFound
 from sc_core.shared.idempotency import new_id
 from supplier_comms import AGENT_NAME
+from supplier_comms.nodes.apply import CHANGE_STEP
 from supplier_comms.nodes.send import SEND_STEP
 
 
@@ -53,21 +58,26 @@ class SupplierCommsAgent:
         state = await self._graph.ainvoke(Command(resume=decision), config)
         return self.result_from(state)
 
+    async def snapshot(self, case_id: str) -> dict[str, Any]:
+        """The persisted state of a case (tests and the callback use it)."""
+        return dict((await self._graph.aget_state(run_config(case_id))).values)
+
     @staticmethod
     def result_from(state: dict[str, Any]) -> SupplierCommsResult:
         task = SupplierCommsTask.model_validate(state["task"])
-        interrupted = "__interrupt__" in state or not state.get("outcome")
         if state.get("outcome"):
             outcome = Outcome.model_validate(state["outcome"])
-        elif interrupted:
-            pending = pending_for(state, SEND_STEP) or _any_pending(state)
+        else:
+            pending = (
+                pending_for(state, SEND_STEP)
+                or pending_for(state, CHANGE_STEP)
+                or _any_pending(state)
+            )
             outcome = Outcome(
                 status="awaiting_approval",
                 summary="esperando aprobación humana",
                 approval_id=pending.get("approval_id") if pending else None,
             )
-        else:  # pragma: no cover - defensive
-            outcome = Outcome(status="failed", summary="run ended without an outcome")
         outbound = state.get("outbound")
         sent = state.get("sent") or {}
         return SupplierCommsResult(
@@ -76,6 +86,9 @@ class SupplierCommsAgent:
             run_id=state.get("run_id") or "run_unknown",
             outcome=outcome,
             po_name=task.po_name,
+            classification=_model(Classification, state.get("classification")),
+            extracted=_model(QuotationData, state.get("extracted")),
+            proposal=_model(ChangeProposal, state.get("proposal")),
             outbound=OutboundSummary(
                 kind=outbound["kind"],
                 to=outbound["to"],
@@ -88,6 +101,10 @@ class SupplierCommsAgent:
             else None,
             trace_id=state.get("trace_id"),
         )
+
+
+def _model[M: BaseModel](cls: type[M], data: dict[str, Any] | None) -> M | None:
+    return cls.model_validate(data) if data else None
 
 
 def _any_pending(state: dict[str, Any]) -> dict[str, Any] | None:

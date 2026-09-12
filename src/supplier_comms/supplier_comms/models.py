@@ -13,6 +13,7 @@ class LineView(StrictModel):
     id: int
     product: str
     product_id: int | None = None
+    product_tmpl_id: int | None = None
     qty: float
     uom: str | None = None
     price_unit: float
@@ -29,6 +30,7 @@ class PoContext(StrictModel):
     partner_name: str
     supplier_emails: list[str]
     currency: str | None = None
+    currency_id: int | None = None
     date_planned: date | None = None
     amount_total: float = 0.0
     lines: list[LineView]

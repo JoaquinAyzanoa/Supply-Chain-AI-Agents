@@ -24,6 +24,7 @@ def demo_context(
         partner_name="Proveedor Hidraulica",
         supplier_emails=[SUPPLIER_EMAIL] if emails is None else emails,
         currency="PEN",
+        currency_id=3,
         date_planned=date(2026, 10, 1),
         amount_total=1250.0,
         lines=[
@@ -31,6 +32,7 @@ def demo_context(
                 id=31,
                 product="Bomba hidráulica 2HP",
                 product_id=101,
+                product_tmpl_id=1001,
                 qty=2,
                 uom="Unidades",
                 price_unit=500.0,
@@ -41,6 +43,7 @@ def demo_context(
                 id=32,
                 product='Manguera 1/2"',
                 product_id=102,
+                product_tmpl_id=1002,
                 qty=20,
                 uom="m",
                 price_unit=12.5,
@@ -63,6 +66,11 @@ class FakePorts:
     links: list[dict[str, Any]] = field(default_factory=list)
     notes: list[tuple[int, str]] = field(default_factory=list)
     find_sent_misses: int = 0
+    inbound: dict[str, str] = field(default_factory=dict)
+    attachments: dict[str, list[str]] = field(default_factory=dict)
+    date_changes: list[dict[str, Any]] = field(default_factory=list)
+    price_upserts: list[dict[str, Any]] = field(default_factory=list)
+    eta_meta: list[dict[str, Any]] = field(default_factory=list)
     _seq: Any = field(default_factory=lambda: count(1))
 
     async def load_po(self, po_name: str) -> PoContext | None:
@@ -129,3 +137,40 @@ class FakePorts:
 
     async def post_note(self, po_id: int, html: str) -> None:
         self.notes.append((po_id, html))
+
+    async def inbound_text(self, message_id: str) -> str:
+        return self.inbound.get(message_id, "")
+
+    async def attachments_text(self, message_id: str, *, max_chars: int) -> list[str]:
+        return [t[:max_chars] for t in self.attachments.get(message_id, [])]
+
+    async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None:
+        self.date_changes.append(
+            {"line_id": line_id, "date": new_date.isoformat(), "run_id": run_id}
+        )
+
+    async def upsert_price(
+        self,
+        *,
+        partner_id: int,
+        product_tmpl_id: int,
+        product_id: int | None,
+        price: float,
+        currency_id: int,
+        min_qty: float,
+        lead_days: int | None,
+    ) -> None:
+        self.price_upserts.append(
+            {
+                "partner_id": partner_id,
+                "product_tmpl_id": product_tmpl_id,
+                "product_id": product_id,
+                "price": price,
+                "currency_id": currency_id,
+                "min_qty": min_qty,
+                "lead_days": lead_days,
+            }
+        )
+
+    async def set_eta_meta(self, po_id: int, *, confidence: float) -> None:
+        self.eta_meta.append({"po_id": po_id, "confidence": confidence})

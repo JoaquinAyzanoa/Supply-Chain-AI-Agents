@@ -1,8 +1,10 @@
 """The supplier communications graph.
 
-Phase 5 story 4 wires the outbound path: load_context -> draft_outbound ->
-create_draft -> [send_email approval] -> send | rejected. Inbound kinds are
-routed to ``unsupported`` until story 5 adds classify/extract/propose/apply.
+Outbound: load_context -> draft_outbound -> create_draft -> [send_email
+approval] -> send | rejected. Inbound: load_context -> classify ->
+extract -> propose_changes -> [po_change approval] -> apply_changes |
+change_rejected; a question is answered in the thread through the outbound
+path; anything else ends as no_action. ``resolve_unlinked`` arrives in story 6.
 """
 
 from __future__ import annotations
@@ -20,9 +22,19 @@ from sc_core.graph import ApprovalGateway, ToolBox
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter
 from sc_core.shared.time import local_today
+from supplier_comms.nodes.apply import (
+    CHANGE_STEP,
+    make_apply_changes,
+    make_change_approval,
+    make_change_rejected,
+    make_no_action,
+)
+from supplier_comms.nodes.classify import make_classify
 from supplier_comms.nodes.common import fail
 from supplier_comms.nodes.draft_outbound import KIND_TO_DRAFT, make_draft_outbound
+from supplier_comms.nodes.extract import make_extract
 from supplier_comms.nodes.load_context import make_load_context
+from supplier_comms.nodes.propose import make_propose_changes
 from supplier_comms.nodes.send import (
     SEND_STEP,
     make_create_draft,
@@ -34,6 +46,8 @@ from supplier_comms.ports import AgentPorts
 from supplier_comms.state import Node, SupplierCommsState
 from supplier_comms.tools import build_toolbox
 
+TERMINAL = ("send", "rejected", "apply_changes", "change_rejected", "no_action", "unsupported")
+
 
 @dataclass
 class Deps:
@@ -43,6 +57,7 @@ class Deps:
     toolbox: ToolBox | None = None
     auto_send_partner_ids: frozenset[int] = frozenset()
     max_tool_rounds: int = 6
+    max_attachment_chars: int = 12_000
     langfuse: LangfuseCfg | None = None
     today: Callable[[], date] = field(default=local_today)
     sleep: Callable[[float], Awaitable[None]] = field(default=asyncio.sleep)
@@ -55,7 +70,11 @@ class Deps:
 def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     assert deps.toolbox is not None
     g: StateGraph = StateGraph(SupplierCommsState)
-    _add(g, "load_context", make_load_context(deps.ports))
+    _add(
+        g,
+        "load_context",
+        make_load_context(deps.ports, max_attachment_chars=deps.max_attachment_chars),
+    )
     _add(
         g,
         "draft_outbound",
@@ -70,13 +89,24 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     _add(g, "create_draft", make_create_draft(deps.ports))
     _add(g, "send", make_send(deps.ports, sleep=deps.sleep))
     _add(g, "rejected", make_rejected(deps.ports))
+    _add(g, "classify", make_classify(deps.chat, langfuse=deps.langfuse, today=deps.today))
+    _add(g, "extract", make_extract(deps.chat, langfuse=deps.langfuse, today=deps.today))
+    _add(g, "propose_changes", make_propose_changes())
+    _add(g, "apply_changes", make_apply_changes(deps.ports))
+    _add(g, "change_rejected", make_change_rejected(deps.ports))
+    _add(g, "no_action", make_no_action())
     _add(g, "unsupported", _unsupported)
 
     g.add_edge(START, "load_context")
     g.add_conditional_edges(
         "load_context",
         _after_load,
-        {"outbound": "draft_outbound", "unsupported": "unsupported", "end": END},
+        {
+            "outbound": "draft_outbound",
+            "inbound": "classify",
+            "unsupported": "unsupported",
+            "end": END,
+        },
     )
     g.add_conditional_edges("draft_outbound", _continue_or_end, {"go": "create_draft", "end": END})
     deps.approvals.add_approval(
@@ -87,22 +117,53 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
         approved="send",
         rejected="rejected",
     )
-    g.add_edge("send", END)
-    g.add_edge("rejected", END)
-    g.add_edge("unsupported", END)
+    g.add_conditional_edges(
+        "classify",
+        _after_classify,
+        {"extract": "extract", "reply": "draft_outbound", "no_action": "no_action"},
+    )
+    g.add_edge("extract", "propose_changes")
+    # propose_changes ends the run itself when there is nothing to change; the
+    # approval nodes are only reached with a proposal in the state.
+    g.add_conditional_edges(
+        "propose_changes", _continue_or_end, {"go": f"{CHANGE_STEP}.request", "end": END}
+    )
+    deps.approvals.add_approval(
+        g,
+        step=CHANGE_STEP,
+        build=make_change_approval(),
+        after=None,
+        approved="apply_changes",
+        rejected="change_rejected",
+    )
+    for terminal in TERMINAL:
+        g.add_edge(terminal, END)
     return g.compile(checkpointer=checkpointer)
 
 
 def _add(g: StateGraph, name: str, node: Node) -> None:
     # LangGraph's add_node overloads do not accept a Callable alias; the runtime contract holds.
-    g.add_node(name, node)  # type: ignore[call-overload]
+    g.add_node(name, node)  # type: ignore[call-overload, arg-type]
 
 
 def _after_load(state: dict[str, Any]) -> Hashable:
     if state.get("outcome"):
         return "end"
     kind = (state.get("task") or {}).get("kind")
-    return "outbound" if kind in KIND_TO_DRAFT else "unsupported"
+    if kind in KIND_TO_DRAFT:
+        return "outbound"
+    if kind == "handle_inbound":
+        return "inbound"
+    return "unsupported"
+
+
+def _after_classify(state: dict[str, Any]) -> Hashable:
+    kind = (state.get("classification") or {}).get("kind")
+    if kind in ("quotation", "eta_update"):
+        return "extract"
+    if kind == "question":
+        return "reply"
+    return "no_action"
 
 
 def _continue_or_end(state: dict[str, Any]) -> Hashable:

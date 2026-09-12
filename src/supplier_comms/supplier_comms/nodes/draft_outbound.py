@@ -24,7 +24,7 @@ from sc_core.prompts import get_prompt
 from sc_core.schema.a2a import DraftKind, OutboundDraft
 from supplier_comms.models import DraftOutput
 from supplier_comms.nodes.common import context_of, fail, task_of
-from supplier_comms.render import outbound_context
+from supplier_comms.render import outbound_context, reply_context
 from supplier_comms.state import Node
 
 PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
@@ -52,7 +52,7 @@ def make_draft_outbound(
     async def draft_outbound(state: Any) -> dict[str, Any]:
         task = task_of(state)
         ctx = context_of(state)
-        kind = KIND_TO_DRAFT[task.kind]
+        kind = KIND_TO_DRAFT.get(task.kind, "reply")  # inbound questions are answered in-thread
         if not ctx.supplier_emails:
             return fail(f"supplier {ctx.partner_name} has no email address in Odoo")
 
@@ -62,9 +62,13 @@ def make_draft_outbound(
         system_text = "\n\n".join([tone.text, formats.compile(po_name=ctx.name), prompt.text])
         metadata = {"prompt": prompt.name, "prompt_version": prompt.version, "po_name": ctx.name}
 
+        if kind == "reply":
+            context_text = reply_context(task, ctx, today(), state.get("inbound_text") or "")
+        else:
+            context_text = outbound_context(task, ctx, today())
         loop = await run_tool_loop(
             chat,
-            [system(system_text), user(outbound_context(task, ctx, today()))],
+            [system(system_text), user(context_text)],
             toolbox,
             max_rounds=max_tool_rounds,
             name=f"supplier_comms.draft_{kind}",
@@ -82,6 +86,7 @@ def make_draft_outbound(
             to=ctx.supplier_emails,
             subject=po_token.tag_subject(draft.subject, ctx.name),
             html_body=draft.html_body,
+            reply_to_message_id=task.graph_message_id if kind == "reply" else None,
         )
         logger.bind(po_name=ctx.name, kind=kind, tool_calls=loop.tool_calls).info("draft ready")
         return {
