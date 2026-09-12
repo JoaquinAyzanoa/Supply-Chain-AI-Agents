@@ -179,6 +179,14 @@ class SchedulerCfg(_Section):
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 
+class AgentsCfg(_Section):
+    """Shared by every LangGraph agent: who approves and how long they get."""
+
+    approver_user_id: int = Field(default=2, ge=1)  # Odoo demo: 2 = Administrator
+    approval_deadline_days: int = Field(default=2, ge=0)
+    max_tool_rounds: int = Field(default=6, ge=1)  # model <-> tools loop cap per node
+
+
 class HttpCfg(_Section):
     """HTTP server and middleware settings shared by every service."""
 
@@ -223,6 +231,7 @@ class Settings(BaseSettings):
     events: EventsCfg = Field(default_factory=EventsCfg)
     mail_sync: MailSyncCfg = Field(default_factory=MailSyncCfg)
     scheduler: SchedulerCfg = Field(default_factory=SchedulerCfg)
+    agents: AgentsCfg = Field(default_factory=AgentsCfg)
 
     def __init__(self, **values: Any) -> None:
         # pydantic-settings reads .env only for its own SC__ fields. Provider API

@@ -29,6 +29,11 @@ class Database:
             kwargs={"row_factory": dict_row, "autocommit": True},
         )
 
+    @property
+    def pool(self) -> AsyncConnectionPool[AsyncConnection[dict[str, Any]]]:
+        """The underlying pool, for libraries that manage their own connections (LangGraph)."""
+        return self._pool
+
     async def open(self) -> None:
         await self._pool.open()
 

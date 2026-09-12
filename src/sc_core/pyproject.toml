@@ -23,6 +23,8 @@ dependencies = [
   "agent-framework-openai>=1.14.3,<2",
   "langfuse>=4.0.0",
   "openai>=1.60.0",
+  "langgraph>=1.2,<2",
+  "langgraph-checkpoint-postgres>=3.1,<4",
 ]
 
 [build-system]
@@ -34,13 +36,16 @@ packages = ["sc_core"]
 
 [tool.deptry.per_rule_ignores]
 # starlette ships with fastapi; its ASGI types and datastructures are the
-# intended import surface for middleware.
-DEP003 = ["starlette"]
+# intended import surface for middleware. langchain-core ships with langgraph;
+# its RunnableConfig is the type LangGraph expects for thread configuration.
+DEP003 = ["starlette", "langchain_core"]
 # tzdata is data only (IANA zone files read by zoneinfo); it is never imported.
 DEP002 = ["tzdata"]
 
 [tool.deptry.package_module_name_map]
 # psycopg[pool] installs psycopg-pool; both are one dependency here.
 psycopg = ["psycopg", "psycopg_pool"]
+# both ship modules under the shared `langgraph` namespace
+"langgraph-checkpoint-postgres" = ["langgraph"]
 # agent-framework-openai exposes its client under the shared `agent_framework` namespace.
 "agent-framework-openai" = ["agent_framework"]
