@@ -24,6 +24,7 @@ from sc_core.app.realtime import Realtime
 from sc_core.infra.db import Database
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
+from sc_core.llm.registry import Registry
 from sc_core.schema.base import StrictModel
 from sc_core.schema.runtime_settings import RuntimeSettings
 
@@ -157,6 +158,33 @@ async def put_settings(
     )
     logger.bind(version=saved.version, by=principal.email).info("runtime settings saved")
     return saved
+
+
+class ModelOption(StrictModel):
+    name: str
+    provider: str
+    reasoning: bool = False
+    input_usd_per_mtok: float
+    output_usd_per_mtok: float
+    configured: bool = Field(description="the provider's API key is present on this host")
+
+
+@router.get("/models", response_model=list[ModelOption])
+async def list_models(_: Principal = Viewer) -> list[ModelOption]:
+    """The models an agent may be switched to (from the registry), cheapest first."""
+    registry = Registry.load()
+    options = [
+        ModelOption(
+            name=spec.name,
+            provider=spec.provider,
+            reasoning=spec.reasoning,
+            input_usd_per_mtok=spec.price_per_mtok.input,
+            output_usd_per_mtok=spec.price_per_mtok.output,
+            configured=registry.provider(spec.provider).configured,
+        )
+        for spec in registry.models.values()
+    ]
+    return sorted(options, key=lambda o: (o.input_usd_per_mtok + o.output_usd_per_mtok, o.name))
 
 
 @router.get("/history", response_model=list[SettingsVersion])

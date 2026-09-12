@@ -53,7 +53,7 @@ interface Draft {
 
 function toDraft(settings: RuntimeSettings): Draft {
   return {
-    model_by_agent: { ...settings.model_by_agent },
+    model_by_agent: { ...(settings.model_by_agent ?? {}) },
     rfq_no_reply_days: settings.rfq_no_reply_days.join(", "),
     po_eta_request_before_days: String(settings.po_eta_request_before_days),
     po_late_days: settings.po_late_days.join(", "),
@@ -222,7 +222,7 @@ export function SettingsPage() {
                   <TableCell>{version.changed_by}</TableCell>
                   <TableCell>{version.note ?? ""}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">
-                    {Object.entries(version.settings.model_by_agent)
+                    {Object.entries(version.settings.model_by_agent ?? {})
                       .map(([agent, model]) => `${agent}: ${model}`)
                       .join(", ") || t("settings.model_default")}
                   </TableCell>

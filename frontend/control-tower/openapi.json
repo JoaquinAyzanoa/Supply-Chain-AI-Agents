@@ -1093,6 +1093,46 @@
         "title": "LoginResponse",
         "type": "object"
       },
+      "ModelOption": {
+        "additionalProperties": false,
+        "properties": {
+          "configured": {
+            "description": "the provider's API key is present on this host",
+            "title": "Configured",
+            "type": "boolean"
+          },
+          "input_usd_per_mtok": {
+            "title": "Input Usd Per Mtok",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "output_usd_per_mtok": {
+            "title": "Output Usd Per Mtok",
+            "type": "number"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "reasoning": {
+            "default": false,
+            "title": "Reasoning",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "provider",
+          "input_usd_per_mtok",
+          "output_usd_per_mtok",
+          "configured"
+        ],
+        "title": "ModelOption",
+        "type": "object"
+      },
       "OverallStatus": {
         "enum": [
           "ok",
@@ -3109,6 +3149,37 @@
           }
         ],
         "summary": "Settings History",
+        "tags": [
+          "settings"
+        ]
+      }
+    },
+    "/api/settings/models": {
+      "get": {
+        "description": "The models an agent may be switched to (from the registry), cheapest first.",
+        "operationId": "list_models_api_settings_models_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ModelOption"
+                  },
+                  "title": "Response List Models Api Settings Models Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Models",
         "tags": [
           "settings"
         ]

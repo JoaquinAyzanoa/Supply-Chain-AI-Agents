@@ -17,7 +17,8 @@ import { CasesPage } from "@/features/cases/CasesPage";
 import { ExceptionsBoardPage } from "@/features/exceptions/ExceptionsBoard";
 import { PlanningPage } from "@/features/planning/PlanningPage";
 import { PlanningRunPage } from "@/features/planning/PlanningRunPage";
-import { RunsPage, SettingsPage } from "@/routes/placeholders";
+import { RunsPage, type RunsSearch } from "@/features/runs/RunsPage";
+import { SettingsPage } from "@/features/settings/SettingsPage";
 
 export interface RouterContext {
   auth: AuthState;
@@ -83,7 +84,19 @@ export const caseRoute = child("/cases/$caseId", CaseTimelinePage);
 export const exceptionsRoute = child("/exceptions", ExceptionsBoardPage);
 export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
-export const runsRoute = child("/runs", RunsPage);
+const runsSearch = z.object({
+  agent: z.string().optional(),
+  model: z.string().optional(),
+  status: z.string().optional(),
+  since: z.string().optional(),
+});
+
+export const runsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/runs",
+  validateSearch: (search): RunsSearch => runsSearch.parse(search),
+  component: RunsPage,
+});
 export const settingsRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/settings",

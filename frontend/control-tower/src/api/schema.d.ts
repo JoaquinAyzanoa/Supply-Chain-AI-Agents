@@ -303,6 +303,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Models
+         * @description The models an agent may be switched to (from the registry), cheapest first.
+         */
+        get: operations["list_models_api_settings_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stream": {
         parameters: {
             query?: never;
@@ -711,6 +731,27 @@ export interface components {
             role: "viewer" | "approver" | "admin";
             /** Token */
             token: string;
+        };
+        /** ModelOption */
+        ModelOption: {
+            /**
+             * Configured
+             * @description the provider's API key is present on this host
+             */
+            configured: boolean;
+            /** Input Usd Per Mtok */
+            input_usd_per_mtok: number;
+            /** Name */
+            name: string;
+            /** Output Usd Per Mtok */
+            output_usd_per_mtok: number;
+            /** Provider */
+            provider: string;
+            /**
+             * Reasoning
+             * @default false
+             */
+            reasoning: boolean;
         };
         /**
          * OverallStatus
@@ -1609,6 +1650,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SettingsVersion"][];
+                };
+            };
+        };
+    };
+    list_models_api_settings_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelOption"][];
                 };
             };
         };
