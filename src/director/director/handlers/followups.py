@@ -6,12 +6,17 @@ what to do, records the rule that fired on the order's case, and either
 sends a ``follow_up`` / ``request_eta`` task to supplier_comms or hands the
 order to a person. Each decision is a ``rule_fired`` case event, so the
 Control Tower can explain why an email was proposed.
+
+It also reviews pending approvals: after ``approval_stale_days`` the
+approver gets a reminder on the record, after ``approval_expire_days`` the
+approval is expired (Odoo then calls the agent back and mirrors the
+decision, which escalates the case).
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from datetime import date
+from datetime import date, datetime
 from typing import Any, Protocol, runtime_checkable
 
 from loguru import logger
@@ -26,7 +31,7 @@ from director.workflow import (
     consolidate_outcome,
     outcome_from_reply,
 )
-from sc_core.odoo.models import PurchaseOrder
+from sc_core.odoo.models import Approval, PurchaseOrder
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.events import ScheduledTick
 from sc_core.shared.errors import ScError
@@ -49,6 +54,28 @@ class MailActivity(Protocol):
         ...
 
 
+@runtime_checkable
+class ApprovalsPort(Protocol):
+    async def pending(self) -> list[Approval]: ...
+
+    async def remind(self, approval: Approval, *, days_pending: int) -> None:
+        """Nudge the approver (chatter note on the record)."""
+        ...
+
+    async def expire(self, approval_id: int, *, reason: str) -> None: ...
+
+
+class NoApprovals:
+    async def pending(self) -> list[Approval]:
+        return []
+
+    async def remind(self, approval: Approval, *, days_pending: int) -> None:
+        return None
+
+    async def expire(self, approval_id: int, *, reason: str) -> None:
+        return None
+
+
 class FollowUpJob:
     """``JobRunner`` for ``po_followups`` (other job ids are recorded as not implemented)."""
 
@@ -61,6 +88,7 @@ class FollowUpJob:
         cases: CaseStore,
         agents: Agents,
         escalator: Escalator,
+        approvals: ApprovalsPort | None = None,
         conversations: ConversationLookup | None = None,
         today: Callable[[], date] = local_today,
     ) -> None:
@@ -70,6 +98,7 @@ class FollowUpJob:
         self._cases = cases
         self._agents = agents
         self._escalator = escalator
+        self._approvals = approvals or NoApprovals()
         self._conversations = conversations or NoConversations()
         self._today = today
 
@@ -87,6 +116,7 @@ class FollowUpJob:
             outcomes.append(outcome)
             sent += outcome.get("task") is not None
             escalated += bool(outcome.get("escalated"))
+        reviewed = await self.review_approvals(today)
         logger.bind(run_id=tick.run_id, orders=len(facts), decisions=len(decisions)).info(
             "follow-up job done"
         )
@@ -97,9 +127,60 @@ class FollowUpJob:
             "tasks_sent": sent,
             "escalated": escalated,
             "decisions": outcomes,
+            "approvals": reviewed,
         }
 
-    async def gather(self, today: date) -> list[PoFacts]:
+    async def review_approvals(self, today: date) -> dict[str, list[int]]:
+        """Remind after ``approval_stale_days``, expire after ``approval_expire_days``."""
+        reminded: list[int] = []
+        expired: list[int] = []
+        for approval in await self._approvals.pending():
+            if approval.create_date is None:
+                continue
+            days = (today - _as_date(approval.create_date)).days
+            case = await self._cases.find_by_thread(approval.thread_id or "")
+            if days >= self._policy.approval_expire_days:
+                reason = f"sin respuesta del aprobador en {days} días"
+                await self._approvals.expire(approval.id, reason=reason)
+                expired.append(approval.id)
+                if case is not None:
+                    await self._cases.add_event(
+                        case.case_id,
+                        "note",
+                        {
+                            "text": f"approval {approval.id} expired: {reason}",
+                            "approval_id": approval.id,
+                        },
+                    )
+                continue
+            if days >= self._policy.approval_stale_days and not await self._reminded(
+                case, approval.id
+            ):
+                await self._approvals.remind(approval, days_pending=days)
+                reminded.append(approval.id)
+                if case is not None:
+                    await self._cases.add_event(
+                        case.case_id,
+                        "note",
+                        {
+                            "text": f"approver reminded about approval {approval.id} ({days} days)",
+                            "approval_id": approval.id,
+                            "reminder": True,
+                        },
+                    )
+        return {"reminded": reminded, "expired": expired}
+
+    async def _reminded(self, case: Case | None, approval_id: int) -> bool:
+        if case is None:
+            return False  # nothing to dedupe on: remind at most once per run anyway
+        return any(
+            e.kind == "note"
+            and e.payload.get("reminder")
+            and e.payload.get("approval_id") == approval_id
+            for e in await self._cases.events(case.case_id)
+        )
+
+    async def gather(self, today: date) -> list[PoFacts]:  # noqa: D102 - see module docstring
         """Facts for every order worth looking at, each order once."""
         contacts = await self._mail.contacts()
         orders: dict[str, PurchaseOrder] = {}
@@ -217,3 +298,7 @@ class FollowUpJob:
             self._cases, self._escalator, self._conversations, outcome
         )
         return {"status": update.status, "summary": outcome.summary}
+
+
+def _as_date(value: datetime | date) -> date:
+    return value.date() if isinstance(value, datetime) else value

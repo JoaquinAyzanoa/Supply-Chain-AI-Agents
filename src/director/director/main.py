@@ -14,7 +14,13 @@ from loguru import logger
 from director import __version__
 from director.agents import Agents, build_agents
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
-from director.escalation import Escalator, LoggingEscalator
+from director.escalation import (
+    Escalator,
+    LoggingEscalator,
+    OdooApprovals,
+    OdooEscalationPorts,
+    OdooEscalator,
+)
 from director.handlers.followups import FollowUpJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
 from director.jobs import JobRunner
@@ -24,10 +30,10 @@ from director.store import CaseStore, PostgresCaseStore
 from director.workflow import Deps, Orchestrator
 from sc_core.app import create_application
 from sc_core.infra.db import Database
-from sc_core.infra.module import DbModule, OdooModule
+from sc_core.infra.module import ChatClientFactory, DbModule, LlmModule, OdooModule
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
-from sc_core.odoo.repositories import PurchaseOrderRepo
+from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo, PurchaseOrderRepo
 
 settings = Settings(service_name="director")
 
@@ -52,8 +58,27 @@ class DirectorModule(Module):
 
     @provider
     @singleton
-    def provide_escalator(self) -> Escalator:  # type: ignore[type-abstract]
-        return LoggingEscalator()
+    def provide_escalator(
+        self,
+        settings: Settings,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        chats: ChatClientFactory,
+        approvals: ApprovalRepo,
+        activities: ActivityRepo,
+        orders: PurchaseOrderRepo,
+    ) -> Escalator:  # type: ignore[type-abstract]
+        if not settings.odoo.configured:
+            return LoggingEscalator()
+        ports = OdooEscalationPorts(
+            approvals, activities, orders, approver_user_id=settings.agents.approver_user_id
+        )
+        return OdooEscalator(
+            chats.for_agent("director"),
+            ports,
+            cases,
+            deadline_days=settings.agents.approval_deadline_days,
+            langfuse=settings.langfuse,
+        )
 
     @provider
     @singleton
@@ -65,6 +90,7 @@ class DirectorModule(Module):
         cases: CaseStore,  # type: ignore[type-abstract]
         agents: Agents,
         escalator: Escalator,  # type: ignore[type-abstract]
+        approvals: ApprovalRepo,
     ) -> JobRunner:  # type: ignore[type-abstract]
         return FollowUpJob(
             policy=FollowUpPolicy.from_settings(settings.director),
@@ -73,6 +99,7 @@ class DirectorModule(Module):
             cases=cases,
             agents=agents,
             escalator=escalator,
+            approvals=OdooApprovals(approvals, orders),
             conversations=PostgresConversationLookup(db),
         )
 
@@ -114,7 +141,7 @@ def build_app() -> FastAPI:
         settings,
         version=__version__,
         routers=[events.router],
-        modules=[DbModule(), OdooModule(), DirectorModule()],
+        modules=[DbModule(), OdooModule(), LlmModule(), DirectorModule()],
         startup=[_open_db, _connect_odoo],
         shutdown=[_close_odoo, _close_agents, _close_db],
     )

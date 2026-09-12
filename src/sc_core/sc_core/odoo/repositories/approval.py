@@ -85,6 +85,11 @@ class ApprovalRepo(Repo[Approval]):
             raise ValidationFailed(f"cannot resolve an approval as {status!r}")
         return await self.get(approval_id)
 
+    async def expire(self, approval_id: int, *, reason: str | None = None) -> Approval:
+        """Close a pending approval nobody answered (the agent gets the usual callback)."""
+        await self._c.call(self._name, "action_expire", [approval_id], reason=reason)
+        return await self.get(approval_id)
+
     @staticmethod
     def payload_of(approval: Approval) -> dict[str, Any]:
         return json.loads(approval.payload_json) if approval.payload_json else {}

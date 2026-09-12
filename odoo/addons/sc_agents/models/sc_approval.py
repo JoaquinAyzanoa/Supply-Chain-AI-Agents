@@ -116,6 +116,12 @@ class ScApproval(models.Model):
         for approval in self:
             approval.resolve("rejected", self.env.user)
 
+    def action_expire(self, reason=None):
+        """Close a pending approval nobody answered (called by the orchestrator's daily job)."""
+        for approval in self:
+            approval.resolve("expired", self.env.user, reason=reason)
+        return True
+
     def resolve(self, status, user, reason=None):
         """Record the decision and notify the agent. Idempotent on repeat calls."""
         self.ensure_one()

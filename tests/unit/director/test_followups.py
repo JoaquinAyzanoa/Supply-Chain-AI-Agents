@@ -16,7 +16,7 @@ from director.handlers.followups import FollowUpJob, OrdersPort
 from director.policies import Decision, FollowUpPolicy, PoFacts, decide
 from director.store import MemoryCaseStore
 from sc_core.a2a.testing import FakeAgentCaller
-from sc_core.odoo.models import PurchaseOrder, Ref
+from sc_core.odoo.models import Approval, PurchaseOrder, Ref
 
 from .helpers import agent_reply, tick
 
@@ -346,3 +346,79 @@ async def test_other_jobs_are_not_implemented(
         "job": "inventory_planning",
         "status": "not_implemented",
     }
+
+
+# --- stale approvals ------------------------------------------------------------------
+
+
+class FakeApprovals:
+    def __init__(self, approvals: list[Approval]) -> None:
+        self.approvals = approvals
+        self.reminded: list[tuple[int, int]] = []
+        self.expired: list[tuple[int, str]] = []
+
+    async def pending(self) -> list[Approval]:
+        return [a for a in self.approvals if a.status == "pending"]
+
+    async def remind(self, approval: Approval, *, days_pending: int) -> None:
+        self.reminded.append((approval.id, days_pending))
+
+    async def expire(self, approval_id: int, *, reason: str) -> None:
+        self.expired.append((approval_id, reason))
+        self.approvals = [
+            a.model_copy(update={"status": "expired"}) if a.id == approval_id else a
+            for a in self.approvals
+        ]
+
+
+def _approval(approval_id: int, thread_id: str, created: date) -> Approval:
+    return Approval(
+        id=approval_id,
+        kind="send_email",
+        summary="Enviar RFQ",
+        status="pending",
+        po_id=Ref(id=15, name="P00015"),
+        thread_id=thread_id,
+        create_date=datetime.combine(created, datetime.min.time()),
+    )
+
+
+async def test_stale_approvals_are_reminded_once_and_expired(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    cases, agent, escalator = MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator()
+    for name, thread in (("P00010", "t-fresh"), ("P00011", "t-stale"), ("P00012", "t-old")):
+        case, _ = await cases.attach_or_create(kind="rfq", po_name=name)
+        await cases.add_event(case.case_id, "task_sent", {"task": "send_rfq", "thread_id": thread})
+        await cases.update(case.case_id, status="awaiting_approval")
+    approvals = FakeApprovals(
+        [
+            _approval(1, "t-fresh", date(2026, 9, 13)),  # 1 day: nothing
+            _approval(2, "t-stale", date(2026, 9, 11)),  # 3 days: remind
+            _approval(3, "t-old", date(2026, 9, 6)),  # 8 days: expire
+            _approval(4, "t-unknown", date(2026, 9, 10)),  # no case: still reminded
+        ]
+    )
+    orders, mail = seeded
+    agent.replies.append(agent_reply("request_eta", "t", "sent", "sent", po_name="P00013"))
+    job = FollowUpJob(
+        policy=POLICY,
+        orders=orders,
+        mail=mail,
+        cases=cases,
+        agents=Agents(supplier_comms=AgentProxy("supplier_comms", agent)),
+        escalator=escalator,
+        approvals=approvals,
+        today=lambda: TODAY,
+    )
+    summary = await job.run("po_followups", tick("po_followups", "run_1"))
+    assert summary["approvals"] == {"reminded": [2, 4], "expired": [3]}
+    assert approvals.reminded == [(2, 3), (4, 4)]
+    assert approvals.expired[0][0] == 3 and "8 días" in approvals.expired[0][1]
+    # the three orders wait for a human: only P00013 (due soon) got a task
+    assert [json.loads(t.task_json)["po_name"] for t in agent.sent] == ["P00013"]
+
+    again = await job.run("po_followups", tick("po_followups", "run_2"))
+    assert again["approvals"] == {"reminded": [4], "expired": []}  # 2 was reminded already
+    notes = [e.payload for e in cases.case_events if e.kind == "note"]
+    assert [n["approval_id"] for n in notes] == [2, 3]
