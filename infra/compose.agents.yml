@@ -4,9 +4,7 @@ services:
   director:
     build:
       context: ..
-      dockerfile: docker/base.Dockerfile
-      args:
-        MEMBER: director
+      dockerfile: docker/director.Dockerfile  # the director with the Control Tower built in
     image: scai/director
     env_file:
       - path: ../.env

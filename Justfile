@@ -158,6 +158,14 @@ ui-build:
 ui-test:
     npm --prefix {{UI}} run test
 
+# Run the browser tests (Playwright, desktop and phone) against the built bundle
+ui-e2e:
+    npm --prefix {{UI}} run e2e
+
+# Build the director image with the Control Tower built in
+image-director:
+    docker build -f docker/director.Dockerfile -t scai/director .
+
 # Publish every local prompt (sc_core, supplier_comms, director) to Langfuse Prompt Management
 langfuse-prompts:
     {{UV}} run python scripts/langfuse_prompts.py

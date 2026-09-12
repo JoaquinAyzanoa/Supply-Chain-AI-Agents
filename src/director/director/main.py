@@ -2,10 +2,13 @@
 
 Signed events from mail_sync, the scheduler, Odoo and the agents land in
 the event inbox and are handed to the orchestration workflow in a
-background task. Phase 8 adds the Control Tower API.
+background task. Phase 8 adds the Control Tower API under ``/api`` and
+serves the built frontend under ``/`` when the bundle exists.
 """
 
 from __future__ import annotations
+
+from pathlib import Path
 
 from fastapi import FastAPI
 from injector import Module, provider, singleton
@@ -45,6 +48,7 @@ from director.store import CaseStore, PostgresCaseStore
 from director.workflow import Deps, Orchestrator
 from sc_core.app import create_application
 from sc_core.app.realtime import Realtime, RedisRealtime
+from sc_core.app.static import mount_spa
 from sc_core.infra.db import Database
 from sc_core.infra.locks import RedisLock
 from sc_core.infra.module import (
@@ -267,6 +271,8 @@ def build_app() -> FastAPI:
         startup=[_open_db, _connect_odoo],
         shutdown=[_close_odoo, _close_agents, _close_db],
     )
+    # The Control Tower bundle, when built (docker/director.Dockerfile or `just ui-build`).
+    mount_spa(application, Path(settings.ui.static_dir))
     return application
 
 
