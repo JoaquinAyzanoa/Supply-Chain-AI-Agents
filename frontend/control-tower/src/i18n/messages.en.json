@@ -327,5 +327,8 @@
   "approvals.escalation.open_email": "Open the email in Outlook",
   "agent.name.supplier_comms": "Supplier agent",
   "agent.name.inventory_planning": "Planning agent",
-  "agent.name.director": "Director"
+  "agent.name.director": "Director",
+  "settings.mailbox": "Mailbox",
+  "settings.f.ignored_senders": "Senders the inbox ignores",
+  "settings.h.ignored_senders": "Addresses or domains, comma-separated (for example accountprotection.microsoft.com, member_services@outlook.com). Their emails never become cases."
 }

@@ -96,3 +96,10 @@ def test_browser_urls_default_to_the_service_urls() -> None:
     plain = Settings(_env_file=None, service_name="t", environment="test")
     assert plain.odoo.browser_url == plain.odoo.url.rstrip("/")
     assert plain.langfuse.browser_url == plain.langfuse.host
+
+
+def test_ignored_senders_start_from_the_environment() -> None:
+    settings = Settings(_env_file=None, service_name="t", environment="test")
+    baseline = RuntimeSettings.from_settings(settings)
+    assert "accountprotection.microsoft.com" in baseline.ignored_senders
+    assert "member_services@outlook.com" in baseline.ignored_senders

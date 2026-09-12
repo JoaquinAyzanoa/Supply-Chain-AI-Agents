@@ -327,5 +327,8 @@
   "approvals.escalation.open_email": "Abrir el correo en Outlook",
   "agent.name.supplier_comms": "Agente de proveedores",
   "agent.name.inventory_planning": "Agente de planificación",
-  "agent.name.director": "Director"
+  "agent.name.director": "Director",
+  "settings.mailbox": "Buzón",
+  "settings.f.ignored_senders": "Remitentes que el buzón ignora",
+  "settings.h.ignored_senders": "Direcciones o dominios separados por coma (por ejemplo accountprotection.microsoft.com, member_services@outlook.com). Sus correos nunca se convierten en casos."
 }

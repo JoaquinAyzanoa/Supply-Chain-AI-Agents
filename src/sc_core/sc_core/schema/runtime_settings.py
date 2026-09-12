@@ -38,6 +38,8 @@ class RuntimeSettings(StrictModel):
     # Email kinds that go out without approval for every supplier (for example reminders
     # and delivery date requests, while RFQs and purchase orders stay approved).
     auto_send_kinds: list[EmailKind] = []
+    # Senders (addresses or domains) the inbox poller ignores: security notices, digests.
+    ignored_senders: list[str] = []
     # Planning defaults: None keeps the ABC class defaults; a value replaces them for
     # products a planner has not tuned (params with source "default").
     planning_service_level: float | None = Field(default=None, gt=0.5, lt=1.0)
@@ -59,6 +61,7 @@ class RuntimeSettings(StrictModel):
             auto_send_kinds=[
                 k for k in settings.supplier_comms.auto_send_kinds if k in EMAIL_KINDS
             ],  # type: ignore[misc]
+            ignored_senders=list(settings.mail_sync.ignored_senders),
         )
 
     def model_for(self, agent_name: str) -> str | None:

@@ -1121,6 +1121,11 @@ export interface components {
              */
             auto_send_partner_ids: number[];
             /**
+             * Ignored Senders
+             * @default []
+             */
+            ignored_senders: string[];
+            /**
              * Max Actions Per Run
              * @default 20
              */

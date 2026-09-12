@@ -50,6 +50,7 @@ interface Draft {
   max_actions_per_run: string;
   auto_send_partner_ids: string;
   auto_send_kinds: EmailKind[];
+  ignored_senders: string;
   planning_service_level: string;
   planning_review_period_days: string;
   planning_max_coverage_days: string;
@@ -66,6 +67,7 @@ function toDraft(settings: RuntimeSettings): Draft {
     max_actions_per_run: String(settings.max_actions_per_run),
     auto_send_partner_ids: settings.auto_send_partner_ids.join(", "),
     auto_send_kinds: [...(settings.auto_send_kinds ?? [])],
+    ignored_senders: (settings.ignored_senders ?? []).join(", "),
     planning_service_level: settings.planning_service_level === null || settings.planning_service_level === undefined ? "" : String(settings.planning_service_level),
     planning_review_period_days: settings.planning_review_period_days === null || settings.planning_review_period_days === undefined ? "" : String(settings.planning_review_period_days),
     planning_max_coverage_days: settings.planning_max_coverage_days === null || settings.planning_max_coverage_days === undefined ? "" : String(settings.planning_max_coverage_days),
@@ -90,6 +92,10 @@ export function fromDraft(draft: Draft): RuntimeSettings {
     max_actions_per_run: Number(draft.max_actions_per_run),
     auto_send_partner_ids: ints(draft.auto_send_partner_ids),
     auto_send_kinds: EMAIL_KINDS.filter((kind) => draft.auto_send_kinds.includes(kind)),
+    ignored_senders: draft.ignored_senders
+      .split(/[,\s]+/)
+      .map((v) => v.trim())
+      .filter(Boolean),
     planning_service_level: intOrNull(draft.planning_service_level),
     planning_review_period_days: intOrNull(draft.planning_review_period_days),
     planning_max_coverage_days: intOrNull(draft.planning_max_coverage_days),
@@ -202,6 +208,10 @@ export function SettingsPage() {
               </label>
             ))}
           </fieldset>
+        </section>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold">{t("settings.mailbox")}</h2>
+          {field("ignored_senders", t("settings.f.ignored_senders"), t("settings.h.ignored_senders"))}
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.planning")}</h2>

@@ -15,11 +15,13 @@ from typing import Any, Literal, Protocol
 from loguru import logger
 from pydantic import Field
 
+from mail_sync.ignore import is_ignored
 from mail_sync.linker import Confidence, Linker, LinkerPorts, PoRef
 from mail_sync.state import SyncState
 from sc_core.a2a.events import EventPublisher
 from sc_core.infra import tracing
 from sc_core.infra.locks import Lock
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import MailSyncCfg
 from sc_core.mail.errors import DeltaExpired
 from sc_core.mail.models import InboundMessage
@@ -44,6 +46,7 @@ class SyncReport(MutableModel):
     linked: int = 0
     unlinked: int = 0
     skipped: int = 0
+    ignored: int = 0
     errors: int = 0
     outbox_delivered: int = 0
     full_resync: bool = False
@@ -65,7 +68,9 @@ class SyncRunner:
         lock: Lock,
         cfg: MailSyncCfg,
         mailbox: str,
+        runtime: RuntimeSettingsReader | None = None,
     ) -> None:
+        self._runtime = runtime
         self._graph = graph
         self._state = state
         self._ports = ports
@@ -110,6 +115,12 @@ class SyncRunner:
         if await self._state.is_processed(message.id):
             report.skipped += 1
             return
+        sender = message.sender.normalized if message.sender else None
+        if is_ignored(sender, await self._ignored_senders()):
+            await self._state.mark_processed(message.id, outcome="ignored")
+            report.ignored += 1
+            logger.bind(graph_message_id=message.id).info("system mail ignored")
+            return
         case_id = case_id_for(message.id)
         try:
             with tracing.start_case(
@@ -124,6 +135,12 @@ class SyncRunner:
             logger.opt(exception=True).bind(case_id=case_id, graph_message_id=message.id).error(
                 "message not processed; will retry next run"
             )
+
+    async def _ignored_senders(self) -> list[str]:
+        """The Control Tower's list when saved, else the environment's."""
+        if self._runtime is not None:
+            return (await self._runtime.current()).ignored_senders
+        return list(self._cfg.ignored_senders)
 
     async def _link_and_emit(
         self, message: InboundMessage, case_id: str, report: SyncReport

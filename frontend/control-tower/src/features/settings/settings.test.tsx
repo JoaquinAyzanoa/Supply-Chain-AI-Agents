@@ -23,6 +23,7 @@ const CURRENT: Schemas["SettingsVersion"] = {
     max_actions_per_run: 20,
     auto_send_partner_ids: [],
     auto_send_kinds: [],
+    ignored_senders: ["accountprotection.microsoft.com"],
     planning_service_level: null,
     planning_review_period_days: null,
     planning_max_coverage_days: null,

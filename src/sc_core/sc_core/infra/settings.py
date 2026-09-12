@@ -180,6 +180,14 @@ class MailSyncCfg(_Section):
     page_size: int = Field(default=50, ge=1, le=500)
     lock_ttl_seconds: int = Field(default=25 * 60, ge=1)
     url: str = "http://localhost:8011"  # inside compose: http://mail_sync:8000
+    # Senders (addresses or domains) that never become cases: system and security mail.
+    # The Control Tower's Settings extend or replace this list at runtime.
+    ignored_senders: list[str] = [
+        "accountprotection.microsoft.com",
+        "member_services@outlook.com",
+        "microsoftonline.com",
+        "email.microsoft.com",
+    ]
 
 
 class SchedulerCfg(_Section):

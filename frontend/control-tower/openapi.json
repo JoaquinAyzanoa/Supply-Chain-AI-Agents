@@ -2012,6 +2012,14 @@
             "title": "Auto Send Partner Ids",
             "type": "array"
           },
+          "ignored_senders": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Ignored Senders",
+            "type": "array"
+          },
           "max_actions_per_run": {
             "default": 20,
             "minimum": 1.0,

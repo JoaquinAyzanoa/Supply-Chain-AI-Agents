@@ -167,7 +167,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path === "/api/runs") return json(route, 200, []);
     if (path === "/api/runs/scheduler") return json(route, 200, []);
     if (path === "/api/settings" && request.method() === "GET")
-      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null } });
+      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], ignored_senders: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null } });
     if (path === "/api/settings/models") return json(route, 200, []);
     if (path === "/api/settings/history") return json(route, 200, []);
     return json(route, 404, { detail: `unhandled ${request.method()} ${path}` });
