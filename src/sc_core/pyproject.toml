@@ -40,5 +40,7 @@ DEP003 = ["starlette"]
 DEP002 = ["tzdata"]
 
 [tool.deptry.package_module_name_map]
+# psycopg[pool] installs psycopg-pool; both are one dependency here.
+psycopg = ["psycopg", "psycopg_pool"]
 # agent-framework-openai exposes its client under the shared `agent_framework` namespace.
 "agent-framework-openai" = ["agent_framework"]

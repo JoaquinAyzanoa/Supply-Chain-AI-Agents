@@ -38,7 +38,7 @@ just env         # create .env from .env.example
 just hooks       # pre-commit hooks
 just qa          # ruff, mypy, deptry per member
 just test        # unit tests
-just up          # postgres + redis + odoo + langfuse + director in docker
+just up          # postgres + redis + odoo + langfuse + director + mail_sync + scheduler
 just odoo-init   # first time only: create the Odoo database
 curl localhost:8010/health/ready
 just down
@@ -52,8 +52,9 @@ just run director      # exactly what the container runs
 ```
 
 The director container publishes on host port 8010 by default (8000 is often
-taken on developer machines); override with `SC_DIRECTOR_PORT`. Odoo publishes
-on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
+taken on developer machines), mail_sync on 8011 and the scheduler on 8012;
+override with `SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`.
+Odoo publishes on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
 
@@ -144,6 +145,37 @@ LLM tests run offline: unit tests use scripted clients or recorded cassettes
 `just test-int` runs the Langfuse ingest check against the compose stack and,
 when `DEEPSEEK_API_KEY` is set, the provider capability checks that back the
 flags in `models.yaml`.
+
+## Mail sync and scheduler
+
+Two deterministic services run without any model call.
+
+**scheduler** fires the cron table with signed HTTP dispatches: the inbox
+sync every 30 minutes and, for the director, the follow-up, planning and
+performance jobs (their handlers arrive with the agents). Crons are
+`SC__SCHEDULER__*_CRON` in `SC__TIMEZONE`; `GET :8012/jobs` shows next fire
+times and the last run; `just sync-now` (or `just run-job <id>`) fires one
+now. Run history lives in `scheduler_runs`.
+
+**mail_sync** pulls inbox changes from Graph with delta queries, skips what
+it already handled, links each message to a purchase order by rule and
+POSTs one typed event per message to the director. The rules, in order:
+our `x-sc-po` header, the `[P00015]` subject token, a conversation already
+linked, `In-Reply-To` against something we sent, and a supplier with exactly
+one open order (flagged as a heuristic). Anything else is reported as
+unlinked with the candidate orders so the supplier agent (phase 5) decides.
+The link lands in Odoo as `sc.mail.link` (visible in the PO's "AI Agent" tab
+with an "Open in Outlook" link); the app database keeps only Graph ids, the
+delta link and Message-IDs. No subject, body or sender name is stored
+anywhere. `just sync-once` runs one sync from the host and prints the report.
+
+Every internal call carries `X-SC-Signature`, an HMAC-SHA256 of the body
+with `SC__EVENTS__SIGNING_SECRET` (the same scheme the Odoo approval
+callback uses). The director rejects a bad signature with 401 and stores
+accepted events idempotently in `event_inbox`; a producer that cannot reach
+the director parks the event in its `event_outbox` and retries on the next
+run. Apply `migrations/002_mail_sync.sql` with `just migrate` before the
+first run.
 
 ## Conventions
 

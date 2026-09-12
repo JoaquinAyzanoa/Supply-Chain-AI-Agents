@@ -69,7 +69,7 @@ select = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["sc_core", "director"]
+known-first-party = ["sc_core", "director", "mail_sync", "scheduler"]
 
 [tool.ruff.lint.per-file-ignores]
 # Odoo addons follow Odoo conventions: relative imports and star-less module inits.
