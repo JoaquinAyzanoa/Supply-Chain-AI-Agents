@@ -59,6 +59,10 @@ async def run(args: argparse.Namespace) -> int:
             await history.run(client, ds, products, suppliers, customers, stages=stages)
         print("records:")
         print(client.summary())
+        if not args.no_summary:
+            from odoo_seed_lib import summary
+
+            print(await summary.report(client, ds, products, suppliers))
     print(f"done in {time.perf_counter() - started:.0f}s")
     return 0
 
@@ -71,6 +75,7 @@ def main() -> int:
     parser.add_argument("--file")
     parser.add_argument("--password", default="admin")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--no-summary", action="store_true")
     return asyncio.run(run(parser.parse_args()))
 
 
