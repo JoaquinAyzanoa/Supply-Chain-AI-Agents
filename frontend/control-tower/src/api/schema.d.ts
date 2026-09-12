@@ -194,6 +194,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/planning/runs/{run_id}/lines/{line_id}/demand": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Line Demand
+         * @description The last ``days`` of demand for the line's product, from the planner.
+         */
+        get: operations["line_demand_api_planning_runs__run_id__lines__line_id__demand_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/planning/runs/{run_id}/what-if": {
         parameters: {
             query?: never;
@@ -517,6 +537,18 @@ export interface components {
          * @enum {string}
          */
         CheckStatus: "ok" | "fail";
+        /** DemandDay */
+        DemandDay: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Delivered */
+            delivered: number;
+            /** Ordered */
+            ordered: number;
+        };
         /** DiscoveryResponse */
         DiscoveryResponse: {
             /** Core Version */
@@ -615,6 +647,29 @@ export interface components {
             status: components["schemas"]["OverallStatus"];
             /** Version */
             version: string;
+        };
+        /**
+         * LineDemand
+         * @description Daily demand behind one line, with the forecast the line used (for the sparkline).
+         */
+        LineDemand: {
+            /**
+             * Days
+             * @default []
+             */
+            days: components["schemas"]["DemandDay"][];
+            /** Forecast Daily */
+            forecast_daily: number;
+            /** Line Id */
+            line_id: string;
+            /** Product Id */
+            product_id: number;
+            /** Sigma Daily */
+            sigma_daily: number;
+            /** Since */
+            since?: string | null;
+            /** Until */
+            until?: string | null;
         };
         /** LiveResponse */
         LiveResponse: {
@@ -1336,6 +1391,40 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlanningRunDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    line_demand_api_planning_runs__run_id__lines__line_id__demand_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                run_id: string;
+                line_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LineDemand"];
                 };
             };
             /** @description Validation Error */

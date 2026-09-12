@@ -17,7 +17,12 @@ from director.api import api_router
 from director.api.approvals import ApprovalsGateway, OdooApprovalsGateway
 from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
 from director.api.exceptions import ExceptionsSource
-from director.api.planning import PlanningReadStore, PostgresPlanningReadStore
+from director.api.planning import (
+    DemandSource,
+    HttpDemandSource,
+    PlanningReadStore,
+    PostgresPlanningReadStore,
+)
 from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
@@ -178,6 +183,11 @@ class DirectorModule(Module):
     @singleton
     def provide_planning_reads(self, db: Database) -> PlanningReadStore:  # type: ignore[type-abstract]
         return PostgresPlanningReadStore(db)
+
+    @provider
+    @singleton
+    def provide_demand_source(self, settings: Settings) -> DemandSource:  # type: ignore[type-abstract]
+        return HttpDemandSource(settings.a2a.inventory_planning_url, settings.a2a_token)
 
     @provider
     @singleton

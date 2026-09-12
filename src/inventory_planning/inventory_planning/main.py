@@ -1,8 +1,9 @@
 """ASGI entrypoint for the inventory planning agent.
 
-Routes: the shared system surface, ``POST /approvals/callback`` and the A2A
-agent (card at ``/.well-known/agent-card.json``, JSON-RPC at ``/a2a`` behind
-the bearer token).
+Routes: the shared system surface, ``POST /approvals/callback``,
+``GET /planning/demand/{product_id}`` (bearer token) and the A2A agent (card
+at ``/.well-known/agent-card.json``, JSON-RPC at ``/a2a`` behind the bearer
+token).
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ from loguru import logger
 
 from inventory_planning import __version__
 from inventory_planning.handler import InventoryPlanningHandler, agent_spec
-from inventory_planning.routers import approvals
+from inventory_planning.routers import approvals, demand
 from inventory_planning.service import AgentProvider, module_list
 from sc_core.a2a import mount
 from sc_core.app import create_application
@@ -27,7 +28,7 @@ def build_app() -> FastAPI:
     application = create_application(
         settings,
         version=__version__,
-        routers=[approvals.router],
+        routers=[approvals.router, demand.router],
         modules=module_list(),
         startup=[_startup],
         shutdown=[_shutdown],

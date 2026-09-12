@@ -657,6 +657,31 @@
         "title": "CheckStatus",
         "type": "string"
       },
+      "DemandDay": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "delivered": {
+            "title": "Delivered",
+            "type": "number"
+          },
+          "ordered": {
+            "title": "Ordered",
+            "type": "number"
+          }
+        },
+        "required": [
+          "day",
+          "ordered",
+          "delivered"
+        ],
+        "title": "DemandDay",
+        "type": "object"
+      },
       "DiscoveryResponse": {
         "properties": {
           "core_version": {
@@ -919,6 +944,68 @@
           "checks"
         ],
         "title": "HealthReport",
+        "type": "object"
+      },
+      "LineDemand": {
+        "additionalProperties": false,
+        "description": "Daily demand behind one line, with the forecast the line used (for the sparkline).",
+        "properties": {
+          "days": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/DemandDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "forecast_daily": {
+            "title": "Forecast Daily",
+            "type": "number"
+          },
+          "line_id": {
+            "title": "Line Id",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "sigma_daily": {
+            "title": "Sigma Daily",
+            "type": "number"
+          },
+          "since": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Since"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          }
+        },
+        "required": [
+          "line_id",
+          "product_id",
+          "forecast_daily",
+          "sigma_daily"
+        ],
+        "title": "LineDemand",
         "type": "object"
       },
       "LiveResponse": {
@@ -2606,6 +2693,75 @@
           }
         ],
         "summary": "Get Planning Run",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
+    "/api/planning/runs/{run_id}/lines/{line_id}/demand": {
+      "get": {
+        "description": "The last ``days`` of demand for the line's product, from the planner.",
+        "operationId": "line_demand_api_planning_runs__run_id__lines__line_id__demand_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "line_id",
+            "required": true,
+            "schema": {
+              "title": "Line Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 730,
+              "minimum": 7,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LineDemand"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Line Demand",
         "tags": [
           "planning"
         ]

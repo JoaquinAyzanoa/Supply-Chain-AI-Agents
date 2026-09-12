@@ -411,3 +411,35 @@ async def test_case_changes_are_published_for_the_stream(module: MemoryDirectorM
     ]
     assert module.realtime.published[2].payload["approval_id"] == 3
     assert module.realtime.published[4].payload["run_id"] == "r1"
+
+
+async def test_line_demand_is_proxied_from_the_planner(
+    client: TestClient, module: MemoryDirectorModule
+) -> None:
+    await _users(module)
+    module.planning.rows["run_1"] = PlanningRunRow(
+        run_id="run_1",
+        case_id="plan",
+        kind="daily_plan",
+        as_of=TODAY,
+        warehouse_id=1,
+        status="awaiting_approval",
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    module.planning.line_rows["run_1"] = [PlanningLineRow(line=_line())]
+    module.demand.histories[101] = {
+        "since": "2026-06-16",
+        "until": "2026-09-14",
+        "days": [{"day": "2026-09-13", "ordered": 3, "delivered": 3}],
+    }
+    viewer = _token(client, "vic@x.com")
+    body = client.get(
+        "/api/planning/runs/run_1/lines/run_1:101/demand?days=30", headers=viewer
+    ).json()
+    assert body["product_id"] == 101 and body["forecast_daily"] == 2.0
+    assert body["days"] == [{"day": "2026-09-13", "ordered": 3.0, "delivered": 3.0}]
+    assert module.demand.calls == [(101, 30)]
+    assert (
+        client.get("/api/planning/runs/run_1/lines/nope/demand", headers=viewer).status_code == 404
+    )

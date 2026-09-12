@@ -14,6 +14,7 @@ import json
 from datetime import date, datetime
 from typing import Any, Protocol, runtime_checkable
 
+import httpx
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_injector import Injected
 from loguru import logger
@@ -66,6 +67,60 @@ class WhatIfResponse(StrictModel):
     baseline: ReplenishmentLine
     simulated: ReplenishmentLine
     run_id: str
+
+
+class DemandDay(StrictModel):
+    day: date
+    ordered: float
+    delivered: float
+
+
+class LineDemand(StrictModel):
+    """Daily demand behind one line, with the forecast the line used (for the sparkline)."""
+
+    line_id: str
+    product_id: int
+    forecast_daily: float
+    sigma_daily: float
+    since: date | None = None
+    until: date | None = None
+    days: list[DemandDay] = []
+
+
+@runtime_checkable
+class DemandSource(Protocol):
+    async def history(
+        self, product_id: int, *, days: int, warehouse_code: str | None
+    ) -> dict[str, Any]: ...
+
+
+class HttpDemandSource:
+    """The planner's ``GET /planning/demand/{product_id}`` behind its bearer token."""
+
+    def __init__(self, base_url: str, token: str, *, timeout_seconds: float = 30.0) -> None:
+        self._http = httpx.AsyncClient(
+            base_url=base_url.rstrip("/"),
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=timeout_seconds,
+        )
+
+    async def history(
+        self, product_id: int, *, days: int, warehouse_code: str | None
+    ) -> dict[str, Any]:
+        params: dict[str, Any] = {"days": days}
+        if warehouse_code:
+            params["warehouse_code"] = warehouse_code
+        response = await self._http.get(f"/planning/demand/{product_id}", params=params)
+        if response.status_code != 200:
+            raise ScError(
+                f"planner answered {response.status_code} for the demand history",
+                details={"product_id": product_id, "status": response.status_code},
+            )
+        data: dict[str, Any] = response.json()
+        return data
+
+    async def aclose(self) -> None:
+        await self._http.aclose()
 
 
 @runtime_checkable
@@ -194,4 +249,33 @@ async def what_if(
         raise HTTPException(status_code=502, detail=result.outcome.summary)
     return WhatIfResponse(
         baseline=baseline, simulated=result.proposal.lines[0], run_id=result.run_id
+    )
+
+
+@router.get("/runs/{run_id}/lines/{line_id}/demand", response_model=LineDemand)
+async def line_demand(
+    run_id: str,
+    line_id: str,
+    days: int = Query(default=90, ge=7, le=730),
+    _: Principal = Viewer,
+    store: PlanningReadStore = Injected(PlanningReadStore),  # type: ignore[type-abstract]
+    demand: DemandSource = Injected(DemandSource),  # type: ignore[type-abstract]
+) -> LineDemand:
+    """The last ``days`` of demand for the line's product, from the planner."""
+    line = next((r.line for r in await store.lines(run_id) if r.line.line_id == line_id), None)
+    if line is None:
+        raise HTTPException(status_code=404, detail=f"line {line_id} not in run {run_id}")
+    try:
+        history = await demand.history(line.product_id, days=days, warehouse_code=None)
+    except (ScError, httpx.HTTPError) as exc:
+        logger.warning("demand history failed: {}", exc)
+        raise HTTPException(status_code=502, detail="the planner could not answer") from exc
+    return LineDemand(
+        line_id=line.line_id,
+        product_id=line.product_id,
+        forecast_daily=line.forecast_daily,
+        sigma_daily=line.sigma_daily,
+        since=history.get("since"),
+        until=history.get("until"),
+        days=[DemandDay.model_validate(d) for d in history.get("days", [])],
     )

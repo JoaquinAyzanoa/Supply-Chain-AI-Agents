@@ -20,7 +20,5 @@ function Soon({ titleKey }: { titleKey: MessageKey }) {
   );
 }
 
-export const PlanningPage = () => <Soon titleKey="planning.title" />;
-export const PlanningRunPage = () => <Soon titleKey="planning.title" />;
 export const RunsPage = () => <Soon titleKey="runs.title" />;
 export const SettingsPage = () => <Soon titleKey="settings.title" />;

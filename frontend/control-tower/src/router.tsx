@@ -15,12 +15,9 @@ import { ApprovalsInbox, type ApprovalsSearch } from "@/features/approvals/Appro
 import { CaseTimelinePage } from "@/features/cases/CaseTimeline";
 import { CasesPage } from "@/features/cases/CasesPage";
 import { ExceptionsBoardPage } from "@/features/exceptions/ExceptionsBoard";
-import {
-  PlanningPage,
-  PlanningRunPage,
-  RunsPage,
-  SettingsPage,
-} from "@/routes/placeholders";
+import { PlanningPage } from "@/features/planning/PlanningPage";
+import { PlanningRunPage } from "@/features/planning/PlanningRunPage";
+import { RunsPage, SettingsPage } from "@/routes/placeholders";
 
 export interface RouterContext {
   auth: AuthState;

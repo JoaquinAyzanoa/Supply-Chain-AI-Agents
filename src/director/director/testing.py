@@ -12,7 +12,7 @@ from director.agents import AgentProxy, Agents
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
 from director.api.exceptions import ExceptionsSource
-from director.api.planning import PlanningLineRow, PlanningReadStore, PlanningRunRow
+from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
@@ -89,6 +89,7 @@ class MemoryDirectorModule(Module):
         self.runs = MemoryRunsGateway()
         self.scheduler_runs = MemorySchedulerRuns()
         self.planning = MemoryPlanningReadStore()
+        self.demand = MemoryDemandSource()
         self.exceptions = MemoryExceptionsSource()
         self.deps = memory_deps(
             cases=self.case_store,
@@ -113,6 +114,7 @@ class MemoryDirectorModule(Module):
         binder.bind(RunsGateway, to=self.runs, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(SchedulerRuns, to=self.scheduler_runs, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(PlanningReadStore, to=self.planning, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(DemandSource, to=self.demand, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(ExceptionsSource, to=self.exceptions, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(Agents, to=self.deps.agents, scope=singleton)
         binder.bind(Deps, to=self.deps, scope=singleton)
@@ -279,3 +281,15 @@ class MemoryExceptionsSource:
     ) -> dict[str, Any]:
         self.acted.append({"po_name": po_name, "requested_by": requested_by})
         return {"po_name": po_name, "status": "sent"}
+
+
+class MemoryDemandSource:
+    def __init__(self) -> None:
+        self.histories: dict[int, dict[str, Any]] = {}
+        self.calls: list[tuple[int, int]] = []
+
+    async def history(
+        self, product_id: int, *, days: int, warehouse_code: str | None
+    ) -> dict[str, Any]:
+        self.calls.append((product_id, days))
+        return self.histories.get(product_id) or {"days": []}
