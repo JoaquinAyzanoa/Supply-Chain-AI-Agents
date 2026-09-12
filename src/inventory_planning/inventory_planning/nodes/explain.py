@@ -70,7 +70,7 @@ async def explain_line(
     chat: ChatCompleter, line: ReplenishmentLine, *, as_of: date, langfuse: LangfuseCfg | None
 ) -> ReplenishmentLine:
     """The same line with ``explanation`` filled; numbers are copied, never rewritten."""
-    if line.exception is None:
+    if line.exception is None or line.explanation:  # nothing to explain, or the review already did
         return line
     prompt = get_prompt("explain_exception", local_dir=PROMPTS_DIR, cfg=langfuse)
     try:

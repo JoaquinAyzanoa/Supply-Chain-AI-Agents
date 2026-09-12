@@ -21,7 +21,7 @@ from typing import Any
 from loguru import logger
 
 from inventory_planning import AGENT_NAME
-from inventory_planning.nodes.propose import dataset_of, lines_of
+from inventory_planning.nodes.propose import dataset_of, lines_of, task_of
 from inventory_planning.ports import WritePorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node
@@ -123,6 +123,8 @@ def make_apply(
     today: Callable[[], date],
 ) -> Node:
     async def apply(state: Any) -> dict[str, Any]:
+        if task_of(state).kind == "what_if":  # never reached by the graph; belt and braces
+            return {"outcome": {"status": "failed", "summary": "what_if runs never write"}}
         dataset = dataset_of(state)
         decision = decision_for(state, PLAN_STEP)
         lines = accepted_lines(lines_of(state), decision.model_dump() if decision else None)
