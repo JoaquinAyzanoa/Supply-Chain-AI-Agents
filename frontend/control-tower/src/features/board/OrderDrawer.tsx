@@ -82,8 +82,6 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
           ) : null}
         </div>
 
-        {canAct ? <Moves card={card} /> : <p className="text-xs text-muted-foreground">{t("board.role_hint")}</p>}
-
         {card.pending_approval ? <PendingApproval id={card.pending_approval.id} onBack={onClose} /> : null}
 
         {card.case_id ? (
@@ -95,6 +93,9 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
           <p className="text-sm text-muted-foreground">{t("board.drawer.no_case")}</p>
         )}
       </div>
+      <footer className="border-t bg-card px-3 py-2">
+        {canAct ? <Moves card={card} /> : <p className="text-xs text-muted-foreground">{t("board.role_hint")}</p>}
+      </footer>
     </aside>
   );
 }
@@ -135,9 +136,9 @@ function Moves({ card }: { card: BoardCard }) {
   const canActNow = card.act_kind !== null && card.act_kind !== undefined && card.can_act;
   if (targets.length === 0 && !showMark && !canActNow) return null;
   return (
-    <section aria-label={t("board.move")} className="rounded-md border bg-muted/30 p-3">
-      <h3 className="mb-2 text-sm font-semibold">{t("board.move")}</h3>
-      <div className="flex flex-wrap gap-2">
+    <section aria-label={t("board.move")} title={showMark && card.receipt_status !== "full" ? t("board.move.receive_in_odoo") : undefined}>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm font-semibold">{t("board.move")}</span>
         {targets.map((to) =>
           to === "closed" ? (
             <Button key={to} variant="outline" size="sm" onClick={() => setClosing(true)} disabled={move.isPending}>
@@ -189,7 +190,6 @@ function Moves({ card }: { card: BoardCard }) {
           </Button>
         ) : null}
       </div>
-      {showMark && card.receipt_status !== "full" ? <p className="mt-2 text-xs text-muted-foreground">{t("board.move.receive_in_odoo")}</p> : null}
       {message ? (
         <p role="status" className="mt-2 text-xs text-success-text">
           {message}
