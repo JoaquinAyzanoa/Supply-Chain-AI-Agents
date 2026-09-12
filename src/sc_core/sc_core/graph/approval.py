@@ -55,6 +55,7 @@ class ApprovalDecision(StrictModel):
     kind: str | None = None
     resolved_by: str | None = None
     reason: str | None = None
+    details: dict[str, Any] | None = None  # per-line acceptance and edits (planning runs)
 
     @property
     def approved(self) -> bool:

@@ -81,6 +81,7 @@ def _build_routes() -> dict[type[BaseEvent], Handler]:
         ev.OdooOrderpointTriggered: odoo_events.on_orderpoint,
         ev.OdooApprovalResolved: odoo_events.on_approval_resolved,
         ev.AgentRunFinished: agent_events.on_run_finished,
+        ev.RfqDrafted: agent_events.on_rfq_drafted,
     }
 
 

@@ -10,6 +10,7 @@ from typing import Any
 from sc_core.odoo.models import (
     DailyDemand,
     IncomingLine,
+    NewOrderLine,
     OnHand,
     Orderpoint,
     Product,
@@ -214,3 +215,76 @@ def demo_ports(*, as_of: date, weeks: int = 104) -> FakeDataPorts:
         ),
     ]
     return ports
+
+
+class FakeWritePorts:
+    """Records writes; RFQs are idempotent on the external ref like Odoo's are."""
+
+    def __init__(self) -> None:
+        self.orderpoints: list[dict[str, Any]] = []
+        self.rfqs: dict[str, dict[str, Any]] = {}
+        self.runs: dict[str, dict[str, Any]] = {}
+        self._next_rule = 100
+        self._next_po = 70
+
+    async def set_orderpoint(
+        self,
+        *,
+        product_id: int,
+        warehouse_id: int,
+        minimum: float,
+        maximum: float,
+        existing_id: int | None,
+    ) -> int:
+        rule_id = existing_id if existing_id is not None else self._next_rule
+        if existing_id is None:
+            self._next_rule += 1
+        self.orderpoints.append(
+            {
+                "id": rule_id,
+                "product_id": product_id,
+                "warehouse_id": warehouse_id,
+                "min": minimum,
+                "max": maximum,
+                "created": existing_id is None,
+            }
+        )
+        return rule_id
+
+    async def create_rfq(
+        self,
+        *,
+        partner_id: int,
+        lines: list[NewOrderLine],
+        external_ref: str,
+        origin: str | None = None,
+    ) -> tuple[int, str, bool]:
+        if external_ref in self.rfqs:
+            po = self.rfqs[external_ref]
+            return po["id"], po["name"], False
+        po_id = self._next_po
+        self._next_po += 1
+        self.rfqs[external_ref] = {
+            "id": po_id,
+            "name": f"P{po_id:05d}",
+            "partner_id": partner_id,
+            "lines": [ln.model_dump(mode="json") for ln in lines],
+            "origin": origin,
+        }
+        return po_id, f"P{po_id:05d}", True
+
+    async def start_run(self, **fields: Any) -> None:
+        self.runs[fields["run_id"]] = {**fields, "status": "running"}
+
+    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
+        self.runs.setdefault(run_id, {})["status"] = status
+        self.runs[run_id]["summary"] = summary
+
+
+class FakePublisher:
+    def __init__(self) -> None:
+        self.events: list[Any] = []
+
+    async def publish(self, event: Any) -> bool:
+        self.events.append(event)
+        return True

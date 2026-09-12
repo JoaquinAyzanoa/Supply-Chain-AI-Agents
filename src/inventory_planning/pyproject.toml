@@ -5,6 +5,7 @@ description = "Inventory planning agent: forecasts demand, computes replenishmen
 requires-python = ">=3.13,<3.15"
 dependencies = [
   "sc_core",
+  "langgraph>=1.2,<2",
   "loguru>=0.7.3",
   "pydantic>=2.11.0",
 ]

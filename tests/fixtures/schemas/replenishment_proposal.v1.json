@@ -1,0 +1,360 @@
+{
+  "$defs": {
+    "ReplenishmentLine": {
+      "additionalProperties": false,
+      "properties": {
+        "abc_class": {
+          "title": "Abc Class",
+          "type": "string"
+        },
+        "action": {
+          "default": "none",
+          "enum": [
+            "update_rule",
+            "create_rfq",
+            "update_rule_and_rfq",
+            "hold",
+            "manual_review",
+            "none"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "coverage_days": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Coverage Days"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "current_max": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Max"
+        },
+        "current_min": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Min"
+        },
+        "exception": {
+          "anyOf": [
+            {
+              "enum": [
+                "stockout_risk",
+                "overstock",
+                "lead_time_drift",
+                "no_supplier",
+                "negative_position",
+                "no_history"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exception"
+        },
+        "explanation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explanation"
+        },
+        "forecast_daily": {
+          "minimum": 0,
+          "title": "Forecast Daily",
+          "type": "number"
+        },
+        "forecast_method": {
+          "title": "Forecast Method",
+          "type": "string"
+        },
+        "history_periods": {
+          "minimum": 0,
+          "title": "History Periods",
+          "type": "integer"
+        },
+        "incoming": {
+          "title": "Incoming",
+          "type": "number"
+        },
+        "lead_time_days": {
+          "minimum": 0,
+          "title": "Lead Time Days",
+          "type": "number"
+        },
+        "line_id": {
+          "description": "<run_id>:<product_id>",
+          "minLength": 1,
+          "title": "Line Id",
+          "type": "string"
+        },
+        "mape": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mape"
+        },
+        "moq": {
+          "default": 0.0,
+          "title": "Moq",
+          "type": "number"
+        },
+        "on_hand": {
+          "title": "On Hand",
+          "type": "number"
+        },
+        "order_qty": {
+          "minimum": 0,
+          "title": "Order Qty",
+          "type": "number"
+        },
+        "order_up_to": {
+          "minimum": 0,
+          "title": "Order Up To",
+          "type": "number"
+        },
+        "position": {
+          "description": "on hand - reserved + incoming",
+          "title": "Position",
+          "type": "number"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "integer"
+        },
+        "product_name": {
+          "default": "",
+          "title": "Product Name",
+          "type": "string"
+        },
+        "product_ref": {
+          "title": "Product Ref",
+          "type": "string"
+        },
+        "proposed_max": {
+          "minimum": 0,
+          "title": "Proposed Max",
+          "type": "number"
+        },
+        "proposed_min": {
+          "minimum": 0,
+          "title": "Proposed Min",
+          "type": "number"
+        },
+        "reserved": {
+          "default": 0.0,
+          "title": "Reserved",
+          "type": "number"
+        },
+        "review_period_days": {
+          "title": "Review Period Days",
+          "type": "integer"
+        },
+        "rop": {
+          "minimum": 0,
+          "title": "Rop",
+          "type": "number"
+        },
+        "service_level": {
+          "title": "Service Level",
+          "type": "number"
+        },
+        "sigma_daily": {
+          "minimum": 0,
+          "title": "Sigma Daily",
+          "type": "number"
+        },
+        "sigma_lead_time_days": {
+          "minimum": 0,
+          "title": "Sigma Lead Time Days",
+          "type": "number"
+        },
+        "ss": {
+          "minimum": 0,
+          "title": "Ss",
+          "type": "number"
+        },
+        "supplier_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supplier Id"
+        },
+        "supplier_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supplier Name"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Price"
+        },
+        "wape": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wape"
+        },
+        "warehouse_id": {
+          "title": "Warehouse Id",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "line_id",
+        "product_id",
+        "product_ref",
+        "warehouse_id",
+        "on_hand",
+        "incoming",
+        "position",
+        "forecast_daily",
+        "forecast_method",
+        "sigma_daily",
+        "history_periods",
+        "lead_time_days",
+        "sigma_lead_time_days",
+        "service_level",
+        "review_period_days",
+        "abc_class",
+        "ss",
+        "rop",
+        "order_up_to",
+        "proposed_min",
+        "proposed_max",
+        "order_qty"
+      ],
+      "title": "ReplenishmentLine",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "as_of": {
+      "format": "date",
+      "title": "As Of",
+      "type": "string"
+    },
+    "lines": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/ReplenishmentLine"
+      },
+      "title": "Lines",
+      "type": "array"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "summary": {
+      "default": "",
+      "title": "Summary",
+      "type": "string"
+    },
+    "totals": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "default": {},
+      "title": "Totals",
+      "type": "object"
+    },
+    "warehouse_code": {
+      "default": "",
+      "title": "Warehouse Code",
+      "type": "string"
+    },
+    "warehouse_id": {
+      "title": "Warehouse Id",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "run_id",
+    "as_of",
+    "warehouse_id"
+  ],
+  "title": "ReplenishmentProposal",
+  "type": "object"
+}
