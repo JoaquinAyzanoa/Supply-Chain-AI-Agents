@@ -5,14 +5,16 @@ from __future__ import annotations
 from injector import Binder, Module, singleton
 
 from director.agents import AgentProxy, Agents
+from director.concurrency import PoLocks
 from director.conversations import MemoryConversationLookup
 from director.escalation import Escalator, MemoryEscalator
 from director.inbox import EventInbox, EventResults, MemoryEventInbox, MemoryEventResults
 from director.jobs import JobRunner, NoJobs
 from director.store import CaseStore, MemoryCaseStore
-from director.workflow import Deps, Orchestrator
+from director.workflow import ConfirmedOrders, Deps, Orchestrator
 from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
+from sc_core.infra.locks import MemoryLock
 
 
 def memory_deps(
@@ -47,13 +49,23 @@ class MemoryDirectorModule(Module):
         cases: MemoryCaseStore | None = None,
         escalator: Escalator | None = None,
         jobs: JobRunner | None = None,
+        orders: ConfirmedOrders | None = None,
+        lock_wait_seconds: float = 2.0,
     ) -> None:
         self.inbox = inbox or MemoryEventInbox()
-        self.results = results or MemoryEventResults()
+        self.results = results or MemoryEventResults(self.inbox)
         self.cases = cases or MemoryCaseStore()
         self.escalator = escalator or MemoryEscalator()
+        self.lock = MemoryLock()
         self.deps = memory_deps(
             cases=self.cases, supplier_comms=supplier_comms, escalator=self.escalator, jobs=jobs
+        )
+        self.orchestrator = Orchestrator(
+            self.deps,
+            self.results,
+            inbox=self.inbox,
+            locks=PoLocks(self.lock, wait_seconds=lock_wait_seconds, poll_seconds=0.01),
+            orders=orders,
         )
 
     def configure(self, binder: Binder) -> None:
@@ -61,4 +73,4 @@ class MemoryDirectorModule(Module):
         binder.bind(EventResults, to=self.results, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(CaseStore, to=self.cases, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(Deps, to=self.deps, scope=singleton)
-        binder.bind(Orchestrator, to=Orchestrator(self.deps, self.results), scope=singleton)
+        binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)

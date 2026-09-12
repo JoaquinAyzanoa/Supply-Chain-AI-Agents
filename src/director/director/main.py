@@ -13,6 +13,7 @@ from loguru import logger
 
 from director import __version__
 from director.agents import Agents, build_agents
+from director.concurrency import PoLocks
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
 from director.escalation import (
     Escalator,
@@ -30,7 +31,15 @@ from director.store import CaseStore, PostgresCaseStore
 from director.workflow import Deps, Orchestrator
 from sc_core.app import create_application
 from sc_core.infra.db import Database
-from sc_core.infra.module import ChatClientFactory, DbModule, LlmModule, OdooModule
+from sc_core.infra.locks import RedisLock
+from sc_core.infra.module import (
+    AsyncRedis,
+    ChatClientFactory,
+    DbModule,
+    LlmModule,
+    OdooModule,
+    RedisModule,
+)
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo, PurchaseOrderRepo
@@ -130,10 +139,19 @@ class DirectorModule(Module):
     @singleton
     def provide_orchestrator(
         self,
+        settings: Settings,
         deps: Deps,
         results: EventResults,  # type: ignore[type-abstract]
+        inbox: EventInbox,  # type: ignore[type-abstract]
+        redis: AsyncRedis,
+        orders: PurchaseOrderRepo,
     ) -> Orchestrator:
-        return Orchestrator(deps, results)
+        locks = PoLocks(
+            RedisLock(redis),
+            ttl_seconds=settings.director.lock_ttl_seconds,
+            wait_seconds=settings.director.lock_wait_seconds,
+        )
+        return Orchestrator(deps, results, inbox=inbox, locks=locks, orders=orders)
 
 
 def build_app() -> FastAPI:
@@ -141,7 +159,7 @@ def build_app() -> FastAPI:
         settings,
         version=__version__,
         routers=[events.router],
-        modules=[DbModule(), OdooModule(), LlmModule(), DirectorModule()],
+        modules=[DbModule(), RedisModule(), OdooModule(), LlmModule(), DirectorModule()],
         startup=[_open_db, _connect_odoo],
         shutdown=[_close_odoo, _close_agents, _close_db],
     )

@@ -87,6 +87,9 @@ async def receive_job(
         logger.bind(job=job, run_id=tick.run_id).info("job tick already handled")
         return Accepted(accepted=True, duplicate=True, event_id=tick.event_id, event_type=tick.type)
     result = await orchestrator.handle(tick)
+    if job == "po-followups":  # the daily housekeeping rides on the same tick
+        result["replay"] = await orchestrator.replay_unhandled()
+        result["reconcile"] = await orchestrator.reconcile()
     return Accepted(
         accepted=True,
         event_id=tick.event_id,

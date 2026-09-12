@@ -23,6 +23,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import date, timedelta
 from typing import Any, Literal, Protocol, runtime_checkable
 
 from agent_framework import Executor, Workflow, WorkflowBuilder, WorkflowContext, handler
@@ -30,16 +31,19 @@ from loguru import logger
 from pydantic import ValidationError
 
 from director.agents import Agents
+from director.concurrency import PoLocks
 from director.escalation import Escalator
-from director.inbox import EventResults
+from director.inbox import EventInbox, EventResults
 from director.jobs import JobRunner
 from director.router import Dispatch, Route, UnroutableEvent, route
 from director.store import Case, CaseStatus, CaseStore
 from sc_core.infra import tracing
+from sc_core.odoo.models import PurchaseOrder
 from sc_core.schema.a2a import OutcomeStatus, SupplierCommsResult
 from sc_core.schema.base import StrictModel
-from sc_core.schema.events import BaseEvent, ScheduledTick
+from sc_core.schema.events import BaseEvent, OdooPurchaseConfirmed, ScheduledTick, event_id_for
 from sc_core.shared.errors import ScError
+from sc_core.shared.time import local_today
 
 # --- messages between executors ---------------------------------------------------
 
@@ -105,6 +109,11 @@ class ConversationLookup(Protocol):
 class NoConversations:
     async def conversation_for(self, graph_message_id: str) -> str | None:
         return None
+
+
+@runtime_checkable
+class ConfirmedOrders(Protocol):
+    async def confirmed_since(self, since: date) -> list[PurchaseOrder]: ...
 
 
 @dataclass
@@ -406,9 +415,20 @@ def _trace(event: BaseEvent, case: Case) -> Iterator[Any]:
 class Orchestrator:
     """Entry point: one call per accepted event. Never raises; the inbox row gets the outcome."""
 
-    def __init__(self, deps: Deps, results: EventResults) -> None:
+    def __init__(
+        self,
+        deps: Deps,
+        results: EventResults,
+        *,
+        inbox: EventInbox | None = None,
+        locks: PoLocks | None = None,
+        orders: ConfirmedOrders | None = None,
+    ) -> None:
         self._deps = deps
         self._results = results
+        self._inbox = inbox
+        self._locks = locks or PoLocks(None)
+        self._orders = orders
 
     async def handle(self, event: BaseEvent) -> dict[str, Any]:
         log = logger.bind(event_id=event.event_id, event_type=event.type)
@@ -419,6 +439,55 @@ class Orchestrator:
             await self._results.record(event.event_id, unroutable)
             log.error("no route for event")
             return unroutable
+        async with self._locks.hold(decided.po_name) as held:
+            if not held:
+                reason = f"order {decided.po_name} busy; replayed by the daily job"
+                await self._results.defer(event.event_id, reason)
+                log.bind(po_name=decided.po_name).warning("event deferred: order locked")
+                return {"status": "deferred", "reason": reason}
+            return await self._run(event, decided, log)
+
+    async def replay_unhandled(self, *, limit: int = 100) -> dict[str, Any]:
+        """Handle events that were deferred or never processed (director restarted mid-run)."""
+        if self._inbox is None:
+            return {"replayed": 0}
+        outcomes: dict[str, str] = {}
+        for event in await self._inbox.unhandled(limit=limit):
+            result = await self.handle(event)
+            outcomes[event.event_id] = str(result.get("status") or "handled")
+        return {"replayed": len(outcomes), "events": outcomes}
+
+    async def reconcile(self, *, today: date | None = None, since_days: int = 3) -> dict[str, Any]:
+        """Open cases for orders confirmed while an event was missed (Odoo down, director down).
+
+        The synthesised event has the same deterministic id the addon would
+        have used, so an event that did arrive is a duplicate and nothing runs.
+        """
+        if self._inbox is None or self._orders is None:
+            return {"checked": 0, "opened": []}
+        since = (today or local_today()) - timedelta(days=since_days)
+        opened: list[str] = []
+        orders = await self._orders.confirmed_since(since)
+        for po in orders:
+            event = OdooPurchaseConfirmed(
+                event_id=event_id_for("odoo.purchase_confirmed", po.id, "purchase"),
+                source="director",
+                case_id=f"odoo_po_{po.id}_purchase",
+                po_id=po.id,
+                po_name=po.name,
+                partner_id=po.partner_id.id,
+                date_planned=po.date_planned,
+                amount_total=po.amount_total,
+                currency=po.currency_id.name if po.currency_id else None,
+                line_count=len(po.order_line),
+            )
+            if await self._inbox.store(event):
+                logger.bind(po_name=po.name).warning("missed confirmation reconciled")
+                await self.handle(event)
+                opened.append(po.name)
+        return {"checked": len(orders), "opened": opened}
+
+    async def _run(self, event: BaseEvent, decided: Route, log: Any) -> dict[str, Any]:
         case = await self._case_for(event, decided)
         await self._deps.cases.add_event(
             case.case_id,

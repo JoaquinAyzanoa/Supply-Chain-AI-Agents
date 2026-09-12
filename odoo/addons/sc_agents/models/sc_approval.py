@@ -42,7 +42,9 @@ CALLBACK_TIMEOUT_SECONDS = 10
 class ScApproval(models.Model):
     _name = "sc.approval"
     _description = "Agent approval request"
-    _inherit = ["mail.thread"]
+    # The activity mixin lets the orchestrator schedule a To-Do on an escalation
+    # that has no purchase order to hang it on (unlinked mail).
+    _inherit = ["mail.thread", "mail.activity.mixin"]
     _order = "create_date desc, id desc"
 
     kind = fields.Selection(APPROVAL_KINDS, required=True, index=True)

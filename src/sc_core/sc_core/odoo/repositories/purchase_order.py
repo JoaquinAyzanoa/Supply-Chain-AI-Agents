@@ -89,6 +89,13 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
             order="date_planned asc",
         )
 
+    async def confirmed_since(self, since: date) -> list[PurchaseOrder]:
+        """Orders confirmed on or after ``since`` (reconciliation of missed events)."""
+        return await self.find(
+            [["state", "in", OPEN_STATES], ["date_approve", ">=", to_odoo_date(since)]],
+            order="date_approve asc",
+        )
+
     async def by_names(self, names: Sequence[str]) -> list[PurchaseOrder]:
         if not names:
             return []
