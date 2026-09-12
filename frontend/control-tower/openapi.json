@@ -1789,6 +1789,21 @@
             "title": "Approval Stale Days",
             "type": "integer"
           },
+          "auto_send_kinds": {
+            "default": [],
+            "items": {
+              "enum": [
+                "rfq",
+                "send_po",
+                "follow_up",
+                "request_eta",
+                "reply"
+              ],
+              "type": "string"
+            },
+            "title": "Auto Send Kinds",
+            "type": "array"
+          },
           "auto_send_partner_ids": {
             "default": [],
             "items": {

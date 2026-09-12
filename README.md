@@ -334,9 +334,11 @@ The people's side of the system: a React app served by the director under
   min/max, a per-line drawer with the explanation, the 90-day demand and a
   what-if simulation; approving the selected lines is one resume call.
 - **Runs**: agent runs with model, tokens, cost and duration; scheduler runs.
-- **Settings** (admins): model per agent, follow-up policy, auto-send
-  suppliers and planning defaults, versioned in `settings_history` and
-  picked up by every service within a minute (no restart).
+- **Settings** (admins): model per agent, follow-up policy, which suppliers
+  and which email kinds go out without approval (for example reminders and
+  delivery date requests automatic, RFQs and purchase orders approved), and
+  planning defaults; versioned in `settings_history` and picked up by every
+  service within a minute (no restart).
 
 Setup and daily use:
 

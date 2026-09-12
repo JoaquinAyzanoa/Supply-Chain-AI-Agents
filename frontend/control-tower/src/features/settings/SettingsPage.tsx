@@ -23,6 +23,8 @@ type RuntimeSettings = Schemas["RuntimeSettings"];
 type ModelOption = Schemas["ModelOption"];
 
 const AGENTS = ["supplier_comms", "inventory_planning", "director"] as const;
+const EMAIL_KINDS = ["follow_up", "request_eta", "reply", "rfq", "send_po"] as const;
+type EmailKind = (typeof EMAIL_KINDS)[number];
 
 export function useSettings() {
   return useQuery({ queryKey: ["settings", "current"], queryFn: async () => unwrap(await api.GET("/api/settings")) });
@@ -46,6 +48,7 @@ interface Draft {
   approval_expire_days: string;
   max_actions_per_run: string;
   auto_send_partner_ids: string;
+  auto_send_kinds: EmailKind[];
   planning_service_level: string;
   planning_review_period_days: string;
   planning_max_coverage_days: string;
@@ -61,6 +64,7 @@ function toDraft(settings: RuntimeSettings): Draft {
     approval_expire_days: String(settings.approval_expire_days),
     max_actions_per_run: String(settings.max_actions_per_run),
     auto_send_partner_ids: settings.auto_send_partner_ids.join(", "),
+    auto_send_kinds: [...(settings.auto_send_kinds ?? [])],
     planning_service_level: settings.planning_service_level === null || settings.planning_service_level === undefined ? "" : String(settings.planning_service_level),
     planning_review_period_days: settings.planning_review_period_days === null || settings.planning_review_period_days === undefined ? "" : String(settings.planning_review_period_days),
     planning_max_coverage_days: settings.planning_max_coverage_days === null || settings.planning_max_coverage_days === undefined ? "" : String(settings.planning_max_coverage_days),
@@ -84,6 +88,7 @@ export function fromDraft(draft: Draft): RuntimeSettings {
     approval_expire_days: Number(draft.approval_expire_days),
     max_actions_per_run: Number(draft.max_actions_per_run),
     auto_send_partner_ids: ints(draft.auto_send_partner_ids),
+    auto_send_kinds: EMAIL_KINDS.filter((kind) => draft.auto_send_kinds.includes(kind)),
     planning_service_level: intOrNull(draft.planning_service_level),
     planning_review_period_days: intOrNull(draft.planning_review_period_days),
     planning_max_coverage_days: intOrNull(draft.planning_max_coverage_days),
@@ -175,6 +180,27 @@ export function SettingsPage() {
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.auto_send")}</h2>
           {field("auto_send_partner_ids", t("settings.f.auto_send_partner_ids"), t("settings.h.auto_send_partner_ids"))}
+          <fieldset className="flex flex-col gap-1">
+            <legend className="text-sm font-medium">{t("settings.auto_kinds")}</legend>
+            <p className="text-xs text-muted-foreground">{t("settings.auto_kinds_hint")}</p>
+            {EMAIL_KINDS.map((kind) => (
+              <label key={kind} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={draft.auto_send_kinds.includes(kind)}
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      auto_send_kinds: e.target.checked
+                        ? [...draft.auto_send_kinds, kind]
+                        : draft.auto_send_kinds.filter((k) => k !== kind),
+                    })
+                  }
+                />
+                {t(`settings.kind.${kind}`)}
+              </label>
+            ))}
+          </fieldset>
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.planning")}</h2>

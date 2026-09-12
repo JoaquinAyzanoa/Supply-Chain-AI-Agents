@@ -10,7 +10,7 @@ through :class:`sc_core.infra.runtime_settings.RuntimeSettingsReader`.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
@@ -18,6 +18,10 @@ from sc_core.schema.base import StrictModel
 
 if TYPE_CHECKING:
     from sc_core.infra.settings import Settings
+
+
+EmailKind = Literal["rfq", "send_po", "follow_up", "request_eta", "reply"]
+EMAIL_KINDS: tuple[EmailKind, ...] = ("rfq", "send_po", "follow_up", "request_eta", "reply")
 
 
 class RuntimeSettings(StrictModel):
@@ -31,6 +35,9 @@ class RuntimeSettings(StrictModel):
     approval_expire_days: int = Field(default=7, ge=0)
     max_actions_per_run: int = Field(default=20, ge=1)
     auto_send_partner_ids: list[int] = []
+    # Email kinds that go out without approval for every supplier (for example reminders
+    # and delivery date requests, while RFQs and purchase orders stay approved).
+    auto_send_kinds: list[EmailKind] = []
     # Planning defaults: None keeps the ABC class defaults; a value replaces them for
     # products a planner has not tuned (params with source "default").
     planning_service_level: float | None = Field(default=None, gt=0.5, lt=1.0)
@@ -49,6 +56,9 @@ class RuntimeSettings(StrictModel):
             approval_expire_days=settings.director.approval_expire_days,
             max_actions_per_run=settings.director.max_actions_per_run,
             auto_send_partner_ids=list(settings.supplier_comms.auto_send_partner_ids),
+            auto_send_kinds=[
+                k for k in settings.supplier_comms.auto_send_kinds if k in EMAIL_KINDS
+            ],  # type: ignore[misc]
         )
 
     def model_for(self, agent_name: str) -> str | None:

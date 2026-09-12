@@ -78,15 +78,24 @@ def make_send_approval(
     *,
     language: Language = "en",
     runtime: RuntimeSettingsReader | None = None,
+    auto_send_kinds: frozenset[str] = frozenset(),
 ) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         ctx = context_of(state)
         outbound = state["outbound"] or {}
-        label = kind_label(outbound.get("kind", ""), language)
-        auto_ids = auto_send_partner_ids
-        if runtime is not None:  # the Control Tower's list wins over the environment's
-            auto_ids = frozenset((await runtime.current()).auto_send_partner_ids)
-        auto = ctx.partner_id in auto_ids
+        kind = str(outbound.get("kind", ""))
+        label = kind_label(kind, language)
+        auto_ids, auto_kinds = auto_send_partner_ids, auto_send_kinds
+        if runtime is not None:  # the Control Tower's lists win over the environment's
+            current = await runtime.current()
+            auto_ids = frozenset(current.auto_send_partner_ids)
+            auto_kinds = frozenset(current.auto_send_kinds)
+        auto_reason = None
+        if ctx.partner_id in auto_ids:
+            auto_reason = t("send.auto_reason", language)
+        elif kind in auto_kinds:
+            auto_reason = t("send.auto_reason_kind", language, label=label)
+        auto = auto_reason is not None
         return ApprovalRequest(
             kind="send_email",
             summary=t(
@@ -107,7 +116,7 @@ def make_send_approval(
             },
             po_id=ctx.id,
             auto_approve=auto,
-            auto_reason=t("send.auto_reason", language) if auto else None,
+            auto_reason=auto_reason,
         )
 
     return build

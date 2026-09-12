@@ -82,6 +82,10 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "en": "supplier is on the auto-send list",
         "es": "proveedor en la lista de envío automático",
     },
+    "send.auto_reason_kind": {
+        "en": "{label} emails go out without approval",
+        "es": "los correos de {label} salen sin aprobación",
+    },
     "send.note": {
         "en": "<p>{label} sent to {to}.<br/>Subject: {subject}.{link}</p>",
         "es": "<p>{label} enviada a {to}.<br/>Asunto: {subject}.{link}</p>",

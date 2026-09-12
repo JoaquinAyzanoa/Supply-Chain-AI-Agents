@@ -990,6 +990,11 @@ export interface components {
              */
             approval_stale_days: number;
             /**
+             * Auto Send Kinds
+             * @default []
+             */
+            auto_send_kinds: ("rfq" | "send_po" | "follow_up" | "request_eta" | "reply")[];
+            /**
              * Auto Send Partner Ids
              * @default []
              */

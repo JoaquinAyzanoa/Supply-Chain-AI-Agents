@@ -201,3 +201,20 @@ async def test_a_crashing_run_is_logged_as_failed(
     [run] = [r for r in ports.runs.values() if r.get("case_id") == "case_crash"]
     assert run["status"] == "failed" and "provider down" in run["summary"]
     assert "calls" in run["usage"]
+
+
+async def test_auto_send_by_kind_skips_approval_for_that_kind_only(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
+) -> None:
+    from sc_core.infra.runtime_settings import MemoryRuntimeSettingsReader
+    from sc_core.schema.runtime_settings import RuntimeSettings
+
+    runtime = MemoryRuntimeSettingsReader(RuntimeSettings(auto_send_kinds=["request_eta"]))
+    agent = make_agent(runtime=runtime)
+    _script_draft(chat)
+    eta = await agent.run(SupplierCommsTask(kind="request_eta", case_id="c5", po_name="P00015"))
+    assert eta.status == "sent" and approval_ports.created == [] and ports.sent_ids == ["draft1"]
+
+    _script_draft(chat)
+    rfq = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c6", po_name="P00015"))
+    assert rfq.status == "awaiting_approval" and len(approval_ports.created) == 1

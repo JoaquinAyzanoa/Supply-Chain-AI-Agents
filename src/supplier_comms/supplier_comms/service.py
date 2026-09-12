@@ -108,6 +108,7 @@ class SupplierCommsModule(Module):
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,
             auto_send_partner_ids=frozenset(settings.supplier_comms.auto_send_partner_ids),
+            auto_send_kinds=frozenset(settings.supplier_comms.auto_send_kinds),
             runtime=runtime,
             language=settings.agents.language,
             max_tool_rounds=settings.agents.max_tool_rounds,

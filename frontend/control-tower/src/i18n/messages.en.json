@@ -289,5 +289,12 @@
   "cases.id": "Case {id}",
   "cases.title.planning": "Daily plan · {date}",
   "cases.title.po": "{po} · {kind}",
-  "cases.title.kind": "{kind} · {date}"
+  "cases.title.kind": "{kind} · {date}",
+  "settings.auto_kinds": "Email kinds sent without approval, for every supplier",
+  "settings.auto_kinds_hint": "Ticked kinds go out as soon as the agent drafts them; the rest wait for an approver. RFQs and purchase orders are best left ticked off until you trust the wording.",
+  "settings.kind.rfq": "Requests for quotation",
+  "settings.kind.send_po": "Purchase order emails",
+  "settings.kind.follow_up": "Reminders",
+  "settings.kind.request_eta": "Delivery date requests",
+  "settings.kind.reply": "Replies to supplier questions"
 }

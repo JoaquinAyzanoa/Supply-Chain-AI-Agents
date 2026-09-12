@@ -30,12 +30,12 @@ def test_version_zero_mirrors_the_environment() -> None:
         service_name="t",
         environment="test",
         director={"rfq_no_reply_days": [2, 5], "max_actions_per_run": 3},
-        supplier_comms={"auto_send_partner_ids": [7]},
+        supplier_comms={"auto_send_partner_ids": [7], "auto_send_kinds": ["follow_up", "bogus"]},
         llm={"model": {"SUPPLIER_COMMS": "gpt-5.4"}},
     )
     baseline = RuntimeSettings.from_settings(settings)
     assert baseline.rfq_no_reply_days == [2, 5] and baseline.max_actions_per_run == 3
-    assert baseline.auto_send_partner_ids == [7]
+    assert baseline.auto_send_partner_ids == [7] and baseline.auto_send_kinds == ["follow_up"]
     assert baseline.model_for("supplier_comms") == "gpt-5.4" and baseline.model_for("x") is None
     assert baseline.planning_service_level is None  # keep the ABC class defaults
 

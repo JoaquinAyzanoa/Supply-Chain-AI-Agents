@@ -199,6 +199,9 @@ class SupplierCommsCfg(_Section):
     public_url: str = "http://localhost:8013"
     # Odoo partner ids whose emails go out without a human approval. Default: nobody.
     auto_send_partner_ids: list[int] = []
+    # Email kinds sent without approval for every supplier: rfq, send_po, follow_up,
+    # request_eta, reply. Default: none (a person approves every email).
+    auto_send_kinds: list[str] = []
     max_attachment_chars: int = Field(default=12_000, ge=0)
 
 

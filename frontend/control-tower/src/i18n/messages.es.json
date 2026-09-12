@@ -289,5 +289,12 @@
   "cases.id": "Caso {id}",
   "cases.title.planning": "Plan diario · {date}",
   "cases.title.po": "{po} · {kind}",
-  "cases.title.kind": "{kind} · {date}"
+  "cases.title.kind": "{kind} · {date}",
+  "settings.auto_kinds": "Tipos de correo que salen sin aprobación, para todos los proveedores",
+  "settings.auto_kinds_hint": "Los tipos marcados salen en cuanto el agente los redacta; el resto espera a un aprobador. Conviene dejar sin marcar cotizaciones y órdenes de compra hasta confiar en la redacción.",
+  "settings.kind.rfq": "Solicitudes de cotización",
+  "settings.kind.send_po": "Correos de orden de compra",
+  "settings.kind.follow_up": "Recordatorios",
+  "settings.kind.request_eta": "Solicitudes de fecha de entrega",
+  "settings.kind.reply": "Respuestas a preguntas del proveedor"
 }
