@@ -324,5 +324,8 @@
   "cases.line.email": "from {sender}",
   "cases.line.open_email": "Open the email in Outlook",
   "approvals.escalation.email": "The email",
-  "approvals.escalation.open_email": "Open the email in Outlook"
+  "approvals.escalation.open_email": "Open the email in Outlook",
+  "agent.name.supplier_comms": "Supplier agent",
+  "agent.name.inventory_planning": "Planning agent",
+  "agent.name.director": "Director"
 }

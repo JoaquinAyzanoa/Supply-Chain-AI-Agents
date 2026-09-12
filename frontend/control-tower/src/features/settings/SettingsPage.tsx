@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ErrorBox, Loading } from "@/components/ui/feedback";
 import { Input, Label } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { agentName } from "@/features/cases/labels";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
@@ -149,7 +150,7 @@ export function SettingsPage() {
           <p className="text-xs text-muted-foreground">{t("settings.models_hint")}</p>
           {AGENTS.map((agent) => (
             <div key={agent} className="flex flex-col gap-1">
-              <Label htmlFor={`m-${agent}`}>{agent}</Label>
+              <Label htmlFor={`m-${agent}`}>{agentName(t, agent)}</Label>
               <select
                 id={`m-${agent}`}
                 className="h-9 rounded-md border bg-card px-2 text-sm"

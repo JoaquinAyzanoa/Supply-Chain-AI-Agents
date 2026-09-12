@@ -11,7 +11,7 @@ from injector import Binder, Module, singleton
 from director.agents import AgentProxy, Agents
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
-from director.api.chat import CaseAssistant, ChatActions
+from director.api.chat import CaseAssistant, ChatActions, EmailSnapshot
 from director.api.exceptions import ExceptionsSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
@@ -98,6 +98,7 @@ class MemoryDirectorModule(Module):
         self.exceptions = MemoryExceptionsSource()
         self.chat = chat or ScriptedChatClient()
         self.orders_lookup = MemoryOrderLookup()
+        self.emails = MemoryEmailReader()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -133,6 +134,7 @@ class MemoryDirectorModule(Module):
                 approvals=self.approvals,
                 orders=self.orders_lookup,
                 policy=self.exceptions,
+                emails=self.emails,
                 langfuse=LangfuseCfg(enabled=False),
             ),
             scope=singleton,
@@ -321,3 +323,13 @@ class MemoryOrderLookup:
 
     async def by_names(self, names: Sequence[str]) -> list[Any]:
         return [self.orders[n] for n in names if n in self.orders]
+
+
+class MemoryEmailReader:
+    def __init__(self) -> None:
+        self.messages: dict[str, EmailSnapshot] = {}
+        self.reads: list[str] = []
+
+    async def read(self, message_id: str) -> EmailSnapshot | None:
+        self.reads.append(message_id)
+        return self.messages.get(message_id)

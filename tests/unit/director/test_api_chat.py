@@ -13,7 +13,7 @@ from pydantic import SecretStr
 from director import __version__
 from director.api import api_router
 from director.api.auth import hash_password
-from director.api.chat import AssistantReply, ProposedAction
+from director.api.chat import AssistantReply, EmailSnapshot, ProposedAction
 from director.testing import MemoryDirectorModule
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app import create_application
@@ -314,12 +314,21 @@ async def test_an_unmatched_email_can_be_linked_to_an_order_from_the_chat(
             ),
         )
     )
+    module.emails.messages["AAMk1"] = EmailSnapshot(
+        subject="Cotización bombas",
+        sender="ventas@x.com",
+        text="Adjuntamos la cotización de las bombas para la orden P00068.",
+        web_link="https://outlook/x",
+    )
     turn = client.post(
         f"/api/cases/{case.case_id}/chat", json={"text": "this is for P00068"}, headers=approver
     )
     proposed = turn.json()["messages"][1]
     assert proposed["action"]["kind"] == "link_email"
-    assert "from ventas@x.com" in chat.last_prompt_text()
+    prompt = chat.last_prompt_text()
+    assert 'from ventas@x.com on ?, subject "Cotización bombas"' in prompt
+    assert "Adjuntamos la cotización de las bombas" in prompt
+    assert module.emails.reads == ["AAMk1"]
     supplier.replies.append(
         agent_reply(
             "resolve_unlinked", "chat_x", "no_action", "email read: nothing new", po_name="P00068"

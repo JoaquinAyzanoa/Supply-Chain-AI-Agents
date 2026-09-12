@@ -83,7 +83,7 @@ describe("settings and runs", () => {
 
   it("lets an admin pick a model and change the policy, saved as a new version", async () => {
     renderAt("/settings");
-    const select = await screen.findByLabelText("supplier_comms");
+    const select = await screen.findByLabelText("Supplier agent");
     await waitFor(() => expect(select.querySelectorAll("option")).toHaveLength(3));
     expect(screen.getAllByRole("option", { name: /gpt-5.4/ })[0]).toBeDisabled(); // no API key here
     await userEvent.selectOptions(select, "deepseek-v4-flash");

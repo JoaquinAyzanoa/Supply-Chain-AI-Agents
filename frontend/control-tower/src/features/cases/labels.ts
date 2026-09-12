@@ -13,6 +13,14 @@ export function labelFor(t: T, prefix: "event" | "task" | "agent" | "source" | "
   return label === key ? value.replace(/[._]/g, " ") : label;
 }
 
+/** ``supplier_comms`` -> "Supplier agent"; unknown agents keep their identifier spaced out. */
+export function agentName(t: T, agent: string | null | undefined): string {
+  if (!agent) return "";
+  const key = `agent.name.${agent}`;
+  const label = t(key);
+  return label === key ? agent.replace(/[._]/g, " ") : label;
+}
+
 /** The agent's failure document, when a result payload's error or summary carries one. */
 export function failureOf(payload: Record<string, unknown>): { message: string; details: string | null } | null {
   const error = payload.error;

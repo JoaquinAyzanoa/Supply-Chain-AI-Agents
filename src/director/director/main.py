@@ -11,7 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import FastAPI
-from injector import Module, provider, singleton
+from injector import Injector, Module, provider, singleton
 from loguru import logger
 
 from director import __version__
@@ -19,7 +19,13 @@ from director.agents import Agents, build_agents
 from director.api import api_router
 from director.api.approvals import ApprovalsGateway, OdooApprovalsGateway
 from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
-from director.api.chat import CaseAssistant, ChatActions
+from director.api.chat import (
+    CaseAssistant,
+    ChatActions,
+    EmailReader,
+    GraphEmailReader,
+    NoEmailReader,
+)
 from director.api.exceptions import ExceptionsSource
 from director.api.planning import (
     DemandSource,
@@ -57,11 +63,13 @@ from sc_core.infra.module import (
     ChatClientFactory,
     DbModule,
     LlmModule,
+    MailModule,
     OdooModule,
     RedisModule,
 )
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
+from sc_core.mail.protocol import MailClient
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import (
     ActivityRepo,
@@ -163,6 +171,7 @@ class DirectorModule(Module):
         approvals: ApprovalsGateway,  # type: ignore[type-abstract]
         orders: PurchaseOrderRepo,
         followups: FollowUpJob,
+        emails: EmailReader,  # type: ignore[type-abstract]
     ) -> CaseAssistant:
         return CaseAssistant(
             chats.for_agent("director"),
@@ -170,9 +179,19 @@ class DirectorModule(Module):
             approvals=approvals,
             orders=orders,
             policy=followups,
+            emails=emails,
             language=settings.agents.language,
             langfuse=settings.langfuse,
         )
+
+    @provider
+    @singleton
+    def provide_email_reader(self, settings: Settings, injector: Injector) -> EmailReader:  # type: ignore[type-abstract]
+        """Reads an email only when a person asks about it; nothing without a mailbox."""
+        if not settings.mail.configured:
+            logger.info("mail not configured; the case assistant answers without email text")
+            return NoEmailReader()
+        return GraphEmailReader(injector.get(MailClient))  # type: ignore[type-abstract]
 
     @provider
     @singleton
@@ -299,7 +318,14 @@ def build_app() -> FastAPI:
         settings,
         version=__version__,
         routers=[events.router, api_router],
-        modules=[DbModule(), RedisModule(), OdooModule(), LlmModule(), DirectorModule()],
+        modules=[
+            DbModule(),
+            RedisModule(),
+            OdooModule(),
+            MailModule(critical=False),
+            LlmModule(),
+            DirectorModule(),
+        ],
         startup=[_open_db, _connect_odoo],
         shutdown=[_close_odoo, _close_agents, _close_db],
     )

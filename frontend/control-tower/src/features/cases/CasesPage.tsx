@@ -8,6 +8,7 @@ import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
 import { CASE_KINDS, CASE_STATUSES, useCases, type CaseFilters } from "./api";
+import { agentName } from "./labels";
 
 export function CasesPage() {
   const { t, locale } = useI18n();
@@ -97,7 +98,7 @@ export function CasesPage() {
                 <TableCell className="max-w-[28rem] truncate" title={row.summary ?? ""}>
                   {row.summary ?? ""}
                 </TableCell>
-                <TableCell className="text-muted-foreground">{row.agent ?? ""}</TableCell>
+                <TableCell className="text-muted-foreground">{agentName(t, row.agent)}</TableCell>
               </TableRow>
             ))}
           </TableBody>

@@ -12,6 +12,7 @@ import { Dialog } from "@/components/ui/dialog";
 import { Label, Textarea } from "@/components/ui/input";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
+import { agentName } from "@/features/cases/labels";
 import { useResolveApproval } from "./api";
 import { ChangesCard, EmailCard, EscalationCard, PlanCard, type EmailEdits } from "./ApprovalCards";
 import {
@@ -107,7 +108,7 @@ export function ApprovalDetail({ approval, onBack }: { approval: Approval; onBac
           </div>
           <h2 className="mt-1 text-base font-semibold leading-snug">{approval.summary}</h2>
           <p className="text-xs text-muted-foreground">
-            {t("approvals.requested", { agent: approval.requested_by ?? "", at: formatDateTime(approval.created_at, locale) })}
+            {t("approvals.requested", { agent: agentName(t, approval.requested_by), at: formatDateTime(approval.created_at, locale) })}
             {approval.resolved_by
               ? ` · ${t("approvals.resolved", { who: approval.resolved_by, at: formatDateTime(approval.resolved_at, locale) })}`
               : ""}

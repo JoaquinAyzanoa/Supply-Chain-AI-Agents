@@ -12,6 +12,7 @@ import { Empty, ErrorBox, Loading } from "@/components/ui/feedback";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { RunsTable } from "@/features/cases/CaseTimeline";
+import { agentName } from "@/features/cases/labels";
 import { useI18n } from "@/i18n";
 import { formatDateTime, formatNumber } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
@@ -77,7 +78,7 @@ export function RunsPage() {
             <option value="">{t("runs.filter.all_agents")}</option>
             {AGENTS.map((agent) => (
               <option key={agent} value={agent}>
-                {agent}
+                {agentName(t, agent)}
               </option>
             ))}
           </select>

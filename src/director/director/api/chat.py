@@ -32,6 +32,8 @@ from sc_core.i18n import Language, language_name
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter, assistant, system, user
 from sc_core.llm.structured import StructuredOutputFailed, complete_structured
+from sc_core.mail import normalize
+from sc_core.mail.protocol import MailClient
 from sc_core.odoo.models import PurchaseOrder
 from sc_core.prompts import get_prompt
 from sc_core.schema.a2a import SupplierCommsTask
@@ -92,6 +94,51 @@ class NoOrders:
         return []
 
 
+class EmailSnapshot(StrictModel):
+    """What the director reads of an email for one answer; never stored."""
+
+    subject: str | None = None
+    sender: str | None = None
+    received_at: datetime | None = None
+    text: str = ""
+    has_attachments: bool = False
+    web_link: str | None = None
+
+
+@runtime_checkable
+class EmailReader(Protocol):
+    async def read(self, message_id: str) -> EmailSnapshot | None: ...
+
+
+class NoEmailReader:
+    async def read(self, message_id: str) -> EmailSnapshot | None:
+        return None
+
+
+class GraphEmailReader:
+    """Reads a message from the purchasing mailbox on demand (the text stays in memory)."""
+
+    def __init__(self, client: MailClient, *, max_chars: int = 3000) -> None:
+        self._client = client
+        self._max_chars = max_chars
+
+    async def read(self, message_id: str) -> EmailSnapshot | None:
+        try:
+            message = await self._client.get_message(message_id)
+            body = normalize.text(await self._client.get_body_text(message_id), html_body=False)
+        except ScError as exc:
+            logger.warning("email {} not readable for the assistant: {}", message_id, exc)
+            return None
+        return EmailSnapshot(
+            subject=message.subject,
+            sender=message.sender.normalized if message.sender else None,
+            received_at=message.received_at,
+            text=body[: self._max_chars],
+            has_attachments=message.has_attachments,
+            web_link=message.web_link,
+        )
+
+
 class CaseAssistant:
     """Answers about a case from its recorded facts; proposes actions, never runs them."""
 
@@ -103,6 +150,7 @@ class CaseAssistant:
         approvals: ApprovalsGateway,
         orders: OrderLookup | None = None,
         policy: ExceptionsSource | None = None,
+        emails: EmailReader | None = None,
         language: Language = "en",
         langfuse: LangfuseCfg | None = None,
     ) -> None:
@@ -110,6 +158,7 @@ class CaseAssistant:
         self._cases = cases
         self._approvals = approvals
         self._orders = orders or NoOrders()
+        self._emails = emails or NoEmailReader()
         self._policy = policy
         self._language = language
         self._langfuse = langfuse
@@ -123,7 +172,7 @@ class CaseAssistant:
             today=local_today().isoformat(),
             case=self._describe_case(case),
             order=await self._describe_order(case),
-            email=describe_email(await self._cases.events(case.case_id)),
+            email=await self._describe_email(await self._cases.events(case.case_id)),
             policy=await self._describe_policy(),
             approvals=await self._describe_approvals(case),
             timeline=self._describe_timeline(await self._cases.events(case.case_id)),
@@ -168,6 +217,24 @@ class CaseAssistant:
             f"receipt {po.receipt_status or 'none'}, total {po.amount_total:.2f} "
             f"{po.currency_id.name if po.currency_id else ''}".strip()
         )
+
+    async def _describe_email(self, events: Sequence[CaseEvent]) -> str:
+        """The email's facts, and its text when the mailbox is reachable."""
+        summary = describe_email(events)
+        message_id = unlinked_message(events)
+        if message_id is None:
+            return summary
+        snapshot = await self._emails.read(message_id)
+        if snapshot is None:
+            return summary
+        received = snapshot.received_at.strftime("%Y-%m-%d %H:%M") if snapshot.received_at else "?"
+        header = (
+            f"from {snapshot.sender or 'unknown sender'} on {received}, "
+            f'subject "{snapshot.subject or ""}", '
+            f"{'with attachments' if snapshot.has_attachments else 'no attachments'}"
+        )
+        text = snapshot.text.strip() or "(empty body)"
+        return f'{header}. Text (quote only what matters):\n"""\n{text}\n"""'
 
     async def _describe_policy(self) -> str:
         if self._policy is None:

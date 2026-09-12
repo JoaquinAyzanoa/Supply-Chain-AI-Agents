@@ -17,7 +17,7 @@ import { formatDate, formatDateTime, formatNumber } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
 import { useCase, type AgentRun, type CaseEvent, type CaseView } from "./api";
 import { CaseChat } from "@/features/chat/CaseChat";
-import { failureOf, labelFor, shortCaseId } from "./labels";
+import { agentName, failureOf, labelFor, shortCaseId } from "./labels";
 
 export function CaseTimelinePage() {
   const { caseId } = useParams({ strict: false }) as { caseId: string };
@@ -38,7 +38,7 @@ export function CaseTimelinePage() {
           ) : null}
         </div>
       </PageTitle>
-      <div className="grid gap-4 p-4 lg:grid-cols-[1fr_24rem]">
+      <div className="grid gap-4 p-4 lg:grid-cols-[1fr_30rem] 2xl:grid-cols-[1fr_36rem]">
         <section>
           {item.summary ? <p className="mb-3 text-sm">{item.summary}</p> : null}
           <p className="mb-3 text-xs text-muted-foreground">
@@ -65,7 +65,7 @@ export function CaseTimelinePage() {
           <CaseChat caseRef={item.code} compact />
           <div>
             <h2 className="mb-2 text-sm font-semibold">{t("cases.runs")}</h2>
-            {runs.length === 0 ? <p className="text-sm text-muted-foreground">{t("cases.no_runs")}</p> : <RunsTable runs={runs} />}
+            {runs.length === 0 ? <p className="text-sm text-muted-foreground">{t("cases.no_runs")}</p> : <RunsTable runs={runs} compact />}
           </div>
         </aside>
       </div>
@@ -196,7 +196,7 @@ function ResultLine({ status, summary, payload }: { status: string; summary: str
   );
 }
 
-export function RunsTable({ runs, showCase = false }: { runs: AgentRun[]; showCase?: boolean }) {
+export function RunsTable({ runs, showCase = false, compact = false }: { runs: AgentRun[]; showCase?: boolean; compact?: boolean }) {
   const { t, locale } = useI18n();
   return (
     <Table>
@@ -206,9 +206,9 @@ export function RunsTable({ runs, showCase = false }: { runs: AgentRun[]; showCa
           <TableHead>{t("runs.col.agent")}</TableHead>
           {showCase ? <TableHead>{t("runs.col.po")}</TableHead> : null}
           <TableHead>{t("runs.col.status")}</TableHead>
-          <TableHead>{t("runs.col.model")}</TableHead>
-          <TableHead className="text-right">{t("runs.col.tokens")}</TableHead>
-          <TableHead className="text-right">{t("runs.col.cost")}</TableHead>
+          {compact ? null : <TableHead>{t("runs.col.model")}</TableHead>}
+          {compact ? null : <TableHead className="text-right">{t("runs.col.tokens")}</TableHead>}
+          {compact ? null : <TableHead className="text-right">{t("runs.col.cost")}</TableHead>}
           <TableHead className="text-right">{t("runs.col.duration")}</TableHead>
           <TableHead />
         </TableRow>
@@ -217,16 +217,18 @@ export function RunsTable({ runs, showCase = false }: { runs: AgentRun[]; showCa
         {runs.map((run) => (
           <TableRow key={run.run_id}>
             <TableCell className="whitespace-nowrap text-muted-foreground">{formatDateTime(run.started_at, locale)}</TableCell>
-            <TableCell>{run.agent}</TableCell>
+            <TableCell>{agentName(t, run.agent)}</TableCell>
             {showCase ? <TableCell>{run.po_name ?? run.case_id ?? ""}</TableCell> : null}
             <TableCell>
               <StatusBadge status={run.status} />
             </TableCell>
-            <TableCell className="text-muted-foreground">{run.model ?? ""}</TableCell>
-            <TableCell className="text-right tabular-nums">
-              {formatNumber(run.input_tokens, locale, 0)} / {formatNumber(run.output_tokens, locale, 0)}
-            </TableCell>
-            <TableCell className="text-right tabular-nums">${formatNumber(run.cost_usd, locale, 4)}</TableCell>
+            {compact ? null : <TableCell className="text-muted-foreground">{run.model ?? ""}</TableCell>}
+            {compact ? null : (
+              <TableCell className="text-right tabular-nums">
+                {formatNumber(run.input_tokens, locale, 0)} / {formatNumber(run.output_tokens, locale, 0)}
+              </TableCell>
+            )}
+            {compact ? null : <TableCell className="text-right tabular-nums">${formatNumber(run.cost_usd, locale, 4)}</TableCell>}
             <TableCell className="text-right tabular-nums">
               {run.duration_seconds !== null && run.duration_seconds !== undefined ? `${formatNumber(run.duration_seconds, locale, 1)} s` : ""}
             </TableCell>

@@ -141,9 +141,8 @@ describe("cases", () => {
     expect(traces).toHaveLength(2);
     expect(traces[0]).toHaveAttribute("href", "http://langfuse/trace/tr1");
     const runs = screen.getByRole("table");
-    expect(runs).toHaveTextContent("deepseek-v4-flash");
-    expect(runs).toHaveTextContent("1,200 / 300");
-    expect(runs).toHaveTextContent("$0.0042");
+    expect(runs).toHaveTextContent("Supplier agent");
     expect(runs).toHaveTextContent("19 s");
+    expect(runs).not.toHaveTextContent("deepseek-v4-flash"); // model, tokens and cost live on the Runs screen
   });
 });
