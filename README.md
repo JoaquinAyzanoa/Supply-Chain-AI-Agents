@@ -329,7 +329,7 @@ The people's side of the system: a React app served by the director under
   (send a proposal, confirm an RFQ, close or cancel an order, with a note
   that lands in the chatter); the other columns follow emails and receipts.
   A card opens a side panel with the facts, the pending approval resolvable
-  in place, the case history and the chat with the director. Filters:
+  in place, the case history and the "Talk to your AI" chat. Filters:
   search, supplier, buyer, "only with problems".
 - **Approvals**: the inbox. Emails are previewed sanitised (no scripts, no
   remote images) and can be edited before sending; order changes show a
@@ -340,7 +340,7 @@ The people's side of the system: a React app served by the director under
   through the bot, so Odoo fires the same agent callback as its own buttons.
 - **Cases**: one PO-centred timeline from the event received through rules,
   tasks, results and approvals to the agent runs (model, tokens, cost).
-  Every case has a **chat with the director**: questions are answered from
+  Every case has a **"Talk to your AI" chat** (the director agent): questions are answered from
   the case, the order and the policy; instructions ("ask them for a firm
   date", "wait until the 20th", "close this, I cancelled the order") come
   back as a proposed action that an approver confirms before it runs.

@@ -87,12 +87,12 @@ describe("case chat", () => {
         </I18nProvider>
       </QueryClientProvider>,
     );
-    const panel = await screen.findByRole("region", { name: "Talk to the director" });
+    const panel = await screen.findByRole("region", { name: "Talk to your AI" });
     expect(panel).toHaveTextContent("Ask what is going on");
-    await userEvent.type(within(panel).getByLabelText("Message to the director"), "Ask them for a firm date{Enter}");
+    await userEvent.type(within(panel).getByLabelText("Message to your AI"), "Ask them for a firm date{Enter}");
     await waitFor(() => expect(posted).toHaveLength(1));
     expect(posted[0]?.body).toEqual({ text: "Ask them for a firm date" });
-    expect(within(panel).getByLabelText("Message to the director")).toHaveValue(""); // emptied at once
+    expect(within(panel).getByLabelText("Message to your AI")).toHaveValue(""); // emptied at once
     const action = await within(panel).findByTestId("proposed-action");
     expect(action).toHaveTextContent("Ask the supplier for a delivery date");
     expect(action).toHaveTextContent("Ask the supplier for a firm delivery date on P00066.");
