@@ -6,7 +6,7 @@
   asks for the date, so it is the right first message on a fresh order.)
 * Receipt validated → recorded on the case; the logistics agent (phase 9)
   will reconcile it.
-* Orderpoint triggered → recorded; the planning agent (phase 7) reviews it.
+* Orderpoint triggered → ``inventory_planning.review_product`` for that product.
 * Approval resolved → mirrored on the case so the story shows who decided.
 """
 
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from director.router import Dispatch, Route
 from director.store import CaseKind
-from sc_core.schema.a2a import SupplierCommsTask
+from sc_core.schema.a2a import InventoryPlanningTask, SupplierCommsTask
 from sc_core.schema.events import (
     BaseEvent,
     OdooApprovalResolved,
@@ -57,13 +57,16 @@ def on_receipt(event: BaseEvent) -> Route:
 
 def on_orderpoint(event: BaseEvent) -> Route:
     assert isinstance(event, OdooOrderpointTriggered)
-    return Route(
-        case_kind="planning",
-        note=(
-            f"reorder rule {event.orderpoint_id} needs {event.qty_to_order:g} of product "
-            f"{event.product_code or event.product_id}; planning agent arrives in phase 7"
+    task = InventoryPlanningTask(
+        kind="review_product",
+        case_id=event.case_id,
+        product_ids=[event.product_id],
+        context=(
+            f"regla de reposición {event.orderpoint_id} disparada: faltan "
+            f"{event.qty_to_order:g} unidades de {event.product_code or event.product_id}"
         ),
     )
+    return Route(case_kind="planning", dispatches=[Dispatch(agent="inventory_planning", task=task)])
 
 
 def on_approval_resolved(event: BaseEvent) -> Route:

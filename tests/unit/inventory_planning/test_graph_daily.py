@@ -64,6 +64,8 @@ async def test_daily_plan_proposes_one_line_per_product_and_pauses(
     [created] = approval_ports.created
     assert created["kind"] == "planning_run" and created["res_model"] == "stock.warehouse"
     assert created["res_id"] == 1 and created["payload"]["totals"] == proposal.totals
+    [review] = approval_ports.reviews  # the To-Do hangs on the approval, not the warehouse
+    assert review["res_model"] == "sc.approval" and review["res_id"] == 101
     assert [e["product_ref"] for e in created["payload"]["exceptions"]] == [
         "CBEA-LHN",
         "LODC-XDN",

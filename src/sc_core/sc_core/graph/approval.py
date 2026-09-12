@@ -46,6 +46,8 @@ class ApprovalRequest(StrictModel):
     po_id: int | None = None
     auto_approve: bool = False
     auto_reason: str | None = None
+    review_on_approval: bool = False
+    """Schedule the approver's To-Do on the approval itself (records without an activity mixin)."""
 
 
 class ApprovalDecision(StrictModel):
@@ -159,10 +161,14 @@ class ApprovalGateway:
             callback_url=self._callback_url,
             callback_secret=self._callback_secret,
         )
-        if res_id is not None:
+        if req.review_on_approval:
+            review_model, review_id = "sc.approval", approval_id
+        else:
+            review_model, review_id = req.res_model, res_id or 0
+        if review_id:
             await self._ports.schedule_review(
-                res_model=req.res_model,
-                res_id=res_id,
+                res_model=review_model,
+                res_id=review_id,
                 user_id=self._approver,
                 summary=f"AI agent ({self._agent}): {req.summary}",
                 note_html=render_note(req),

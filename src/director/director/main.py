@@ -23,6 +23,7 @@ from director.escalation import (
     OdooEscalator,
 )
 from director.handlers.followups import FollowUpJob
+from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
 from director.jobs import JobRunner
 from director.policies import FollowUpPolicy
@@ -101,15 +102,23 @@ class DirectorModule(Module):
         escalator: Escalator,  # type: ignore[type-abstract]
         approvals: ApprovalRepo,
     ) -> JobRunner:  # type: ignore[type-abstract]
-        return FollowUpJob(
-            policy=FollowUpPolicy.from_settings(settings.director),
-            orders=orders,
-            mail=PostgresMailActivity(db),
-            cases=cases,
-            agents=agents,
-            escalator=escalator,
-            approvals=OdooApprovals(approvals, orders),
-            conversations=PostgresConversationLookup(db),
+        conversations = PostgresConversationLookup(db)
+        return JobDispatcher(
+            {
+                "po_followups": FollowUpJob(
+                    policy=FollowUpPolicy.from_settings(settings.director),
+                    orders=orders,
+                    mail=PostgresMailActivity(db),
+                    cases=cases,
+                    agents=agents,
+                    escalator=escalator,
+                    approvals=OdooApprovals(approvals, orders),
+                    conversations=conversations,
+                ),
+                "inventory_planning": PlanningJob(
+                    cases=cases, agents=agents, escalator=escalator, conversations=conversations
+                ),
+            }
         )
 
     @provider

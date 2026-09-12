@@ -84,6 +84,7 @@ def make_plan_approval() -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest
             },
             res_model="stock.warehouse",
             res_id=proposal.warehouse_id,
+            review_on_approval=True,  # stock.warehouse has no activities; the approval does
         )
 
     return build

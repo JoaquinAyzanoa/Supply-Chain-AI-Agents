@@ -1,7 +1,8 @@
 """Publish the local prompt files to Langfuse Prompt Management (idempotent).
 
-Every ``*.md`` under ``sc_core/prompts/local``, ``supplier_comms/prompts``
-and ``director/prompts`` becomes a text prompt named after the file, with
+Every ``*.md`` under ``sc_core/prompts/local``, ``supplier_comms/prompts``,
+``director/prompts`` and ``inventory_planning/prompts`` becomes a text prompt
+named after the file, with
 the ``production`` label ``get_prompt`` asks for. A prompt whose production
 text already matches the file is left alone; otherwise a new version is
 created and labelled. Requires ``SC__LANGFUSE__*`` in ``.env`` and the
@@ -23,6 +24,7 @@ PROMPT_DIRS = [
     SRC / "sc_core" / "sc_core" / "prompts" / "local",
     SRC / "supplier_comms" / "supplier_comms" / "prompts",
     SRC / "director" / "director" / "prompts",
+    SRC / "inventory_planning" / "inventory_planning" / "prompts",
 ]
 LABEL = "production"
 

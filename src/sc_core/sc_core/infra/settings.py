@@ -201,6 +201,7 @@ class A2aCfg(_Section):
     max_concurrent: int = Field(default=4, ge=1)  # runs in flight per agent (director side)
     # Where the director reaches each agent (inside compose: http://<service>:8000).
     supplier_comms_url: str = "http://localhost:8013"
+    inventory_planning_url: str = "http://localhost:8014"
 
 
 class DirectorCfg(_Section):
@@ -231,6 +232,8 @@ class PlanningCfg(_Section):
     lead_time_sigma_ratio: float = Field(
         default=0.25, ge=0
     )  # sigma_LT = ratio x delay until phase 9
+    # Where Odoo reaches this agent for approval callbacks (inside compose: the service name).
+    public_url: str = "http://localhost:8014"
 
 
 class AgentsCfg(_Section):

@@ -100,7 +100,7 @@ def test_po_confirmed_sends_the_order() -> None:
     assert dispatch.thread_id == "odoo_po_66_purchase"
 
 
-def test_receipt_and_orderpoint_are_recorded_only() -> None:
+def test_receipt_is_recorded_and_orderpoint_goes_to_the_planner() -> None:
     receipt = route(
         ev.OdooReceiptValidated(
             source="odoo",
@@ -123,8 +123,11 @@ def test_receipt_and_orderpoint_are_recorded_only() -> None:
             qty_to_order=12,
         )
     )
-    assert orderpoint.case_kind == "planning" and orderpoint.dispatches == []
-    assert orderpoint.note and "CBEA-LHN" in orderpoint.note and "12" in orderpoint.note
+    assert orderpoint.case_kind == "planning" and orderpoint.po_name is None
+    [dispatch] = orderpoint.dispatches
+    assert dispatch.agent == "inventory_planning" and dispatch.task.kind == "review_product"
+    assert dispatch.task.product_ids == [11] and dispatch.thread_id == "odoo_orderpoint_3"
+    assert dispatch.task.context and "CBEA-LHN" in dispatch.task.context
 
 
 def test_approval_resolved_is_mirrored() -> None:
