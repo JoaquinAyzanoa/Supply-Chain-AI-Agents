@@ -93,6 +93,12 @@
       "description": "Odoo order name, e.g. P00015",
       "title": "Po Name"
     },
+    "require_approval": {
+      "default": false,
+      "description": "a person asked for this email from the Control Tower: show the draft for approval before sending, whatever the automatic-send rules say",
+      "title": "Require Approval",
+      "type": "boolean"
+    },
     "schema_version": {
       "default": 1,
       "minimum": 1,

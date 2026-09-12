@@ -12,6 +12,7 @@ outcome is a case event, so the timeline and Odoo keep the conversation.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from datetime import UTC, date, datetime, time
 from typing import Any, Literal, Protocol, runtime_checkable
@@ -33,8 +34,9 @@ from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter, assistant, system, user
 from sc_core.llm.structured import StructuredOutputFailed, complete_structured
 from sc_core.mail import normalize
+from sc_core.mail.normalize import html_to_text
 from sc_core.mail.protocol import MailClient
-from sc_core.odoo.models import PurchaseOrder
+from sc_core.odoo.models import Approval, PurchaseOrder
 from sc_core.prompts import get_prompt
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.base import StrictModel
@@ -251,10 +253,14 @@ class CaseAssistant:
 
     async def _describe_approvals(self, case: Case) -> str:
         pending = await self._approvals.list(status="pending", kind=None, po_name=case.po_name)
-        mine = [a for a in pending if a.thread_id == case.case_id or a.case_id == case.case_id]
-        if not mine and case.po_name:
-            mine = pending
-        return "; ".join(f"#{a.id} {a.kind}: {a.summary}" for a in mine) or "(none)"
+        # With an order, every pending approval on it matters (an email draft raised from
+        # another thread included); without one, only those raised on this case.
+        mine = (
+            pending
+            if case.po_name
+            else [a for a in pending if a.thread_id == case.case_id or a.case_id == case.case_id]
+        )
+        return "\n".join(_describe_approval(a) for a in mine) or "(none)"
 
     @staticmethod
     def _describe_timeline(events: Sequence[CaseEvent], limit: int = 20) -> str:
@@ -274,6 +280,26 @@ class CaseAssistant:
             status = f" [{p['status']}]" if p.get("status") else ""
             lines.append(f"- {when} {event.kind}{status}: {detail}".rstrip(": "))
         return "\n".join(lines) or "- (nothing yet)"
+
+
+def _describe_approval(approval: Approval, *, body_chars: int = 1500) -> str:
+    """One line per approval; an email draft also shows who it goes to, its subject and text."""
+    line = f"- #{approval.id} {approval.kind}: {approval.summary}"
+    if approval.kind != "send_email" or not approval.payload_json:
+        return line
+    try:
+        payload = json.loads(approval.payload_json)
+    except ValueError:
+        return line
+    to = ", ".join(payload.get("to") or []) if isinstance(payload.get("to"), list) else ""
+    text = html_to_text(str(payload.get("html_body") or "")).strip()
+    if len(text) > body_chars:
+        text = text[:body_chars].rstrip() + " […]"
+    return (
+        f"{line} (pending: not sent until someone approves it in the panel)\n"
+        f"  to: {to or '?'}\n  subject: {payload.get('subject') or '?'}\n"
+        f"  text: {text or '(empty)'}"
+    )
 
 
 def _sanitize(reply: AssistantReply, case: Case, events: Sequence[CaseEvent]) -> AssistantReply:

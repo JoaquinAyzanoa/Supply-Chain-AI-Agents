@@ -20,6 +20,7 @@ test("an approver lands on the board, opens an order and confirms it from the pa
   const drawer = page.getByRole("dialog", { name: "Order P00015" });
   await expect(drawer).toContainText("RFQ sent, waiting for the supplier");
   await expect(drawer.getByTestId("email-preview")).toContainText("Dear supplier"); // the pending approval, in place
+  await drawer.getByText("History", { exact: false }).first().click(); // folded by default
   await expect(drawer.getByRole("region", { name: "History" })).toContainText("Task sent");
   await drawer.getByRole("button", { name: "Confirm the order" }).click();
   await expect.poll(() => state.moves.length).toBe(1);

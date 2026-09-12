@@ -233,7 +233,9 @@ async def build_board(
         delivery, days_late = delivery_for(po, today=today, due_soon_days=due_soon_days)
         last_out, last_in = contacts.get(po.name, (None, None))
         open_cases = await cases.open_for_po(po.name)
-        case: Case | None = open_cases[0] if open_cases else None
+        # No open case: the panel still shows the last one, so a closed story stays readable.
+        latest = open_cases or await cases.list(po_name=po.name, limit=1)
+        case: Case | None = latest[0] if latest else None
         fact = facts.get(po.name)
         step = next_action(fact, policy, today) if fact else None
         first = next((a for a in mine if a.kind != "escalation"), None) or (
@@ -277,7 +279,7 @@ async def build_board(
                     else None
                 ),
                 escalated=any(a.kind == "escalation" for a in mine)
-                or (case is not None and case.status == "escalated"),
+                or (bool(open_cases) and open_cases[0].status == "escalated"),
                 on_hold_until=(
                     case.next_action_at.date()
                     if case and case.next_action_at and case.next_action_at.date() > today

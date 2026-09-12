@@ -40,7 +40,7 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
       role="dialog"
       aria-modal="false"
       aria-label={t("board.drawer.order", { po: card.po_name })}
-      className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l bg-background shadow-xl sm:w-[34rem] lg:w-[40rem]"
+      className="fixed inset-y-0 right-0 z-40 flex w-full flex-col border-l bg-background shadow-xl sm:w-[34rem] lg:w-[48rem] xl:w-[56rem] 2xl:w-[64rem]"
     >
       <header className="flex items-start gap-2 border-b bg-card p-3">
         <div className="min-w-0 flex-1">
@@ -232,12 +232,19 @@ function PendingApproval({ id, onBack }: { id: number; onBack: () => void }) {
 function CaseHistory({ caseId }: { caseId: string }) {
   const { t } = useI18n();
   const detail = useCase(caseId);
+  const count = detail.data?.events.length;
+  // Folded by default: the facts and the chat matter first; the story is one click away.
   return (
-    <section aria-label={t("board.drawer.case")}>
-      <h3 className="mb-2 text-sm font-semibold">{t("board.drawer.case")}</h3>
-      {detail.isPending ? <Loading /> : null}
-      {detail.error ? <ErrorBox error={detail.error} onRetry={() => detail.refetch()} /> : null}
-      {detail.data ? <CaseEvents events={detail.data.events} /> : null}
-    </section>
+    <details className="group rounded-md border">
+      <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold">
+        {t("board.drawer.case")}
+        {count !== undefined ? <span className="ml-2 text-xs font-normal text-muted-foreground">{t("board.drawer.events", { n: count })}</span> : null}
+      </summary>
+      <section aria-label={t("board.drawer.case")} className="border-t p-3">
+        {detail.isPending ? <Loading /> : null}
+        {detail.error ? <ErrorBox error={detail.error} onRetry={() => detail.refetch()} /> : null}
+        {detail.data ? <CaseEvents events={detail.data.events} /> : null}
+      </section>
+    </details>
   );
 }

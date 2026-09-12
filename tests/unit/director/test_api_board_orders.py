@@ -131,6 +131,8 @@ async def _seed(module: MemoryDirectorModule) -> None:
     ]
     case, _ = await module.cases.attach_or_create(kind="eta", po_name="P00006")
     await module.cases.update(case.case_id, status="escalated", summary="4 days late")
+    closed, _ = await module.cases.attach_or_create(kind="rfq", po_name="P00004")
+    await module.cases.update(closed.case_id, status="done", summary="quotation accepted")
 
 
 async def test_board_puts_every_order_in_its_column_with_colours_and_badges(
@@ -172,6 +174,12 @@ async def test_board_puts_every_order_in_its_column_with_colours_and_badges(
     assert silent["days_silent"] == 3 and silent["next_action"] == "follow_up"
     assert silent["act_kind"] == "rfq_no_reply" and silent["can_act"] is True
     assert by_name["P00004"]["act_kind"] is None and by_name["P00004"]["can_act"] is False
+    # a closed case still tells the story in the panel, without flags
+    assert (
+        by_name["P00004"]["case_status"] == "done"
+        and by_name["P00004"]["summary"] == "quotation accepted"
+    )
+    assert by_name["P00004"]["escalated"] is False and by_name["P00004"]["on_hold_until"] is None
     assert silent["last_outbound"] == (local_today() - timedelta(days=3)).isoformat()
     assert by_name["P00003"]["pending_approval"] == {
         "id": 31,

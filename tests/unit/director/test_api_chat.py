@@ -86,6 +86,18 @@ async def _escalated_case(module: MemoryDirectorModule) -> str:
         po=(66, "P00066"),
         thread_id=case.case_id,
     )
+    module.approvals.seed(
+        19,
+        kind="send_email",
+        summary="Enviar solicitud de fecha de entrega a Proveedor Hidraulica por P00066",
+        po=(66, "P00066"),
+        thread_id="chat_earlier",
+        payload={
+            "to": ["ventas.hidraulica.sc@gmail.com"],
+            "subject": "[P00066] Fecha de entrega",
+            "html_body": "<p>Estimado proveedor: <b>¿dónde está la mercadería?</b></p>",
+        },
+    )
     module.orders_lookup.orders["P00066"] = PurchaseOrder(
         id=66,
         name="P00066",
@@ -122,6 +134,9 @@ async def test_a_question_is_answered_from_the_case_facts(
     prompt = chat.last_prompt_text()
     assert "P00066 with Proveedor Hidraulica: state purchase, planned delivery 2026-09-05" in prompt
     assert "#21 escalation: P00066 needs a person" in prompt and "po_late_escalate" in prompt
+    assert "#19 send_email" in prompt and "subject: [P00066] Fecha de entrega" in prompt
+    assert "Estimado proveedor: ¿dónde está la mercadería?" in prompt
+    assert "not sent until someone approves it" in prompt
     assert "What is going on" in prompt
     history = client.get(f"/api/cases/{case_id}/chat", headers=viewer).json()
     assert [m["role"] for m in history] == ["user", "director"]
@@ -186,7 +201,10 @@ async def test_an_instruction_becomes_an_action_that_runs_only_when_confirmed(
         and '"require_approval":true' in sent.task_json
     )
     # the draft that was still waiting for this order is retired; other orders untouched
-    assert [(r["id"], r["status"]) for r in module.approvals.resolved] == [(77, "rejected")]
+    assert [(r["id"], r["status"]) for r in module.approvals.resolved] == [
+        (19, "rejected"),
+        (77, "rejected"),
+    ]
     assert "superseded" in module.approvals.resolved[0]["reason"]
     history = client.get(f"/api/cases/{case_id}/chat", headers=viewer).json()
     assert history[1]["action_status"] == "confirmed"
