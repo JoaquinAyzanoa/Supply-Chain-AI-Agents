@@ -25,7 +25,7 @@ import {
   type ProposedChange,
 } from "./types";
 
-export function ApprovalDetail({ approval, onBack }: { approval: Approval; onBack: () => void }) {
+export function ApprovalDetail({ approval, onBack, withChat = true }: { approval: Approval; onBack: () => void; withChat?: boolean }) {
   const { t, locale } = useI18n();
   const { hasRole } = useAuth();
   const resolve = useResolveApproval();
@@ -120,7 +120,7 @@ export function ApprovalDetail({ approval, onBack }: { approval: Approval; onBac
         {email ? <EmailCard payload={email} editing={editing} edits={emailEdits} onEdits={setEmailEdits} /> : null}
         {changes ? <ChangesCard payload={changes} accepted={accepted} onToggle={toggle} /> : null}
         {plan ? <PlanCard payload={plan} /> : null}
-        {escalation ? <EscalationCard payload={escalation} caseCode={approval.case_code} /> : null}
+        {escalation ? <EscalationCard payload={escalation} caseCode={approval.case_code} withChat={withChat} /> : null}
         {kind === "other" ? (
           <pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">{JSON.stringify(approval.payload, null, 2)}</pre>
         ) : null}

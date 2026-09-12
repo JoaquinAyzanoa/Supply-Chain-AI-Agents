@@ -224,7 +224,7 @@ function PendingApproval({ id, onBack }: { id: number; onBack: () => void }) {
       <h3 className="border-b bg-warning/10 px-3 py-2 text-sm font-semibold">{t("board.drawer.approval")}</h3>
       {approval.isPending ? <Loading /> : null}
       {approval.error ? <ErrorBox error={approval.error} onRetry={() => approval.refetch()} /> : null}
-      {approval.data ? <ApprovalDetail approval={approval.data} onBack={onBack} /> : null}
+      {approval.data ? <ApprovalDetail approval={approval.data} onBack={onBack} withChat={false} /> : null}
     </section>
   );
 }

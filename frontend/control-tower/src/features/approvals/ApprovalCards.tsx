@@ -206,7 +206,7 @@ function detailLabel(t: (key: string) => string, key: string): string {
   return DETAIL_KEYS.has(key) ? t(`approvals.escalation.detail.${key}`) : key.replace(/_/g, " ");
 }
 
-export function EscalationCard({ payload, caseCode }: { payload: EscalationPayload; caseCode?: string | null }) {
+export function EscalationCard({ payload, caseCode, withChat = true }: { payload: EscalationPayload; caseCode?: string | null; withChat?: boolean }) {
   const { t } = useI18n();
   const emailLink = payload.web_link ?? (typeof payload.details.web_link === "string" ? payload.details.web_link : null);
   const sender = typeof payload.details.sender_address === "string" ? payload.details.sender_address : null;
@@ -250,7 +250,7 @@ export function EscalationCard({ payload, caseCode }: { payload: EscalationPaylo
           </ol>
         </div>
       ) : null}
-      {payload.case_id ? <CaseChat caseRef={caseCode ?? payload.case_id} compact /> : null}
+      {withChat && payload.case_id ? <CaseChat caseRef={caseCode ?? payload.case_id} compact /> : null}
       {payload.case_id ? (
         <Link to="/cases/$caseId" params={{ caseId: caseCode ?? payload.case_id }} className="text-primary underline">
           {t("approvals.escalation.case")}{caseCode ? ` (${caseCode})` : ""}
