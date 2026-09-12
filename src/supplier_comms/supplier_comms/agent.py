@@ -26,12 +26,14 @@ from sc_core.shared.idempotency import new_id
 from supplier_comms import AGENT_NAME
 from supplier_comms.nodes.apply import CHANGE_STEP
 from supplier_comms.nodes.send import SEND_STEP
+from supplier_comms.ports import AgentPorts
 
 
 class SupplierCommsAgent:
-    def __init__(self, graph: CompiledStateGraph, *, model: str) -> None:
+    def __init__(self, graph: CompiledStateGraph, *, model: str, ports: AgentPorts) -> None:
         self._graph = graph
         self._model = model
+        self._ports = ports
 
     async def run(self, task: SupplierCommsTask) -> SupplierCommsResult:
         run_id = new_id("run")
@@ -44,7 +46,7 @@ class SupplierCommsAgent:
         }
         logger.bind(case_id=task.case_id, run_id=run_id, kind=task.kind).info("run started")
         state = await self._graph.ainvoke(initial, run_config(task.case_id))
-        return self.result_from(state)
+        return await self._finish(state)
 
     async def resume(self, case_id: str, decision: dict[str, Any]) -> SupplierCommsResult:
         """Continue a paused case with a decision. A finished case just returns its result."""
@@ -56,7 +58,25 @@ class SupplierCommsAgent:
             logger.bind(case_id=case_id).info("resume ignored: run already finished")
             return self.result_from(snapshot.values)
         state = await self._graph.ainvoke(Command(resume=decision), config)
-        return self.result_from(state)
+        return await self._finish(state)
+
+    async def pending_approval_id(self, case_id: str) -> int | None:
+        """The approval a paused case is waiting for; ``None`` when finished or unknown."""
+        snapshot = await self._graph.aget_state(run_config(case_id))
+        if not snapshot.values or not snapshot.next:
+            return None
+        pending = _any_pending(snapshot.values)
+        return int(pending["approval_id"]) if pending else None
+
+    async def _finish(self, state: dict[str, Any]) -> SupplierCommsResult:
+        result = self.result_from(state)
+        await self._ports.finish_run(
+            result.run_id, status=result.status, summary=result.outcome.summary
+        )
+        logger.bind(case_id=result.case_id, run_id=result.run_id, status=result.status).info(
+            "run {}", "paused" if result.status == "awaiting_approval" else "finished"
+        )
+        return result
 
     async def snapshot(self, case_id: str) -> dict[str, Any]:
         """The persisted state of a case (tests and the callback use it)."""

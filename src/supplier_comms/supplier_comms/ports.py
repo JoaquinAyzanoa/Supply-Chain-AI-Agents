@@ -9,20 +9,23 @@ are free; the only writes are the ones an approved decision unlocks
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 from sc_core.mail import normalize, pdf, po_token
 from sc_core.mail.models import MessageIds, OutboundMessage
 from sc_core.mail.outbound import OutboundMailStore
 from sc_core.mail.protocol import MailClient
 from sc_core.odoo.client import OdooClient
+from sc_core.odoo.models import RunStatus
 from sc_core.odoo.repositories import (
+    AgentRunRepo,
     MailLinkRepo,
     PartnerRepo,
     PurchaseOrderRepo,
     SupplierInfoRepo,
 )
 from sc_core.shared.time import utc_now
+from supplier_comms import AGENT_NAME
 from supplier_comms.models import InboundMeta, LineView, PoContext
 
 
@@ -80,6 +83,19 @@ class AgentPorts(Protocol):
 
     async def set_eta_meta(self, po_id: int, *, confidence: float) -> None: ...
 
+    # --- run log (sc.agent.run) ---------------------------------------------------
+    async def start_run(
+        self,
+        *,
+        run_id: str,
+        case_id: str,
+        po_id: int | None,
+        model: str | None,
+        trace_url: str | None,
+    ) -> None: ...
+
+    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None: ...
+
 
 class LivePorts:
     def __init__(
@@ -90,12 +106,14 @@ class LivePorts:
         partners: PartnerRepo,
         mail_links: MailLinkRepo,
         supplier_info: SupplierInfoRepo,
+        agent_runs: AgentRunRepo,
         graph: MailClient,
         outbound: OutboundMailStore,
         pdf_max_pages: int = 20,
         pdf_max_bytes: int = 10_000_000,
     ) -> None:
         self._odoo = odoo
+        self._runs = agent_runs
         self._pos = purchase_orders
         self._partners = partners
         self._links = mail_links
@@ -278,6 +296,29 @@ class LivePorts:
 
     async def set_eta_meta(self, po_id: int, *, confidence: float) -> None:
         await self._pos.set_eta_meta(po_id, source="supplier", confidence=confidence)
+
+    # --- run log ------------------------------------------------------------------
+
+    async def start_run(
+        self,
+        *,
+        run_id: str,
+        case_id: str,
+        po_id: int | None,
+        model: str | None,
+        trace_url: str | None,
+    ) -> None:
+        await self._runs.start(
+            run_id=run_id,
+            agent=AGENT_NAME,
+            case_id=case_id,
+            po_id=po_id,
+            model=model,
+            trace_url=trace_url,
+        )
+
+    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
+        await self._runs.finish(run_id, cast(RunStatus, status), summary[:500])
 
     # --- unlinked mail ------------------------------------------------------------
 

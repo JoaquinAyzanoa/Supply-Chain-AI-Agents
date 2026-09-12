@@ -69,6 +69,7 @@ class FakePorts:
     inbound: dict[str, str] = field(default_factory=dict)
     metas: dict[str, InboundMeta] = field(default_factory=dict)
     partners: dict[str, int] = field(default_factory=dict)  # email -> commercial partner id
+    runs: dict[str, dict[str, Any]] = field(default_factory=dict)
     attachments: dict[str, list[str]] = field(default_factory=dict)
     date_changes: list[dict[str, Any]] = field(default_factory=list)
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
@@ -176,6 +177,14 @@ class FakePorts:
 
     async def set_eta_meta(self, po_id: int, *, confidence: float) -> None:
         self.eta_meta.append({"po_id": po_id, "confidence": confidence})
+
+    async def start_run(self, **fields: Any) -> None:
+        if fields["run_id"] not in self.runs:
+            self.runs[fields["run_id"]] = {**fields, "status": "running"}
+
+    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
+        self.runs.setdefault(run_id, {"run_id": run_id})
+        self.runs[run_id].update(status=status, summary=summary)
 
     async def inbound_meta(self, message_id: str) -> InboundMeta:
         return self.metas.get(message_id) or InboundMeta(graph_message_id=message_id)

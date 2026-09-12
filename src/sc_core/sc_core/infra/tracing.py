@@ -29,12 +29,14 @@ from sc_core.infra import context
 from sc_core.infra.settings import Settings
 
 _client: Langfuse | None = None
+_host: str = ""
 
 
 def configure_tracing(settings: Settings) -> Langfuse:
     """Create the process-wide Langfuse client (idempotent)."""
-    global _client
+    global _client, _host
     cfg = settings.langfuse
+    _host = cfg.host.rstrip("/") if cfg.configured else ""
     _client = Langfuse(
         public_key=cfg.public_key or "pk-disabled",
         secret_key=cfg.secret_key.get_secret_value() or "sk-disabled",
@@ -44,6 +46,13 @@ def configure_tracing(settings: Settings) -> Langfuse:
         release=settings.service_name,
     )
     return _client
+
+
+def trace_url(trace_id: str | None) -> str | None:
+    """Link to the trace in the Langfuse UI, or ``None`` when tracing is off."""
+    if not trace_id or not _host:
+        return None
+    return f"{_host}/trace/{trace_id}"
 
 
 def tracer() -> Langfuse:

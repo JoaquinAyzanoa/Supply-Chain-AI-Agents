@@ -59,6 +59,8 @@ def make_agent(
             sleep=_no_sleep,
             **overrides,
         )
-        return SupplierCommsAgent(build_graph(deps, memory_checkpointer()), model="fake-model")
+        return SupplierCommsAgent(
+            build_graph(deps, memory_checkpointer()), model="fake-model", ports=ports
+        )
 
     return factory

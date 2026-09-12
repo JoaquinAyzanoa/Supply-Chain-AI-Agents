@@ -11,6 +11,7 @@ from typing import Any
 
 from loguru import logger
 
+from sc_core.infra import tracing
 from supplier_comms.nodes.common import fail, task_of
 from supplier_comms.ports import AgentPorts
 from supplier_comms.state import Node
@@ -26,6 +27,15 @@ def make_load_context(ports: AgentPorts, *, max_attachment_chars: int = 12_000) 
                 return fail(f"purchase order {task.po_name} not found")
             update["po_context"] = ctx.model_dump(mode="json")
             logger.bind(po_name=ctx.name, lines=len(ctx.lines)).info("context loaded")
+        if state.get("run_id"):
+            po_ctx = update["po_context"]
+            await ports.start_run(
+                run_id=state["run_id"],
+                case_id=state["case_id"],
+                po_id=po_ctx["id"] if po_ctx else None,
+                model=state.get("model"),
+                trace_url=tracing.trace_url(state.get("trace_id")),
+            )
         if task.graph_message_id:
             meta = await ports.inbound_meta(task.graph_message_id)
             update["inbound_meta"] = meta.model_dump(mode="json")
