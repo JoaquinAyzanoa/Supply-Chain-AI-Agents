@@ -314,6 +314,50 @@ per order at a time is guaranteed by a Redis lock (`po:<name>`); an event
 that cannot get it within `SC__DIRECTOR__LOCK_WAIT_SECONDS` stays in the
 inbox for the replay.
 
+## Control Tower
+
+The people's side of the system: a React app served by the director under
+`/` (the API lives under `/api`, OpenAPI at `/docs` in dev). Screens:
+
+- **Approvals**: the inbox. Emails are previewed sanitised (no scripts, no
+  remote images) and can be edited before sending; order changes show a
+  before/after table with per-line toggles; planning runs link to their
+  review; escalations show the model's summary and the last events. Every
+  card says why the agent proposed it and links to Odoo, the Outlook draft
+  and the Langfuse trace. Approving here resolves the `sc.approval` in Odoo
+  through the bot, so Odoo fires the same agent callback as its own buttons.
+- **Cases**: one PO-centred timeline from the event received through rules,
+  tasks, results and approvals to the agent runs (model, tokens, cost).
+- **Exceptions**: late orders, silent RFQs, unlinked emails, failed runs and
+  stale approvals, each with the policy's next step and "act now".
+- **Planning**: the run's lines grouped by supplier, editable quantities and
+  min/max, a per-line drawer with the explanation, the 90-day demand and a
+  what-if simulation; approving the selected lines is one resume call.
+- **Runs**: agent runs with model, tokens, cost and duration; scheduler runs.
+- **Settings** (admins): model per agent, follow-up policy, auto-send
+  suppliers and planning defaults, versioned in `settings_history` and
+  picked up by every service within a minute (no restart).
+
+Setup and daily use:
+
+```bash
+just ui-create-user ana@example.com "Ana" approver   # roles: viewer | approver | admin
+just ui-install          # npm install
+just ui-dev              # Vite on http://localhost:5173 with /api proxied to the director
+just ui-check            # typecheck, unit tests, production build
+just ui-e2e              # Playwright: approve and planning flows, roles, axe, phone viewport
+just ui-openapi          # regenerate openapi.json and the typed client after an API change
+just image-director      # the director image with the bundle built in
+```
+
+The UI has an EN/ES switch (`messages.en.json` / `messages.es.json`); the
+default is English. Sessions are JWTs from `POST /api/auth/login`
+(`SC__UI__JWT_SECRET`, falling back to the events secret; TTL
+`SC__UI__JWT_TTL_MINUTES`). Live updates come over `GET /api/stream`
+(Server-Sent Events through Redis pub/sub), so screens refetch on change
+instead of polling. CI regenerates the client from the director's OpenAPI
+document and fails on drift.
+
 ## Demo dataset
 
 `odoo/demo/sun_hydraulics.yaml` describes a small Peruvian distributor of Sun
@@ -341,8 +385,9 @@ Everything internal is English: prompts, reasoning, tool calls, logs, traces
 and case events. Only what people read follows a language. Emails to
 suppliers are written in the supplier's Odoo language (`res.partner.lang`),
 falling back to the instance language; explanations, run summaries,
-escalation summaries, approval titles, chatter notes and the Control Tower
-follow `SC__AGENTS__LANGUAGE` (`en` or `es`, default `en`). Those strings
+escalation summaries, approval titles and chatter notes follow
+`SC__AGENTS__LANGUAGE` (`en` or `es`, default `en`); the Control Tower has
+its own EN/ES switch per user. Those strings
 live in one catalog, `sc_core.i18n`, and every prompt that produces text for
 a person takes the language as a variable. Odoo renders PDFs and its own UI
 in the partner's and the user's language on its own.
