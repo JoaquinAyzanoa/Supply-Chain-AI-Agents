@@ -85,6 +85,33 @@ class ApprovalRepo(Repo[Approval]):
             raise ValidationFailed(f"cannot resolve an approval as {status!r}")
         return await self.get(approval_id)
 
+    async def resolve_via_api(
+        self,
+        approval_id: int,
+        status: ApprovalStatus,
+        *,
+        by_name: str,
+        reason: str | None = None,
+        details: dict[str, Any] | None = None,
+    ) -> Approval:
+        """The Control Tower's decision: recorded with the person's name and the details.
+
+        Odoo fires the agent callback itself, so this is the one path for both
+        entry points.
+        """
+        if status not in ("approved", "rejected"):
+            raise ValidationFailed(f"cannot resolve an approval as {status!r}")
+        await self._c.call(
+            self._name,
+            "action_resolve_via_api",
+            [approval_id],
+            status=status,
+            reason=reason,
+            by_name=by_name,
+            details=details,
+        )
+        return await self.get(approval_id)
+
     async def expire(self, approval_id: int, *, reason: str | None = None) -> Approval:
         """Close a pending approval nobody answered (the agent gets the usual callback)."""
         await self._c.call(self._name, "action_expire", [approval_id], reason=reason)

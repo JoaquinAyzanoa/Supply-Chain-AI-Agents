@@ -270,6 +270,37 @@ async def test_approval_create_payload(odoo: ScriptedOdoo, client_factory: Facto
     assert values["callback_secret"] == "s"
 
 
+async def test_approval_resolve_via_api_forwards_the_decision(
+    odoo: ScriptedOdoo, client_factory: Factory
+) -> None:
+    odoo.script += [
+        LOGIN_OK,
+        rpc_ok("approved"),
+        rpc_ok(
+            [
+                {
+                    **samples.APPROVAL_ROW,
+                    "resolved_by_name": "Ana",
+                    "resolved_via": "api",
+                    "details_json": '{"accepted_line_ids": [26]}',
+                }
+            ]
+        ),
+    ]
+    repo = ApprovalRepo(client_factory())
+    approval = await repo.resolve_via_api(
+        2, "approved", by_name="Ana", reason=None, details={"accepted_line_ids": [26]}
+    )
+    assert approval.resolved_by_name == "Ana" and approval.resolved_via == "api"
+    assert json.loads(approval.details_json or "") == {"accepted_line_ids": [26]}
+    _, method, args, kwargs = odoo.execute_kw_args(0)
+    assert method == "action_resolve_via_api" and args == [[2]]
+    assert kwargs["status"] == "approved" and kwargs["by_name"] == "Ana"
+    assert kwargs["reason"] is None and kwargs["details"] == {"accepted_line_ids": [26]}
+    with pytest.raises(ValidationFailed):
+        await repo.resolve_via_api(2, "expired", by_name="Ana")
+
+
 async def test_approval_requires_target(client_factory: Factory) -> None:
     with pytest.raises(ValidationFailed):
         await ApprovalRepo(client_factory()).create(

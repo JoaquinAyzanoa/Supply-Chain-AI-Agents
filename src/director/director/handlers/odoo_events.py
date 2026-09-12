@@ -71,7 +71,8 @@ def on_orderpoint(event: BaseEvent) -> Route:
 
 def on_approval_resolved(event: BaseEvent) -> Route:
     assert isinstance(event, OdooApprovalResolved)
-    who = f" by {event.resolved_by}" if event.resolved_by else ""
+    person = event.resolved_by_name or event.resolved_by
+    who = f" by {person}" if person else ""
     return Route(
         case_kind=_case_kind_for_approval(event.kind),
         po_name=event.po_name,

@@ -151,6 +151,22 @@ class FakeGraph:
         self.draft_ids[ids.id] = ids
         return ids
 
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None:
+        self._check_failure()
+        if draft_id not in self.drafts:
+            raise GraphError("draft not found", details={"status": 404}, retryable=False)
+        message = self.drafts[draft_id]
+        if not isinstance(message, OutboundMessage):
+            return  # a reply draft: only its body is tracked, nothing to update
+        self.drafts[draft_id] = message.model_copy(
+            update={
+                "subject": subject if subject is not None else message.subject,
+                "html_body": html_body if html_body is not None else message.html_body,
+            }
+        )
+
     async def send_draft(self, draft_id: str) -> None:
         self._check_failure()
         if draft_id not in self.drafts:

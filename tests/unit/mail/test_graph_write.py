@@ -94,6 +94,23 @@ async def test_send_tracked_falls_back_to_draft_ids(
     assert sent.id == "draft1" and sent.internet_message_id == "<m1@outlook.com>"
 
 
+async def test_update_draft_patches_subject_and_body(
+    graph: ScriptedGraph, client_factory: Factory
+) -> None:
+    graph.script += [httpx.Response(200, json=DRAFT)]
+    await client_factory().update_draft(
+        "draft1", subject="[P00015] Better", html_body="<p>Edited</p>"
+    )
+    assert graph.requests[0].method == "PATCH"
+    assert graph.requests[0].url.path.endswith("/me/messages/draft1")
+    assert graph.json_of(0) == {
+        "subject": "[P00015] Better",
+        "body": {"contentType": "HTML", "content": "<p>Edited</p>"},
+    }
+    await client_factory().update_draft("draft1")  # nothing to change: no request
+    assert len(graph.requests) == 1
+
+
 async def test_delete_message(graph: ScriptedGraph, client_factory: Factory) -> None:
     graph.script += [httpx.Response(204)]
     await client_factory().delete_message("AAMk1")

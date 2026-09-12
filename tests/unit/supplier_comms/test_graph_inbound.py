@@ -63,6 +63,34 @@ async def test_eta_update_proposes_dates_then_applies_after_approval(
     assert cleared(await agent.snapshot("case_eta"))
 
 
+async def test_partial_acceptance_applies_only_the_ticked_lines(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
+) -> None:
+    ports.inbound[MSG] = "Estimados, confirmamos que la entrega será el 15 de octubre. Saludos."
+    chat.responses.extend(
+        [
+            Classification(kind="eta_update", confidence=0.95, reason="confirms date"),
+            QuotationData(
+                eta_date_raw="15 de octubre", eta_date=date(2026, 10, 15), confidence=0.9
+            ),
+        ]
+    )
+    agent = make_agent()
+    await agent.run(_task("case_part"))
+    applied = await agent.resume(
+        "case_part",
+        {
+            "approval_id": 101,
+            "status": "approved",
+            "resolved_by": "ana",
+            "details": {"accepted_line_ids": [32]},
+        },
+    )
+    assert applied.status == "applied"
+    assert [c["line_id"] for c in ports.date_changes] == [32]
+    assert "1 change(s)" in ports.notes[-1][1] and "1 pending" in applied.outcome.summary
+
+
 async def test_quotation_with_currency_mismatch_flags_that_line(
     make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
 ) -> None:

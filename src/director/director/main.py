@@ -14,6 +14,7 @@ from loguru import logger
 from director import __version__
 from director.agents import Agents, build_agents
 from director.api import api_router
+from director.api.approvals import ApprovalsGateway, OdooApprovalsGateway
 from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
@@ -135,6 +136,11 @@ class DirectorModule(Module):
     @singleton
     def provide_users(self, db: Database) -> UserStore:  # type: ignore[type-abstract]
         return PostgresUserStore(db)
+
+    @provider
+    @singleton
+    def provide_approvals_gateway(self, approvals: ApprovalRepo) -> ApprovalsGateway:  # type: ignore[type-abstract]
+        return OdooApprovalsGateway(approvals)
 
     @provider
     @singleton

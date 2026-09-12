@@ -133,6 +133,8 @@ class OdooApprovalResolved(BaseEvent):
     po_id: int | None = None
     po_name: str | None = None
     resolved_by: str | None = Field(default=None, description="Odoo login, for the audit line")
+    resolved_by_name: str | None = Field(default=None, description="the person, when known")
+    resolved_via: Literal["odoo", "api"] | None = None
 
 
 class AgentRunFinished(BaseEvent):

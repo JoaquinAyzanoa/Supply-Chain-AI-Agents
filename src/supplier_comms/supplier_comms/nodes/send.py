@@ -119,6 +119,21 @@ def make_send(
             conversation_id=outbound.get("conversation_id"),
             web_link=outbound.get("web_link"),
         )
+        decision = decision_for(state, SEND_STEP)
+        edits = (decision.details or {}) if decision else {}
+        edited_subject = edits.get("subject")
+        edited_body = edits.get("html_body")
+        if edited_subject or edited_body:
+            # the approver rewrote the draft in the Control Tower: patch it before sending
+            if edited_subject:
+                edited_subject = po_token.tag_subject(str(edited_subject), ctx.name)
+                outbound = {**outbound, "subject": edited_subject}
+            await ports.update_draft(
+                draft_ids.id,
+                subject=edited_subject,
+                html_body=str(edited_body) if edited_body else None,
+            )
+            logger.bind(po_name=ctx.name, draft_id=draft_ids.id).info("draft edited by approver")
         await ports.send_draft(draft_ids.id)
         ids = await _sent_ids(ports, draft_ids, sleep, find_attempts)
         await ports.record_outbound(ids=ids, po_name=ctx.name, case_id=state["case_id"])
@@ -146,6 +161,7 @@ def make_send(
             "sent",
             t("send.summary", language, label=label, partner=ctx.partner_name, po=ctx.name),
             sent={"sent_message_id": ids.id, "web_link": ids.web_link},
+            outbound=outbound,
         )
 
     return send

@@ -64,6 +64,10 @@ class AgentPorts(Protocol):
 
     async def send_draft(self, draft_id: str) -> None: ...
 
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None: ...
+
     async def find_sent(self, internet_message_id: str) -> MessageIds | None: ...
 
     async def record_outbound(self, *, ids: MessageIds, po_name: str, case_id: str) -> None: ...
@@ -257,6 +261,11 @@ class LivePorts:
 
     async def send_draft(self, draft_id: str) -> None:
         await self._graph.send_draft(draft_id)
+
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None:
+        await self._graph.update_draft(draft_id, subject=subject, html_body=html_body)
 
     async def find_sent(self, internet_message_id: str) -> MessageIds | None:
         return await self._graph.find_sent(internet_message_id)

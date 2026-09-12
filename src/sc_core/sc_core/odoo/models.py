@@ -332,8 +332,11 @@ class Approval(OdooModel):
     run_id: str | None = None
     thread_id: str | None = None
     resolved_by_id: Ref | None = None
+    resolved_by_name: str | None = None
+    resolved_via: Literal["odoo", "api"] | None = None
     resolved_at: datetime | None = None
     reason: str | None = None
+    details_json: str | None = None
     callback_status: Literal["none", "sent", "failed"] | None = None
     callback_error: str | None = None
     create_date: datetime | None = None

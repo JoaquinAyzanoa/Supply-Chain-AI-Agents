@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from injector import Binder, Module, singleton
 
 from director.agents import AgentProxy, Agents
+from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
@@ -17,6 +20,7 @@ from director.workflow import ConfirmedOrders, Deps, Orchestrator
 from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.infra.locks import MemoryLock
+from sc_core.odoo.models import Approval, ApprovalStatus, Ref
 
 
 def memory_deps(
@@ -61,6 +65,7 @@ class MemoryDirectorModule(Module):
         self.escalator = escalator or MemoryEscalator()
         self.lock = MemoryLock()
         self.users = MemoryUserStore()
+        self.approvals = MemoryApprovalsGateway()
         self.runtime_settings = MemoryRuntimeSettingsStore()
         self.login_limit = LoginRateLimit(per_minute=5)
         self.deps = memory_deps(
@@ -81,5 +86,92 @@ class MemoryDirectorModule(Module):
         binder.bind(Deps, to=self.deps, scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(ApprovalsGateway, to=self.approvals, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(LoginRateLimit, to=self.login_limit, scope=singleton)
+
+
+class MemoryApprovalsGateway:
+    """Approvals as Odoo would return them; ``resolve`` records the decision and fires nothing."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, Approval] = {}
+        self.resolved: list[dict[str, Any]] = []
+
+    def add(self, approval: Approval) -> Approval:
+        self.rows[approval.id] = approval
+        return approval
+
+    def seed(
+        self,
+        approval_id: int,
+        *,
+        kind: str,
+        summary: str,
+        payload: dict[str, Any] | None = None,
+        po: tuple[int, str] | None = (15, "P00015"),
+        thread_id: str | None = "case_msg1",
+        status: ApprovalStatus = "pending",
+    ) -> Approval:
+        import json as _json
+
+        return self.add(
+            Approval(
+                id=approval_id,
+                kind=kind,  # type: ignore[arg-type]
+                summary=summary,
+                status=status,
+                po_id=Ref(id=po[0], name=po[1]) if po else None,
+                payload_json=_json.dumps(payload or {}),
+                requested_by="supplier_comms",
+                case_id=thread_id,
+                thread_id=thread_id,
+                callback_status="none",
+            )
+        )
+
+    async def list(self, *, status: str, kind: str | None, po_name: str | None) -> list[Approval]:
+        return [
+            a
+            for a in self.rows.values()
+            if (status == "all" or a.status == status)
+            and (kind is None or a.kind == kind)
+            and (po_name is None or (a.po_id is not None and a.po_id.name == po_name))
+        ]
+
+    async def get(self, approval_id: int) -> Approval:
+        from sc_core.shared.errors import NotFound
+
+        if approval_id not in self.rows:
+            raise NotFound(f"sc.approval {approval_id} not found")
+        return self.rows[approval_id]
+
+    async def resolve(
+        self,
+        approval_id: int,
+        status: ApprovalStatus,
+        *,
+        by_name: str,
+        reason: str | None,
+        details: dict[str, Any] | None,
+    ) -> Approval:
+        self.resolved.append(
+            {
+                "id": approval_id,
+                "status": status,
+                "by_name": by_name,
+                "reason": reason,
+                "details": details,
+            }
+        )
+        updated = self.rows[approval_id].model_copy(
+            update={
+                "status": status,
+                "resolved_by_name": by_name,
+                "resolved_via": "api",
+                "reason": reason,
+                "callback_status": "sent",
+            }
+        )
+        self.rows[approval_id] = updated
+        return updated

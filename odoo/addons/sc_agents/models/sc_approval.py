@@ -69,8 +69,22 @@ class ScApproval(models.Model):
         help="Identifier the agent uses to resume its paused graph.",
     )
     resolved_by_id = fields.Many2one("res.users", string="Resolved by", readonly=True)
+    resolved_by_name = fields.Char(
+        string="Resolved by (person)",
+        readonly=True,
+        help="The person who decided when the decision came through the Control Tower "
+        "(the API user is the bot).",
+    )
+    resolved_via = fields.Selection(
+        [("odoo", "Odoo"), ("api", "Control Tower")], string="Resolved via", readonly=True
+    )
     resolved_at = fields.Datetime(readonly=True)
     reason = fields.Text(help="Why it was rejected, or notes from the approver.")
+    details_json = fields.Text(
+        string="Decision details",
+        readonly=True,
+        help="Per-line acceptance and edits chosen by the approver (JSON), sent to the agent.",
+    )
 
     callback_url = fields.Char(string="Callback URL")
     callback_secret = fields.Char(
@@ -124,7 +138,19 @@ class ScApproval(models.Model):
             approval.resolve("expired", self.env.user, reason=reason)
         return True
 
-    def resolve(self, status, user, reason=None):
+    def action_resolve_via_api(self, status, reason=None, by_name=None, details=None):
+        """The Control Tower decided: same path as the buttons, plus who and what exactly.
+
+        ``details`` (a dict) carries per-line acceptance and edits; it is stored
+        and forwarded to the agent in the callback. Returns the new status.
+        """
+        self.ensure_one()
+        self.resolve(
+            status, self.env.user, reason=reason, via="api", by_name=by_name, details=details
+        )
+        return self.status
+
+    def resolve(self, status, user, reason=None, via="odoo", by_name=None, details=None):
         """Record the decision and notify the agent. Idempotent on repeat calls."""
         self.ensure_one()
         if status not in ("approved", "rejected", "expired"):
@@ -137,8 +163,11 @@ class ScApproval(models.Model):
             {
                 "status": status,
                 "resolved_by_id": user.id if user else False,
+                "resolved_by_name": by_name or (user.name if user and via == "odoo" else False),
+                "resolved_via": via,
                 "resolved_at": fields.Datetime.now(),
                 "reason": reason or self.reason,
+                "details_json": json.dumps(details, ensure_ascii=False) if details else False,
             }
         )
         self._sc_release_record()
@@ -160,6 +189,8 @@ class ScApproval(models.Model):
                 "po_id": self.po_id.id or None,
                 "po_name": self.po_id.name or None,
                 "resolved_by": self.resolved_by_id.login if self.resolved_by_id else None,
+                "resolved_by_name": self.resolved_by_name or None,
+                "resolved_via": self.resolved_via or "odoo",
             },
             self.id,
             self.status,
@@ -189,8 +220,11 @@ class ScApproval(models.Model):
             "case_id": self.case_id or "",
             "run_id": self.run_id or "",
             "resolved_by": self.resolved_by_id.login if self.resolved_by_id else "",
+            "resolved_by_name": self.resolved_by_name or "",
+            "resolved_via": self.resolved_via or "odoo",
             "resolved_at": fields.Datetime.to_string(self.resolved_at) if self.resolved_at else "",
             "reason": self.reason or "",
+            "details": json.loads(self.details_json) if self.details_json else None,
         }
 
     @staticmethod

@@ -7,6 +7,7 @@ from typing import Any
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
 from sc_core.schema.a2a import SupplierCommsTask
 from supplier_comms.models import DraftOutput
+from supplier_comms.routers.approvals import ApprovalCallback
 from supplier_comms.testing import SUPPLIER_EMAIL, FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
 
@@ -74,6 +75,35 @@ async def test_send_rfq_pauses_on_approval_then_sends(
     assert "Open in Outlook" in ports.notes[-1][1]
     assert sent.outbound is not None and sent.outbound.sent_message_id == "sent1"
     assert len(approval_ports.created) == 1  # no second approval on resume
+
+
+async def test_edited_draft_is_patched_before_sending(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    _script_draft(chat)
+    agent = make_agent()
+    await agent.run(SupplierCommsTask(kind="send_rfq", case_id="case_edit", po_name="P00015"))
+    # exactly what Odoo posts to the callback after a Control Tower decision
+    callback = ApprovalCallback.model_validate(
+        {
+            "approval_id": 101,
+            "status": "approved",
+            "thread_id": "case_edit",
+            "resolved_by": "sc_agent_bot",
+            "resolved_by_name": "Ana",
+            "details": {"subject": "RFQ for pumps", "html_body": "<p>Edited by Ana</p>"},
+        }
+    )
+    sent = await agent.resume("case_edit", callback.decision())
+    assert sent.status == "sent" and ports.sent_ids == ["draft1"]
+    [patch] = ports.updated_drafts
+    # the PO token survives the edit so replies still resolve to the order
+    assert patch == {
+        "draft_id": "draft1",
+        "subject": "[P00015] RFQ for pumps",
+        "html_body": "<p>Edited by Ana</p>",
+    }
+    assert sent.outbound is not None and sent.outbound.subject == "[P00015] RFQ for pumps"
 
 
 async def test_reject_sends_nothing(

@@ -32,6 +32,10 @@ class MailClient(Protocol):
 
     async def send_draft(self, draft_id: str) -> None: ...
 
+    async def update_draft(
+        self, draft_id: str, *, subject: str | None = None, html_body: str | None = None
+    ) -> None: ...
+
     async def reply_draft(
         self,
         message_id: str,

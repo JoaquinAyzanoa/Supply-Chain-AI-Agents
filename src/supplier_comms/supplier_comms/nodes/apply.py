@@ -54,11 +54,15 @@ def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
         proposal = ChangeProposal.model_validate(state["proposal"])
         run_id = state.get("run_id") or "run_unknown"
         lines = {line.id: line for line in ctx.lines}
+        decision = decision_for(state, CHANGE_STEP)
+        # the approver may have unticked lines in the Control Tower
+        accepted = (decision.details or {}).get("accepted_line_ids") if decision else None
+        wanted = {int(i) for i in accepted} if accepted is not None else None
         applied: list[dict[str, Any]] = []
         confidences: list[float] = []
         for change in proposal.applicable:
             line = lines.get(change.po_line_id)
-            if line is None:
+            if line is None or (wanted is not None and line.id not in wanted):
                 continue
             if change.field == "date_planned":
                 await ports.set_line_date(line.id, date.fromisoformat(change.after), run_id=run_id)
@@ -90,8 +94,11 @@ def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
             applied.append(change.model_dump(mode="json"))
         if confidences:
             await ports.set_eta_meta(ctx.id, confidence=min(confidences))
-        skipped = [c.model_dump(mode="json") for c in proposal.changes if c.needs_review]
-        decision = decision_for(state, CHANGE_STEP)
+        skipped = [
+            c.model_dump(mode="json")
+            for c in proposal.changes
+            if c.needs_review or (wanted is not None and c.po_line_id not in wanted)
+        ]
         who = decision.resolved_by if decision and decision.resolved_by else "-"
         await ports.post_note(
             ctx.id,
