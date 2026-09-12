@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from datetime import date, datetime
 from typing import Any
 
 from injector import Binder, Module, singleton
@@ -9,35 +11,48 @@ from injector import Binder, Module, singleton
 from director.agents import AgentProxy, Agents
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
+from director.api.exceptions import ExceptionsSource
+from director.api.planning import PlanningLineRow, PlanningReadStore, PlanningRunRow
+from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
 from director.conversations import MemoryConversationLookup
 from director.escalation import Escalator, MemoryEscalator
 from director.inbox import EventInbox, EventResults, MemoryEventInbox, MemoryEventResults
 from director.jobs import JobRunner, NoJobs
+from director.policies import FollowUpPolicy, PoFacts
+from director.realtime import BroadcastingCaseStore
 from director.store import CaseStore, MemoryCaseStore
 from director.workflow import ConfirmedOrders, Deps, Orchestrator
 from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
+from sc_core.app.realtime import MemoryRealtime, Realtime
 from sc_core.infra.locks import MemoryLock
-from sc_core.odoo.models import Approval, ApprovalStatus, Ref
+from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, Ref
 
 
 def memory_deps(
     *,
-    cases: MemoryCaseStore | None = None,
+    cases: CaseStore | None = None,
     supplier_comms: AgentCaller | None = None,
+    inventory_planning: AgentCaller | None = None,
     escalator: Escalator | None = None,
     jobs: JobRunner | None = None,
     conversations: MemoryConversationLookup | None = None,
     max_concurrent: int = 4,
 ) -> Deps:
+    others = {}
+    if inventory_planning is not None:
+        others["inventory_planning"] = AgentProxy(
+            "inventory_planning", inventory_planning, max_concurrent=max_concurrent
+        )
     return Deps(
         cases=cases or MemoryCaseStore(),
         agents=Agents(
             supplier_comms=AgentProxy(
                 "supplier_comms", supplier_comms or FakeAgentCaller(), max_concurrent=max_concurrent
-            )
+            ),
+            others=others,
         ),
         escalator=escalator or MemoryEscalator(),
         jobs=jobs or NoJobs(),
@@ -52,6 +67,7 @@ class MemoryDirectorModule(Module):
         results: MemoryEventResults | None = None,
         supplier_comms: AgentCaller | None = None,
         *,
+        inventory_planning: AgentCaller | None = None,
         cases: MemoryCaseStore | None = None,
         escalator: Escalator | None = None,
         jobs: JobRunner | None = None,
@@ -61,15 +77,25 @@ class MemoryDirectorModule(Module):
         self.inbox = inbox or MemoryEventInbox()
         self.results = results or MemoryEventResults(self.inbox)
         self.results.attach(self.inbox)
+        self.realtime = MemoryRealtime()
         self.cases = cases or MemoryCaseStore()
+        self.case_store = BroadcastingCaseStore(self.cases, self.realtime)
         self.escalator = escalator or MemoryEscalator()
         self.lock = MemoryLock()
         self.users = MemoryUserStore()
         self.approvals = MemoryApprovalsGateway()
         self.runtime_settings = MemoryRuntimeSettingsStore()
         self.login_limit = LoginRateLimit(per_minute=5)
+        self.runs = MemoryRunsGateway()
+        self.scheduler_runs = MemorySchedulerRuns()
+        self.planning = MemoryPlanningReadStore()
+        self.exceptions = MemoryExceptionsSource()
         self.deps = memory_deps(
-            cases=self.cases, supplier_comms=supplier_comms, escalator=self.escalator, jobs=jobs
+            cases=self.case_store,
+            supplier_comms=supplier_comms,
+            inventory_planning=inventory_planning,
+            escalator=self.escalator,
+            jobs=jobs,
         )
         self.orchestrator = Orchestrator(
             self.deps,
@@ -82,7 +108,13 @@ class MemoryDirectorModule(Module):
     def configure(self, binder: Binder) -> None:
         binder.bind(EventInbox, to=self.inbox, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(EventResults, to=self.results, scope=singleton)  # type: ignore[type-abstract]
-        binder.bind(CaseStore, to=self.cases, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(CaseStore, to=self.case_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(Realtime, to=self.realtime, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(RunsGateway, to=self.runs, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SchedulerRuns, to=self.scheduler_runs, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(PlanningReadStore, to=self.planning, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(ExceptionsSource, to=self.exceptions, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(Agents, to=self.deps.agents, scope=singleton)
         binder.bind(Deps, to=self.deps, scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
@@ -175,3 +207,75 @@ class MemoryApprovalsGateway:
         )
         self.rows[approval_id] = updated
         return updated
+
+
+class MemoryRunsGateway:
+    def __init__(self) -> None:
+        self.rows: list[AgentRun] = []
+
+    async def recent(
+        self,
+        *,
+        agent: str | None = None,
+        model: str | None = None,
+        status: str | None = None,
+        since: datetime | None = None,
+        limit: int = 100,
+    ) -> list[AgentRun]:
+        found = [
+            r
+            for r in self.rows
+            if (agent is None or r.agent == agent)
+            and (model is None or r.model == model)
+            and (status is None or r.status == status)
+            and (since is None or (r.started_at is not None and r.started_at >= since))
+        ]
+        return sorted(found, key=lambda r: r.started_at or datetime.min, reverse=True)[:limit]
+
+    async def for_cases(self, case_ids: Sequence[str]) -> list[AgentRun]:
+        return [r for r in self.rows if r.case_id in set(case_ids)]
+
+
+class MemorySchedulerRuns:
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+
+    async def recent(self, *, job_id: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        found = [r for r in self.rows if job_id is None or r["job_id"] == job_id]
+        return sorted(found, key=lambda r: r["started_at"], reverse=True)[:limit]
+
+
+class MemoryPlanningReadStore:
+    def __init__(self) -> None:
+        self.rows: dict[str, PlanningRunRow] = {}
+        self.line_rows: dict[str, list[PlanningLineRow]] = {}
+
+    async def runs(self, *, limit: int = 30) -> list[PlanningRunRow]:
+        return sorted(self.rows.values(), key=lambda r: r.created_at, reverse=True)[:limit]
+
+    async def run(self, run_id: str) -> PlanningRunRow | None:
+        return self.rows.get(run_id)
+
+    async def lines(self, run_id: str) -> list[PlanningLineRow]:
+        return list(self.line_rows.get(run_id, []))
+
+
+class MemoryExceptionsSource:
+    """Facts the follow-up job would gather, and a record of "act now" requests."""
+
+    def __init__(self, facts: list[PoFacts] | None = None) -> None:
+        self.facts: list[PoFacts] = facts or []
+        self.policy = FollowUpPolicy()
+        self.acted: list[dict[str, Any]] = []
+
+    async def effective_policy(self) -> FollowUpPolicy:
+        return self.policy
+
+    async def gather(self, today: date) -> list[PoFacts]:
+        return list(self.facts)
+
+    async def act_now(
+        self, po_name: str, *, requested_by: str, today: date | None = None
+    ) -> dict[str, Any]:
+        self.acted.append({"po_name": po_name, "requested_by": requested_by})
+        return {"po_name": po_name, "status": "sent"}

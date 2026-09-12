@@ -16,6 +16,9 @@ from director.agents import Agents, build_agents
 from director.api import api_router
 from director.api.approvals import ApprovalsGateway, OdooApprovalsGateway
 from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
+from director.api.exceptions import ExceptionsSource
+from director.api.planning import PlanningReadStore, PostgresPlanningReadStore
+from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
@@ -31,10 +34,12 @@ from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
 from director.jobs import JobRunner
 from director.policies import FollowUpPolicy
+from director.realtime import BroadcastingCaseStore
 from director.routers import events
 from director.store import CaseStore, PostgresCaseStore
 from director.workflow import Deps, Orchestrator
 from sc_core.app import create_application
+from sc_core.app.realtime import Realtime, RedisRealtime
 from sc_core.infra.db import Database
 from sc_core.infra.locks import RedisLock
 from sc_core.infra.module import (
@@ -45,9 +50,15 @@ from sc_core.infra.module import (
     OdooModule,
     RedisModule,
 )
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
-from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo, PurchaseOrderRepo
+from sc_core.odoo.repositories import (
+    ActivityRepo,
+    AgentRunRepo,
+    ApprovalRepo,
+    PurchaseOrderRepo,
+)
 
 settings = Settings(service_name="director")
 
@@ -67,8 +78,13 @@ class DirectorModule(Module):
 
     @provider
     @singleton
-    def provide_cases(self, db: Database) -> CaseStore:  # type: ignore[type-abstract]
-        return PostgresCaseStore(db)
+    def provide_realtime(self, redis: AsyncRedis) -> Realtime:  # type: ignore[type-abstract]
+        return RedisRealtime(redis)
+
+    @provider
+    @singleton
+    def provide_cases(self, db: Database, realtime: Realtime) -> CaseStore:  # type: ignore[type-abstract]
+        return BroadcastingCaseStore(PostgresCaseStore(db), realtime)
 
     @provider
     @singleton
@@ -97,7 +113,7 @@ class DirectorModule(Module):
 
     @provider
     @singleton
-    def provide_jobs(
+    def provide_followups(
         self,
         settings: Settings,
         orders: PurchaseOrderRepo,
@@ -106,26 +122,62 @@ class DirectorModule(Module):
         agents: Agents,
         escalator: Escalator,  # type: ignore[type-abstract]
         approvals: ApprovalRepo,
+        runtime: RuntimeSettingsReader,
+    ) -> FollowUpJob:
+        return FollowUpJob(
+            policy=FollowUpPolicy.from_settings(settings.director),
+            orders=orders,
+            mail=PostgresMailActivity(db),
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            approvals=OdooApprovals(approvals, orders, language=settings.agents.language),
+            conversations=PostgresConversationLookup(db),
+            language=settings.agents.language,
+            runtime=runtime,
+        )
+
+    @provider
+    @singleton
+    def provide_exceptions(self, followups: FollowUpJob) -> ExceptionsSource:  # type: ignore[type-abstract]
+        return followups
+
+    @provider
+    @singleton
+    def provide_jobs(
+        self,
+        db: Database,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+        followups: FollowUpJob,
     ) -> JobRunner:  # type: ignore[type-abstract]
-        conversations = PostgresConversationLookup(db)
         return JobDispatcher(
             {
-                "po_followups": FollowUpJob(
-                    policy=FollowUpPolicy.from_settings(settings.director),
-                    orders=orders,
-                    mail=PostgresMailActivity(db),
+                "po_followups": followups,
+                "inventory_planning": PlanningJob(
                     cases=cases,
                     agents=agents,
                     escalator=escalator,
-                    approvals=OdooApprovals(approvals, orders, language=settings.agents.language),
-                    conversations=conversations,
-                    language=settings.agents.language,
-                ),
-                "inventory_planning": PlanningJob(
-                    cases=cases, agents=agents, escalator=escalator, conversations=conversations
+                    conversations=PostgresConversationLookup(db),
                 ),
             }
         )
+
+    @provider
+    @singleton
+    def provide_runs_gateway(self, runs: AgentRunRepo) -> RunsGateway:  # type: ignore[type-abstract]
+        return runs
+
+    @provider
+    @singleton
+    def provide_scheduler_runs(self, db: Database) -> SchedulerRuns:  # type: ignore[type-abstract]
+        return PostgresSchedulerRuns(db)
+
+    @provider
+    @singleton
+    def provide_planning_reads(self, db: Database) -> PlanningReadStore:  # type: ignore[type-abstract]
+        return PostgresPlanningReadStore(db)
 
     @provider
     @singleton

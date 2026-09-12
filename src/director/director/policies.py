@@ -24,13 +24,14 @@ case on the order waits for a human (pending approval or escalated).
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Literal
 
 from pydantic import Field
 
 from sc_core.infra.settings import DirectorCfg
 from sc_core.schema.base import StrictModel
+from sc_core.schema.runtime_settings import RuntimeSettings
 
 TaskKind = Literal["follow_up", "request_eta"]
 
@@ -42,6 +43,19 @@ class FollowUpPolicy(StrictModel):
     approval_stale_days: int = 2
     approval_expire_days: int = 7
     max_actions_per_run: int = 20
+
+    def with_runtime(self, runtime: RuntimeSettings) -> FollowUpPolicy:
+        """The policy as edited in the Control Tower (its values replace the environment's)."""
+        return self.model_copy(
+            update={
+                "rfq_no_reply_days": list(runtime.rfq_no_reply_days),
+                "po_eta_request_before_days": runtime.po_eta_request_before_days,
+                "po_late_days": list(runtime.po_late_days),
+                "approval_stale_days": runtime.approval_stale_days,
+                "approval_expire_days": runtime.approval_expire_days,
+                "max_actions_per_run": runtime.max_actions_per_run,
+            }
+        )
 
     @classmethod
     def from_settings(cls, cfg: DirectorCfg) -> FollowUpPolicy:
@@ -187,3 +201,83 @@ def _decide_confirmed(facts: PoFacts, policy: FollowUpPolicy, today: date) -> De
             reason=f"due in {due_in} days; asking the supplier to confirm the date",
         )
     return None
+
+
+class NextAction(StrictModel):
+    """What the policy will do next on an order and when (for the exceptions board)."""
+
+    po_name: str
+    rule: str
+    task: TaskKind | None = None
+    escalate: bool = False
+    due: date
+    reason: str
+
+
+def next_action(facts: PoFacts, policy: FollowUpPolicy, today: date) -> NextAction | None:
+    """The next automatic step for this order; ``due`` in the past means "on the next run"."""
+    if facts.awaiting_human:
+        return None
+    if facts.is_rfq:
+        return _next_rfq(facts, policy)
+    if facts.is_confirmed_open and facts.date_planned is not None:
+        return _next_confirmed(facts, policy, today)
+    return None
+
+
+def _next_rfq(facts: PoFacts, policy: FollowUpPolicy) -> NextAction | None:
+    last_out = facts.last_outbound_at
+    if last_out is None or not policy.rfq_no_reply_days:
+        return None
+    if facts.last_inbound_at is not None and facts.last_inbound_at >= last_out:
+        return None  # the supplier answered; the agent handles the reply
+    sent = facts.followups_sent
+    thresholds = policy.rfq_no_reply_days
+    if sent < len(thresholds):
+        return NextAction(
+            po_name=facts.po_name,
+            rule="rfq_silent",
+            task="follow_up",
+            due=last_out + timedelta(days=thresholds[sent]),
+            reason=f"follow-up {sent + 1} after {thresholds[sent]} days without a reply",
+        )
+    if not facts.fired("rfq_unanswered"):
+        return NextAction(
+            po_name=facts.po_name,
+            rule="rfq_unanswered",
+            escalate=True,
+            due=last_out + timedelta(days=thresholds[-1] + 1),
+            reason=f"hand over to a person after {sent} follow-ups",
+        )
+    return None
+
+
+def _next_confirmed(facts: PoFacts, policy: FollowUpPolicy, today: date) -> NextAction | None:
+    assert facts.date_planned is not None
+    planned = facts.date_planned
+    if len(policy.po_late_days) < 2 or facts.fired("po_late_escalate"):
+        return None
+    late = (today - planned).days
+    if late <= 0 and not facts.fired("eta_before_due") and facts.silent_days(today) is None:
+        return NextAction(
+            po_name=facts.po_name,
+            rule="eta_before_due",
+            task="request_eta",
+            due=planned - timedelta(days=policy.po_eta_request_before_days),
+            reason="ask the supplier to confirm the delivery date",
+        )
+    if not facts.fired("po_late") and late < policy.po_late_days[1]:
+        return NextAction(
+            po_name=facts.po_name,
+            rule="po_late",
+            task="request_eta",
+            due=planned + timedelta(days=policy.po_late_days[0]),
+            reason="ask for a new ETA once the planned date has passed",
+        )
+    return NextAction(
+        po_name=facts.po_name,
+        rule="po_late_escalate",
+        escalate=True,
+        due=planned + timedelta(days=policy.po_late_days[1]),
+        reason="hand over to a person if still no receipt or ETA",
+    )

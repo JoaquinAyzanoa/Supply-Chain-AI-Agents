@@ -8,11 +8,16 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from director.api import approvals, auth, settings
+from director.api import approvals, auth, cases, exceptions, planning, runs, settings, stream
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
 api_router.include_router(approvals.router)
+api_router.include_router(cases.router)
+api_router.include_router(exceptions.router)
+api_router.include_router(planning.router)
+api_router.include_router(runs.router)
 api_router.include_router(settings.router)
+api_router.include_router(stream.router)
 
 __all__ = ["api_router"]

@@ -82,7 +82,11 @@ async def test_edited_draft_is_patched_before_sending(
 ) -> None:
     _script_draft(chat)
     agent = make_agent()
-    await agent.run(SupplierCommsTask(kind="send_rfq", case_id="case_edit", po_name="P00015"))
+    paused = await agent.run(
+        SupplierCommsTask(kind="send_rfq", case_id="case_edit", po_name="P00015")
+    )
+    usage = ports.runs[paused.run_id]["usage"]  # the budget's totals reach sc.agent.run
+    assert usage["calls"] >= 1 and usage["input_tokens"] > 0 and "usd" in usage
     # exactly what Odoo posts to the callback after a Control Tower decision
     callback = ApprovalCallback.model_validate(
         {
@@ -104,6 +108,7 @@ async def test_edited_draft_is_patched_before_sending(
         "html_body": "<p>Edited by Ana</p>",
     }
     assert sent.outbound is not None and sent.outbound.subject == "[P00015] RFQ for pumps"
+    assert ports.runs[sent.run_id]["usage"]["calls"] == 0  # the resume made no model call
 
 
 async def test_reject_sends_nothing(

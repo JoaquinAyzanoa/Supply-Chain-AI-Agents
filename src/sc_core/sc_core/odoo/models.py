@@ -359,6 +359,10 @@ class AgentRun(OdooModel):
     summary: str | None = None
     started_at: datetime | None = None
     finished_at: datetime | None = None
+    llm_calls: int = 0
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cost_usd: float = 0.0
 
 
 class MailLink(OdooModel):

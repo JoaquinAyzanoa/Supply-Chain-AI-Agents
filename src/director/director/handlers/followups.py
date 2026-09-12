@@ -32,11 +32,13 @@ from director.workflow import (
     outcome_from_reply,
 )
 from sc_core.i18n import Language, t
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.odoo.models import Approval, PurchaseOrder
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.events import ScheduledTick
-from sc_core.shared.errors import ScError
-from sc_core.shared.time import local_today
+from sc_core.shared.errors import Conflict, NotFound, ScError
+from sc_core.shared.idempotency import new_id
+from sc_core.shared.time import local_today, utc_now
 
 
 @runtime_checkable
@@ -93,9 +95,12 @@ class FollowUpJob:
         conversations: ConversationLookup | None = None,
         today: Callable[[], date] = local_today,
         language: Language = "en",
+        runtime: RuntimeSettingsReader | None = None,
     ) -> None:
         self._language = language
+        self._base_policy = policy
         self._policy = policy
+        self._runtime = runtime
         self._orders = orders
         self._mail = mail
         self._cases = cases
@@ -105,9 +110,16 @@ class FollowUpJob:
         self._conversations = conversations or NoConversations()
         self._today = today
 
+    async def effective_policy(self) -> FollowUpPolicy:
+        """The environment's policy, replaced by the Control Tower's values when saved."""
+        if self._runtime is None:
+            return self._base_policy
+        return self._base_policy.with_runtime(await self._runtime.current())
+
     async def run(self, job_id: str, tick: ScheduledTick) -> dict[str, Any]:
         if job_id != "po_followups":
             return {"job": job_id, "status": "not_implemented"}
+        self._policy = await self.effective_policy()
         today = self._today()
         facts = await self.gather(today)
         decisions = [d for d in (decide(f, self._policy, today) for f in facts) if d]
@@ -229,6 +241,38 @@ class FollowUpJob:
                 )
             )
         return facts
+
+    async def act_now(
+        self, po_name: str, *, requested_by: str, today: date | None = None
+    ) -> dict[str, Any]:
+        """ "Act now" from the exceptions board: the policy's step today, or a chase anyway."""
+        today = today or self._today()
+        self._policy = await self.effective_policy()
+        fact = next((f for f in await self.gather(today) if f.po_name == po_name), None)
+        if fact is None:
+            raise NotFound(f"{po_name} is not an open order the follow-up job knows")
+        if fact.awaiting_human:
+            raise Conflict(f"{po_name} already waits for a person")
+        if not (fact.is_rfq or fact.is_confirmed_open):
+            raise Conflict(f"{po_name} has nothing to chase")
+        decision = decide(fact, self._policy, today) or Decision(
+            po_name=po_name,
+            rule="manual",
+            key=f"manual:{today.isoformat()}",
+            task="follow_up" if fact.is_rfq else "request_eta",
+            days=fact.silent_days(today) or 0,
+            reason=f"requested from the Control Tower by {requested_by}",
+        )
+        run_id = new_id("run")
+        tick = ScheduledTick(
+            source="director",
+            case_id=run_id,
+            job_id="po_followups",
+            run_id=run_id,
+            scheduled_at=utc_now(),
+            trigger="manual",
+        )
+        return await self.act(decision, fact, tick, today)
 
     async def act(
         self, decision: Decision, fact: PoFacts, tick: ScheduledTick, today: date

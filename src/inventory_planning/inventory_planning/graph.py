@@ -46,6 +46,7 @@ from inventory_planning.runs import RunStore
 from inventory_planning.state import Node, PlanningState
 from sc_core.graph import ApprovalGateway
 from sc_core.i18n import Language, t
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
 from sc_core.schema.events import RfqDrafted
@@ -67,6 +68,7 @@ class Deps:
     chat: ChatCompleter
     approvals: ApprovalGateway
     cfg: PlanningCfg = field(default_factory=PlanningCfg)
+    runtime: RuntimeSettingsReader | None = None  # Control Tower planning defaults
     language: Language = "en"  # for what people read; internals stay English
     publish: Publish = _no_publish
     langfuse: LangfuseCfg | None = None
@@ -77,7 +79,7 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     g: StateGraph = StateGraph(PlanningState)
     _add(g, "load", make_load(deps.data, deps.cfg, today=deps.today))
     _add(g, "forecast", make_forecast())
-    _add(g, "compute", make_compute(deps.params, deps.cfg))
+    _add(g, "compute", make_compute(deps.params, deps.cfg, runtime=deps.runtime))
     _add(g, "detect", make_detect())
     lang = deps.language
     _add(g, "review", make_review(deps.chat, deps.cfg, langfuse=deps.langfuse, language=lang))

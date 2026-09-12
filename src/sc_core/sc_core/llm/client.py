@@ -70,7 +70,8 @@ class ChatResult(StrictModel):
 
 
 class ChatCompleter(Protocol):
-    spec: ModelSpec
+    @property
+    def spec(self) -> ModelSpec: ...
 
     async def complete(
         self,
@@ -132,10 +133,15 @@ class TracedChatClient:
 
     @classmethod
     def build(
-        cls, agent_name: str, *, cfg: LlmCfg, registry: Registry | None = None
+        cls,
+        agent_name: str,
+        *,
+        cfg: LlmCfg,
+        registry: Registry | None = None,
+        model: str | None = None,
     ) -> TracedChatClient:
         registry = registry or Registry.load()
-        model_name = cfg.model_for(agent_name)
+        model_name = model or cfg.model_for(agent_name)
         spec = registry.model(model_name)
         provider = registry.provider(spec.provider)
         return cls(

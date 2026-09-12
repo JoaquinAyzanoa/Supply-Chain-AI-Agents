@@ -176,3 +176,17 @@ async def test_product_without_supplier_has_no_order() -> None:
     kit = next(ln for ln in lines if ln.product_ref == "990-011-007")
     assert kit.coverage_days is not None and kit.coverage_days > 150  # 400 on hand: overstock
     assert all(ln.forecast_method in ("moving_average", "ses", "holt", "croston") for ln in lines)
+
+
+def test_runtime_planning_defaults_replace_class_defaults_but_not_tuned_params() -> None:
+    from inventory_planning.nodes.propose import _runtime_defaults
+    from sc_core.schema.runtime_settings import RuntimeSettings
+
+    untouched = ProductParams.default_for(1, "A")
+    tuned = untouched.model_copy(update={"source": "planner", "service_level": 0.9})
+    runtime = RuntimeSettings(planning_service_level=0.93, planning_max_coverage_days=60)
+    changed = _runtime_defaults(untouched, runtime)
+    assert changed.service_level == 0.93 and changed.max_coverage_days == 60
+    assert changed.review_period_days == untouched.review_period_days  # None keeps the class value
+    assert _runtime_defaults(tuned, runtime) is tuned
+    assert _runtime_defaults(untouched, RuntimeSettings()) is untouched

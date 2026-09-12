@@ -130,7 +130,9 @@ class WritePorts(Protocol):
 
     async def start_run(self, **fields: Any) -> None: ...
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None: ...
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None: ...
 
 
 class LiveWritePorts:
@@ -181,10 +183,12 @@ class LiveWritePorts:
     async def start_run(self, **fields: Any) -> None:
         await self._runs.start(**fields)
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None:
         from typing import cast
 
-        await self._runs.finish(run_id, cast(RunStatus, status), summary)
+        await self._runs.finish(run_id, cast(RunStatus, status), summary, usage)
 
     async def _location(self, warehouse_id: int) -> int:
         if warehouse_id not in self._stock_location:
@@ -210,5 +214,7 @@ class ReadOnlyWritePorts:
     async def start_run(self, **fields: Any) -> None:
         await self._inner.start_run(**fields)
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
-        await self._inner.finish_run(run_id, status=status, summary=summary)
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None:
+        await self._inner.finish_run(run_id, status=status, summary=summary, usage=usage)

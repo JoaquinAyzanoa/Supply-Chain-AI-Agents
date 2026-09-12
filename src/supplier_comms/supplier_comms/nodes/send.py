@@ -17,6 +17,7 @@ from loguru import logger
 
 from sc_core.graph import ApprovalRequest, decision_for
 from sc_core.i18n import Language, t
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.mail import po_token
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from supplier_comms.nodes.common import context_of, esc, finish, task_of
@@ -73,13 +74,19 @@ def make_create_draft(ports: AgentPorts) -> Node:
 
 
 def make_send_approval(
-    auto_send_partner_ids: frozenset[int], *, language: Language = "en"
+    auto_send_partner_ids: frozenset[int],
+    *,
+    language: Language = "en",
+    runtime: RuntimeSettingsReader | None = None,
 ) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         ctx = context_of(state)
         outbound = state["outbound"] or {}
         label = kind_label(outbound.get("kind", ""), language)
-        auto = ctx.partner_id in auto_send_partner_ids
+        auto_ids = auto_send_partner_ids
+        if runtime is not None:  # the Control Tower's list wins over the environment's
+            auto_ids = frozenset((await runtime.current()).auto_send_partner_ids)
+        auto = ctx.partner_id in auto_ids
         return ApprovalRequest(
             kind="send_email",
             summary=t(

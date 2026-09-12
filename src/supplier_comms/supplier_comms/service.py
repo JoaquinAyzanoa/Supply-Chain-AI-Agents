@@ -16,7 +16,9 @@ from sc_core.a2a.events import EventPublisher, PostgresOutbox
 from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
+from sc_core.llm import default_budget
 from sc_core.mail.outbound import PostgresOutboundMailStore
 from sc_core.mail.protocol import MailClient
 from sc_core.odoo.client import OdooClient
@@ -53,6 +55,7 @@ class AgentProvider:
                         model=self._settings.llm.model_for(AGENT_NAME),
                         ports=self._deps.ports,
                         language=self._settings.agents.language,
+                        budget=lambda: default_budget(self._settings),
                     )
         return self._agent
 
@@ -83,7 +86,12 @@ class SupplierCommsModule(Module):
     @provider
     @singleton
     def provide_deps(
-        self, settings: Settings, ports: LivePorts, odoo: OdooClient, chats: ChatClientFactory
+        self,
+        settings: Settings,
+        ports: LivePorts,
+        odoo: OdooClient,
+        chats: ChatClientFactory,
+        runtime: RuntimeSettingsReader,
     ) -> Deps:
         gateway = ApprovalGateway(
             OdooApprovalPorts(ApprovalRepo(odoo), ActivityRepo(odoo)),
@@ -98,6 +106,7 @@ class SupplierCommsModule(Module):
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,
             auto_send_partner_ids=frozenset(settings.supplier_comms.auto_send_partner_ids),
+            runtime=runtime,
             language=settings.agents.language,
             max_tool_rounds=settings.agents.max_tool_rounds,
             max_attachment_chars=settings.supplier_comms.max_attachment_chars,

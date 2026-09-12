@@ -7,8 +7,9 @@
   ``tests/fixtures/llm/*.json`` and replayed offline, keyed by a hash of the
   model, messages and options. For tests that need realistic model output.
 
-Both satisfy ``ChatCompleter`` and honour the budget and Langfuse tracing
-like the real client would not: doubles are deliberately silent.
+Both satisfy ``ChatCompleter`` and charge the run budget like the real
+client (so run logs carry usage in tests too); Langfuse tracing is not
+involved: doubles are deliberately silent.
 """
 
 from __future__ import annotations
@@ -23,6 +24,7 @@ from typing import Any
 from agent_framework import Content, Message
 from pydantic import BaseModel
 
+from sc_core.llm.budget import get_budget
 from sc_core.llm.client import (
     ChatCompleter,
     ChatResult,
@@ -43,6 +45,19 @@ FAKE_SPEC = ModelSpec(
     json_schema_output=True,
     price_per_mtok=Price(input=1.0, output=2.0),
 )
+
+
+def charge_budget(result: ChatResult) -> ChatResult:
+    """Count a fake answer against the run budget the way the real client does."""
+    budget = get_budget()
+    if budget is not None:
+        budget.check()
+        budget.record(
+            input_tokens=result.usage.input_tokens,
+            output_tokens=result.usage.output_tokens,
+            usd=result.cost_usd,
+        )
+    return result
 
 
 def _result(
@@ -106,9 +121,9 @@ class ScriptedChatClient:
         if isinstance(item, Exception):
             raise item
         if isinstance(item, ChatResult):
-            return item
+            return charge_budget(item)
         text = item.model_dump_json() if isinstance(item, BaseModel) else item
-        return _result(text, self.spec)
+        return charge_budget(_result(text, self.spec))
 
     def last_prompt_text(self) -> str:
         """All text of the last call's messages, for assertions on prompt content."""
@@ -207,8 +222,10 @@ class ReplayChatClient:
             "messages": [message_to_dict(to_message(m)) for m in messages],
             "options": _options_key(**kwargs),
         }
-        return self._cassette.replay(
-            request_key(request["model"], request["messages"], request["options"]), request
+        return charge_budget(
+            self._cassette.replay(
+                request_key(request["model"], request["messages"], request["options"]), request
+            )
         )
 
 

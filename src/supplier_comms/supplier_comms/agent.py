@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from langgraph.graph.state import CompiledStateGraph
@@ -13,6 +14,8 @@ from sc_core.graph import run_config
 from sc_core.graph.approval import pending_for
 from sc_core.i18n import Language, t
 from sc_core.infra import tracing
+from sc_core.llm import RunBudget, current_budget
+from sc_core.llm.budget import fresh_budget
 from sc_core.schema.a2a import (
     ChangeProposal,
     Classification,
@@ -38,11 +41,13 @@ class SupplierCommsAgent:
         model: str,
         ports: AgentPorts,
         language: Language = "en",
+        budget: Callable[[], RunBudget] = fresh_budget,
     ) -> None:
         self._graph = graph
         self._model = model
         self._ports = ports
         self._language = language
+        self._budget = budget
 
     async def run(self, task: SupplierCommsTask) -> SupplierCommsResult:
         run_id = new_id("run")
@@ -54,8 +59,13 @@ class SupplierCommsAgent:
             "trace_id": tracing.current_trace_id(),
         }
         logger.bind(case_id=task.case_id, run_id=run_id, kind=task.kind).info("run started")
-        state = await self._graph.ainvoke(initial, run_config(task.case_id))
-        return await self._finish(state)
+        budget = self._budget()
+        token = current_budget.set(budget)  # every model call in this run counts against it
+        try:
+            state = await self._graph.ainvoke(initial, run_config(task.case_id))
+        finally:
+            current_budget.reset(token)
+        return await self._finish(state, budget)
 
     async def resume(self, case_id: str, decision: dict[str, Any]) -> SupplierCommsResult:
         """Continue a paused case with a decision. A finished case just returns its result."""
@@ -66,8 +76,13 @@ class SupplierCommsAgent:
         if not snapshot.next:
             logger.bind(case_id=case_id).info("resume ignored: run already finished")
             return self.result_from(snapshot.values)
-        state = await self._graph.ainvoke(Command(resume=decision), config)
-        return await self._finish(state)
+        budget = self._budget()
+        token = current_budget.set(budget)
+        try:
+            state = await self._graph.ainvoke(Command(resume=decision), config)
+        finally:
+            current_budget.reset(token)
+        return await self._finish(state, budget)
 
     async def pending_approval_id(self, case_id: str) -> int | None:
         """The approval a paused case is waiting for; ``None`` when finished or unknown."""
@@ -77,10 +92,13 @@ class SupplierCommsAgent:
         pending = _any_pending(snapshot.values)
         return int(pending["approval_id"]) if pending else None
 
-    async def _finish(self, state: dict[str, Any]) -> SupplierCommsResult:
+    async def _finish(self, state: dict[str, Any], budget: RunBudget) -> SupplierCommsResult:
         result = self.result_from(state)
         await self._ports.finish_run(
-            result.run_id, status=result.status, summary=result.outcome.summary
+            result.run_id,
+            status=result.status,
+            summary=result.outcome.summary,
+            usage=budget.snapshot(),
         )
         logger.bind(case_id=result.case_id, run_id=result.run_id, status=result.status).info(
             "run {}", "paused" if result.status == "awaiting_approval" else "finished"

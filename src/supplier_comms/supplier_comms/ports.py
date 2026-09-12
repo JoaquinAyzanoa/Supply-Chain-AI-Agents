@@ -106,7 +106,9 @@ class AgentPorts(Protocol):
         trace_url: str | None,
     ) -> None: ...
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None: ...
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None: ...
 
 
 class LivePorts:
@@ -345,8 +347,10 @@ class LivePorts:
             trace_url=trace_url,
         )
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
-        await self._runs.finish(run_id, cast(RunStatus, status), summary[:500])
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None:
+        await self._runs.finish(run_id, cast(RunStatus, status), summary[:500], usage)
 
     # --- unlinked mail ------------------------------------------------------------
 

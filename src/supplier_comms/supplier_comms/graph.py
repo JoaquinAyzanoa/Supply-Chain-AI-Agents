@@ -20,6 +20,7 @@ from langgraph.graph.state import CompiledStateGraph
 
 from sc_core.graph import ApprovalGateway, ToolBox
 from sc_core.i18n import Language
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter
 from sc_core.shared.time import local_today
@@ -58,6 +59,7 @@ class Deps:
     approvals: ApprovalGateway
     toolbox: ToolBox | None = None
     auto_send_partner_ids: frozenset[int] = frozenset()
+    runtime: RuntimeSettingsReader | None = None  # Control Tower settings (auto-send list)
     language: Language = "en"  # for what people read; emails follow the supplier's language
     max_tool_rounds: int = 6
     max_attachment_chars: int = 12_000
@@ -128,7 +130,9 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     deps.approvals.add_approval(
         g,
         step=SEND_STEP,
-        build=make_send_approval(deps.auto_send_partner_ids, language=deps.language),
+        build=make_send_approval(
+            deps.auto_send_partner_ids, language=deps.language, runtime=deps.runtime
+        ),
         after="create_draft",
         approved="send",
         rejected="rejected",

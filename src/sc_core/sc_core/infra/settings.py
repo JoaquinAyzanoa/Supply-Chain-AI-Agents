@@ -243,6 +243,7 @@ class UiCfg(_Section):
     jwt_ttl_minutes: int = Field(default=480, ge=5)
     login_rate_per_minute: int = Field(default=5, ge=1)
     static_dir: str = "frontend/control-tower/dist"  # served under / when it exists
+    sse_heartbeat_seconds: float = Field(default=15.0, gt=0)  # keeps /api/stream alive
 
 
 class AgentsCfg(_Section):

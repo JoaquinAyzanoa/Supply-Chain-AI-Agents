@@ -1,10 +1,11 @@
 """Settings people change at runtime, versioned in ``settings_history``.
 
-``RuntimeSettings`` is the editable subset: the model per agent, the
-follow-up policy, the auto-send suppliers and the planning defaults.
-Everything else stays in ``.env``. Each ``PUT`` appends a version; the
-agents read the current version through a cached reader (P8-S3), so a
-change takes effect without a restart.
+``RuntimeSettings`` (``sc_core.schema.runtime_settings``) is the editable
+subset: the model per agent, the follow-up policy, the auto-send suppliers
+and the planning defaults. Everything else stays in ``.env``. Each ``PUT``
+appends a version; every service reads the current one through
+``RuntimeSettingsReader`` (a minute of cache), so a change takes effect
+without a restart. Version 0 is what the environment says.
 """
 
 from __future__ import annotations
@@ -19,26 +20,14 @@ from loguru import logger
 from pydantic import Field
 
 from director.api.auth import Admin, Principal, Viewer
+from sc_core.app.realtime import Realtime
 from sc_core.infra.db import Database
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
+from sc_core.infra.settings import Settings
 from sc_core.schema.base import StrictModel
+from sc_core.schema.runtime_settings import RuntimeSettings
 
 router = APIRouter(prefix="/settings", tags=["settings"])
-
-
-class RuntimeSettings(StrictModel):
-    """What the Control Tower may change. Defaults mirror ``Settings``."""
-
-    model_by_agent: dict[str, str] = Field(default_factory=dict, description="agent -> model name")
-    rfq_no_reply_days: list[int] = [3, 7]
-    po_eta_request_before_days: int = Field(default=5, ge=0)
-    po_late_days: list[int] = [1, 4]
-    approval_stale_days: int = Field(default=2, ge=0)
-    approval_expire_days: int = Field(default=7, ge=0)
-    max_actions_per_run: int = Field(default=20, ge=1)
-    auto_send_partner_ids: list[int] = []
-    planning_service_level: float = Field(default=0.95, gt=0.5, lt=1.0)
-    planning_review_period_days: int = Field(default=7, ge=1)
-    planning_max_coverage_days: int = Field(default=120, ge=1)
 
 
 class SettingsVersion(StrictModel):
@@ -138,13 +127,17 @@ def _version(row: dict[str, Any]) -> SettingsVersion:
 async def get_settings(
     _: Principal = Viewer,
     store: RuntimeSettingsStore = Injected(RuntimeSettingsStore),  # type: ignore[type-abstract]
+    settings: Settings = Injected(Settings),
 ) -> SettingsVersion:
     current = await store.current()
-    if current is None:  # nothing saved yet: the defaults, as version 0
+    if current is None:  # nothing saved yet: what the environment says, as version 0
         from sc_core.shared.time import utc_now
 
         return SettingsVersion(
-            version=0, settings=RuntimeSettings(), changed_by="defaults", changed_at=utc_now()
+            version=0,
+            settings=RuntimeSettings.from_settings(settings),
+            changed_by="environment",
+            changed_at=utc_now(),
         )
     return current
 
@@ -154,8 +147,14 @@ async def put_settings(
     body: SettingsUpdate,
     principal: Principal = Admin,
     store: RuntimeSettingsStore = Injected(RuntimeSettingsStore),  # type: ignore[type-abstract]
+    reader: RuntimeSettingsReader = Injected(RuntimeSettingsReader),
+    realtime: Realtime = Injected(Realtime),  # type: ignore[type-abstract]
 ) -> SettingsVersion:
     saved = await store.save(body.settings, changed_by=principal.email, note=body.note)
+    reader.invalidate()  # this process sees it now; the others within a minute
+    await realtime.publish(
+        "settings_changed", {"version": saved.version, "changed_by": principal.email}
+    )
     logger.bind(version=saved.version, by=principal.email).info("runtime settings saved")
     return saved
 

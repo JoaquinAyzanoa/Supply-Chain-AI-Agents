@@ -26,10 +26,12 @@ from inventory_planning.ports import DataPorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node
 from sc_core.i18n import Language, t
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
 from sc_core.schema.a2a import InventoryPlanningTask
 from sc_core.schema.planning import ReplenishmentLine, ReplenishmentProposal
+from sc_core.schema.runtime_settings import RuntimeSettings
 
 
 def task_of(state: dict[str, Any]) -> InventoryPlanningTask:
@@ -80,7 +82,9 @@ def make_forecast() -> Node:
     return forecast
 
 
-def make_compute(params_store: ParamsStore, cfg: PlanningCfg) -> Node:
+def make_compute(
+    params_store: ParamsStore, cfg: PlanningCfg, *, runtime: RuntimeSettingsReader | None = None
+) -> Node:
     async def compute(state: Any) -> dict[str, Any]:
         task = task_of(state)
         dataset = dataset_of(state)
@@ -92,6 +96,9 @@ def make_compute(params_store: ParamsStore, cfg: PlanningCfg) -> Node:
         }
         stored = await params_store.for_products(ids)
         params = resolve_params(ids, stored, abc_classes(revenue))
+        if runtime is not None:
+            defaults = await runtime.current()
+            params = {pid: _runtime_defaults(p, defaults) for pid, p in params.items()}
         params = {pid: _override(p, task) for pid, p in params.items()}
         lines = compute_lines(
             dataset,
@@ -106,6 +113,20 @@ def make_compute(params_store: ParamsStore, cfg: PlanningCfg) -> Node:
         }
 
     return compute
+
+
+def _runtime_defaults(params: ProductParams, defaults: RuntimeSettings) -> ProductParams:
+    """Control Tower planning defaults replace the ABC class defaults, never tuned params."""
+    if params.source != "default":
+        return params
+    changes: dict[str, Any] = {}
+    if defaults.planning_service_level is not None:
+        changes["service_level"] = defaults.planning_service_level
+    if defaults.planning_review_period_days is not None:
+        changes["review_period_days"] = defaults.planning_review_period_days
+    if defaults.planning_max_coverage_days is not None:
+        changes["max_coverage_days"] = defaults.planning_max_coverage_days
+    return params.model_copy(update=changes) if changes else params
 
 
 def make_detect() -> Node:

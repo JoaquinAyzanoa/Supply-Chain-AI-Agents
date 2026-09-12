@@ -142,6 +142,7 @@ class CaseStore(Protocol):
         *,
         status: CaseStatus | None = None,
         po_name: str | None = None,
+        kind: CaseKind | None = None,
         limit: int = 50,
     ) -> list[Case]: ...
 
@@ -313,6 +314,7 @@ class PostgresCaseStore:
         *,
         status: CaseStatus | None = None,
         po_name: str | None = None,
+        kind: CaseKind | None = None,
         limit: int = 50,
     ) -> list[Case]:
         where: list[str] = []
@@ -323,6 +325,9 @@ class PostgresCaseStore:
         if po_name is not None:
             where.append("po_name = %s")
             params.append(po_name)
+        if kind is not None:
+            where.append("kind = %s")
+            params.append(kind)
         clause = f"WHERE {' AND '.join(where)}" if where else ""
         params.append(limit)
         rows = await self._db.fetch_all(
@@ -451,11 +456,14 @@ class MemoryCaseStore:
         *,
         status: CaseStatus | None = None,
         po_name: str | None = None,
+        kind: CaseKind | None = None,
         limit: int = 50,
     ) -> list[Case]:
         found = [
             c
             for c in self.cases.values()
-            if (status is None or c.status == status) and (po_name is None or c.po_name == po_name)
+            if (status is None or c.status == status)
+            and (po_name is None or c.po_name == po_name)
+            and (kind is None or c.kind == kind)
         ]
         return sorted(found, key=lambda c: c.updated_at, reverse=True)[:limit]

@@ -214,9 +214,11 @@ class FakePorts:
         if fields["run_id"] not in self.runs:
             self.runs[fields["run_id"]] = {**fields, "status": "running"}
 
-    async def finish_run(self, run_id: str, *, status: str, summary: str) -> None:
+    async def finish_run(
+        self, run_id: str, *, status: str, summary: str, usage: dict[str, Any] | None = None
+    ) -> None:
         self.runs.setdefault(run_id, {"run_id": run_id})
-        self.runs[run_id].update(status=status, summary=summary)
+        self.runs[run_id].update(status=status, summary=summary, usage=usage)
 
     async def inbound_meta(self, message_id: str) -> InboundMeta:
         return self.metas.get(message_id) or InboundMeta(graph_message_id=message_id)
