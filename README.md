@@ -338,14 +338,16 @@ The people's side of the system: a React app served by the director under
   card says why the agent proposed it and links to Odoo, the Outlook draft
   and the Langfuse trace. Approving here resolves the `sc.approval` in Odoo
   through the bot, so Odoo fires the same agent callback as its own buttons.
-- **Cases**: one PO-centred timeline from the event received through rules,
-  tasks, results and approvals to the agent runs (model, tokens, cost).
+- **History** (the last 7 days by default): one PO-centred timeline per case, from
+  the event received through rules, tasks, results and approvals to the agent runs.
   Every case has a **"Talk to your AI" chat** (the director agent): questions are answered from
   the case, the order and the policy; instructions ("ask them for a firm
   date", "wait until the 20th", "close this, I cancelled the order") come
   back as a proposed action that an approver confirms before it runs.
-- **Exceptions**: late orders, silent RFQs, unlinked emails, failed runs and
-  stale approvals, each with the policy's next step and "act now".
+- **Act now** lives on the board card: a late order or a silent RFQ can run the
+  policy's next step at once instead of waiting for its day. (The former
+  Exceptions page is still served at `/exceptions` but no longer in the menu:
+  the "only with problems" filter, the inbox and the runs screen cover it.)
 - **Planning**: the run's lines grouped by supplier, editable quantities and
   min/max, a per-line drawer with the explanation, the 90-day demand and a
   what-if simulation; approving the selected lines is one resume call.
@@ -373,7 +375,8 @@ default is English. Sessions are JWTs from `POST /api/auth/login`
 (`SC__UI__JWT_SECRET`, falling back to the events secret; TTL
 `SC__UI__JWT_TTL_MINUTES`). Live updates come over `GET /api/stream`
 (Server-Sent Events through Redis pub/sub), so screens refetch on change
-instead of polling. Links to Odoo and Langfuse use `SC__ODOO__PUBLIC_URL`
+instead of polling; the same events feed the bell (new approvals,
+escalations, failed runs) and the pending count on the Approvals entry. Links to Odoo and Langfuse use `SC__ODOO__PUBLIC_URL`
 and `SC__LANGFUSE__PUBLIC_URL` (what a browser can reach; compose sets
 them to `localhost`), not the in-network service URLs; notes and To-Dos in
 Odoo link back to the Control Tower through `SC__UI__PUBLIC_URL`. CI regenerates the

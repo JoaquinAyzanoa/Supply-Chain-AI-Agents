@@ -110,6 +110,7 @@ export function makeState() {
     board: {
       as_of: "2026-09-14",
       due_soon_days: 5,
+      planning: { approval_id: 2, run_id: "run_1", as_of: "2026-09-14", summary: "2 RFQs, 3 rules" },
       counts: { proposed: 0, rfq_sent: 1, quote_received: 0, confirmed: 0, incoming: 1, received: 0, closed: 0 },
       cards: [
         {
@@ -140,6 +141,8 @@ export function makeState() {
           case_code: "C00001",
           case_status: "awaiting_approval",
           summary: "RFQ sent, waiting for the supplier",
+          act_kind: "rfq_no_reply",
+          can_act: false,
           odoo_url: "http://odoo/purchase.order/15",
         },
         {
@@ -170,6 +173,8 @@ export function makeState() {
           case_code: null,
           case_status: null,
           summary: null,
+          act_kind: "late_po",
+          can_act: true,
           odoo_url: "http://odoo/purchase.order/16",
         },
       ],

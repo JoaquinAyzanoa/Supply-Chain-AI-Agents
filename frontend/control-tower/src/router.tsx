@@ -87,6 +87,7 @@ const casesSearch = z.object({
   status: z.string().optional(),
   kind: z.string().optional(),
   po: z.string().optional(),
+  days: z.string().optional(),
 });
 
 export const casesRoute = createRoute({

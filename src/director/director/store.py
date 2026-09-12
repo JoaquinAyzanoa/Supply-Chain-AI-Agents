@@ -167,8 +167,11 @@ class CaseStore(Protocol):
         status: CaseStatus | None = None,
         po_name: str | None = None,
         kind: CaseKind | None = None,
+        since: datetime | None = None,
         limit: int = 50,
-    ) -> list[Case]: ...
+    ) -> list[Case]:
+        """Cases updated since ``since`` (all when ``None``), newest first."""
+        ...
 
 
 def _pick(case: Case, *, po_name: str | None, conversation_id: str | None) -> Case | None:
@@ -349,6 +352,7 @@ class PostgresCaseStore:
         status: CaseStatus | None = None,
         po_name: str | None = None,
         kind: CaseKind | None = None,
+        since: datetime | None = None,
         limit: int = 50,
     ) -> list[Case]:
         where: list[str] = []
@@ -362,6 +366,9 @@ class PostgresCaseStore:
         if kind is not None:
             where.append("kind = %s")
             params.append(kind)
+        if since is not None:
+            where.append("updated_at >= %s")
+            params.append(since)
         clause = f"WHERE {' AND '.join(where)}" if where else ""
         params.append(limit)
         rows = await self._db.fetch_all(
@@ -499,6 +506,7 @@ class MemoryCaseStore:
         status: CaseStatus | None = None,
         po_name: str | None = None,
         kind: CaseKind | None = None,
+        since: datetime | None = None,
         limit: int = 50,
     ) -> list[Case]:
         found = [
@@ -507,5 +515,6 @@ class MemoryCaseStore:
             if (status is None or c.status == status)
             and (po_name is None or c.po_name == po_name)
             and (kind is None or c.kind == kind)
+            and (since is None or c.updated_at >= since)
         ]
         return sorted(found, key=lambda c: c.updated_at, reverse=True)[:limit]

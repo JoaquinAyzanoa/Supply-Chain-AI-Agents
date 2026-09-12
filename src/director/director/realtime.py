@@ -95,9 +95,12 @@ class BroadcastingCaseStore:
         status: CaseStatus | None = None,
         po_name: str | None = None,
         kind: CaseKind | None = None,
+        since: datetime | None = None,
         limit: int = 50,
     ) -> list[Case]:
-        return await self._inner.list(status=status, po_name=po_name, kind=kind, limit=limit)
+        return await self._inner.list(
+            status=status, po_name=po_name, kind=kind, since=since, limit=limit
+        )
 
     async def _publish_case(self, case: Case) -> None:
         await self._realtime.publish(

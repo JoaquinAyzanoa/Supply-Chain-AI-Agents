@@ -5,7 +5,7 @@
  * screen and the exceptions board used to spread over three pages.
  */
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, ExternalLink, X } from "lucide-react";
+import { CheckCircle2, ExternalLink, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/auth/AuthProvider";
@@ -21,7 +21,7 @@ import { useApproval } from "@/features/approvals/api";
 import { CaseEvents } from "@/features/cases/CaseTimeline";
 import { useCase } from "@/features/cases/api";
 import { CaseChat } from "@/features/chat/CaseChat";
-import { targetsFor, useMoveCard, useSupplierConfirmed, type BoardCard, type Column } from "./api";
+import { targetsFor, useActNow, useMoveCard, useSupplierConfirmed, type BoardCard, type Column } from "./api";
 import { DeliveryBadge } from "./BoardCard";
 
 export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () => void }) {
@@ -113,6 +113,7 @@ function Moves({ card }: { card: BoardCard }) {
   const { t } = useI18n();
   const move = useMoveCard();
   const mark = useSupplierConfirmed();
+  const act = useActNow();
   const [closing, setClosing] = useState(false);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -131,7 +132,8 @@ function Moves({ card }: { card: BoardCard }) {
     }
   };
   const showMark = card.column === "confirmed" || card.column === "incoming";
-  if (targets.length === 0 && !showMark) return null;
+  const canActNow = card.act_kind !== null && card.act_kind !== undefined && card.can_act;
+  if (targets.length === 0 && !showMark && !canActNow) return null;
   return (
     <section aria-label={t("board.move")} className="rounded-md border bg-muted/30 p-3">
       <h3 className="mb-2 text-sm font-semibold">{t("board.move")}</h3>
@@ -147,6 +149,26 @@ function Moves({ card }: { card: BoardCard }) {
             </Button>
           ),
         )}
+        {canActNow ? (
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={act.isPending}
+            title={t(`board.act.${card.act_kind}`)}
+            onClick={async () => {
+              setError(null);
+              try {
+                await act.mutateAsync({ kind: card.act_kind!, po_name: card.po_name });
+                setMessage(t("board.acted"));
+              } catch (exc) {
+                setError(exc instanceof Error ? exc.message : String(exc));
+              }
+            }}
+          >
+            <Zap className="h-4 w-4" />
+            {t("board.act_now")}
+          </Button>
+        ) : null}
         {showMark ? (
           <Button
             variant="outline"

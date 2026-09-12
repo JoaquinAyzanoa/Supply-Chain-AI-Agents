@@ -455,6 +455,16 @@
           "due_soon_days": {
             "title": "Due Soon Days",
             "type": "integer"
+          },
+          "planning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanningPending"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -469,6 +479,21 @@
       "BoardCard": {
         "additionalProperties": false,
         "properties": {
+          "act_kind": {
+            "anyOf": [
+              {
+                "enum": [
+                  "late_po",
+                  "rfq_no_reply"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Act Kind"
+          },
           "amount_total": {
             "default": 0.0,
             "title": "Amount Total",
@@ -484,6 +509,11 @@
               }
             ],
             "title": "Buyer"
+          },
+          "can_act": {
+            "default": false,
+            "title": "Can Act",
+            "type": "boolean"
           },
           "case_code": {
             "anyOf": [
@@ -1769,6 +1799,48 @@
           }
         },
         "title": "PlanningOverrides",
+        "type": "object"
+      },
+      "PlanningPending": {
+        "additionalProperties": false,
+        "description": "A daily plan waiting for review: its proposals become cards once approved.",
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "integer"
+          },
+          "as_of": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approval_id",
+          "summary"
+        ],
+        "title": "PlanningPending",
         "type": "object"
       },
       "PlanningRunDetail": {
@@ -3241,6 +3313,25 @@
                 }
               ],
               "title": "Kind"
+            }
+          },
+          {
+            "description": "only cases updated on or after this day",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "only cases updated on or after this day",
+              "title": "Since"
             }
           },
           {

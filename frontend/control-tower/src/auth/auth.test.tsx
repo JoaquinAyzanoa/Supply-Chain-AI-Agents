@@ -53,7 +53,7 @@ describe("auth guard and login", () => {
     await userEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
     await waitFor(() => expect(window.location.pathname).toBe("/cases"));
-    expect(await screen.findByRole("heading", { name: "Cases" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "History" })).toBeInTheDocument();
     expect(authStore.getToken()).toBe("jwt-1");
     const me = seen.find((request) => request.url.endsWith("/api/auth/me"));
     expect(me?.headers.get("authorization")).toBe("Bearer jwt-1"); // the client adds the session
@@ -75,7 +75,7 @@ describe("auth guard and login", () => {
     );
     authStore.set({ token: "jwt-2", user: { email: "vic@x.com", name: "Vic", role: "viewer" } });
     renderApp();
-    expect(await screen.findByRole("heading", { name: "Cases" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "History" })).toBeInTheDocument();
     expect(screen.queryByText("Settings")).not.toBeInTheDocument();
     await userEvent.click(screen.getAllByText("Sign out")[0]!);
     expect(await screen.findByRole("heading", { name: "Sign in" })).toBeInTheDocument();

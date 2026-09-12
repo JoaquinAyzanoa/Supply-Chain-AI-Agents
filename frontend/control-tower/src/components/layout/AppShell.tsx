@@ -4,10 +4,13 @@
  * bottom bar on phones.
  */
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Activity, CalendarClock, ClipboardCheck, FolderKanban, Kanban, LogOut, Settings, Siren } from "lucide-react";
+import { Activity, CalendarClock, ClipboardCheck, History, Kanban, LogOut, Settings } from "lucide-react";
 
 import { useAuth } from "@/auth/AuthProvider";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useApprovals } from "@/features/approvals/api";
+import { NotificationsBell } from "./NotificationsBell";
 import { LANGUAGES, useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { useStream } from "@/realtime/useStream";
@@ -15,8 +18,7 @@ import { useStream } from "@/realtime/useStream";
 const NAV = [
   { to: "/", key: "nav.board", icon: Kanban, role: "viewer" },
   { to: "/approvals", key: "nav.approvals", icon: ClipboardCheck, role: "viewer" },
-  { to: "/cases", key: "nav.cases", icon: FolderKanban, role: "viewer" },
-  { to: "/exceptions", key: "nav.exceptions", icon: Siren, role: "viewer" },
+  { to: "/cases", key: "nav.cases", icon: History, role: "viewer" },
   { to: "/planning", key: "nav.planning", icon: CalendarClock, role: "viewer" },
   { to: "/runs", key: "nav.runs", icon: Activity, role: "viewer" },
   { to: "/settings", key: "nav.settings", icon: Settings, role: "admin" },
@@ -28,6 +30,9 @@ export function AppShell() {
   const status = useStream(session?.token ?? null);
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const items = NAV.filter((item) => hasRole(item.role));
+  // The inbox count sits on the nav entry: most approvals are resolved from the board.
+  const pending = useApprovals({ status: "pending" });
+  const pendingCount = pending.data?.length ?? 0;
 
   return (
     <div className="flex min-h-screen flex-col sm:flex-row">
@@ -37,10 +42,16 @@ export function AppShell() {
           {items.map((item) => (
             <NavLink key={item.to} to={item.to} active={isActive(pathname, item.to)}>
               <item.icon className="h-4 w-4" /> {t(item.key)}
+              {item.to === "/approvals" && pendingCount ? (
+                <Badge variant="warning" className="ml-auto" aria-label={t("nav.pending", { n: pendingCount })}>
+                  {pendingCount}
+                </Badge>
+              ) : null}
             </NavLink>
           ))}
         </nav>
         <div className="mt-auto flex flex-col gap-2 px-2 pt-4 text-xs text-muted-foreground">
+          <NotificationsBell />
           <LiveDot status={status} label={status === "open" ? t("app.live") : t("app.offline")} />
           <div className="truncate" title={session?.user.email}>
             {session?.user.name} · {t(`role.${session?.user.role ?? "viewer"}`)}
@@ -55,6 +66,7 @@ export function AppShell() {
       <header className="flex items-center justify-between border-b bg-card px-4 py-2 sm:hidden">
         <span className="font-semibold">{t("app.title")}</span>
         <div className="flex items-center gap-2">
+          <NotificationsBell compact />
           <LiveDot status={status} label="" />
           <LanguageSwitch language={language} setLanguage={setLanguage} label={t("app.language")} compact />
           <Button variant="ghost" size="icon" aria-label={t("app.signout")} onClick={logout}>
@@ -77,7 +89,14 @@ export function AppShell() {
               isActive(pathname, item.to) ? "text-primary" : "text-muted-foreground",
             )}
           >
-            <item.icon className="h-5 w-5" />
+            <span className="relative">
+              <item.icon className="h-5 w-5" />
+              {item.to === "/approvals" && pendingCount ? (
+                <span className="absolute -right-2 -top-1 min-w-4 rounded-full bg-warning px-1 text-center text-[10px] font-semibold leading-4 text-foreground">
+                  {pendingCount}
+                </span>
+              ) : null}
+            </span>
             {t(item.key)}
           </Link>
         ))}

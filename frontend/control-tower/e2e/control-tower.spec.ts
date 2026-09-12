@@ -15,6 +15,7 @@ test("an approver lands on the board, opens an order and confirms it from the pa
   await expect(page).toHaveURL(/\/(\?.*)?$/);
   const incoming = page.getByRole("region", { name: "To receive" });
   await expect(incoming.getByRole("article", { name: "P00016" })).toContainText("2 d late");
+  await expect(page.getByRole("link", { name: "Review the plan" })).toHaveAttribute("href", "/planning/run_1");
   await page.getByRole("region", { name: "Quotation requested" }).getByRole("button", { name: "Open P00015" }).click();
   const drawer = page.getByRole("dialog", { name: "Order P00015" });
   await expect(drawer).toContainText("RFQ sent, waiting for the supplier");

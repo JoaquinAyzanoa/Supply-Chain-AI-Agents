@@ -35,6 +35,8 @@ const card = (over: Partial<Card> & Pick<Card, "po_id" | "po_name" | "column" | 
   case_code: null,
   case_status: null,
   summary: null,
+  act_kind: null,
+  can_act: false,
   odoo_url: `http://odoo/purchase.order/${over.po_id}`,
   ...over,
 });
@@ -43,6 +45,7 @@ const BOARD: Schemas["Board"] = {
   as_of: "2026-09-14",
   due_soon_days: 5,
   counts: { proposed: 0, rfq_sent: 1, quote_received: 1, confirmed: 0, incoming: 1, received: 0, closed: 1 },
+  planning: { approval_id: 40, run_id: "run_7", as_of: "2026-09-14", summary: "2 RFQs, 3 rules" },
   cards: [
     card({ po_id: 2, po_name: "P00002", column: "rfq_sent", state: "sent", days_silent: 3, last_outbound: "2026-09-11", next_action: "follow_up", next_action_at: "2026-09-14" }),
     card({ po_id: 3, po_name: "P00003", column: "quote_received", state: "sent", pending_approval: { id: 31, kind: "po_change", summary: "date change" } }),
@@ -62,12 +65,15 @@ const BOARD: Schemas["Board"] = {
       case_code: "C00007",
       case_status: "escalated",
       summary: "4 days late, supplier silent",
+      act_kind: "late_po",
+      can_act: true,
     }),
     card({ po_id: 8, po_name: "P00008", column: "closed", state: "done" }),
   ],
 };
 
 let moves: { po: string; body: Record<string, unknown> }[];
+let acted: string[];
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -83,6 +89,12 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     const body = (await request.json()) as Record<string, unknown>;
     moves.push({ po: move[1]!, body });
     return jsonResponse(200, { po_name: move[1], column: body.to, message: `${move[1]} confirmed` });
+  }
+  if (url.pathname === "/api/approvals" ) return jsonResponse(200, [{ id: 31, kind: "po_change", status: "pending", summary: "date change", payload: {}, created_at: "2026-09-14T08:00:00Z" }]);
+  const act = url.pathname.match(/^\/api\/exceptions\/(\w+)\/(\w+)\/act$/);
+  if (act && request.method === "POST") {
+    acted.push(`${act[1]}:${act[2]}`);
+    return jsonResponse(202, { accepted: true, po_name: act[2], message: "follow-up started" });
   }
   if (url.pathname === "/api/cases/case_x")
     return jsonResponse(200, {
@@ -109,6 +121,7 @@ function renderBoard() {
 describe("orders board", () => {
   beforeEach(() => {
     moves = [];
+    acted = [];
     vi.spyOn(globalThis, "fetch").mockImplementation(fakeFetch);
     authStore.set({ token: "jwt", user: { email: "ana@x.com", name: "Ana", role: "approver" } });
     window.history.replaceState(null, "", "/");
@@ -127,6 +140,10 @@ describe("orders board", () => {
     expect(sent).toHaveTextContent("Next: Reminder");
     expect(within(screen.getByRole("region", { name: "Quotation received" })).getByRole("article", { name: "P00003" })).toHaveTextContent("Needs approval");
     expect(screen.getByRole("region", { name: "Proposals" })).toHaveTextContent("No orders here.");
+    expect(screen.getByText(/Daily plan for/)).toHaveTextContent("Daily plan for Sep 14, 2026 awaits review: 2 RFQs, 3 rules.");
+    expect(screen.getByRole("link", { name: "Review the plan" })).toHaveAttribute("href", "/planning/run_7");
+    expect(screen.getAllByRole("link", { name: /Approvals/ })[0]).toHaveTextContent("1"); // the inbox count on the nav
+    expect(screen.queryByRole("link", { name: "Exceptions" })).toBeNull();
     // cards with nothing to do cannot be dragged; the others expose a handle
     expect(within(late).queryByRole("button", { name: "Drag P00006" })).toBeNull();
     expect(within(sent).getByRole("button", { name: "Drag P00002" })).toBeInTheDocument();
@@ -145,6 +162,9 @@ describe("orders board", () => {
     expect(within(drawer).getByRole("link", { name: "Case C00007" })).toHaveAttribute("href", "/cases/C00007");
     expect(await within(drawer).findByText("Supplier silent for 4 days")).toBeInTheDocument();
     expect(within(drawer).getByRole("button", { name: "Unmark supplier confirmation" })).toBeInTheDocument();
+    await userEvent.click(within(drawer).getByRole("button", { name: "Act now" }));
+    await waitFor(() => expect(acted).toEqual(["late_po:P00006"]));
+    expect(await within(drawer).findByRole("status")).toHaveTextContent("Started");
     await userEvent.click(within(drawer).getByRole("button", { name: "Close panel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 

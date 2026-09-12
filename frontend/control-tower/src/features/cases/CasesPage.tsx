@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
-import { CASE_KINDS, CASE_STATUSES, useCases, type CaseFilters } from "./api";
+import { CASE_KINDS, CASE_STATUSES, DAY_RANGES, useCases, type CaseFilters } from "./api";
 import { agentName } from "./labels";
 
 export function CasesPage() {
@@ -26,6 +26,18 @@ export function CasesPage() {
     <div>
       <PageTitle title={t("cases.title")}>
         <div className="flex flex-wrap items-center gap-2">
+          <select
+            aria-label={t("cases.filter.days")}
+            className="h-8 rounded-md border bg-card px-2 text-sm"
+            value={search.days ?? "7"}
+            onChange={(event) => setSearch({ days: event.target.value })}
+          >
+            {DAY_RANGES.map((range) => (
+              <option key={range} value={range}>
+                {t(`cases.days.${range}`)}
+              </option>
+            ))}
+          </select>
           <select
             aria-label={t("cases.filter.status")}
             className="h-8 rounded-md border bg-card px-2 text-sm"

@@ -163,6 +163,8 @@ async def test_cases_list_filters_and_detail_carries_events_and_runs(
         "planning"
     ]
     assert len(client.get("/api/cases", headers=viewer).json()) == 2
+    assert client.get("/api/cases", params={"since": "2099-01-01"}, headers=viewer).json() == []
+    assert len(client.get("/api/cases", params={"since": "2000-01-01"}, headers=viewer).json()) == 2
 
     detail = client.get(f"/api/cases/{rfq.case_id}", headers=viewer).json()
     assert detail["case"]["status"] == "awaiting_approval"

@@ -19,6 +19,7 @@ other transitions happen through events and the API says so.
 
 from __future__ import annotations
 
+import json
 from datetime import date, timedelta
 from typing import Literal, Protocol, runtime_checkable
 
@@ -59,6 +60,7 @@ COLUMNS: tuple[Column, ...] = (
     "closed",
 )
 Delivery = Literal["on_time", "due_soon", "late", "none"]
+ActKind = Literal["late_po", "rfq_no_reply"]
 
 
 class PendingApproval(StrictModel):
@@ -95,7 +97,18 @@ class BoardCard(StrictModel):
     case_code: str | None = None
     case_status: str | None = None
     summary: str | None = None
+    act_kind: ActKind | None = None
+    can_act: bool = False
     odoo_url: str
+
+
+class PlanningPending(StrictModel):
+    """A daily plan waiting for review: its proposals become cards once approved."""
+
+    approval_id: int
+    run_id: str | None = None
+    as_of: str | None = None
+    summary: str
 
 
 class Board(StrictModel):
@@ -103,6 +116,7 @@ class Board(StrictModel):
     due_soon_days: int
     cards: list[BoardCard]
     counts: dict[str, int]
+    planning: PlanningPending | None = None
 
 
 class MoveRequest(StrictModel):
@@ -225,6 +239,12 @@ async def build_board(
         first = next((a for a in mine if a.kind != "escalation"), None) or (
             mine[0] if mine else None
         )
+        act_kind: ActKind | None = None
+        if fact is not None:
+            if fact.is_confirmed_open and fact.date_planned and today > fact.date_planned:
+                act_kind = "late_po"
+            elif fact.is_rfq and (fact.silent_days(today) or 0) > 0:
+                act_kind = "rfq_no_reply"
         cards.append(
             BoardCard(
                 po_id=po.id,
@@ -267,13 +287,27 @@ async def build_board(
                 case_code=case.code if case else None,
                 case_status=case.status if case else None,
                 summary=case.summary if case else None,
+                act_kind=act_kind,
+                can_act=act_kind is not None and fact is not None and not fact.awaiting_human,
                 odoo_url=record_url(settings.odoo.browser_url, "purchase.order", po.id),
             )
         )
     order = {name: i for i, name in enumerate(COLUMNS)}
     cards.sort(key=lambda c: (order[c.column], -c.days_late, c.date_planned or date.max, c.po_name))
     counts: dict[str, int] = {name: sum(1 for c in cards if c.column == name) for name in COLUMNS}
-    return Board(as_of=today, due_soon_days=due_soon_days, cards=cards, counts=counts)
+    plan = next((a for a in pending if a.kind == "planning_run"), None)
+    planning = None
+    if plan is not None:
+        payload = json.loads(plan.payload_json) if plan.payload_json else {}
+        planning = PlanningPending(
+            approval_id=plan.id,
+            run_id=plan.run_id or (str(payload["run_id"]) if payload.get("run_id") else None),
+            as_of=str(payload["as_of"]) if payload.get("as_of") else None,
+            summary=plan.summary,
+        )
+    return Board(
+        as_of=today, due_soon_days=due_soon_days, cards=cards, counts=counts, planning=planning
+    )
 
 
 # --- moves ------------------------------------------------------------------------------------

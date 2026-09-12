@@ -597,9 +597,12 @@ export interface components {
             };
             /** Due Soon Days */
             due_soon_days: number;
+            planning?: components["schemas"]["PlanningPending"] | null;
         };
         /** BoardCard */
         BoardCard: {
+            /** Act Kind */
+            act_kind?: ("late_po" | "rfq_no_reply") | null;
             /**
              * Amount Total
              * @default 0
@@ -607,6 +610,11 @@ export interface components {
             amount_total: number;
             /** Buyer */
             buyer?: string | null;
+            /**
+             * Can Act
+             * @default false
+             */
+            can_act: boolean;
             /** Case Code */
             case_code?: string | null;
             /** Case Id */
@@ -1051,6 +1059,20 @@ export interface components {
             review_period_days?: number | null;
             /** Service Level */
             service_level?: number | null;
+        };
+        /**
+         * PlanningPending
+         * @description A daily plan waiting for review: its proposals become cards once approved.
+         */
+        PlanningPending: {
+            /** Approval Id */
+            approval_id: number;
+            /** As Of */
+            as_of?: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Summary */
+            summary: string;
         };
         /** PlanningRunDetail */
         PlanningRunDetail: {
@@ -1684,6 +1706,8 @@ export interface operations {
                 status?: ("open" | "awaiting_approval" | "done" | "rejected" | "failed" | "escalated") | null;
                 po?: string | null;
                 kind?: ("rfq" | "eta" | "inbound" | "unlinked" | "receipt" | "planning" | "invoice") | null;
+                /** @description only cases updated on or after this day */
+                since?: string | null;
                 limit?: number;
             };
             header?: never;

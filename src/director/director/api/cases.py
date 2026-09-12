@@ -9,7 +9,7 @@ appear here: only subjects' tokens, directions and Outlook links.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, date, datetime, time
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -80,11 +80,13 @@ async def list_cases(
     status: CaseStatus | None = Query(default=None),
     po: str | None = Query(default=None),
     kind: CaseKind | None = Query(default=None),
+    since: date | None = Query(default=None, description="only cases updated on or after this day"),
     limit: int = Query(default=50, ge=1, le=500),
     _: Principal = Viewer,
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
 ) -> list[CaseView]:
-    rows = await cases.list(status=status, po_name=po, kind=kind, limit=limit)
+    floor = datetime.combine(since, time.min, tzinfo=UTC) if since else None
+    rows = await cases.list(status=status, po_name=po, kind=kind, since=floor, limit=limit)
     return [case_view(c) for c in rows]
 
 

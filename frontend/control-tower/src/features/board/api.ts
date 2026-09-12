@@ -60,6 +60,16 @@ export function useMoveCard() {
   });
 }
 
+/** Run the policy's next step for this order now (a reminder or a delivery date request). */
+export function useActNow() {
+  const refresh = useRefreshAfterMove();
+  return useMutation({
+    mutationFn: async ({ kind, po_name }: { kind: NonNullable<BoardCard["act_kind"]>; po_name: string }) =>
+      unwrap(await api.POST("/api/exceptions/{kind}/{po_name}/act", { params: { path: { kind, po_name } } })),
+    onSettled: refresh,
+  });
+}
+
 export function useSupplierConfirmed() {
   const refresh = useRefreshAfterMove();
   return useMutation({

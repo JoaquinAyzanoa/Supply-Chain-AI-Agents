@@ -8,6 +8,8 @@
 import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { notifyFor } from "./notifications";
+
 export const STREAM_EVENTS = [
   "case_updated",
   "approval_created",
@@ -53,7 +55,10 @@ export function useStream(token: string | null): StreamStatus {
         setStatus("open");
       };
       for (const event of STREAM_EVENTS) {
-        source.addEventListener(event, () => invalidateFor(queryClient, event));
+        source.addEventListener(event, (message) => {
+          invalidateFor(queryClient, event);
+          void notifyFor(event, (message as MessageEvent<string>).data ?? "");
+        });
       }
       source.onerror = () => {
         setStatus("reconnecting");

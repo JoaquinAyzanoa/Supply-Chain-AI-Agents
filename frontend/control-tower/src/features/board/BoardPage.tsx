@@ -13,7 +13,8 @@ import {
   useSensors,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { CalendarClock } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useAuth } from "@/auth/AuthProvider";
@@ -142,6 +143,21 @@ export function BoardPage() {
       {notice ? (
         <p role={notice.kind === "ok" ? "status" : "alert"} className={cn("border-b px-4 py-1.5 text-sm", notice.kind === "ok" ? "bg-success/10 text-success-text" : "bg-destructive/10 text-destructive")}>
           {notice.text}
+        </p>
+      ) : null}
+      {board.data?.planning ? (
+        <p className="flex flex-wrap items-center gap-2 border-b bg-accent/60 px-4 py-1.5 text-sm" role="status">
+          <CalendarClock className="h-4 w-4" />
+          {t("board.planning", { date: board.data.planning.as_of ? formatDate(board.data.planning.as_of, locale) : "", summary: board.data.planning.summary })}
+          {board.data.planning.run_id ? (
+            <Link to="/planning/$runId" params={{ runId: board.data.planning.run_id }} className="font-medium text-primary underline">
+              {t("board.planning.review")}
+            </Link>
+          ) : (
+            <Link to="/approvals" search={{ id: board.data.planning.approval_id }} className="font-medium text-primary underline">
+              {t("board.planning.review")}
+            </Link>
+          )}
         </p>
       ) : null}
       {board.isPending ? <Loading /> : null}

@@ -104,6 +104,13 @@ async def _seed(module: MemoryDirectorModule) -> None:
     b.add(_po(8, "P00008", "done"))
     module.approvals.seed(31, kind="po_change", summary="date change on P00003", po=(3, "P00003"))
     module.approvals.seed(32, kind="escalation", summary="P00006 needs a person", po=(6, "P00006"))
+    module.approvals.seed(
+        33,
+        kind="planning_run",
+        summary="Plan 2026-09-14: 2 RFQs",
+        payload={"run_id": "run_9", "as_of": "2026-09-14"},
+        po=None,
+    )
     module.mail_activity.known["P00002"] = (today - timedelta(days=3), None)
     module.exceptions.facts = [
         PoFacts(
@@ -154,8 +161,17 @@ async def test_board_puts_every_order_in_its_column_with_colours_and_badges(
         and late["summary"] == "4 days late"
     )
     assert late["pending_approval"]["kind"] == "escalation"
+    assert late["act_kind"] == "late_po" and late["can_act"] is True
+    assert board["planning"] == {
+        "approval_id": 33,
+        "run_id": "run_9",
+        "as_of": "2026-09-14",
+        "summary": "Plan 2026-09-14: 2 RFQs",
+    }
     silent = by_name["P00002"]
     assert silent["days_silent"] == 3 and silent["next_action"] == "follow_up"
+    assert silent["act_kind"] == "rfq_no_reply" and silent["can_act"] is True
+    assert by_name["P00004"]["act_kind"] is None and by_name["P00004"]["can_act"] is False
     assert silent["last_outbound"] == (local_today() - timedelta(days=3)).isoformat()
     assert by_name["P00003"]["pending_approval"] == {
         "id": 31,
