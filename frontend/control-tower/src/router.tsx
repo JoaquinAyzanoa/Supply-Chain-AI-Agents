@@ -11,8 +11,8 @@ import type { AuthState } from "@/auth/AuthProvider";
 import { atLeast, authStore } from "@/auth/store";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/routes/login";
+import { ApprovalsInbox, type ApprovalsSearch } from "@/features/approvals/ApprovalsInbox";
 import {
-  ApprovalsPage,
   CaseDetailPage,
   CasesPage,
   ExceptionsPage,
@@ -57,7 +57,19 @@ const appRoute = createRoute({
 const child = <P extends string>(path: P, component: () => React.ReactNode) =>
   createRoute({ getParentRoute: () => appRoute, path, component });
 
-export const approvalsRoute = child("/", ApprovalsPage);
+const approvalsSearch = z.object({
+  id: z.coerce.number().int().optional(),
+  tab: z.enum(["pending", "resolved"]).optional(),
+  kind: z.string().optional(),
+  po: z.string().optional(),
+});
+
+export const approvalsRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/",
+  validateSearch: (search): ApprovalsSearch => approvalsSearch.parse(search),
+  component: ApprovalsInbox,
+});
 export const casesRoute = child("/cases", CasesPage);
 export const caseRoute = child("/cases/$caseId", CaseDetailPage);
 export const exceptionsRoute = child("/exceptions", ExceptionsPage);
