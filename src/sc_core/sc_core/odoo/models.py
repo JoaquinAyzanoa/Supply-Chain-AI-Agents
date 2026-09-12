@@ -138,6 +138,7 @@ class PurchaseOrder(OdooModel):
     sc_eta_source: EtaSource | None = None
     sc_eta_confidence: float = 0.0
     sc_needs_human: bool = False
+    sc_supplier_confirmed: bool = False
     sc_pending_approval_id: Ref | None = None
 
     @property

@@ -132,6 +132,28 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         po_id = await self._c.create(self._name, values)
         return await self.get(po_id)
 
+    async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
+        """Every open order plus those closed since ``closed_since`` (the board's cards)."""
+        open_states = ["draft", "sent", "to approve", "purchase"]
+        return await self.find(
+            [
+                "|",
+                ["state", "in", open_states],
+                "&",
+                ["state", "in", ["done", "cancel"]],
+                ["write_date", ">=", closed_since.isoformat()],
+            ],
+            order="date_planned asc, id desc",
+            limit=500,
+        )
+
+    async def mark_done(self, po_id: int) -> None:
+        """Lock a received order (``button_done`` through the addon)."""
+        await self._c.call(self._name, "sc_mark_done", [po_id])
+
+    async def set_supplier_confirmed(self, po_id: int, value: bool) -> None:
+        await self._c.call(self._name, "sc_set_supplier_confirmed", [po_id], value=value)
+
     async def confirm(self, po_id: int) -> PurchaseOrder:
         """RFQ -> purchase order (``button_confirm``)."""
         await self._c.call(self._name, "button_confirm", [po_id])

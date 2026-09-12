@@ -11,6 +11,7 @@ from fastapi import APIRouter
 from director.api import (
     approvals,
     auth,
+    board,
     cases,
     chat,
     exceptions,
@@ -23,6 +24,7 @@ from director.api import (
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
 api_router.include_router(approvals.router)
+api_router.include_router(board.router)
 api_router.include_router(cases.router)
 api_router.include_router(chat.router)
 api_router.include_router(exceptions.router)

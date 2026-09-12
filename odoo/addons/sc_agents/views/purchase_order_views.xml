@@ -22,6 +22,8 @@
                             <field name="sc_external_ref"/>
                         </group>
                         <group string="Arrival date">
+                            <field name="sc_supplier_confirmed"/>
+                            <field name="sc_supplier_confirmed_at" invisible="not sc_supplier_confirmed"/>
                             <field name="sc_eta_source"/>
                             <field name="sc_eta_confidence" widget="percentage"/>
                         </group>

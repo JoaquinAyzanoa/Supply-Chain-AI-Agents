@@ -54,6 +54,13 @@ class PurchaseOrder(models.Model):
         copy=False,
         ondelete="set null",
     )
+    sc_supplier_confirmed = fields.Boolean(
+        string="Supplier confirmed",
+        default=False,
+        help="The supplier acknowledged the order (by email through the agent, or marked by "
+        "a buyer on the Control Tower when the supplier never writes back).",
+    )
+    sc_supplier_confirmed_at = fields.Datetime(string="Supplier confirmed at", readonly=True)
     sc_approval_ids = fields.One2many("sc.approval", "po_id", string="Approvals")
     sc_agent_run_ids = fields.One2many("sc.agent.run", "po_id", string="Agent runs")
     sc_mail_link_ids = fields.One2many("sc.mail.link", "po_id", string="Mail links")
@@ -95,6 +102,22 @@ class PurchaseOrder(models.Model):
                 order.id,
                 "purchase",
             )
+        return True
+
+    def sc_set_supplier_confirmed(self, value):
+        """Mark (or unmark) the supplier's confirmation; called by the Control Tower."""
+        self.write(
+            {
+                "sc_supplier_confirmed": bool(value),
+                "sc_supplier_confirmed_at": fields.Datetime.now() if value else False,
+            }
+        )
+        return True
+
+    def sc_mark_done(self):
+        """Lock a fully received order (Odoo's own ``button_done``)."""
+        for order in self:
+            order.button_done()
         return True
 
     def sc_post_note(self, body):

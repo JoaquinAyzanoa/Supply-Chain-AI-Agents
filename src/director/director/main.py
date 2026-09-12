@@ -19,6 +19,7 @@ from director.agents import Agents, build_agents
 from director.api import api_router
 from director.api.approvals import ApprovalsGateway, OdooApprovalsGateway
 from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
+from director.api.board import BoardMoves, BoardOrders, OdooBoardOrders
 from director.api.chat import (
     CaseAssistant,
     ChatActions,
@@ -44,7 +45,7 @@ from director.escalation import (
     OdooEscalationPorts,
     OdooEscalator,
 )
-from director.handlers.followups import FollowUpJob
+from director.handlers.followups import FollowUpJob, MailActivity
 from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
 from director.jobs import JobRunner
@@ -160,6 +161,25 @@ class DirectorModule(Module):
     @singleton
     def provide_exceptions(self, followups: FollowUpJob) -> ExceptionsSource:  # type: ignore[type-abstract]
         return followups
+
+    @provider
+    @singleton
+    def provide_mail_activity(self, db: Database) -> MailActivity:  # type: ignore[type-abstract]
+        return PostgresMailActivity(db)
+
+    @provider
+    @singleton
+    def provide_board_orders(self, orders: PurchaseOrderRepo) -> BoardOrders:  # type: ignore[type-abstract]
+        return OdooBoardOrders(orders)
+
+    @provider
+    @singleton
+    def provide_board_moves(
+        self,
+        orders: BoardOrders,  # type: ignore[type-abstract]
+        deps: Deps,
+    ) -> BoardMoves:
+        return BoardMoves(orders, deps)
 
     @provider
     @singleton

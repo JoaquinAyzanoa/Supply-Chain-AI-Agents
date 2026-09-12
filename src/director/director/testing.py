@@ -11,14 +11,16 @@ from injector import Binder, Module, singleton
 from director.agents import AgentProxy, Agents
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
+from director.api.board import BoardMoves, BoardOrders
 from director.api.chat import CaseAssistant, ChatActions, EmailSnapshot
 from director.api.exceptions import ExceptionsSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
-from director.conversations import MemoryConversationLookup
+from director.conversations import MemoryConversationLookup, MemoryMailActivity
 from director.escalation import Escalator, MemoryEscalator
+from director.handlers.followups import MailActivity
 from director.inbox import EventInbox, EventResults, MemoryEventInbox, MemoryEventResults
 from director.jobs import JobRunner, NoJobs
 from director.policies import FollowUpPolicy, PoFacts
@@ -32,7 +34,7 @@ from sc_core.infra.locks import MemoryLock
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter
 from sc_core.llm.testing import ScriptedChatClient
-from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, Ref
+from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, PurchaseOrder, Ref
 
 
 def memory_deps(
@@ -99,6 +101,8 @@ class MemoryDirectorModule(Module):
         self.chat = chat or ScriptedChatClient()
         self.orders_lookup = MemoryOrderLookup()
         self.emails = MemoryEmailReader()
+        self.mail_activity = MemoryMailActivity()
+        self.board_orders = MemoryBoardOrders()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -140,6 +144,9 @@ class MemoryDirectorModule(Module):
             scope=singleton,
         )
         binder.bind(ChatActions, to=ChatActions(self.deps, self.approvals), scope=singleton)
+        binder.bind(MailActivity, to=self.mail_activity, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(BoardOrders, to=self.board_orders, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(BoardMoves, to=BoardMoves(self.board_orders, self.deps), scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(ApprovalsGateway, to=self.approvals, scope=singleton)  # type: ignore[type-abstract]
@@ -333,3 +340,40 @@ class MemoryEmailReader:
     async def read(self, message_id: str) -> EmailSnapshot | None:
         self.reads.append(message_id)
         return self.messages.get(message_id)
+
+
+class MemoryBoardOrders:
+    """Orders as Odoo would list them; moves are recorded and applied to the rows."""
+
+    def __init__(self) -> None:
+        self.orders: dict[int, PurchaseOrder] = {}
+        self.actions: list[tuple[str, int, Any]] = []
+        self.notes: list[tuple[int, str]] = []
+
+    def add(self, po: PurchaseOrder) -> PurchaseOrder:
+        self.orders[po.id] = po
+        return po
+
+    async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
+        return list(self.orders.values())
+
+    async def confirm(self, po_id: int) -> PurchaseOrder:
+        self.actions.append(("confirm", po_id, None))
+        self.orders[po_id] = self.orders[po_id].model_copy(update={"state": "purchase"})
+        return self.orders[po_id]
+
+    async def cancel(self, po_id: int) -> None:
+        self.actions.append(("cancel", po_id, None))
+        self.orders[po_id] = self.orders[po_id].model_copy(update={"state": "cancel"})
+
+    async def mark_done(self, po_id: int) -> None:
+        self.actions.append(("done", po_id, None))
+        self.orders[po_id] = self.orders[po_id].model_copy(update={"state": "done"})
+
+    async def set_supplier_confirmed(self, po_id: int, value: bool) -> None:
+        self.actions.append(("supplier_confirmed", po_id, value))
+        self.orders[po_id] = self.orders[po_id].model_copy(update={"sc_supplier_confirmed": value})
+
+    async def post_note(self, po_id: int, body_html: str) -> int:
+        self.notes.append((po_id, body_html))
+        return len(self.notes)

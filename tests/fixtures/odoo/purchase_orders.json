@@ -18,7 +18,7 @@
    }
   },
   {
-   "key": "40713296a7b8768ae2a1af69",
+   "key": "4d034647048de20a409f2d72",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -59,6 +59,7 @@
        "sc_eta_source",
        "sc_eta_confidence",
        "sc_needs_human",
+       "sc_supplier_confirmed",
        "sc_pending_approval_id"
       ],
       "offset": 0,
@@ -83,9 +84,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-09-10 20:21:42",
-      "date_approve": "2026-09-08 20:21:42",
-      "date_planned": "2026-09-08 20:21:42",
+      "date_order": "2026-09-14 14:13:23",
+      "date_approve": "2026-09-12 14:13:23",
+      "date_planned": "2026-09-14 14:13:23",
       "amount_untaxed": 6936.0,
       "amount_total": 6936.0,
       "currency_id": [
@@ -94,7 +95,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -111,8 +112,12 @@
       "sc_external_ref": false,
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       12,
+       "sc.approval,12"
+      ]
      }
     ]
    }
@@ -186,7 +191,7 @@
        1,
        "USD"
       ],
-      "date_planned": "2026-10-20 12:00:00",
+      "date_planned": "2026-09-12 14:13:23",
       "qty_received": 0.0,
       "qty_invoiced": 0.0,
       "state": "purchase"
@@ -213,7 +218,7 @@
        1,
        "USD"
       ],
-      "date_planned": "2026-09-08 20:21:42",
+      "date_planned": "2026-09-12 14:13:23",
       "qty_received": 0.0,
       "qty_invoiced": 0.0,
       "state": "purchase"
@@ -222,7 +227,7 @@
    }
   },
   {
-   "key": "e7cc13c078e047cb20a6bfd3",
+   "key": "035c4b9ba16cdbcdb1f2db28",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -286,6 +291,7 @@
        "sc_eta_source",
        "sc_eta_confidence",
        "sc_needs_human",
+       "sc_supplier_confirmed",
        "sc_pending_approval_id"
       ],
       "offset": 0,
@@ -310,9 +316,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-09-10 20:21:42",
-      "date_approve": "2026-09-08 20:21:42",
-      "date_planned": "2026-09-08 20:21:42",
+      "date_order": "2026-09-14 14:13:23",
+      "date_approve": "2026-09-12 14:13:23",
+      "date_planned": "2026-09-14 14:13:23",
       "amount_untaxed": 6936.0,
       "amount_total": 6936.0,
       "currency_id": [
@@ -321,7 +327,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -338,8 +344,12 @@
       "sc_external_ref": false,
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       12,
+       "sc.approval,12"
+      ]
      },
      {
       "id": 7,
@@ -351,9 +361,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-09-08 20:21:38",
+      "date_order": "2026-09-12 14:13:18",
       "date_approve": false,
-      "date_planned": "2026-09-08 20:21:38",
+      "date_planned": "2026-09-12 14:13:18",
       "amount_untaxed": 1222.5,
       "amount_total": 1222.5,
       "currency_id": [
@@ -362,7 +372,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -378,6 +388,7 @@
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
       "sc_needs_human": false,
+      "sc_supplier_confirmed": false,
       "sc_pending_approval_id": false
      },
      {
@@ -390,9 +401,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-09-08 20:21:38",
+      "date_order": "2026-09-12 14:13:18",
       "date_approve": false,
-      "date_planned": "2026-09-13 20:21:37",
+      "date_planned": "2026-09-17 14:13:18",
       "amount_untaxed": 14563.0,
       "amount_total": 14563.0,
       "currency_id": [
@@ -401,7 +412,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -418,13 +429,14 @@
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
       "sc_needs_human": false,
+      "sc_supplier_confirmed": false,
       "sc_pending_approval_id": false
      }
     ]
    }
   },
   {
-   "key": "0b4e10b5ab9d8d468e3ca668",
+   "key": "34fb78fc861c2a08a4144336",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -477,6 +489,7 @@
        "sc_eta_source",
        "sc_eta_confidence",
        "sc_needs_human",
+       "sc_supplier_confirmed",
        "sc_pending_approval_id"
       ],
       "offset": 0,
@@ -492,8 +505,53 @@
     "id": 5,
     "result": [
      {
-      "id": 8,
-      "name": "P00008",
+      "id": 66,
+      "name": "P00066",
+      "state": "purchase",
+      "partner_id": [
+       45,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "SEED/2026-08",
+      "date_order": "2026-08-01 11:00:00",
+      "date_approve": "2026-08-01 11:00:00",
+      "date_planned": "2026-09-05 12:00:00",
+      "amount_untaxed": 1608.3,
+      "amount_total": 1849.55,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       441,
+       442
+      ],
+      "picking_ids": [
+       3549
+      ],
+      "sc_external_ref": "seed-open-20260912-3",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       24,
+       "sc.approval,24"
+      ]
+     },
+     {
+      "id": 11,
+      "name": "P00011",
       "state": "purchase",
       "partner_id": [
        9,
@@ -501,18 +559,18 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-09-03 20:21:38",
-      "date_approve": "2026-08-30 20:21:38",
-      "date_planned": "2026-09-08 00:00:00",
-      "amount_untaxed": 6465.5,
-      "amount_total": 6465.5,
+      "date_order": "2026-09-12 14:13:22",
+      "date_approve": "2026-09-12 14:13:22",
+      "date_planned": "2026-09-10 00:00:00",
+      "amount_untaxed": 1500.0,
+      "amount_total": 1500.0,
       "currency_id": [
        1,
        "USD"
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -520,15 +578,108 @@
       ],
       "receipt_status": false,
       "order_line": [
-       17,
-       18
+       22
       ],
       "picking_ids": [],
       "sc_external_ref": false,
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       16,
+       "sc.approval,16"
+      ]
+     },
+     {
+      "id": 64,
+      "name": "P00064",
+      "state": "purchase",
+      "partner_id": [
+       45,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "SEED/2026-08",
+      "date_order": "2026-08-25 11:00:00",
+      "date_approve": "2026-08-25 11:00:00",
+      "date_planned": "2026-09-10 15:29:48",
+      "amount_untaxed": 4685.56,
+      "amount_total": 5388.39,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       436,
+       437,
+       438
+      ],
+      "picking_ids": [
+       3547
+      ],
+      "sc_external_ref": "seed-open-20260912-1",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       13,
+       "sc.approval,13"
+      ]
+     },
+     {
+      "id": 68,
+      "name": "P00068",
+      "state": "purchase",
+      "partner_id": [
+       45,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "phase 6 round trip",
+      "date_order": "2026-09-12 15:07:16",
+      "date_approve": "2026-09-12 15:07:16",
+      "date_planned": "2026-09-10 15:51:56",
+      "amount_untaxed": 208.32,
+      "amount_total": 239.57,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       8,
+       "SC Agent Bot"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       444
+      ],
+      "picking_ids": [
+       3551
+      ],
+      "sc_external_ref": "e2e-odoo-events-2dacfe09",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       19,
+       "sc.approval,19"
+      ]
      },
      {
       "id": 9,
@@ -540,9 +691,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-08-24 20:21:38",
-      "date_approve": "2026-09-03 20:21:38",
-      "date_planned": "2026-09-08 00:00:00",
+      "date_order": "2026-08-28 14:13:19",
+      "date_approve": "2026-09-07 14:13:19",
+      "date_planned": "2026-09-12 00:00:00",
       "amount_untaxed": 12500.0,
       "amount_total": 12500.0,
       "currency_id": [
@@ -551,7 +702,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -566,8 +717,12 @@
       "sc_external_ref": false,
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       8,
+       "sc.approval,8"
+      ]
      },
      {
       "id": 10,
@@ -579,9 +734,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-08-24 20:21:38",
-      "date_approve": "2026-08-21 20:21:38",
-      "date_planned": "2026-09-08 00:00:00",
+      "date_order": "2026-08-28 14:13:19",
+      "date_approve": "2026-08-25 14:13:19",
+      "date_planned": "2026-09-12 00:00:00",
       "amount_untaxed": 2505.0,
       "amount_total": 2505.0,
       "currency_id": [
@@ -590,7 +745,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -604,8 +759,55 @@
       "sc_external_ref": false,
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       10,
+       "sc.approval,10"
+      ]
+     },
+     {
+      "id": 8,
+      "name": "P00008",
+      "state": "purchase",
+      "partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-07 14:13:18",
+      "date_approve": "2026-09-03 14:13:18",
+      "date_planned": "2026-09-12 00:00:00",
+      "amount_untaxed": 6465.5,
+      "amount_total": 6465.5,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       17,
+       18
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       3,
+       "sc.approval,3"
+      ]
      },
      {
       "id": 15,
@@ -617,9 +819,9 @@
       ],
       "partner_ref": false,
       "origin": false,
-      "date_order": "2026-09-10 20:21:42",
-      "date_approve": "2026-09-08 20:21:42",
-      "date_planned": "2026-09-08 20:21:42",
+      "date_order": "2026-09-14 14:13:23",
+      "date_approve": "2026-09-12 14:13:23",
+      "date_planned": "2026-09-14 14:13:23",
       "amount_untaxed": 6936.0,
       "amount_total": 6936.0,
       "currency_id": [
@@ -628,7 +830,7 @@
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
@@ -645,52 +847,107 @@
       "sc_external_ref": false,
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       12,
+       "sc.approval,12"
+      ]
      },
      {
-      "id": 11,
-      "name": "P00011",
+      "id": 65,
+      "name": "P00065",
       "state": "purchase",
       "partner_id": [
-       9,
-       "Wood Corner"
+       46,
+       "Sun Hydraulics Distribuidor Alterno"
       ],
       "partner_ref": false,
-      "origin": false,
-      "date_order": "2026-09-08 20:21:41",
-      "date_approve": "2026-09-08 20:21:41",
-      "date_planned": "2026-09-10 00:00:00",
-      "amount_untaxed": 1500.0,
-      "amount_total": 1500.0,
+      "origin": "SEED/2026-09",
+      "date_order": "2026-09-02 11:00:00",
+      "date_approve": "2026-09-02 11:00:00",
+      "date_planned": "2026-09-17 12:00:00",
+      "amount_untaxed": 1646.28,
+      "amount_total": 1893.22,
       "currency_id": [
        1,
        "USD"
       ],
       "company_id": [
        1,
-       "My Company (San Francisco)"
+       "Hidráulica Andina SAC"
       ],
       "user_id": [
        2,
        "Mitchell Admin"
       ],
-      "receipt_status": false,
+      "receipt_status": "pending",
       "order_line": [
-       22
+       439,
+       440
       ],
-      "picking_ids": [],
-      "sc_external_ref": false,
+      "picking_ids": [
+       3548
+      ],
+      "sc_external_ref": "seed-open-20260912-2",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
-      "sc_pending_approval_id": false
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       14,
+       "sc.approval,14"
+      ]
+     },
+     {
+      "id": 67,
+      "name": "P00067",
+      "state": "purchase",
+      "partner_id": [
+       45,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "phase 6 round trip",
+      "date_order": "2026-09-12 15:04:28",
+      "date_approve": "2026-09-12 15:04:29",
+      "date_planned": "2026-10-12 15:04:28",
+      "amount_untaxed": 208.32,
+      "amount_total": 239.57,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       8,
+       "SC Agent Bot"
+      ],
+      "receipt_status": "pending",
+      "order_line": [
+       443
+      ],
+      "picking_ids": [
+       3550
+      ],
+      "sc_external_ref": "e2e-odoo-events-3e22b376",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       18,
+       "sc.approval,18"
+      ]
      }
     ]
    }
   },
   {
-   "key": "495779cb8029509a8fefb348",
+   "key": "025fff2eb430d9a225b4e353",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -731,6 +988,7 @@
        "sc_eta_source",
        "sc_eta_confidence",
        "sc_needs_human",
+       "sc_supplier_confirmed",
        "sc_pending_approval_id"
       ],
       "offset": 0,

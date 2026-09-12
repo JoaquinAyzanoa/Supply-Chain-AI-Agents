@@ -86,6 +86,38 @@
       ],
       "lang": "en_US",
       "active": true
+     },
+     {
+      "id": 45,
+      "name": "Proveedor Hidraulica",
+      "email": "ventas.hidraulica.sc@gmail.com",
+      "email_normalized": "ventas.hidraulica.sc@gmail.com",
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       45,
+       "Proveedor Hidraulica"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
+     },
+     {
+      "id": 46,
+      "name": "Sun Hydraulics Distribuidor Alterno",
+      "email": false,
+      "email_normalized": false,
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       46,
+       "Sun Hydraulics Distribuidor Alterno"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
      }
     ]
    }
@@ -255,6 +287,206 @@
     "id": 4,
     "result": [
      {
+      "id": 15,
+      "name": "OP/00015",
+      "product_id": [
+       61,
+       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 22.0,
+      "product_max_qty": 26.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 65.0,
+      "qty_on_hand": 55.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-07",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 16,
+      "name": "OP/00016",
+      "product_id": [
+       62,
+       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 75.0,
+      "product_max_qty": 104.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 253.0,
+      "qty_on_hand": 230.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-07",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 14,
+      "name": "OP/00014",
+      "product_id": [
+       60,
+       "[AAA-T11A] Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 36.0,
+      "product_max_qty": 42.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 181.0,
+      "qty_on_hand": 164.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-07",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 5,
+      "name": "OP/00005",
+      "product_id": [
+       50,
+       "[CBCA-LHN] Válvula de contrabalance 3:1, cavidad T-2A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 26.0,
+      "product_max_qty": 30.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 53.0,
+      "qty_on_hand": 55.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-12",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 4,
+      "name": "OP/00004",
+      "product_id": [
+       49,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 55.0,
+      "product_max_qty": 63.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 126.0,
+      "qty_on_hand": 106.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-12",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 6,
+      "name": "OP/00006",
+      "product_id": [
+       51,
+       "[CBGA-LHN] Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 16.0,
+      "product_max_qty": 18.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 35.0,
+      "qty_on_hand": 35.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-22",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 11,
+      "name": "OP/00011",
+      "product_id": [
+       56,
+       "[CXDA-XCN] Válvula check, cavidad T-10A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 53.0,
+      "product_max_qty": 63.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 213.0,
+      "qty_on_hand": 182.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-07",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 12,
+      "name": "OP/00012",
+      "product_id": [
+       57,
+       "[DTDA-MCN] Válvula direccional solenoide 2 vías NC, cavidad T-11A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 27.0,
+      "product_max_qty": 30.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 47.0,
+      "qty_on_hand": 37.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-17",
+      "supplier_id": false,
+      "active": true
+     },
+     {
       "id": 3,
       "name": "OP/00003",
       "product_id": [
@@ -275,7 +507,7 @@
       "qty_forecast": 58.0,
       "qty_on_hand": 0.0,
       "trigger": "auto",
-      "lead_days_date": "2026-09-10",
+      "lead_days_date": "2026-09-14",
       "supplier_id": false,
       "active": true
      },
@@ -300,7 +532,7 @@
       "qty_forecast": 50.0,
       "qty_on_hand": 0.0,
       "trigger": "auto",
-      "lead_days_date": "2026-09-13",
+      "lead_days_date": "2026-09-17",
       "supplier_id": false,
       "active": true
      },
@@ -325,7 +557,157 @@
       "qty_forecast": 15.0,
       "qty_on_hand": 0.0,
       "trigger": "auto",
-      "lead_days_date": "2026-09-12",
+      "lead_days_date": "2026-09-16",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 10,
+      "name": "OP/00010",
+      "product_id": [
+       55,
+       "[FXDA-XAN] Control de caudal compensado por presión, cavidad T-2A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 17.0,
+      "product_max_qty": 19.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 31.0,
+      "qty_on_hand": 31.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-17",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 17,
+      "name": "OP/00017",
+      "product_id": [
+       59,
+       "[LODC-XDN] Elemento lógico 2 vías, cavidad T-11A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 10.0,
+      "product_max_qty": 12.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 35.0,
+      "qty_on_hand": 35.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-22",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 9,
+      "name": "OP/00009",
+      "product_id": [
+       54,
+       "[NFCC-LCN] Válvula de aguja, ajuste fino, cavidad T-11A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 22.0,
+      "product_max_qty": 26.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 41.0,
+      "qty_on_hand": 43.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-10",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 13,
+      "name": "OP/00013",
+      "product_id": [
+       58,
+       "[PBDB-LAN] Válvula reductora/aliviadora de presión, cavidad T-2A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 17.0,
+      "product_max_qty": 19.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 38.0,
+      "qty_on_hand": 39.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-17",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 8,
+      "name": "OP/00008",
+      "product_id": [
+       53,
+       "[RDDA-LAN] Válvula de alivio de acción directa, cavidad T-10A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 22.0,
+      "product_max_qty": 26.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 43.0,
+      "qty_on_hand": 45.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-10",
+      "supplier_id": false,
+      "active": true
+     },
+     {
+      "id": 7,
+      "name": "OP/00007",
+      "product_id": [
+       52,
+       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A"
+      ],
+      "warehouse_id": [
+       1,
+       "YourCompany"
+      ],
+      "location_id": [
+       8,
+       "WH/Stock"
+      ],
+      "product_min_qty": 32.0,
+      "product_max_qty": 37.0,
+      "qty_to_order": 0.0,
+      "qty_forecast": 94.0,
+      "qty_on_hand": 79.0,
+      "trigger": "auto",
+      "lead_days_date": "2026-10-12",
       "supplier_id": false,
       "active": true
      }
@@ -333,7 +715,7 @@
    }
   },
   {
-   "key": "57c33ec0e49400bb9de49e08",
+   "key": "b75ffc32c4680db5db86ae1e",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -348,7 +730,7 @@
        [
         "product_id",
         "=",
-        5
+        61
        ]
       ]
      ],
@@ -381,11 +763,11 @@
     "id": 5,
     "result": [
      {
-      "id": 3,
-      "name": "OP/00003",
+      "id": 15,
+      "name": "OP/00015",
       "product_id": [
-       5,
-       "[FURN_7777] Office Chair"
+       61,
+       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT"
       ],
       "warehouse_id": [
        1,
@@ -395,13 +777,13 @@
        8,
        "WH/Stock"
       ],
-      "product_min_qty": 3.0,
-      "product_max_qty": 5.0,
+      "product_min_qty": 22.0,
+      "product_max_qty": 26.0,
       "qty_to_order": 0.0,
-      "qty_forecast": 58.0,
-      "qty_on_hand": 0.0,
+      "qty_forecast": 65.0,
+      "qty_on_hand": 55.0,
       "trigger": "auto",
-      "lead_days_date": "2026-09-10",
+      "lead_days_date": "2026-10-07",
       "supplier_id": false,
       "active": true
      }
