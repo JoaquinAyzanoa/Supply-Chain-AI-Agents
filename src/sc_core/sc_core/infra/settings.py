@@ -12,9 +12,12 @@ Later phases add one sub-model per concern (``odoo``, ``mail``, ``llm``,
 
 from __future__ import annotations
 
+import os
 from functools import lru_cache
-from typing import Literal
+from os import PathLike
+from typing import Any, Literal
 
+from dotenv import dotenv_values
 from pydantic import BaseModel, ConfigDict, Field, PostgresDsn, RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -99,6 +102,47 @@ class MailCfg(_Section):
         return True
 
 
+class LlmCfg(_Section):
+    """Model assignment. Providers and model capabilities live in ``sc_core/llm/models.yaml``.
+
+    ``model`` maps an agent name (upper-case, e.g. ``SUPPLIER_COMMS``) to a
+    model name from the registry: ``SC__LLM__MODEL__SUPPLIER_COMMS=gpt-5.4``.
+    """
+
+    default_model: str = "deepseek-v4-flash"
+    model: dict[str, str] = {}
+    timeout_seconds: float = Field(default=120.0, gt=0)
+    max_retries: int = Field(default=2, ge=0)
+    # Per-run budget defaults; agents may lower them, never raise them.
+    budget_max_input_tokens: int = Field(default=400_000, ge=1)
+    budget_max_output_tokens: int = Field(default=60_000, ge=1)
+    budget_max_usd: float = Field(default=2.0, gt=0)
+    record_mode: Literal["off", "record", "replay"] = "off"  # test fixtures, see llm/testing.py
+
+    def model_for(self, agent_name: str) -> str:
+        # Environment keys arrive lower-cased from pydantic-settings; compare case-insensitively.
+        wanted = agent_name.lower()
+        for key, value in self.model.items():
+            if key.lower() == wanted:
+                return value
+        return self.default_model
+
+
+class LangfuseCfg(_Section):
+    """Self-hosted Langfuse (or Langfuse Cloud) for traces, prompts and datasets."""
+
+    enabled: bool = True
+    host: str = "http://localhost:3000"
+    public_key: str = ""
+    secret_key: SecretStr = SecretStr("")
+    prompt_cache_seconds: int = Field(default=300, ge=0)
+    mask_inputs: bool = False  # redact email text from traces (phase 10 decision)
+
+    @property
+    def configured(self) -> bool:
+        return self.enabled and bool(self.public_key and self.secret_key.get_secret_value())
+
+
 class HttpCfg(_Section):
     """HTTP server and middleware settings shared by every service."""
 
@@ -138,6 +182,18 @@ class Settings(BaseSettings):
     redis: RedisCfg = Field(default_factory=RedisCfg)
     odoo: OdooCfg = Field(default_factory=OdooCfg)
     mail: MailCfg = Field(default_factory=MailCfg)
+    llm: LlmCfg = Field(default_factory=LlmCfg)
+    langfuse: LangfuseCfg = Field(default_factory=LangfuseCfg)
+
+    def __init__(self, **values: Any) -> None:
+        # pydantic-settings reads .env only for its own SC__ fields. Provider API
+        # keys (DEEPSEEK_API_KEY, OPENAI_API_KEY) are looked up by name in the
+        # environment by sc_core.llm.registry, so on the host they must be
+        # exported from the same file. Docker passes env_file, so this is a no-op there.
+        env_file = values.get("_env_file", ".env")
+        if env_file:
+            load_env_file(env_file)
+        super().__init__(**values)
 
     @property
     def is_dev(self) -> bool:
@@ -146,6 +202,17 @@ class Settings(BaseSettings):
     @property
     def use_json_logs(self) -> bool:
         return self.log_json if self.log_json is not None else not self.is_dev
+
+
+def load_env_file(path: str | PathLike[str] = ".env") -> None:
+    """Export the non-``SC__`` entries of ``path`` (provider API keys) into ``os.environ``.
+
+    ``SC__*`` values are left to pydantic-settings so ``Settings(_env_file=None)``
+    keeps isolating tests from the developer's ``.env``. Existing variables win.
+    """
+    for key, value in dotenv_values(path).items():
+        if value is not None and not key.startswith("SC__") and key not in os.environ:
+            os.environ[key] = value
 
 
 @lru_cache(maxsize=1)

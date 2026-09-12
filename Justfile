@@ -116,6 +116,14 @@ logs service="director":
 ps:
     {{COMPOSE}} ps
 
+# Re-record the LLM cassettes (tests/fixtures/llm) from the real provider
+llm-record:
+    {{UV}} run python scripts/llm_record.py
+
+# Open the Langfuse UI (admin@scai.local / scai-admin-password on first boot)
+langfuse-open:
+    {{UV}} run python -c "import webbrowser; webbrowser.open('http://localhost:3000')"
+
 # Build the container image of one member
 image member="director":
     docker build -f docker/base.Dockerfile --build-arg MEMBER={{member}} -t scai/{{member}} .

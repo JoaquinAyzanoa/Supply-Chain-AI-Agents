@@ -2,7 +2,7 @@
 name = "director"
 version = "0.1.0"
 description = "Orchestrator: receives events, routes work to the agents over A2A and consolidates results"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.15"
 dependencies = [
   "sc_core",
   "fastapi>=0.116.1",

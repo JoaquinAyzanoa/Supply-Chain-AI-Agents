@@ -3,7 +3,7 @@ name = "supply-chain-ai-agents"
 version = "0.1.0"
 description = "Supply Chain AI Agents"
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.13,<3.15"
 # The workspace root has no runtime code. Every runnable package lives under
 # src/<member> and declares its own dependencies. See src/sc_core for the shared
 # library and src/director for the orchestrator.
@@ -43,6 +43,7 @@ markers = [
   "odoo: needs the Odoo container from `just up` and SC__ODOO__API_KEY in .env",
   "graph: needs a logged-in Microsoft Graph session",
   "llm: needs a real LLM provider key",
+  "llm_cassette: replays tests/fixtures/llm; `just llm-record` refreshes them",
 ]
 filterwarnings = [
   "ignore::DeprecationWarning:testcontainers.*",

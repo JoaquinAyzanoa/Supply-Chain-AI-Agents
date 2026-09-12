@@ -106,8 +106,58 @@ class MailModule(Module):
         return client
 
 
+class ChatClientFactory:
+    """Builds the traced chat client for an agent name (one client per agent, cached)."""
+
+    def __init__(self, settings: Settings) -> None:
+        self._settings = settings
+        self._clients: dict[str, ChatCompleter] = {}
+
+    def for_agent(self, agent_name: str) -> ChatCompleter:
+        if agent_name not in self._clients:
+            from sc_core.llm import get_chat_client
+
+            self._clients[agent_name] = get_chat_client(agent_name, settings=self._settings)
+        return self._clients[agent_name]
+
+
+class LlmModule(Module):
+    """Registry, chat-client factory, Langfuse tracing and the related readiness checks."""
+
+    def __init__(self, *, provider_check: bool = True) -> None:
+        self._provider_check = provider_check
+
+    @provider
+    @singleton
+    def provide_registry(self) -> Registry:
+        return Registry.load()
+
+    @provider
+    @singleton
+    def provide_factory(
+        self, settings: Settings, registry: Registry, health: HealthRegistry
+    ) -> ChatClientFactory:
+        from sc_core.infra import tracing
+        from sc_core.infra.health import checks
+
+        tracing.configure_tracing(settings)
+        if settings.langfuse.configured:
+            health.register("langfuse", checks.langfuse(settings.langfuse.host), critical=False)
+        if self._provider_check and settings.llm.record_mode != "replay":
+            provider_spec = registry.provider_for(settings.llm.default_model)
+            if provider_spec.configured:
+                health.register(
+                    "llm_provider",
+                    checks.llm_provider(provider_spec.base_url, provider_spec.api_key()),
+                    critical=False,
+                )
+        return ChatClientFactory(settings)
+
+
 # Imported after the classes so the provider annotations resolve at runtime
 # without a circular import at module load (repositories import settings).
+from sc_core.llm.client import ChatCompleter  # noqa: E402
+from sc_core.llm.registry import Registry  # noqa: E402
 from sc_core.mail.auth import TokenCacheStore, TokenProvider, build_token_provider  # noqa: E402
 from sc_core.mail.graph import GraphMailClient  # noqa: E402
 from sc_core.mail.protocol import MailClient  # noqa: E402
