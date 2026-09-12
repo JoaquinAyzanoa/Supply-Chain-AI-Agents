@@ -120,6 +120,10 @@ ps:
 llm-record:
     {{UV}} run python scripts/llm_record.py
 
+# Regenerate the A2A contract snapshots (tests/fixtures/schemas) after a deliberate change
+schema-snapshot:
+    {{UV}} run python scripts/schema_snapshot.py
+
 # Open the Langfuse UI (admin@scai.local / scai-admin-password on first boot)
 langfuse-open:
     {{UV}} run python -c "import webbrowser; webbrowser.open('http://localhost:3000')"
