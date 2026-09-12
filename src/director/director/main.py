@@ -28,6 +28,7 @@ from director.api.chat import (
     NoEmailReader,
 )
 from director.api.exceptions import ExceptionsSource
+from director.api.mailbox import HttpMailboxSync, MailboxSync
 from director.api.planning import (
     DemandSource,
     HttpDemandSource,
@@ -54,6 +55,7 @@ from director.realtime import BroadcastingCaseStore
 from director.routers import events
 from director.store import CaseStore, PostgresCaseStore
 from director.workflow import Deps, Orchestrator
+from sc_core.a2a.events import HmacSigner
 from sc_core.app import create_application
 from sc_core.app.realtime import Realtime, RedisRealtime
 from sc_core.app.static import mount_spa
@@ -263,6 +265,13 @@ class DirectorModule(Module):
     @singleton
     def provide_demand_source(self, settings: Settings) -> DemandSource:  # type: ignore[type-abstract]
         return HttpDemandSource(settings.a2a.inventory_planning_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_mailbox_sync(self, settings: Settings) -> MailboxSync:  # type: ignore[type-abstract]
+        return HttpMailboxSync(
+            settings.mail_sync.url, HmacSigner(settings.events.signing_secret.get_secret_value())
+        )
 
     @provider
     @singleton

@@ -1555,6 +1555,58 @@
         "title": "LoginResponse",
         "type": "object"
       },
+      "MailboxReport": {
+        "additionalProperties": false,
+        "properties": {
+          "errors": {
+            "default": 0,
+            "title": "Errors",
+            "type": "integer"
+          },
+          "fetched": {
+            "default": 0,
+            "title": "Fetched",
+            "type": "integer"
+          },
+          "ignored": {
+            "default": 0,
+            "title": "Ignored",
+            "type": "integer"
+          },
+          "linked": {
+            "default": 0,
+            "title": "Linked",
+            "type": "integer"
+          },
+          "linked_po_names": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Linked Po Names",
+            "type": "array"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "unlinked": {
+            "default": 0,
+            "title": "Unlinked",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "status",
+          "message"
+        ],
+        "title": "MailboxReport",
+        "type": "object"
+      },
       "ModelOption": {
         "additionalProperties": false,
         "properties": {
@@ -3736,6 +3788,32 @@
         "summary": "Act Now",
         "tags": [
           "exceptions"
+        ]
+      }
+    },
+    "/api/mailbox/sync": {
+      "post": {
+        "operationId": "sync_now_api_mailbox_sync_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MailboxReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Sync Now",
+        "tags": [
+          "mailbox"
         ]
       }
     },

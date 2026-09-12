@@ -163,7 +163,7 @@ up within `SC__LANGFUSE__PROMPT_CACHE_SECONDS`.
 Two deterministic services run without any model call.
 
 **scheduler** fires the cron table with signed HTTP dispatches: the inbox
-sync every 30 minutes and, for the director, the follow-up, planning and
+sync every 5 minutes and, for the director, the follow-up, planning and
 performance jobs (their handlers arrive with the agents). Crons are
 `SC__SCHEDULER__*_CRON` in `SC__TIMEZONE`; `GET :8012/jobs` shows next fire
 times and the last run; `just sync-now` (or `just run-job <id>`) fires one
@@ -330,7 +330,9 @@ The people's side of the system: a React app served by the director under
   that lands in the chatter); the other columns follow emails and receipts.
   A card opens a side panel with the facts, the pending approval resolvable
   in place, the case history and the "Talk to your AI" chat. Filters:
-  search, supplier, buyer, "only with problems".
+  search, supplier, buyer, "only with problems". "Check the mailbox" reads the
+  inbox right away instead of waiting for the next scheduled poll and says
+  what it found.
 - **Approvals**: the inbox. Emails are previewed sanitised (no scripts, no
   remote images) and can be edited before sending; order changes show a
   before/after table with per-line toggles; planning runs link to their

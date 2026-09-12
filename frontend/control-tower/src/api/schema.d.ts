@@ -263,6 +263,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/mailbox/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sync Now */
+        post: operations["sync_now_api_mailbox_sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/planning/runs": {
         parameters: {
             query?: never;
@@ -976,6 +993,43 @@ export interface components {
             role: "viewer" | "approver" | "admin";
             /** Token */
             token: string;
+        };
+        /** MailboxReport */
+        MailboxReport: {
+            /**
+             * Errors
+             * @default 0
+             */
+            errors: number;
+            /**
+             * Fetched
+             * @default 0
+             */
+            fetched: number;
+            /**
+             * Ignored
+             * @default 0
+             */
+            ignored: number;
+            /**
+             * Linked
+             * @default 0
+             */
+            linked: number;
+            /**
+             * Linked Po Names
+             * @default []
+             */
+            linked_po_names: string[];
+            /** Message */
+            message: string;
+            /** Status */
+            status: string;
+            /**
+             * Unlinked
+             * @default 0
+             */
+            unlinked: number;
         };
         /** ModelOption */
         ModelOption: {
@@ -1945,6 +1999,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_now_api_mailbox_sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MailboxReport"];
                 };
             };
         };

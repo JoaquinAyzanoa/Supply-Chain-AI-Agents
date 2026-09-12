@@ -419,5 +419,9 @@
   "notifications.kind.approval": "Needs approval",
   "notifications.kind.approval_resolved": "Approval resolved",
   "notifications.kind.escalation": "Needs a person",
-  "notifications.kind.run_failed": "Agent run failed"
+  "notifications.kind.run_failed": "Agent run failed",
+  "board.mailbox.check": "Check the mailbox",
+  "board.mailbox.reading": "Reading…",
+  "board.mailbox.result": "Mailbox read: {what}.",
+  "board.drawer.events": "{n} entries"
 }

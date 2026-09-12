@@ -175,7 +175,7 @@ class EventsCfg(_Section):
 
 
 class MailSyncCfg(_Section):
-    """The inbox poller. The 30-minute cadence itself lives in ``scheduler``."""
+    """The inbox poller. The cadence itself lives in ``scheduler`` (five minutes)."""
 
     page_size: int = Field(default=50, ge=1, le=500)
     lock_ttl_seconds: int = Field(default=25 * 60, ge=1)
@@ -193,7 +193,7 @@ class MailSyncCfg(_Section):
 class SchedulerCfg(_Section):
     """Cron table. Crons are five-field crontab strings evaluated in ``Settings.timezone``."""
 
-    mail_sync_cron: str = "*/30 * * * *"
+    mail_sync_cron: str = "*/5 * * * *"
     po_followups_cron: str = "0 9 * * 1-5"
     inventory_planning_cron: str = "0 6 * * *"
     supplier_performance_cron: str = "0 7 * * 1"

@@ -232,6 +232,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       return json(route, 200, { id, status: body.status, resolved_by: user.name, callback_status: "sent" });
     }
     if (path === "/api/board") return json(route, 200, state.board);
+    if (path === "/api/mailbox/sync") return json(route, 200, { status: "ok", fetched: 0, linked: 0, unlinked: 0, ignored: 0, errors: 0, linked_po_names: [], message: "no new emails" });
     const move = path.match(/^\/api\/board\/(\w+)\/move$/);
     if (move && request.method() === "POST") {
       if (user.role === "viewer") return json(route, 403, { detail: "approver role required" });

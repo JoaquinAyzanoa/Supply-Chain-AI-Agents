@@ -96,6 +96,10 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
     acted.push(`${act[1]}:${act[2]}`);
     return jsonResponse(202, { accepted: true, po_name: act[2], message: "follow-up started" });
   }
+  if (url.pathname === "/api/mailbox/sync" && request.method === "POST") {
+    acted.push("mailbox");
+    return jsonResponse(200, { status: "ok", fetched: 1, linked: 1, unlinked: 0, ignored: 0, errors: 0, linked_po_names: ["P00006"], message: "1 new email; 1 linked to orders (P00006)" });
+  }
   if (url.pathname === "/api/cases/case_x")
     return jsonResponse(200, {
       case: { case_id: "case_x", code: "C00007", kind: "eta", po_name: "P00006", status: "escalated", created_at: "2026-09-10T08:00:00Z", updated_at: "2026-09-14T08:00:00Z" },
@@ -147,6 +151,10 @@ describe("orders board", () => {
     // cards with nothing to do cannot be dragged; the others expose a handle
     expect(within(late).queryByRole("button", { name: "Drag P00006" })).toBeNull();
     expect(within(sent).getByRole("button", { name: "Drag P00002" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Check the mailbox" }));
+    await waitFor(() => expect(acted).toEqual(["mailbox"]));
+    expect(await screen.findByText("Mailbox read: 1 new email; 1 linked to orders (P00006).")).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("checkbox", { name: "Only with problems" }));
     await waitFor(() => expect(screen.queryByRole("article", { name: "P00002" })).toBeNull());

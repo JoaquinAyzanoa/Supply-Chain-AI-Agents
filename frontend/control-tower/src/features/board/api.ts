@@ -70,6 +70,15 @@ export function useActNow() {
   });
 }
 
+/** Read the inbox now instead of waiting for the next scheduled poll. */
+export function useCheckMailbox() {
+  const refresh = useRefreshAfterMove();
+  return useMutation({
+    mutationFn: async () => unwrap(await api.POST("/api/mailbox/sync")),
+    onSettled: refresh,
+  });
+}
+
 export function useSupplierConfirmed() {
   const refresh = useRefreshAfterMove();
   return useMutation({

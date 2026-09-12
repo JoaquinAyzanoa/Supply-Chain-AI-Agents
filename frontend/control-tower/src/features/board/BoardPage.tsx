@@ -14,7 +14,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { Link, useNavigate, useSearch } from "@tanstack/react-router";
-import { CalendarClock } from "lucide-react";
+import { CalendarClock, MailCheck } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { useAuth } from "@/auth/AuthProvider";
@@ -26,7 +26,7 @@ import { Input, Label, Textarea } from "@/components/ui/input";
 import { useI18n } from "@/i18n";
 import { cn, formatDate } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
-import { COLUMNS, hasProblem, targetsFor, useBoard, useMoveCard, type BoardCard, type Column } from "./api";
+import { COLUMNS, hasProblem, targetsFor, useBoard, useCheckMailbox, useMoveCard, type BoardCard, type Column } from "./api";
 import { OrderCard } from "./BoardCard";
 import { OrderDrawer } from "./OrderDrawer";
 
@@ -45,6 +45,7 @@ export function BoardPage() {
   const search = useSearch({ strict: false }) as BoardSearch;
   const board = useBoard();
   const move = useMoveCard();
+  const mailbox = useCheckMailbox();
   const [closing, setClosing] = useState<BoardCard | null>(null);
   const [note, setNote] = useState("");
   const [notice, setNotice] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
@@ -137,6 +138,24 @@ export function BoardPage() {
             <input type="checkbox" checked={Boolean(search.problems)} onChange={(event) => setSearch({ problems: event.target.checked ? "1" : undefined })} />
             {t("board.filter.problems")}
           </label>
+          {canDrag ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={mailbox.isPending}
+              onClick={async () => {
+                try {
+                  const report = await mailbox.mutateAsync();
+                  setNotice({ kind: "ok", text: t("board.mailbox.result", { what: report.message }) });
+                } catch (exc) {
+                  setNotice({ kind: "error", text: exc instanceof Error ? exc.message : String(exc) });
+                }
+              }}
+            >
+              <MailCheck className="h-4 w-4" />
+              {mailbox.isPending ? t("board.mailbox.reading") : t("board.mailbox.check")}
+            </Button>
+          ) : null}
           {board.data ? <span className="text-xs text-muted-foreground">{t("board.as_of", { date: formatDate(board.data.as_of, locale) })}</span> : null}
         </div>
       </PageTitle>

@@ -419,5 +419,9 @@
   "notifications.kind.approval": "Requiere aprobación",
   "notifications.kind.approval_resolved": "Aprobación resuelta",
   "notifications.kind.escalation": "Requiere una persona",
-  "notifications.kind.run_failed": "Falló una ejecución"
+  "notifications.kind.run_failed": "Falló una ejecución",
+  "board.mailbox.check": "Revisar el correo",
+  "board.mailbox.reading": "Leyendo…",
+  "board.mailbox.result": "Correo revisado: {what}.",
+  "board.drawer.events": "{n} entradas"
 }

@@ -14,6 +14,7 @@ from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
 from director.api.board import BoardMoves, BoardOrders
 from director.api.chat import CaseAssistant, ChatActions, EmailSnapshot
 from director.api.exceptions import ExceptionsSource
+from director.api.mailbox import MailboxSync
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
@@ -35,6 +36,7 @@ from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, PurchaseOrder, Ref
+from sc_core.shared.errors import ScError
 
 
 def memory_deps(
@@ -103,6 +105,7 @@ class MemoryDirectorModule(Module):
         self.emails = MemoryEmailReader()
         self.mail_activity = MemoryMailActivity()
         self.board_orders = MemoryBoardOrders()
+        self.mailbox = MemoryMailboxSync()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -146,6 +149,7 @@ class MemoryDirectorModule(Module):
         binder.bind(ChatActions, to=ChatActions(self.deps, self.approvals), scope=singleton)
         binder.bind(MailActivity, to=self.mail_activity, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardOrders, to=self.board_orders, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(MailboxSync, to=self.mailbox, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardMoves, to=BoardMoves(self.board_orders, self.deps), scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
@@ -377,3 +381,18 @@ class MemoryBoardOrders:
     async def post_note(self, po_id: int, body_html: str) -> int:
         self.notes.append((po_id, body_html))
         return len(self.notes)
+
+
+class MemoryMailboxSync:
+    """Answers a canned sync report; ``fail`` makes the service unreachable."""
+
+    def __init__(self) -> None:
+        self.report: dict[str, Any] = {"status": "ok", "fetched": 0}
+        self.calls: list[str] = []
+        self.fail = False
+
+    async def run(self, *, requested_by: str) -> dict[str, Any]:
+        self.calls.append(requested_by)
+        if self.fail:
+            raise ScError("the mailbox service did not answer")
+        return dict(self.report)
