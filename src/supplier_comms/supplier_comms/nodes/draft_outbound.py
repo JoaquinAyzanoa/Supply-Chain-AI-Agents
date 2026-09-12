@@ -24,7 +24,7 @@ from sc_core.mail import po_token
 from sc_core.prompts import get_prompt
 from sc_core.schema.a2a import DraftKind, OutboundDraft
 from supplier_comms.models import DraftOutput
-from supplier_comms.nodes.common import context_of, fail, task_of
+from supplier_comms.nodes.common import context_of, fail, style_tables, task_of
 from supplier_comms.render import outbound_context, reply_context
 from supplier_comms.state import Node
 
@@ -99,7 +99,7 @@ def make_draft_outbound(
             kind=kind,
             to=ctx.supplier_emails,
             subject=po_token.tag_subject(draft.subject, ctx.name),
-            html_body=draft.html_body,
+            html_body=style_tables(draft.html_body),
             reply_to_message_id=task.graph_message_id if kind == "reply" else None,
         )
         logger.bind(po_name=ctx.name, kind=kind, tool_calls=loop.tool_calls).info("draft ready")

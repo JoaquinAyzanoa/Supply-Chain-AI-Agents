@@ -46,6 +46,11 @@ class SupplierCommsTask(StrictModel):
         default=None,
         description="resolve_unlinked: a person named the order; link it without asking the model",
     )
+    require_approval: bool = Field(
+        default=False,
+        description="a person asked for this email from the Control Tower: show the draft "
+        "for approval before sending, whatever the automatic-send rules say",
+    )
 
     @model_validator(mode="after")
     def _required_by_kind(self) -> SupplierCommsTask:

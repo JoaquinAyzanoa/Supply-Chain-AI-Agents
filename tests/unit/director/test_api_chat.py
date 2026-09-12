@@ -170,6 +170,10 @@ async def test_an_instruction_becomes_an_action_that_runs_only_when_confirmed(
             po_name="P00066",
         )
     )
+    module.approvals.seed(
+        77, kind="send_email", summary="Send reminder for P00066", po=(66, "P00066")
+    )
+    module.approvals.seed(78, kind="send_email", summary="other order", po=(65, "P00065"))
     done = client.post(f"/api/cases/{case_id}/chat/{proposed['id']}/confirm", headers=approver)
     assert done.status_code == 200
     assert (
@@ -179,7 +183,11 @@ async def test_an_instruction_becomes_an_action_that_runs_only_when_confirmed(
     assert (
         '"kind":"request_eta"' in sent.task_json
         and "Ana asked: stress the 7 days of delay" in sent.task_json
+        and '"require_approval":true' in sent.task_json
     )
+    # the draft that was still waiting for this order is retired; other orders untouched
+    assert [(r["id"], r["status"]) for r in module.approvals.resolved] == [(77, "rejected")]
+    assert "superseded" in module.approvals.resolved[0]["reason"]
     history = client.get(f"/api/cases/{case_id}/chat", headers=viewer).json()
     assert history[1]["action_status"] == "confirmed"
     kinds = [e.kind for e in await module.cases.events(case_id)]

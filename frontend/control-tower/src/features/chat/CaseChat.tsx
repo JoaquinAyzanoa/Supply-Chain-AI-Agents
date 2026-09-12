@@ -35,6 +35,9 @@ export function CaseChat({ caseRef, compact = false }: { caseRef: string; compac
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["cases", "chat", caseRef] });
     void queryClient.invalidateQueries({ queryKey: ["cases"] });
+    // a confirmed instruction may draft an email (a new approval) or retire an old one
+    void queryClient.invalidateQueries({ queryKey: ["approvals"] });
+    void queryClient.invalidateQueries({ queryKey: ["board"] });
   };
 
   const ask = useMutation({

@@ -218,3 +218,24 @@ async def test_auto_send_by_kind_skips_approval_for_that_kind_only(
     _script_draft(chat)
     rfq = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c6", po_name="P00015"))
     assert rfq.status == "awaiting_approval" and len(approval_ports.created) == 1
+
+    # a person asked for it from the chat: they read it first, whatever the rules say
+    _script_draft(chat)
+    asked = await agent.run(
+        SupplierCommsTask(kind="request_eta", case_id="c7", po_name="P00015", require_approval=True)
+    )
+    assert asked.status == "awaiting_approval" and len(approval_ports.created) == 2
+
+
+def test_style_tables_gives_bare_tables_borders() -> None:
+    from supplier_comms.nodes.common import style_tables
+
+    html = (
+        "<p>Hola</p><table><tr><th>Producto</th><th>Cantidad</th></tr>"
+        "<tr><td>Válvula</td><td>2</td></tr></table>"
+    )
+    styled = style_tables(html)
+    assert styled.count("border:1px solid #999") == 5  # the table, two headers, two cells
+    assert styled.startswith("<p>Hola</p><table style=")
+    assert style_tables('<td style="color:red">x</td>') == '<td style="color:red">x</td>'
+    assert style_tables("<p>no table</p>") == "<p>no table</p>"

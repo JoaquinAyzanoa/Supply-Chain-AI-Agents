@@ -343,7 +343,10 @@ The people's side of the system: a React app served by the director under
   Every case has a **"Talk to your AI" chat** (the director agent): questions are answered from
   the case, the order and the policy; instructions ("ask them for a firm
   date", "wait until the 20th", "close this, I cancelled the order") come
-  back as a proposed action that an approver confirms before it runs.
+  back as a proposed action that an approver confirms before it runs. An
+  email asked for in the chat is always shown for approval before it goes
+  out, whatever the automatic-send rules say, and replaces any earlier
+  draft still waiting for that order.
 - **Act now** lives on the board card: a late order or a silent RFQ can run the
   policy's next step at once instead of waiting for its day. (The former
   Exceptions page is still served at `/exceptions` but no longer in the menu:

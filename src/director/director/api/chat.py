@@ -359,6 +359,24 @@ class ChatActions:
             return await self._link_email(case, action, by)
         raise HTTPException(status_code=422, detail=f"unknown action {action.kind}")
 
+    async def _retire_pending_emails(self, case: Case, by: Principal) -> None:
+        stale = await self._approvals.list(
+            status="pending", kind="send_email", po_name=case.po_name
+        )
+        for approval in stale:
+            await self._approvals.resolve(
+                approval.id,
+                "rejected",
+                by_name=by.name,
+                reason=f"superseded: {by.name} asked for a new email from the chat",
+                details=None,
+            )
+            await self._deps.cases.add_event(
+                case.case_id,
+                "note",
+                {"text": f"Earlier draft (approval #{approval.id}) retired by {by.name}"},
+            )
+
     async def _link_email(self, case: Case, action: ProposedAction, by: Principal) -> str:
         assert action.po_name is not None
         message_id = unlinked_message(await self._deps.cases.events(case.case_id))
@@ -404,11 +422,16 @@ class ChatActions:
     async def _send_task(self, case: Case, action: ProposedAction, by: Principal) -> str:
         assert case.po_name is not None
         thread_id = f"chat_{new_id('t')}"
+        # A person asked for this email: they read it before it goes out, and any
+        # earlier draft still waiting for the same order is retired so the inbox and
+        # the order panel show one email, the new one.
+        await self._retire_pending_emails(case, by)
         task = SupplierCommsTask(
             kind=action.kind,  # type: ignore[arg-type]
             case_id=thread_id,
             po_name=case.po_name,
             notes=f"{by.name} asked: {action.note or action.explanation}",
+            require_approval=True,
         )
         await self._deps.cases.add_event(
             case.case_id,

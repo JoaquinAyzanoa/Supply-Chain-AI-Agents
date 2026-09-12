@@ -91,7 +91,9 @@ def make_send_approval(
             auto_ids = frozenset(current.auto_send_partner_ids)
             auto_kinds = frozenset(current.auto_send_kinds)
         auto_reason = None
-        if ctx.partner_id in auto_ids:
+        if task_of(state).require_approval:
+            pass  # a person asked for this one and wants to read it first
+        elif ctx.partner_id in auto_ids:
             auto_reason = t("send.auto_reason", language)
         elif kind in auto_kinds:
             auto_reason = t("send.auto_reason_kind", language, label=label)
