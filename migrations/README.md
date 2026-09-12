@@ -12,4 +12,4 @@ Plain SQL files applied in order by `sc_core.infra.migrate`
 
 Planned: `001_mail_token_cache.sql` (phase 2), `002_mail_sync.sql` (phase 4),
 `003_event_result.sql` (phase 5), `004_cases.sql` (phase 6),
-`005_planning.sql` (phase 7), `006_performance.sql` (phase 9).
+`005_planning.sql` (phase 7), `006_ui.sql` (phase 8), `007_performance.sql` (phase 9).

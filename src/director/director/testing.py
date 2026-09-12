@@ -5,6 +5,8 @@ from __future__ import annotations
 from injector import Binder, Module, singleton
 
 from director.agents import AgentProxy, Agents
+from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
+from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
 from director.conversations import MemoryConversationLookup
 from director.escalation import Escalator, MemoryEscalator
@@ -58,6 +60,9 @@ class MemoryDirectorModule(Module):
         self.cases = cases or MemoryCaseStore()
         self.escalator = escalator or MemoryEscalator()
         self.lock = MemoryLock()
+        self.users = MemoryUserStore()
+        self.runtime_settings = MemoryRuntimeSettingsStore()
+        self.login_limit = LoginRateLimit(per_minute=5)
         self.deps = memory_deps(
             cases=self.cases, supplier_comms=supplier_comms, escalator=self.escalator, jobs=jobs
         )
@@ -75,3 +80,6 @@ class MemoryDirectorModule(Module):
         binder.bind(CaseStore, to=self.cases, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(Deps, to=self.deps, scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
+        binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(LoginRateLimit, to=self.login_limit, scope=singleton)

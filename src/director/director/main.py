@@ -13,6 +13,9 @@ from loguru import logger
 
 from director import __version__
 from director.agents import Agents, build_agents
+from director.api import api_router
+from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
+from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
 from director.concurrency import PoLocks
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
 from director.escalation import (
@@ -130,6 +133,21 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_users(self, db: Database) -> UserStore:  # type: ignore[type-abstract]
+        return PostgresUserStore(db)
+
+    @provider
+    @singleton
+    def provide_runtime_settings(self, db: Database) -> RuntimeSettingsStore:  # type: ignore[type-abstract]
+        return PostgresRuntimeSettingsStore(db)
+
+    @provider
+    @singleton
+    def provide_login_limit(self, settings: Settings) -> LoginRateLimit:
+        return LoginRateLimit(settings.ui.login_rate_per_minute)
+
+    @provider
+    @singleton
     def provide_deps(
         self,
         cases: CaseStore,  # type: ignore[type-abstract]
@@ -176,7 +194,7 @@ def build_app() -> FastAPI:
     application = create_application(
         settings,
         version=__version__,
-        routers=[events.router],
+        routers=[events.router, api_router],
         modules=[DbModule(), RedisModule(), OdooModule(), LlmModule(), DirectorModule()],
         startup=[_open_db, _connect_odoo],
         shutdown=[_close_odoo, _close_agents, _close_db],

@@ -124,6 +124,10 @@ llm-record:
 schema-snapshot:
     {{UV}} run python scripts/schema_snapshot.py
 
+# Create or update a Control Tower user (password from SC_UI_PASSWORD or --password)
+ui-create-user email name role="approver" *args:
+    {{UV}} run python scripts/ui_create_user.py --email {{email}} --name "{{name}}" --role {{role}} {{args}}
+
 # Publish every local prompt (sc_core, supplier_comms, director) to Langfuse Prompt Management
 langfuse-prompts:
     {{UV}} run python scripts/langfuse_prompts.py

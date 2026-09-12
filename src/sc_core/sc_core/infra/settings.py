@@ -236,6 +236,15 @@ class PlanningCfg(_Section):
     public_url: str = "http://localhost:8014"
 
 
+class UiCfg(_Section):
+    """The Control Tower (phase 8): sessions and the static bundle."""
+
+    jwt_secret: SecretStr = SecretStr("")  # empty = reuse SC__EVENTS__SIGNING_SECRET
+    jwt_ttl_minutes: int = Field(default=480, ge=5)
+    login_rate_per_minute: int = Field(default=5, ge=1)
+    static_dir: str = "frontend/control-tower/dist"  # served under / when it exists
+
+
 class AgentsCfg(_Section):
     """Shared by every LangGraph agent: who approves and how long they get."""
 
@@ -295,6 +304,7 @@ class Settings(BaseSettings):
     a2a: A2aCfg = Field(default_factory=A2aCfg)
     director: DirectorCfg = Field(default_factory=DirectorCfg)
     planning: PlanningCfg = Field(default_factory=PlanningCfg)
+    ui: UiCfg = Field(default_factory=UiCfg)
     supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
 
     @property
