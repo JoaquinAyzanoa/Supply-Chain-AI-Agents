@@ -27,6 +27,8 @@ def make_load_context(ports: AgentPorts, *, max_attachment_chars: int = 12_000) 
             update["po_context"] = ctx.model_dump(mode="json")
             logger.bind(po_name=ctx.name, lines=len(ctx.lines)).info("context loaded")
         if task.graph_message_id:
+            meta = await ports.inbound_meta(task.graph_message_id)
+            update["inbound_meta"] = meta.model_dump(mode="json")
             update["inbound_text"] = await ports.inbound_text(task.graph_message_id)
             update["attachments_text"] = await ports.attachments_text(
                 task.graph_message_id, max_chars=max_attachment_chars

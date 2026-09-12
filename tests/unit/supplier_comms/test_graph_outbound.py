@@ -134,11 +134,3 @@ async def test_sent_copy_lookup_retries_then_falls_back(
     result = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c7", po_name="P00015"))
     assert result.status == "sent"
     assert ports.outbound_records[0]["graph_message_id"] == "draft1"  # fell back to the draft ids
-
-
-async def test_resolve_unlinked_not_yet_supported(make_agent: Any) -> None:
-    agent = make_agent()
-    result = await agent.run(
-        SupplierCommsTask(kind="resolve_unlinked", case_id="c8", graph_message_id="m")
-    )
-    assert result.status == "failed" and "not implemented" in result.outcome.summary

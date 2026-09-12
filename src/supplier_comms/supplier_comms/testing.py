@@ -8,7 +8,7 @@ from itertools import count
 from typing import Any
 
 from sc_core.mail.models import MessageIds, OutboundMessage
-from supplier_comms.models import LineView, PoContext
+from supplier_comms.models import InboundMeta, LineView, PoContext
 
 SUPPLIER_EMAIL = "ventas.hidraulica.sc@gmail.com"
 
@@ -67,6 +67,8 @@ class FakePorts:
     notes: list[tuple[int, str]] = field(default_factory=list)
     find_sent_misses: int = 0
     inbound: dict[str, str] = field(default_factory=dict)
+    metas: dict[str, InboundMeta] = field(default_factory=dict)
+    partners: dict[str, int] = field(default_factory=dict)  # email -> commercial partner id
     attachments: dict[str, list[str]] = field(default_factory=dict)
     date_changes: list[dict[str, Any]] = field(default_factory=list)
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
@@ -174,3 +176,20 @@ class FakePorts:
 
     async def set_eta_meta(self, po_id: int, *, confidence: float) -> None:
         self.eta_meta.append({"po_id": po_id, "confidence": confidence})
+
+    async def inbound_meta(self, message_id: str) -> InboundMeta:
+        return self.metas.get(message_id) or InboundMeta(graph_message_id=message_id)
+
+    async def partner_by_email(self, address: str) -> int | None:
+        return self.partners.get(address.lower())
+
+    async def link_inbound(self, po_id: int, meta: InboundMeta, *, case_id: str) -> None:
+        self.links.append(
+            {
+                "po_id": po_id,
+                "graph_message_id": meta.graph_message_id,
+                "direction": "in",
+                "case_id": case_id,
+                "confidence": "agent",
+            }
+        )

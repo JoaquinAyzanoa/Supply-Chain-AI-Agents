@@ -35,6 +35,7 @@ from supplier_comms.nodes.draft_outbound import KIND_TO_DRAFT, make_draft_outbou
 from supplier_comms.nodes.extract import make_extract
 from supplier_comms.nodes.load_context import make_load_context
 from supplier_comms.nodes.propose import make_propose_changes
+from supplier_comms.nodes.resolve import make_resolve_unlinked
 from supplier_comms.nodes.send import (
     SEND_STEP,
     make_create_draft,
@@ -95,6 +96,13 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     _add(g, "apply_changes", make_apply_changes(deps.ports))
     _add(g, "change_rejected", make_change_rejected(deps.ports))
     _add(g, "no_action", make_no_action())
+    _add(
+        g,
+        "resolve_unlinked",
+        make_resolve_unlinked(
+            deps.ports, deps.chat, deps.approvals, langfuse=deps.langfuse, today=deps.today
+        ),
+    )
     _add(g, "unsupported", _unsupported)
 
     g.add_edge(START, "load_context")
@@ -104,9 +112,14 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
         {
             "outbound": "draft_outbound",
             "inbound": "classify",
+            "resolve": "resolve_unlinked",
             "unsupported": "unsupported",
             "end": END,
         },
+    )
+    # A resolved message goes back through load_context with the chosen order.
+    g.add_conditional_edges(
+        "resolve_unlinked", _continue_or_end, {"go": "load_context", "end": END}
     )
     g.add_conditional_edges("draft_outbound", _continue_or_end, {"go": "create_draft", "end": END})
     deps.approvals.add_approval(
@@ -154,6 +167,8 @@ def _after_load(state: dict[str, Any]) -> Hashable:
         return "outbound"
     if kind == "handle_inbound":
         return "inbound"
+    if kind == "resolve_unlinked":
+        return "inbound" if state.get("chosen_po_name") else "resolve"
     return "unsupported"
 
 

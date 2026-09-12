@@ -37,6 +37,27 @@ class PoContext(StrictModel):
     prior_mail_links: int = 0
 
 
+class UnlinkedResolution(BaseModel):
+    """The model's pick among candidate orders for a message the rules could not link."""
+
+    po_name: str | None = Field(default=None, description="orden elegida; vacío si ninguna")
+    confidence: float = Field(ge=0, le=1)
+    reason: str = Field(min_length=1, max_length=500)
+
+
+class InboundMeta(StrictModel):
+    """Identifiers of an inbound message, never its text: sender and subject token."""
+
+    graph_message_id: str
+    sender_address: str | None = None
+    sender_name: str | None = None
+    subject_token: str | None = None
+    has_attachments: bool = False
+    web_link: str | None = None
+    conversation_id: str | None = None
+    internet_message_id: str | None = None
+
+
 class DraftOutput(BaseModel):
     """What the model must return after drafting."""
 

@@ -34,7 +34,12 @@ class ApprovalRepo(Repo[Approval]):
         callback_url: str | None = None,
         callback_secret: str | None = None,
     ) -> Approval:
-        if po_id is None and not (res_model and res_id):
+        # Escalations about mail nobody could link may have no record to hang on.
+        if (
+            po_id is None
+            and not (res_model and res_id)
+            and kind not in ("unlinked_mail", "escalation")
+        ):
             raise ValidationFailed("an approval needs a purchase order or a record reference")
         values: dict[str, Any] = {
             "kind": kind,

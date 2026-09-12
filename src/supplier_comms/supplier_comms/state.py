@@ -27,6 +27,10 @@ class SupplierCommsState(BaseAgentState, total=False):
     sent: dict[str, Any] | None  # sent_message_id, web_link
     tool_exchange: list[dict[str, Any]] | None
     outcome: dict[str, Any] | None
+    inbound_meta: dict[str, Any] | None  # sender address, subject token, Graph ids (no text)
+    resolution: dict[str, Any] | None  # resolve_unlinked: the model's pick and reason
+    chosen_po_name: str | None
+    escalation_approval_id: int | None
 
 
 # A graph node: takes the state, returns a partial update.

@@ -11,7 +11,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from typing import Any, Protocol
 
-from sc_core.mail import normalize, pdf
+from sc_core.mail import normalize, pdf, po_token
 from sc_core.mail.models import MessageIds, OutboundMessage
 from sc_core.mail.outbound import OutboundMailStore
 from sc_core.mail.protocol import MailClient
@@ -23,7 +23,7 @@ from sc_core.odoo.repositories import (
     SupplierInfoRepo,
 )
 from sc_core.shared.time import utc_now
-from supplier_comms.models import LineView, PoContext
+from supplier_comms.models import InboundMeta, LineView, PoContext
 
 
 class AgentPorts(Protocol):
@@ -40,6 +40,10 @@ class AgentPorts(Protocol):
 
     async def attachments_text(self, message_id: str, *, max_chars: int) -> list[str]: ...
 
+    async def inbound_meta(self, message_id: str) -> InboundMeta: ...
+
+    async def partner_by_email(self, address: str) -> int | None: ...
+
     # --- mail ----------------------------------------------------------------------
     async def create_draft(self, message: OutboundMessage) -> MessageIds: ...
 
@@ -54,6 +58,8 @@ class AgentPorts(Protocol):
     async def record_outbound(self, *, ids: MessageIds, po_name: str, case_id: str) -> None: ...
 
     async def link_outbound(self, po_id: int, ids: MessageIds, *, case_id: str) -> None: ...
+
+    async def link_inbound(self, po_id: int, meta: InboundMeta, *, case_id: str) -> None: ...
 
     # --- writes to Odoo (after approval only) -------------------------------------
     async def post_note(self, po_id: int, html: str) -> None: ...
@@ -272,3 +278,37 @@ class LivePorts:
 
     async def set_eta_meta(self, po_id: int, *, confidence: float) -> None:
         await self._pos.set_eta_meta(po_id, source="supplier", confidence=confidence)
+
+    # --- unlinked mail ------------------------------------------------------------
+
+    async def inbound_meta(self, message_id: str) -> InboundMeta:
+        message = await self._graph.get_message(message_id)
+        return InboundMeta(
+            graph_message_id=message.id,
+            sender_address=message.sender.normalized if message.sender else None,
+            sender_name=message.sender.name if message.sender else None,
+            subject_token=po_token.parse(message.subject),
+            has_attachments=message.has_attachments,
+            web_link=message.web_link,
+            conversation_id=message.conversation_id,
+            internet_message_id=message.internet_message_id,
+        )
+
+    async def partner_by_email(self, address: str) -> int | None:
+        partner = await self._partners.find_by_email(address)
+        if partner is None:
+            return None
+        return (await self._partners.commercial_partner(partner)).id
+
+    async def link_inbound(self, po_id: int, meta: InboundMeta, *, case_id: str) -> None:
+        await self._links.link(
+            po_id=po_id,
+            graph_message_id=meta.graph_message_id,
+            direction="in",
+            conversation_id=meta.conversation_id,
+            internet_message_id=meta.internet_message_id,
+            received_at=utc_now(),
+            web_link=meta.web_link,
+            case_id=case_id,
+            confidence="agent",
+        )

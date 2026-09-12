@@ -67,6 +67,10 @@ class SupplierCommsAgent:
         task = SupplierCommsTask.model_validate(state["task"])
         if state.get("outcome"):
             outcome = Outcome.model_validate(state["outcome"])
+            if outcome.approval_id is None and state.get("escalation_approval_id"):
+                outcome = outcome.model_copy(
+                    update={"approval_id": state["escalation_approval_id"]}
+                )
         else:
             pending = (
                 pending_for(state, SEND_STEP)
@@ -86,6 +90,7 @@ class SupplierCommsAgent:
             run_id=state.get("run_id") or "run_unknown",
             outcome=outcome,
             po_name=task.po_name,
+            chosen_po_name=state.get("chosen_po_name"),
             classification=_model(Classification, state.get("classification")),
             extracted=_model(QuotationData, state.get("extracted")),
             proposal=_model(ChangeProposal, state.get("proposal")),
