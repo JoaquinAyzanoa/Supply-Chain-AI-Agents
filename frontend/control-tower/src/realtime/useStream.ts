@@ -19,9 +19,9 @@ export type StreamEvent = (typeof STREAM_EVENTS)[number];
 
 /** Which query families each server event makes stale. */
 export const INVALIDATIONS: Record<StreamEvent, string[]> = {
-  case_updated: ["cases", "exceptions"],
-  approval_created: ["approvals", "cases", "exceptions"],
-  approval_resolved: ["approvals", "cases", "exceptions", "planning"],
+  case_updated: ["cases", "exceptions", "board"],
+  approval_created: ["approvals", "cases", "exceptions", "board"],
+  approval_resolved: ["approvals", "cases", "exceptions", "planning", "board"],
   run_finished: ["runs", "cases", "planning"],
   settings_changed: ["settings"],
 };

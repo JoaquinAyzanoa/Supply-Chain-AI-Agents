@@ -108,7 +108,7 @@ describe("approvals inbox", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(fakeFetch);
     vi.stubGlobal("matchMedia", () => ({ matches: true, addEventListener() {}, removeEventListener() {} }));
     authStore.set({ token: "jwt", user: { email: "ana@x.com", name: "Ana", role: "approver" } });
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/approvals");
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -141,7 +141,7 @@ describe("approvals inbox", () => {
   });
 
   it("approves only the ticked order lines", async () => {
-    window.history.replaceState(null, "", "/?id=2");
+    window.history.replaceState(null, "", "/approvals?id=2");
     renderInbox();
     const boxes = await screen.findAllByRole("checkbox");
     expect(boxes).toHaveLength(3);
@@ -154,7 +154,7 @@ describe("approvals inbox", () => {
   });
 
   it("rejects with a reason and links a plan to its review", async () => {
-    window.history.replaceState(null, "", "/?id=3");
+    window.history.replaceState(null, "", "/approvals?id=3");
     renderInbox();
     expect(await screen.findByRole("link", { name: /Review the plan/ })).toHaveAttribute("href", "/planning/run_1");
     expect(screen.getByText("2 exceptions")).toBeInTheDocument();

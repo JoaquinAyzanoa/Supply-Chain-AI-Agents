@@ -10,9 +10,25 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page, state);
 });
 
-test("an approver signs in, reads the email safely and approves it", async ({ page, isMobile }) => {
+test("an approver lands on the board, opens an order and confirms it from the panel", async ({ page }) => {
   await login(page, "ana@x.com");
   await expect(page).toHaveURL(/\/(\?.*)?$/);
+  const incoming = page.getByRole("region", { name: "To receive" });
+  await expect(incoming.getByRole("article", { name: "P00016" })).toContainText("2 d late");
+  await page.getByRole("region", { name: "Quotation requested" }).getByRole("button", { name: "Open P00015" }).click();
+  const drawer = page.getByRole("dialog", { name: "Order P00015" });
+  await expect(drawer).toContainText("RFQ sent, waiting for the supplier");
+  await expect(drawer.getByTestId("email-preview")).toContainText("Dear supplier"); // the pending approval, in place
+  await expect(drawer.getByRole("region", { name: "History" })).toContainText("Task sent");
+  await drawer.getByRole("button", { name: "Confirm the order" }).click();
+  await expect.poll(() => state.moves.length).toBe(1);
+  expect(state.moves[0]).toEqual({ po: "P00015", body: { to: "confirmed", note: null } });
+  await expect(drawer.getByRole("status")).toContainText("P00015 confirmed");
+});
+
+test("an approver reads the email safely and approves it in the inbox", async ({ page, isMobile }) => {
+  await login(page, "ana@x.com");
+  await page.goto("/approvals");
   const row = page.getByRole("button", { name: /Send follow-up to Proveedor/ });
   await expect(row).toBeVisible();
   if (isMobile) await row.click(); // the phone shows the list first, then the detail
@@ -45,13 +61,16 @@ test("a planner reviews the run, edits a quantity and approves the selected line
 
 test("a viewer sees no actions and no settings; the language switch works", async ({ page }) => {
   await login(page, "vic@x.com");
+  await expect(page.getByRole("article", { name: "P00016" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Drag P/ })).toHaveCount(0); // viewers cannot move cards
+  await page.goto("/approvals");
   await expect(page.getByRole("button", { name: /Send follow-up/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Approve", exact: true })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
   await page.goto("/settings");
   await expect(page).toHaveURL(/\/(\?.*)?$/);
   await page.getByRole("button", { name: "es", exact: true }).or(page.getByRole("button", { name: "Español" })).first().click();
-  await expect(page.getByRole("button", { name: "Pendientes" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Por recibir" })).toBeVisible();
 });
 
 test("a wrong password stays on the login page", async ({ page }) => {
@@ -60,8 +79,12 @@ test("a wrong password stays on the login page", async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
-test("the inbox and the planning review have no serious accessibility violations", async ({ page }) => {
+test("the board, the inbox and the planning review have no serious accessibility violations", async ({ page }) => {
   await login(page, "ana@x.com");
+  await expect(page.getByRole("article", { name: "P00016" })).toBeVisible();
+  const board = await new AxeBuilder({ page }).analyze();
+  expect(board.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
+  await page.goto("/approvals");
   await expect(page.getByRole("button", { name: /Send follow-up/ })).toBeVisible();
   const inbox = await new AxeBuilder({ page }).analyze();
   expect(inbox.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);

@@ -430,6 +430,306 @@
         "title": "ApprovalView",
         "type": "object"
       },
+      "Board": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "cards": {
+            "items": {
+              "$ref": "#/components/schemas/BoardCard"
+            },
+            "title": "Cards",
+            "type": "array"
+          },
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "due_soon_days": {
+            "title": "Due Soon Days",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of",
+          "due_soon_days",
+          "cards",
+          "counts"
+        ],
+        "title": "Board",
+        "type": "object"
+      },
+      "BoardCard": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_total": {
+            "default": 0.0,
+            "title": "Amount Total",
+            "type": "number"
+          },
+          "buyer": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyer"
+          },
+          "case_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Code"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "case_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Status"
+          },
+          "column": {
+            "enum": [
+              "proposed",
+              "rfq_sent",
+              "quote_received",
+              "confirmed",
+              "incoming",
+              "received",
+              "closed"
+            ],
+            "title": "Column",
+            "type": "string"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "date_planned": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Planned"
+          },
+          "days_late": {
+            "default": 0,
+            "title": "Days Late",
+            "type": "integer"
+          },
+          "days_silent": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Silent"
+          },
+          "delivery": {
+            "default": "none",
+            "enum": [
+              "on_time",
+              "due_soon",
+              "late",
+              "none"
+            ],
+            "title": "Delivery",
+            "type": "string"
+          },
+          "escalated": {
+            "default": false,
+            "title": "Escalated",
+            "type": "boolean"
+          },
+          "eta_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta Source"
+          },
+          "last_inbound": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Inbound"
+          },
+          "last_outbound": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Outbound"
+          },
+          "next_action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Action"
+          },
+          "next_action_at": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Action At"
+          },
+          "odoo_url": {
+            "title": "Odoo Url",
+            "type": "string"
+          },
+          "on_hold_until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "On Hold Until"
+          },
+          "partner_id": {
+            "title": "Partner Id",
+            "type": "integer"
+          },
+          "partner_name": {
+            "title": "Partner Name",
+            "type": "string"
+          },
+          "pending_approval": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PendingApproval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "po_id": {
+            "title": "Po Id",
+            "type": "integer"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          },
+          "receipt_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Status"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "supplier_confirmed": {
+            "default": false,
+            "title": "Supplier Confirmed",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "po_id",
+          "po_name",
+          "partner_id",
+          "partner_name",
+          "state",
+          "column",
+          "odoo_url"
+        ],
+        "title": "BoardCard",
+        "type": "object"
+      },
       "CaseDetail": {
         "additionalProperties": false,
         "properties": {
@@ -1265,6 +1565,74 @@
         "title": "ModelOption",
         "type": "object"
       },
+      "MoveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "to": {
+            "enum": [
+              "proposed",
+              "rfq_sent",
+              "quote_received",
+              "confirmed",
+              "incoming",
+              "received",
+              "closed"
+            ],
+            "title": "To",
+            "type": "string"
+          }
+        },
+        "required": [
+          "to"
+        ],
+        "title": "MoveRequest",
+        "type": "object"
+      },
+      "MoveResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "column": {
+            "enum": [
+              "proposed",
+              "rfq_sent",
+              "quote_received",
+              "confirmed",
+              "incoming",
+              "received",
+              "closed"
+            ],
+            "title": "Column",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "po_name",
+          "column",
+          "message"
+        ],
+        "title": "MoveResponse",
+        "type": "object"
+      },
       "OverallStatus": {
         "enum": [
           "ok",
@@ -1273,6 +1641,30 @@
         ],
         "title": "OverallStatus",
         "type": "string"
+      },
+      "PendingApproval": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "summary"
+        ],
+        "title": "PendingApproval",
+        "type": "object"
       },
       "PlanningLineRow": {
         "additionalProperties": false,
@@ -2248,6 +2640,20 @@
         "title": "SettingsVersion",
         "type": "object"
       },
+      "SupplierConfirmedRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "title": "Value",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "SupplierConfirmedRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -2601,6 +3007,170 @@
         "summary": "Me",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/board": {
+      "get": {
+        "operationId": "board_api_board_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "due_soon_days",
+            "required": false,
+            "schema": {
+              "default": 5,
+              "maximum": 60,
+              "minimum": 0,
+              "title": "Due Soon Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Board"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Board",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/{po_name}/move": {
+      "post": {
+        "operationId": "move_card_api_board__po_name__move_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "po_name",
+            "required": true,
+            "schema": {
+              "title": "Po Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Move Card",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/{po_name}/supplier-confirmed": {
+      "post": {
+        "operationId": "supplier_confirmed_api_board__po_name__supplier_confirmed_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "po_name",
+            "required": true,
+            "schema": {
+              "title": "Po Name",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SupplierConfirmedRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoveResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Supplier Confirmed",
+        "tags": [
+          "board"
         ]
       }
     },

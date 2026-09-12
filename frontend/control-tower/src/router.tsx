@@ -12,6 +12,7 @@ import { atLeast, authStore } from "@/auth/store";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/routes/login";
 import { ApprovalsInbox, type ApprovalsSearch } from "@/features/approvals/ApprovalsInbox";
+import { BoardPage, type BoardSearch } from "@/features/board/BoardPage";
 import { CaseTimelinePage } from "@/features/cases/CaseTimeline";
 import { CasesPage } from "@/features/cases/CasesPage";
 import { ExceptionsBoardPage } from "@/features/exceptions/ExceptionsBoard";
@@ -64,9 +65,23 @@ const approvalsSearch = z.object({
 
 export const approvalsRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/",
+  path: "/approvals",
   validateSearch: (search): ApprovalsSearch => approvalsSearch.parse(search),
   component: ApprovalsInbox,
+});
+const boardSearch = z.object({
+  po: z.string().optional(),
+  q: z.string().optional(),
+  supplier: z.string().optional(),
+  buyer: z.string().optional(),
+  problems: z.string().optional(),
+});
+
+export const boardRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/",
+  validateSearch: (search): BoardSearch => boardSearch.parse(search),
+  component: BoardPage,
 });
 const casesSearch = z.object({
   status: z.string().optional(),
@@ -109,6 +124,7 @@ export const settingsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
+    boardRoute,
     approvalsRoute,
     casesRoute,
     caseRoute,

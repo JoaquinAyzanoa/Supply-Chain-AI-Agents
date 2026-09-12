@@ -77,7 +77,7 @@ describe("exceptions board", () => {
     expect(within(late).getByText("P00011")).toBeInTheDocument();
     expect(late).toHaveTextContent("Next: request_eta (po_late)");
     expect(within(late).getAllByRole("button", { name: "Act now" })).toHaveLength(1); // P00012 waits for a person
-    expect(within(screen.getByRole("region", { name: "Stale approvals" })).getByRole("link", { name: "Approval" })).toHaveAttribute("href", "/?id=7");
+    expect(within(screen.getByRole("region", { name: "Stale approvals" })).getByRole("link", { name: "Approval" })).toHaveAttribute("href", "/approvals?id=7");
     expect(within(screen.getByRole("region", { name: "Unlinked emails" })).getByRole("link", { name: "C00009" })).toHaveAttribute("href", "/cases/C00009");
     expect(screen.getByRole("region", { name: "Failed runs" })).toHaveTextContent("Nothing here.");
 

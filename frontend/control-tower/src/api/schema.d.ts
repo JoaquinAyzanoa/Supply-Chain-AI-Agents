@@ -89,6 +89,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/board": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Board */
+        get: operations["board_api_board_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/board/{po_name}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Move Card */
+        post: operations["move_card_api_board__po_name__move_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/board/{po_name}/supplier-confirmed": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Supplier Confirmed */
+        post: operations["supplier_confirmed_api_board__po_name__supplier_confirmed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/cases": {
         parameters: {
             query?: never;
@@ -531,6 +582,99 @@ export interface components {
              */
             why?: string | null;
         };
+        /** Board */
+        Board: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /** Cards */
+            cards: components["schemas"]["BoardCard"][];
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Due Soon Days */
+            due_soon_days: number;
+        };
+        /** BoardCard */
+        BoardCard: {
+            /**
+             * Amount Total
+             * @default 0
+             */
+            amount_total: number;
+            /** Buyer */
+            buyer?: string | null;
+            /** Case Code */
+            case_code?: string | null;
+            /** Case Id */
+            case_id?: string | null;
+            /** Case Status */
+            case_status?: string | null;
+            /**
+             * Column
+             * @enum {string}
+             */
+            column: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "closed";
+            /** Currency */
+            currency?: string | null;
+            /** Date Planned */
+            date_planned?: string | null;
+            /**
+             * Days Late
+             * @default 0
+             */
+            days_late: number;
+            /** Days Silent */
+            days_silent?: number | null;
+            /**
+             * Delivery
+             * @default none
+             * @enum {string}
+             */
+            delivery: "on_time" | "due_soon" | "late" | "none";
+            /**
+             * Escalated
+             * @default false
+             */
+            escalated: boolean;
+            /** Eta Source */
+            eta_source?: string | null;
+            /** Last Inbound */
+            last_inbound?: string | null;
+            /** Last Outbound */
+            last_outbound?: string | null;
+            /** Next Action */
+            next_action?: string | null;
+            /** Next Action At */
+            next_action_at?: string | null;
+            /** Odoo Url */
+            odoo_url: string;
+            /** On Hold Until */
+            on_hold_until?: string | null;
+            /** Partner Id */
+            partner_id: number;
+            /** Partner Name */
+            partner_name: string;
+            pending_approval?: components["schemas"]["PendingApproval"] | null;
+            /** Po Id */
+            po_id: number;
+            /** Po Name */
+            po_name: string;
+            /** Receipt Status */
+            receipt_status?: string | null;
+            /** State */
+            state: string;
+            /** Summary */
+            summary?: string | null;
+            /**
+             * Supplier Confirmed
+             * @default false
+             */
+            supplier_confirmed: boolean;
+        };
         /** CaseDetail */
         CaseDetail: {
             case: components["schemas"]["CaseView"];
@@ -846,11 +990,42 @@ export interface components {
              */
             reasoning: boolean;
         };
+        /** MoveRequest */
+        MoveRequest: {
+            /** Note */
+            note?: string | null;
+            /**
+             * To
+             * @enum {string}
+             */
+            to: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "closed";
+        };
+        /** MoveResponse */
+        MoveResponse: {
+            /**
+             * Column
+             * @enum {string}
+             */
+            column: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "closed";
+            /** Message */
+            message: string;
+            /** Po Name */
+            po_name: string;
+        };
         /**
          * OverallStatus
          * @enum {string}
          */
         OverallStatus: "ok" | "degraded" | "fail";
+        /** PendingApproval */
+        PendingApproval: {
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Summary */
+            summary: string;
+        };
         /** PlanningLineRow */
         PlanningLineRow: {
             /** Accepted */
@@ -1210,6 +1385,11 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** SupplierConfirmedRequest */
+        SupplierConfirmedRequest: {
+            /** Value */
+            value: boolean;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -1393,6 +1573,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Principal"];
+                };
+            };
+        };
+    };
+    board_api_board_get: {
+        parameters: {
+            query?: {
+                due_soon_days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Board"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    move_card_api_board__po_name__move_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    supplier_confirmed_api_board__po_name__supplier_confirmed_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SupplierConfirmedRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MoveResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

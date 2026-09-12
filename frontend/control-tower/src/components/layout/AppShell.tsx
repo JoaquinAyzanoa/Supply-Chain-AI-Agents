@@ -4,7 +4,7 @@
  * bottom bar on phones.
  */
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Activity, CalendarClock, ClipboardCheck, FolderKanban, LogOut, Settings, Siren } from "lucide-react";
+import { Activity, CalendarClock, ClipboardCheck, FolderKanban, Kanban, LogOut, Settings, Siren } from "lucide-react";
 
 import { useAuth } from "@/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { useStream } from "@/realtime/useStream";
 
 const NAV = [
-  { to: "/", key: "nav.approvals", icon: ClipboardCheck, role: "viewer" },
+  { to: "/", key: "nav.board", icon: Kanban, role: "viewer" },
+  { to: "/approvals", key: "nav.approvals", icon: ClipboardCheck, role: "viewer" },
   { to: "/cases", key: "nav.cases", icon: FolderKanban, role: "viewer" },
   { to: "/exceptions", key: "nav.exceptions", icon: Siren, role: "viewer" },
   { to: "/planning", key: "nav.planning", icon: CalendarClock, role: "viewer" },
@@ -86,7 +87,7 @@ export function AppShell() {
 }
 
 function isActive(pathname: string, to: string): boolean {
-  return to === "/" ? pathname === "/" || pathname.startsWith("/approvals") : pathname.startsWith(to);
+  return to === "/" ? pathname === "/" : pathname.startsWith(to);
 }
 
 function NavLink({ to, active, children }: { to: string; active: boolean; children: React.ReactNode }) {

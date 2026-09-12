@@ -112,7 +112,7 @@ function ExceptionCard({ item }: { item: Item }) {
           </Link>
         ) : null}
         {item.approval_id ? (
-          <Link to="/" search={{ id: item.approval_id }} className="text-xs text-primary underline">
+          <Link to="/approvals" search={{ id: item.approval_id }} className="text-xs text-primary underline">
             {t("exceptions.approval")}
           </Link>
         ) : null}

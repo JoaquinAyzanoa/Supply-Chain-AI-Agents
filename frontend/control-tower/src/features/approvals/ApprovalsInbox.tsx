@@ -38,7 +38,7 @@ export function ApprovalsInbox() {
   const selected = useApproval(search.id);
 
   const setSearch = (patch: Partial<ApprovalsSearch>) =>
-    void navigate({ to: "/", search: (prev: ApprovalsSearch) => clean({ ...prev, ...patch }) });
+    void navigate({ to: "/approvals", search: (prev: ApprovalsSearch) => clean({ ...prev, ...patch }) });
 
   // When nothing is selected on a wide screen, show the first row.
   useEffect(() => {

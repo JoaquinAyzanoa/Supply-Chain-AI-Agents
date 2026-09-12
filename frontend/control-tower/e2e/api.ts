@@ -107,6 +107,74 @@ export function makeState() {
     approvals,
     run,
     lines: [{ line: line(101) }, { line: line(102, { action: "update_rule", order_qty: 0, exception: "stockout_risk", explanation: "Demand doubled." }) }, { line: line(103, { action: "none" }) }],
+    board: {
+      as_of: "2026-09-14",
+      due_soon_days: 5,
+      counts: { proposed: 0, rfq_sent: 1, quote_received: 0, confirmed: 0, incoming: 1, received: 0, closed: 0 },
+      cards: [
+        {
+          po_id: 15,
+          po_name: "P00015",
+          partner_id: 7,
+          partner_name: "Proveedor Hidraulica",
+          buyer: "Ana",
+          amount_total: 1200.5,
+          currency: "PEN",
+          state: "sent",
+          receipt_status: null,
+          date_planned: null,
+          eta_source: null,
+          supplier_confirmed: false,
+          column: "rfq_sent",
+          delivery: "none",
+          days_late: 0,
+          days_silent: 3,
+          last_outbound: "2026-09-11",
+          last_inbound: null,
+          next_action: "follow_up",
+          next_action_at: "2026-09-14",
+          pending_approval: { id: 1, kind: "send_email", summary: "Send follow-up to Proveedor Hidraulica for P00015" },
+          escalated: false,
+          on_hold_until: null,
+          case_id: "case_a",
+          case_code: "C00001",
+          case_status: "awaiting_approval",
+          summary: "RFQ sent, waiting for the supplier",
+          odoo_url: "http://odoo/purchase.order/15",
+        },
+        {
+          po_id: 16,
+          po_name: "P00016",
+          partner_id: 7,
+          partner_name: "Proveedor Hidraulica",
+          buyer: "Ana",
+          amount_total: 800,
+          currency: "PEN",
+          state: "purchase",
+          receipt_status: "pending",
+          date_planned: "2026-09-12",
+          eta_source: "supplier",
+          supplier_confirmed: true,
+          column: "incoming",
+          delivery: "late",
+          days_late: 2,
+          days_silent: null,
+          last_outbound: null,
+          last_inbound: "2026-09-08",
+          next_action: "request_eta",
+          next_action_at: "2026-09-14",
+          pending_approval: null,
+          escalated: false,
+          on_hold_until: null,
+          case_id: null,
+          case_code: null,
+          case_status: null,
+          summary: null,
+          odoo_url: "http://odoo/purchase.order/16",
+        },
+      ],
+    },
+    moves: [] as { po: string; body: Record<string, unknown> }[],
     resolved: [] as { id: number; body: Record<string, unknown> }[],
     logins: [] as string[],
   };
@@ -158,6 +226,20 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       state.resolved.push({ id, body });
       return json(route, 200, { id, status: body.status, resolved_by: user.name, callback_status: "sent" });
     }
+    if (path === "/api/board") return json(route, 200, state.board);
+    const move = path.match(/^\/api\/board\/(\w+)\/move$/);
+    if (move && request.method() === "POST") {
+      if (user.role === "viewer") return json(route, 403, { detail: "approver role required" });
+      const body = request.postDataJSON() as Record<string, unknown>;
+      state.moves.push({ po: move[1]!, body });
+      return json(route, 200, { po_name: move[1], column: body.to, message: `${move[1]} confirmed` });
+    }
+    if (path === "/api/cases/case_a")
+      return json(route, 200, {
+        case: { case_id: "case_a", code: "C00001", kind: "rfq", po_name: "P00015", status: "awaiting_approval", created_at: "2026-09-11T08:00:00Z", updated_at: "2026-09-12T09:00:00Z" },
+        events: [{ id: 1, at: "2026-09-11T08:00:00Z", kind: "task_sent", payload: { agent: "supplier_comms", task: "send_rfq" } }],
+        runs: [],
+      });
     if (path === "/api/cases") return json(route, 200, []);
     if (path.endsWith("/chat") && request.method() === "GET") return json(route, 200, []);
     if (path === "/api/exceptions") return json(route, 200, { as_of: "2026-09-14", late_pos: [], rfqs_no_reply: [], unlinked_mails: [], failed_runs: [], stale_approvals: [] });

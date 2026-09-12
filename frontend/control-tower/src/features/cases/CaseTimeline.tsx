@@ -47,19 +47,7 @@ export function CaseTimelinePage() {
             {" · "}
             <span title={item.case_id}>{t("cases.id", { id: shortCaseId(item.case_id, item.code) })}</span>
           </p>
-          {events.length === 0 ? <Empty /> : null}
-          <ol className="relative border-l pl-4" aria-label={t("cases.timeline")}>
-            {events.map((event) => (
-              <li key={event.id} className="mb-4">
-                <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-card bg-primary" />
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <span>{formatDateTime(event.at, locale)}</span>
-                  <Badge variant="outline">{t(`cases.event.${event.kind}`)}</Badge>
-                </div>
-                <EventLine event={event} />
-              </li>
-            ))}
-          </ol>
+          <CaseEvents events={events} />
         </section>
         <aside className="flex flex-col gap-4">
           <CaseChat caseRef={item.code} compact />
@@ -81,6 +69,26 @@ export function caseTitle(item: CaseView, t: ReturnType<typeof useI18n>["t"], lo
       ? t("cases.title.planning", { date: formatDate(item.created_at, locale) })
       : t("cases.title.kind", { kind, date: formatDate(item.created_at, locale) });
   return `${item.code} · ${what}`;
+}
+
+/** The case's story in order; shared by the case page and the board drawer. */
+export function CaseEvents({ events }: { events: CaseEvent[] }) {
+  const { t, locale } = useI18n();
+  if (events.length === 0) return <Empty />;
+  return (
+    <ol className="relative border-l pl-4" aria-label={t("cases.timeline")}>
+      {events.map((event) => (
+        <li key={event.id} className="mb-4">
+          <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-card bg-primary" />
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+            <span>{formatDateTime(event.at, locale)}</span>
+            <Badge variant="outline">{t(`cases.event.${event.kind}`)}</Badge>
+          </div>
+          <EventLine event={event} />
+        </li>
+      ))}
+    </ol>
+  );
 }
 
 function EventLine({ event }: { event: CaseEvent }) {
@@ -136,7 +144,7 @@ function EventLine({ event }: { event: CaseEvent }) {
           {id !== undefined ? (
             <>
               {" · "}
-              <Link to="/" search={{ id, tab: event.kind === "approval_resolved" ? "resolved" : undefined }} className="text-primary underline">
+              <Link to="/approvals" search={{ id, tab: event.kind === "approval_resolved" ? "resolved" : undefined }} className="text-primary underline">
                 {t("cases.line.open_approval", { id })}
               </Link>
             </>

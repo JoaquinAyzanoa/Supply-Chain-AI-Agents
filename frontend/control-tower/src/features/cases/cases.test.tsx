@@ -131,7 +131,7 @@ describe("cases", () => {
     expect(items[1]).toHaveTextContent("rfq_silent · no reply for 3 days · follow_up");
     expect(items[2]).toHaveTextContent("Reminder · sent to the supplier agent");
     expect(items[3]).toHaveTextContent("Reminder drafted");
-    expect(within(items[4]!).getByRole("link", { name: "approval #7" })).toHaveAttribute("href", "/?id=7");
+    expect(within(items[4]!).getByRole("link", { name: "approval #7" })).toHaveAttribute("href", "/approvals?id=7");
     expect(items[5]).toHaveTextContent("Failed: The method 'x' does not exist");
     expect(items[5]).not.toHaveTextContent("Traceback");
     await userEvent.click(within(items[5]!).getByRole("button", { name: "Technical details" }));

@@ -319,6 +319,18 @@ inbox for the replay.
 The people's side of the system: a React app served by the director under
 `/` (the API lives under `/api`, OpenAPI at `/docs` in dev). Screens:
 
+- **Board** (the landing page): every purchase order as a card in the column
+  its life is at: proposals, quotation requested, quotation received, order
+  confirmed, to receive, received, closed. The card's edge tells the delivery
+  state (green on time, amber due soon, red late with the days); its frame
+  tells what a person owes it (amber: an approval, purple: an escalation,
+  dashed: on hold); the body shows supplier, amount, planned date, the last
+  email and the agents' next step. Approvers drag cards where Odoo allows
+  (send a proposal, confirm an RFQ, close or cancel an order, with a note
+  that lands in the chatter); the other columns follow emails and receipts.
+  A card opens a side panel with the facts, the pending approval resolvable
+  in place, the case history and the chat with the director. Filters:
+  search, supplier, buyer, "only with problems".
 - **Approvals**: the inbox. Emails are previewed sanitised (no scripts, no
   remote images) and can be edited before sending; order changes show a
   before/after table with per-line toggles; planning runs link to their

@@ -106,7 +106,7 @@ export function PlanningRunPage() {
           <StatusBadge status={run.status} />
           <Badge variant="outline">{t(`planning.kind.${run.kind}`)}</Badge>
           {run.approval_id ? (
-            <Link to="/" search={{ id: run.approval_id, tab: run.status === "awaiting_approval" ? undefined : "resolved" }} className="text-sm text-primary underline">
+            <Link to="/approvals" search={{ id: run.approval_id, tab: run.status === "awaiting_approval" ? undefined : "resolved" }} className="text-sm text-primary underline">
               {t("planning.approval_link", { id: run.approval_id })}
             </Link>
           ) : null}
