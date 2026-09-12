@@ -157,6 +157,10 @@ odoo-upgrade module="sc_agents":
 odoo-apikey login="sc_agent_bot":
     {{UV}} run python scripts/odoo_apikey.py --login {{login}} --db {{ODOO_DB}}
 
+# Load the Sun Hydraulics demo dataset (odoo/demo) into the local Odoo; safe to repeat
+odoo-seed *args:
+    {{UV}} run python scripts/odoo_seed.py {{args}}
+
 # Create the demo supplier (Proveedor Hidraulica) and an open RFQ for it in the local Odoo
 odoo-demo-supplier:
     {{UV}} run python scripts/odoo_demo_supplier.py

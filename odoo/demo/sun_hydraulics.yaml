@@ -1,0 +1,237 @@
+# Demo dataset: a small Peruvian distributor of Sun Hydraulics components.
+# Loaded by `just odoo-seed` (scripts/odoo_seed.py). Everything here is
+# illustrative: part numbers follow Sun's model-code scheme, prices are
+# plausible list prices, customers and suppliers are fictional.
+#
+# The history (demand, purchases, receipts) is GENERATED from the profiles
+# below with the RNG seed, so two machines produce the same two years.
+
+seed: 20260912
+language: es_PE
+
+company:
+  name: Hidráulica Andina SAC
+  street: Av. Argentina 2450
+  city: Lima
+  country: PE
+  phone: "+51 1 555 0140"
+  email: compras@hidraulica-andina.example
+  vat: "20512345678"
+
+warehouse: WH
+
+categories:
+  - Hidráulica
+  - Hidráulica / Cartuchos
+  - Hidráulica / Cuerpos
+  - Hidráulica / Bobinas
+  - Hidráulica / Kits de sellos
+
+# Seasonality: 12 monthly factors (Jan..Dec), mean 1.0. Mining maintenance
+# peaks in April-May and October-November; December and January are quiet.
+seasonality_profiles:
+  mining: [0.80, 0.85, 0.95, 1.20, 1.25, 1.00, 0.95, 0.95, 1.00, 1.20, 1.15, 0.70]
+  flat:   [0.95, 0.95, 1.00, 1.05, 1.05, 1.00, 1.00, 1.00, 1.00, 1.05, 1.00, 0.95]
+
+suppliers:
+  primary:
+    name: Proveedor Hidraulica
+    email: ventas.hidraulica.sc@gmail.com
+    country: PE
+    city: Lima
+    lang: es_PE
+  alternate:
+    name: Sun Hydraulics Distribuidor Alterno
+    email: null            # no mailbox on purpose: no agent ever writes to it
+    country: PE
+    city: Arequipa
+    lang: es_PE
+
+customers:
+  - name: Minera Los Andes SAC
+    city: Cerro de Pasco
+    weight: 0.40
+  - name: Servicios Hidráulicos del Sur EIRL
+    city: Arequipa
+    weight: 0.25
+  - name: Constructora Pacífico SA
+    city: Lima
+    weight: 0.20
+  - name: Taller Mecánico Huancayo
+    city: Huancayo
+    weight: 0.15
+
+# Per product: catalogue data, demand profile (weekly mean and coefficient of
+# variation, yearly trend, seasonality profile), stock targets in weeks of
+# demand, and supplier terms as a ratio of the list price plus lead days.
+products:
+  - code: CBEA-LHN
+    name: "Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+    category: Hidráulica / Cartuchos
+    list_price: 168.00
+    cost_ratio: 0.62
+    weight_kg: 0.35
+    demand: {mean_weekly: 7.0, cv: 0.35, trend_per_year: 0.08, seasonality: mining}
+    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 8}
+    suppliers:
+      primary: {price_ratio: 0.62, delay: 30, min_qty: 1}
+      alternate: {price_ratio: 0.68, delay: 18, min_qty: 1}
+  - code: CBCA-LHN
+    name: "Válvula de contrabalance 3:1, cavidad T-2A"
+    category: Hidráulica / Cartuchos
+    list_price: 142.00
+    cost_ratio: 0.62
+    weight_kg: 0.25
+    demand: {mean_weekly: 4.0, cv: 0.40, trend_per_year: 0.05, seasonality: mining}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8}
+    suppliers:
+      primary: {price_ratio: 0.62, delay: 30, min_qty: 1}
+      alternate: {price_ratio: 0.69, delay: 18, min_qty: 1}
+  - code: CBGA-LHN
+    name: "Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
+    category: Hidráulica / Cartuchos
+    list_price: 236.00
+    cost_ratio: 0.63
+    weight_kg: 0.70
+    demand: {mean_weekly: 1.5, cv: 0.60, trend_per_year: 0.10, seasonality: mining}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10}
+    suppliers:
+      primary: {price_ratio: 0.63, delay: 40, min_qty: 1}
+  - code: RPEC-LAN
+    name: "Válvula de alivio de acción directa, cavidad T-11A"
+    category: Hidráulica / Cartuchos
+    list_price: 121.00
+    cost_ratio: 0.61
+    weight_kg: 0.30
+    demand: {mean_weekly: 5.0, cv: 0.35, trend_per_year: 0.03, seasonality: mining}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8}
+    suppliers:
+      primary: {price_ratio: 0.61, delay: 30, min_qty: 1}
+      alternate: {price_ratio: 0.66, delay: 15, min_qty: 1}
+  - code: RDDA-LAN
+    name: "Válvula de alivio de acción directa, cavidad T-10A"
+    category: Hidráulica / Cartuchos
+    list_price: 96.00
+    cost_ratio: 0.60
+    weight_kg: 0.20
+    demand: {mean_weekly: 3.5, cv: 0.40, trend_per_year: 0.00, seasonality: flat}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 7}
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 28, min_qty: 1}
+      alternate: {price_ratio: 0.65, delay: 15, min_qty: 1}
+  - code: NFCC-LCN
+    name: "Válvula de aguja, ajuste fino, cavidad T-11A"
+    category: Hidráulica / Cartuchos
+    list_price: 88.00
+    cost_ratio: 0.60
+    weight_kg: 0.25
+    demand: {mean_weekly: 3.0, cv: 0.45, trend_per_year: 0.02, seasonality: flat}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 7}
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 28, min_qty: 1}
+  - code: FXDA-XAN
+    name: "Control de caudal compensado por presión, cavidad T-2A"
+    category: Hidráulica / Cartuchos
+    list_price: 154.00
+    cost_ratio: 0.62
+    weight_kg: 0.25
+    demand: {mean_weekly: 2.0, cv: 0.50, trend_per_year: 0.04, seasonality: flat}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 9}
+    suppliers:
+      primary: {price_ratio: 0.62, delay: 35, min_qty: 1}
+      alternate: {price_ratio: 0.70, delay: 20, min_qty: 1}
+  - code: CXDA-XCN
+    name: "Válvula check, cavidad T-10A"
+    category: Hidráulica / Cartuchos
+    list_price: 47.00
+    cost_ratio: 0.58
+    weight_kg: 0.15
+    demand: {mean_weekly: 9.0, cv: 0.30, trend_per_year: 0.02, seasonality: flat}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 8}
+    suppliers:
+      primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
+      alternate: {price_ratio: 0.63, delay: 15, min_qty: 5}
+  - code: DTDA-MCN
+    name: "Válvula direccional solenoide 2 vías NC, cavidad T-11A"
+    category: Hidráulica / Cartuchos
+    list_price: 189.00
+    cost_ratio: 0.63
+    weight_kg: 0.45
+    demand: {mean_weekly: 2.5, cv: 0.45, trend_per_year: 0.12, seasonality: mining}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 9}
+    suppliers:
+      primary: {price_ratio: 0.63, delay: 35, min_qty: 1}
+      alternate: {price_ratio: 0.69, delay: 20, min_qty: 1}
+  - code: PBDB-LAN
+    name: "Válvula reductora/aliviadora de presión, cavidad T-2A"
+    category: Hidráulica / Cartuchos
+    list_price: 176.00
+    cost_ratio: 0.62
+    weight_kg: 0.30
+    demand: {mean_weekly: 1.8, cv: 0.55, trend_per_year: 0.00, seasonality: flat}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10}
+    suppliers:
+      primary: {price_ratio: 0.62, delay: 35, min_qty: 1}
+  - code: LODC-XDN
+    name: "Elemento lógico 2 vías, cavidad T-11A"
+    category: Hidráulica / Cartuchos
+    list_price: 133.00
+    cost_ratio: 0.61
+    weight_kg: 0.30
+    demand: {mean_weekly: 1.2, cv: 0.65, trend_per_year: 0.05, seasonality: mining}
+    stock: {weeks_on_hand: 9, min_weeks: 4, max_weeks: 10}
+    suppliers:
+      primary: {price_ratio: 0.61, delay: 40, min_qty: 1}
+  - code: AAA-T11A
+    name: "Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
+    category: Hidráulica / Cuerpos
+    list_price: 39.00
+    cost_ratio: 0.58
+    weight_kg: 0.40
+    demand: {mean_weekly: 6.0, cv: 0.35, trend_per_year: 0.03, seasonality: flat}
+    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 9}
+    suppliers:
+      primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
+      alternate: {price_ratio: 0.62, delay: 15, min_qty: 5}
+  - code: 770-212
+    name: "Bobina 12 VDC para válvulas solenoide serie DT"
+    category: Hidráulica / Bobinas
+    list_price: 58.00
+    cost_ratio: 0.60
+    weight_kg: 0.30
+    demand: {mean_weekly: 3.0, cv: 0.45, trend_per_year: 0.12, seasonality: mining}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8}
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 25, min_qty: 2}
+      alternate: {price_ratio: 0.64, delay: 15, min_qty: 2}
+  - code: 990-011-007
+    name: "Kit de sellos Buna-N para cavidad T-11A"
+    category: Hidráulica / Kits de sellos
+    list_price: 9.50
+    cost_ratio: 0.55
+    weight_kg: 0.02
+    demand: {mean_weekly: 14.0, cv: 0.30, trend_per_year: 0.02, seasonality: mining}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10}
+    suppliers:
+      primary: {price_ratio: 0.55, delay: 25, min_qty: 5}
+
+# Reorder rules deliberately wrong, so the planning agent has exceptions to find.
+rule_flaws:
+  CBEA-LHN: {min_weeks: 0.5}          # min far too low: stockout risk
+  990-011-007: {max_weeks: 30}        # max far too high: overstock
+  LODC-XDN: {no_rule: true}           # no rule at all
+
+history:
+  months: 24
+  backorder_share: 0.03               # sales orders left partially delivered
+  receipts:
+    on_time_share: 0.60
+    late_share: 0.30                  # 1..late_days_max days late
+    partial_share: 0.10               # first receipt partial, rest a week later
+    late_days_max: 10
+
+# Confirmed purchase orders still open today (incoming supply).
+open_supply:
+  - {supplier: primary, days_ahead: 12, products: [CBEA-LHN, RPEC-LAN, 990-011-007]}
+  - {supplier: alternate, days_ahead: 5, products: [CXDA-XCN, AAA-T11A]}
+  - {supplier: primary, days_ahead: -7, products: [DTDA-MCN, 770-212]}   # already late
