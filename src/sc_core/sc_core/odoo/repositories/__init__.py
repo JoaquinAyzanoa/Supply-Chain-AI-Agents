@@ -14,6 +14,14 @@ from sc_core.odoo.repositories.mail_link import MailLinkRepo
 from sc_core.odoo.repositories.orderpoint import OrderpointRepo
 from sc_core.odoo.repositories.partner import PartnerRepo
 from sc_core.odoo.repositories.picking import PickingRepo
+from sc_core.odoo.repositories.planning import (
+    DemandRepo,
+    IncomingRepo,
+    ProductRepo,
+    QuantRepo,
+    WarehouseRepo,
+    supplier_terms,
+)
 from sc_core.odoo.repositories.purchase_order import PurchaseOrderRepo
 from sc_core.odoo.repositories.supplierinfo import SupplierInfoRepo
 
@@ -21,10 +29,16 @@ __all__ = [
     "ActivityRepo",
     "AgentRunRepo",
     "ApprovalRepo",
+    "DemandRepo",
+    "IncomingRepo",
     "MailLinkRepo",
     "OrderpointRepo",
     "PartnerRepo",
     "PickingRepo",
+    "ProductRepo",
     "PurchaseOrderRepo",
+    "QuantRepo",
     "SupplierInfoRepo",
+    "WarehouseRepo",
+    "supplier_terms",
 ]

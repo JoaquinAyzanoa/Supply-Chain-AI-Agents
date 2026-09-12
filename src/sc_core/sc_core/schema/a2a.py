@@ -18,6 +18,7 @@ from typing import ClassVar, Literal
 from pydantic import Field, model_validator
 
 from sc_core.schema.base import StrictModel
+from sc_core.schema.planning import ReplenishmentProposal
 
 # --- tasks ------------------------------------------------------------------------
 
@@ -185,7 +186,73 @@ class SupplierCommsResult(StrictModel):
         return self.outcome.status
 
 
+# --- inventory planning (phase 7) ----------------------------------------------------
+
+PlanningTaskKind = Literal["daily_plan", "review_product", "what_if"]
+
+
+class PlanningOverrides(StrictModel):
+    """Parameters a planner may try in a ``what_if`` (no writes) or force in a review."""
+
+    service_level: float | None = Field(default=None, gt=0.5, lt=1.0)
+    review_period_days: int | None = Field(default=None, ge=1)
+    lead_time_days: float | None = Field(default=None, ge=0)
+    max_coverage_days: int | None = Field(default=None, ge=1)
+
+
+class InventoryPlanningTask(StrictModel):
+    """What the director asks the planner to do."""
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: PlanningTaskKind
+    case_id: str = Field(min_length=1)
+    product_ids: list[int] = Field(
+        default_factory=list, description="empty = every plannable product"
+    )
+    warehouse_code: str | None = None
+    as_of: date | None = Field(default=None, description="plan date; today when omitted")
+    overrides: PlanningOverrides = Field(default_factory=PlanningOverrides)
+    context: str | None = Field(
+        default=None, max_length=2000, description="review_product: why the review was asked"
+    )
+
+    @model_validator(mode="after")
+    def _required_by_kind(self) -> InventoryPlanningTask:
+        if self.kind in ("review_product", "what_if") and not self.product_ids:
+            raise ValueError(f"{self.kind} needs product_ids")
+        return self
+
+
+class AppliedSummary(StrictModel):
+    orderpoints_written: int = 0
+    rfqs_created: list[str] = []
+    rfqs_existing: list[str] = []
+    lines_applied: int = 0
+
+
+class InventoryPlanningResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: PlanningTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    proposal: ReplenishmentProposal | None = None
+    applied: AppliedSummary | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
 CONTRACTS: dict[str, type[StrictModel]] = {
     "supplier_comms_task": SupplierCommsTask,
     "supplier_comms_result": SupplierCommsResult,
+    "inventory_planning_task": InventoryPlanningTask,
+    "inventory_planning_result": InventoryPlanningResult,
+    "replenishment_proposal": ReplenishmentProposal,
 }

@@ -24,7 +24,7 @@ import types
 from datetime import UTC, date, datetime
 from typing import Any, ClassVar, Literal, Union, get_args, get_origin
 
-from pydantic import BaseModel, ConfigDict, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from sc_core.schema.base import StrictModel
 from sc_core.shared.time import parse_iso, to_utc
@@ -379,8 +379,82 @@ class Product(OdooModel):
     default_code: str | None = None
     product_tmpl_id: Ref
     uom_id: Ref | None = None
+    categ_id: Ref | None = None
     seller_ids: list[int] = []
     qty_available: float = 0.0
     virtual_available: float = 0.0
+    list_price: float = 0.0
+    standard_price: float = 0.0
     purchase_ok: bool = True
+    sale_ok: bool = True
+    is_storable: bool = False
+    description: str | None = None  # internal notes (a "descontinuado" note lives here)
     active: bool = True
+
+    @property
+    def ref(self) -> str:
+        return self.default_code or str(self.id)
+
+
+# --- inventory planning (phase 7) ----------------------------------------------------
+
+
+class Warehouse(OdooModel):
+    ODOO_MODEL: ClassVar[str] = "stock.warehouse"
+
+    name: str
+    code: str
+    lot_stock_id: Ref | None = None
+
+
+class Quant(OdooModel):
+    ODOO_MODEL: ClassVar[str] = "stock.quant"
+
+    product_id: Ref
+    location_id: Ref | None = None
+    warehouse_id: Ref | None = None
+    quantity: float = 0.0
+    reserved_quantity: float = 0.0
+
+
+class DailyDemand(StrictModel):
+    """One product, one day: what customers ordered and what was delivered."""
+
+    product_id: int
+    day: date
+    ordered: float = Field(ge=0)
+    delivered: float = Field(ge=0)
+
+
+class OnHand(StrictModel):
+    product_id: int
+    warehouse_id: int
+    quantity: float
+    reserved: float = 0.0
+
+    @property
+    def free(self) -> float:
+        return self.quantity - self.reserved
+
+
+class IncomingLine(StrictModel):
+    """A confirmed purchase line with something still to receive."""
+
+    line_id: int
+    product_id: int
+    po_id: int
+    po_name: str
+    partner_id: int | None = None
+    quantity: float = Field(gt=0, description="still to receive")
+    date_planned: date | None = None
+
+
+class SupplierTerms(StrictModel):
+    product_id: int
+    partner_id: int
+    partner_name: str
+    delay_days: int = Field(ge=0)
+    min_qty: float = Field(ge=0)
+    price: float = Field(ge=0)
+    currency: str | None = None
+    sequence: int = 1

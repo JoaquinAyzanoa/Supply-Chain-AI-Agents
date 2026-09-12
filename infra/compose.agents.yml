@@ -18,6 +18,7 @@ services:
       SC__ODOO__URL: http://odoo:8069
       SC__LANGFUSE__HOST: http://langfuse-web:3000
       SC__A2A__SUPPLIER_COMMS_URL: http://supplier_comms:8000
+      SC__A2A__INVENTORY_PLANNING_URL: http://inventory_planning:8000
     ports:
       # Host port defaults to 8010: 8000 is a popular default on dev machines
       # (another local project already uses it). Override with SC_DIRECTOR_PORT.
@@ -55,6 +56,39 @@ services:
       SC__LANGFUSE__HOST: http://langfuse-web:3000
     ports:
       - "${SC_SUPPLIER_COMMS_PORT:-8013}:8000"
+    depends_on:
+      app-db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health/live', timeout=2).status == 200 else 1)"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  inventory_planning:
+    build:
+      context: ..
+      dockerfile: docker/base.Dockerfile
+      args:
+        MEMBER: inventory_planning
+    image: scai/inventory_planning
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      SC__ENVIRONMENT: ${SC__ENVIRONMENT:-dev}
+      SC__APP_DB__DSN: postgresql://app:app@app-db:5432/app
+      SC__REDIS__DSN: redis://redis:6379/0
+      SC__ODOO__URL: http://odoo:8069
+      SC__EVENTS__DIRECTOR_URL: http://director:8000
+      SC__PLANNING__PUBLIC_URL: http://inventory_planning:8000
+      SC__LANGFUSE__HOST: http://langfuse-web:3000
+    ports:
+      - "${SC_INVENTORY_PLANNING_PORT:-8014}:8000"
     depends_on:
       app-db:
         condition: service_healthy

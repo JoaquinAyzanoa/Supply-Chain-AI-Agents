@@ -55,9 +55,10 @@ just run director      # exactly what the container runs
 ```
 
 The director container publishes on host port 8010 by default (8000 is often
-taken on developer machines), mail_sync on 8011, the scheduler on 8012 and
-the supplier_comms agent on 8013; override with `SC_DIRECTOR_PORT`,
-`SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`, `SC_SUPPLIER_COMMS_PORT`.
+taken on developer machines), mail_sync on 8011, the scheduler on 8012, the
+supplier_comms agent on 8013 and the inventory_planning agent on 8014;
+override with `SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`,
+`SC_SUPPLIER_COMMS_PORT`, `SC_INVENTORY_PLANNING_PORT`.
 Odoo publishes on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
@@ -223,6 +224,45 @@ on the demo supplier: `just odoo-demo-supplier` creates "Proveedor
 Hidraulica" with an open RFQ, and `just test-int` runs the live test (a real
 RFQ goes out to the supplier mailbox; set `SC_E2E_SUPPLIER=1` and reply from
 Gmail to also exercise the inbound half).
+
+## Inventory planning agent
+
+`inventory_planning` runs the daily replenishment plan (scheduler job
+`inventory_planning`, 06:00) and single-product reviews (an Odoo reorder
+rule that fires routes to `review_product`). Numbers come from code; the
+model only explains.
+
+- **Data** (`sc_core.odoo.repositories.planning`): demand per product and
+  day from sales order lines in state sale/done, dated by the order (shipped
+  moves are a cross-check), stock on hand in the warehouse's internal
+  locations, confirmed purchase lines still to receive, supplier terms
+  (delay, MOQ, price) and the current reorder rules. `SC__PLANNING__PRODUCT_CATEGORY`
+  limits the run to one category subtree (the demo uses `Hidráulica`).
+- **Forecast** (`forecasting/`, plain Python): weekly buckets, moving
+  average, simple and Holt exponential smoothing and Croston; a
+  rolling-origin backtest picks the method with the lowest WAPE, ties go
+  to the simpler one, intermittent series go to Croston, short series get
+  a moving average without an error estimate.
+- **Policy** (`policy/formulas.py`): `SS = z·sqrt(LT·σd² + d²·σLT²)`,
+  `ROP = d·LT + SS`, order-up-to `d·(LT + R) + SS`, order quantity raised
+  to the MOQ; parameters per product in `planning_params` with defaults by
+  ABC class (revenue share). Every stored line keeps its inputs, so any
+  quantity recomputes by hand.
+- **Exceptions and explanations**: rules flag stockout risk, negative
+  position, overstock, missing supplier, missing history and lead-time
+  drift and decide the action (rule change, RFQ, both, manual review). The
+  model writes a Spanish explanation per exception line and a run summary;
+  a guard test proves it changes nothing else.
+- **Approval and apply**: one `sc.approval` of kind `planning_run` per run,
+  hung on the warehouse; the callback may name accepted lines and edit
+  quantities (Control Tower, phase 8), a plain Odoo approval accepts every
+  actionable line. Apply writes reorder rules, creates one draft RFQ per
+  supplier with an idempotent external ref and publishes `rfq.drafted`, which
+  the director turns into `supplier_comms.send_rfq`.
+- **`what_if`** simulates parameter overrides for one product with no
+  approval and no writes. `just run-job inventory_planning` runs the daily
+  plan on the demo and leaves the approval pending in Odoo. Model answers for
+  the unit tests are replayed from `tests/fixtures/llm/inventory_planning.json`.
 
 ## Orchestrator
 

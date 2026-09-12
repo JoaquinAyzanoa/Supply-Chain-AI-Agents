@@ -201,6 +201,7 @@ class A2aCfg(_Section):
     max_concurrent: int = Field(default=4, ge=1)  # runs in flight per agent (director side)
     # Where the director reaches each agent (inside compose: http://<service>:8000).
     supplier_comms_url: str = "http://localhost:8013"
+    inventory_planning_url: str = "http://localhost:8014"
 
 
 class DirectorCfg(_Section):
@@ -217,6 +218,22 @@ class DirectorCfg(_Section):
         default=20, ge=1
     )  # follow-up job: emails + escalations per run
     reconcile_since_days: int = Field(default=3, ge=0)  # missed confirmations looked back this far
+
+
+class PlanningCfg(_Section):
+    """Inventory planning agent: what to plan and with which defaults."""
+
+    history_days: int = Field(default=730, ge=60)  # demand history read from Odoo
+    product_category: str = ""  # only products under this category path; empty = all plannable
+    warehouse_code: str = ""  # empty = the first warehouse
+    service_level: float = Field(default=0.95, gt=0.5, lt=1.0)  # default when no class param
+    review_period_days: int = Field(default=7, ge=1)  # the daily plan covers a week of orders
+    max_coverage_days: int = Field(default=120, ge=1)  # overstock beyond this
+    lead_time_sigma_ratio: float = Field(
+        default=0.25, ge=0
+    )  # sigma_LT = ratio x delay until phase 9
+    # Where Odoo reaches this agent for approval callbacks (inside compose: the service name).
+    public_url: str = "http://localhost:8014"
 
 
 class AgentsCfg(_Section):
@@ -274,6 +291,7 @@ class Settings(BaseSettings):
     agents: AgentsCfg = Field(default_factory=AgentsCfg)
     a2a: A2aCfg = Field(default_factory=A2aCfg)
     director: DirectorCfg = Field(default_factory=DirectorCfg)
+    planning: PlanningCfg = Field(default_factory=PlanningCfg)
     supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
 
     @property

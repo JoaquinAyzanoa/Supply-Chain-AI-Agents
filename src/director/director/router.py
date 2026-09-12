@@ -18,15 +18,15 @@ from collections.abc import Callable
 from typing import Any, Literal
 
 from director.store import CaseKind
-from sc_core.schema.a2a import SupplierCommsTask
+from sc_core.schema.a2a import InventoryPlanningTask, SupplierCommsTask
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import BaseEvent
 
 AgentName = Literal["supplier_comms", "inventory_planning", "logistics"]
 
-# Phase 7 adds the planning task, phase 9 the logistics task; a union keeps
-# ``Route.dispatches`` typed without a wrapper per agent.
-AgentTask = SupplierCommsTask
+# Phase 9 adds the logistics task; the union keeps ``Route.dispatches`` typed
+# without a wrapper per agent (the ``kind`` literals never overlap).
+AgentTask = SupplierCommsTask | InventoryPlanningTask
 
 
 class Dispatch(StrictModel):
@@ -81,6 +81,7 @@ def _build_routes() -> dict[type[BaseEvent], Handler]:
         ev.OdooOrderpointTriggered: odoo_events.on_orderpoint,
         ev.OdooApprovalResolved: odoo_events.on_approval_resolved,
         ev.AgentRunFinished: agent_events.on_run_finished,
+        ev.RfqDrafted: agent_events.on_rfq_drafted,
     }
 
 

@@ -1,0 +1,146 @@
+{
+  "$defs": {
+    "PlanningOverrides": {
+      "additionalProperties": false,
+      "description": "Parameters a planner may try in a ``what_if`` (no writes) or force in a review.",
+      "properties": {
+        "lead_time_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lead Time Days"
+        },
+        "max_coverage_days": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Coverage Days"
+        },
+        "review_period_days": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Period Days"
+        },
+        "service_level": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1.0,
+              "exclusiveMinimum": 0.5,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Service Level"
+        }
+      },
+      "title": "PlanningOverrides",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What the director asks the planner to do.",
+  "properties": {
+    "as_of": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "plan date; today when omitted",
+      "title": "As Of"
+    },
+    "case_id": {
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "context": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "review_product: why the review was asked",
+      "title": "Context"
+    },
+    "kind": {
+      "enum": [
+        "daily_plan",
+        "review_product",
+        "what_if"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "overrides": {
+      "$ref": "#/$defs/PlanningOverrides"
+    },
+    "product_ids": {
+      "description": "empty = every plannable product",
+      "items": {
+        "type": "integer"
+      },
+      "title": "Product Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "warehouse_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Warehouse Code"
+    }
+  },
+  "required": [
+    "kind",
+    "case_id"
+  ],
+  "title": "InventoryPlanningTask",
+  "type": "object"
+}

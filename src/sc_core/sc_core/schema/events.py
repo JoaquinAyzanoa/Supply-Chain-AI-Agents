@@ -152,6 +152,17 @@ class AgentRunFinished(BaseEvent):
     )
 
 
+class RfqDrafted(BaseEvent):
+    """The planner created a draft RFQ; the supplier agent sends it (phase 7)."""
+
+    type: Literal["rfq.drafted"] = "rfq.drafted"
+    po_id: int
+    po_name: str
+    partner_id: int
+    run_id: str
+    line_count: int = Field(default=0, ge=0)
+
+
 AnyEvent = Annotated[
     InboundMailLinked
     | InboundMailUnlinked
@@ -160,7 +171,8 @@ AnyEvent = Annotated[
     | OdooReceiptValidated
     | OdooOrderpointTriggered
     | OdooApprovalResolved
-    | AgentRunFinished,
+    | AgentRunFinished
+    | RfqDrafted,
     Field(discriminator="type"),
 ]
 
@@ -173,6 +185,7 @@ EVENT_TYPES: tuple[type[BaseEvent], ...] = (
     OdooOrderpointTriggered,
     OdooApprovalResolved,
     AgentRunFinished,
+    RfqDrafted,
 )
 
 _adapter: TypeAdapter[Any] = TypeAdapter(AnyEvent)

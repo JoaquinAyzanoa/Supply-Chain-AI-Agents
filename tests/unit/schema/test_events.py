@@ -14,6 +14,7 @@ from sc_core.schema.events import (
     OdooOrderpointTriggered,
     OdooPurchaseConfirmed,
     OdooReceiptValidated,
+    RfqDrafted,
     ScheduledTick,
     event_id_for,
     parse_event,
@@ -63,7 +64,15 @@ def test_parse_each_type_roundtrip() -> None:
         status="sent",
         summary="RFQ sent",
     )
-    events = (linked, unlinked, tick, confirmed, receipt, orderpoint, resolved, finished)
+    drafted = RfqDrafted(
+        source="inventory_planning",
+        case_id="plan_1",
+        po_id=70,
+        po_name="P00070",
+        partner_id=20,
+        run_id="run_1",
+    )
+    events = (linked, unlinked, tick, confirmed, receipt, orderpoint, resolved, finished, drafted)
     assert {type(e) for e in events} == set(EVENT_TYPES)
     for event in events:
         parsed = parse_event(event.model_dump_json())

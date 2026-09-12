@@ -39,7 +39,7 @@ from director.router import Dispatch, Route, UnroutableEvent, route
 from director.store import Case, CaseStatus, CaseStore
 from sc_core.infra import tracing
 from sc_core.odoo.models import PurchaseOrder
-from sc_core.schema.a2a import OutcomeStatus, SupplierCommsResult
+from sc_core.schema.a2a import InventoryPlanningResult, OutcomeStatus, SupplierCommsResult
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import (
     AgentRunFinished,
@@ -189,7 +189,7 @@ class AgentProxyExecutor(Executor):
                 "agent": self._agent,
                 "task": task.kind,
                 "thread_id": task.case_id,
-                "po_name": task.po_name,
+                "po_name": getattr(task, "po_name", None),
                 "event_id": envelope.event_id,
             },
         )
@@ -228,9 +228,8 @@ def outcome_from_reply(
             summary=f"{agent} unreachable: {message}"[:500],
             error=error.to_dict() if error is not None else None,
         )
-    try:
-        result = SupplierCommsResult.model_validate_json(reply.text)
-    except ValidationError:
+    result = _parse_result(agent, reply.text)
+    if result is None:
         text = (reply.text or f"agent replied with status {reply.status} and no result")[:500]
         return AgentOutcome(
             case=case,
@@ -239,6 +238,17 @@ def outcome_from_reply(
             thread_id=thread_id,
             status="failed" if reply.status != "completed" else "no_action",
             summary=text,
+        )
+    if isinstance(result, InventoryPlanningResult):
+        return AgentOutcome(
+            case=case,
+            agent=agent,
+            task_kind=result.kind,
+            thread_id=result.case_id,
+            status=result.status,
+            summary=result.outcome.summary,
+            run_id=result.run_id,
+            approval_id=result.outcome.approval_id,
         )
     outbound = result.outbound
     return AgentOutcome(
@@ -252,6 +262,21 @@ def outcome_from_reply(
         approval_id=result.outcome.approval_id,
         sent_message_id=outbound.sent_message_id if outbound else None,
     )
+
+
+def _parse_result(agent: str, text: str) -> SupplierCommsResult | InventoryPlanningResult | None:
+    """Each agent has its own result contract; a reply that fits neither is not a result."""
+    contracts: tuple[type[SupplierCommsResult] | type[InventoryPlanningResult], ...] = (
+        (InventoryPlanningResult, SupplierCommsResult)
+        if agent == "inventory_planning"
+        else (SupplierCommsResult, InventoryPlanningResult)
+    )
+    for contract in contracts:
+        try:
+            return contract.model_validate_json(text)
+        except ValidationError:
+            continue
+    return None
 
 
 class ConsolidateExecutor(Executor):
@@ -420,7 +445,7 @@ async def consolidate_outcome(
 
 # --- building and running -----------------------------------------------------------
 
-AGENT_NAMES = ("supplier_comms",)  # phase 7 adds inventory_planning, phase 9 logistics
+AGENT_NAMES = ("supplier_comms", "inventory_planning")  # phase 9 adds logistics
 
 
 def build_workflow(deps: Deps) -> Workflow:
