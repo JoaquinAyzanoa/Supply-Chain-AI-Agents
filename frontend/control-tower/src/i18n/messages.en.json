@@ -399,5 +399,6 @@
   "board.drawer.no_case": "The agents have not worked on this order yet. Emails and reminders will show here.",
   "board.drawer.approval": "Pending approval",
   "board.drawer.close": "Close panel",
-  "board.open": "Open {po}"
+  "board.open": "Open {po}",
+  "board.fold": "Fold {column}"
 }

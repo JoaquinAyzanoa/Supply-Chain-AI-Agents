@@ -399,5 +399,6 @@
   "board.drawer.no_case": "Los agentes aún no han trabajado esta orden. Los correos y recordatorios aparecerán aquí.",
   "board.drawer.approval": "Aprobación pendiente",
   "board.drawer.close": "Cerrar panel",
-  "board.open": "Abrir {po}"
+  "board.open": "Abrir {po}",
+  "board.fold": "Plegar {column}"
 }

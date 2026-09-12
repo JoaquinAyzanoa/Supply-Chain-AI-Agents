@@ -202,19 +202,40 @@ function BoardColumn({
 }) {
   const { t } = useI18n();
   const { setNodeRef, isOver } = useDroppable({ id: column });
+  // The two history columns start folded: a count, expanded on demand, so the
+  // live columns keep the width.
+  const foldable = column === "received" || column === "closed";
+  const [expanded, setExpanded] = useState(!foldable);
+  const count = cards.length === total ? String(total) : `${cards.length}/${total}`;
+  if (!expanded) {
+    return (
+      <section
+        ref={setNodeRef}
+        aria-label={t(`board.col.${column}`)}
+        className={cn("flex w-12 shrink-0 flex-col items-center rounded-lg border bg-muted/30 p-2", isOver ? "ring-2 ring-primary" : "")}
+      >
+        <button type="button" className="flex flex-col items-center gap-2 text-sm font-semibold" onClick={() => setExpanded(true)} title={t(`board.col.hint.${column}`)}>
+          <Badge variant="secondary">{count}</Badge>
+          <span className="[writing-mode:vertical-rl]">{t(`board.col.${column}`)}</span>
+        </button>
+      </section>
+    );
+  }
   return (
     <section
       ref={setNodeRef}
       aria-label={t(`board.col.${column}`)}
-      className={cn(
-        "flex w-64 shrink-0 flex-col rounded-lg border bg-muted/30 p-2",
-        column === "closed" ? "w-56" : "",
-        isOver ? "ring-2 ring-primary" : "",
-      )}
+      className={cn("flex w-64 shrink-0 flex-col rounded-lg border bg-muted/30 p-2", isOver ? "ring-2 ring-primary" : "")}
     >
       <h2 className="mb-2 flex items-center justify-between px-1 text-sm font-semibold" title={t(`board.col.hint.${column}`)}>
-        {t(`board.col.${column}`)}
-        <Badge variant="secondary">{cards.length === total ? total : `${cards.length}/${total}`}</Badge>
+        {foldable ? (
+          <button type="button" className="text-left" onClick={() => setExpanded(false)} aria-label={t("board.fold", { column: t(`board.col.${column}`) })}>
+            {t(`board.col.${column}`)}
+          </button>
+        ) : (
+          t(`board.col.${column}`)
+        )}
+        <Badge variant="secondary">{count}</Badge>
       </h2>
       <div className="flex min-h-16 flex-1 flex-col gap-2 overflow-y-auto">
         {cards.length === 0 ? <p className="px-1 text-xs text-muted-foreground">{t("board.empty")}</p> : null}
