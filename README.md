@@ -38,7 +38,7 @@ just env         # create .env from .env.example
 just hooks       # pre-commit hooks
 just qa          # ruff, mypy, deptry per member
 just test        # unit tests
-just up          # postgres + redis + odoo + director in docker
+just up          # postgres + redis + odoo + langfuse + director in docker
 just odoo-init   # first time only: create the Odoo database
 curl localhost:8010/health/ready
 just down
@@ -112,6 +112,38 @@ One-time setup, no company tenant or licence required:
 
 Registering the app does not expose your own inbox: delegated permissions
 only cover the account that signs in to the app and accepts the consent.
+
+## LLM providers and Langfuse
+
+Every model call goes through `sc_core.llm`, which wraps Microsoft Agent
+Framework's OpenAI chat-completions client. Providers and models are declared
+in `src/sc_core/sc_core/llm/models.yaml` (DeepSeek, OpenAI, any local
+OpenAI-compatible server); keys come only from the environment.
+
+```
+DEEPSEEK_API_KEY=sk-...                  # default model is deepseek-v4-flash
+SC__LLM__DEFAULT_MODEL=deepseek-v4-flash
+SC__LLM__MODEL__SUPPLIER_COMMS=gpt-5.4   # per-agent override (needs OPENAI_API_KEY)
+```
+
+`get_chat_client("supplier_comms")` returns the traced client for that agent;
+`complete_structured` validates JSON answers against a Pydantic model; a
+`RunBudget` caps tokens and USD per run.
+
+Langfuse (self-hosted, `infra/compose.langfuse.yml`) receives one generation
+per model call with the complete input (system prompt, messages, tools,
+response format), output, usage and cost, plus spans for tool executions.
+`just up` starts it; the first boot creates the project and the API keys that
+`.env.example` already contains, and `just langfuse-open` opens the UI
+(`admin@scai.local` / `scai-admin-password`). The MinIO container in that
+stack is a Langfuse-internal dependency; the project stores no emails or
+attachments there.
+
+LLM tests run offline: unit tests use scripted clients or recorded cassettes
+(`just llm-record` refreshes `tests/fixtures/llm/` from the real provider).
+`just test-int` runs the Langfuse ingest check against the compose stack and,
+when `DEEPSEEK_API_KEY` is set, the provider capability checks that back the
+flags in `models.yaml`.
 
 ## Conventions
 
