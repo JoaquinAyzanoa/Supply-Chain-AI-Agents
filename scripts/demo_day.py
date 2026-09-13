@@ -33,7 +33,16 @@ RETRIES_PER_STEP = 6  # a waiting step is asked again this many times before giv
 
 def _client(base: str, user: str, password: str) -> httpx.Client:
     client = httpx.Client(base_url=base.rstrip("/"), timeout=600)
-    response = client.post("/api/auth/login", json={"email": user, "password": password})
+    response = None
+    for _ in range(10):  # a director just restarted answers after a few seconds
+        try:
+            response = client.post("/api/auth/login", json={"email": user, "password": password})
+            break
+        except httpx.HTTPError as exc:
+            print(f"director not answering yet ({exc.__class__.__name__}), retrying")
+            time.sleep(3)
+    if response is None:
+        raise SystemExit(f"the director at {base} did not answer")
     if response.status_code != 200:
         raise SystemExit(f"login failed for {user}: {response.status_code} {response.text[:200]}")
     client.headers["Authorization"] = f"Bearer {response.json()['token']}"

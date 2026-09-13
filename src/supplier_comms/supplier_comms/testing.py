@@ -82,6 +82,7 @@ class FakePorts:
     splits: list[dict[str, Any]] = field(default_factory=list)
     rfqs_marked_sent: list[int] = field(default_factory=list)
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
+    line_prices: list[dict[str, Any]] = field(default_factory=list)
     eta_meta: list[dict[str, Any]] = field(default_factory=list)
     profiles: dict[int, SupplierProfile] = field(default_factory=dict)
     products_by_code: dict[str, tuple[int, str]] = field(default_factory=dict)
@@ -207,6 +208,9 @@ class FakePorts:
         self.date_changes.append(
             {"line_id": line_id, "date": new_date.isoformat(), "run_id": run_id}
         )
+
+    async def set_line_price(self, line_id: int, price: float, *, run_id: str) -> None:
+        self.line_prices.append({"line_id": line_id, "price": price, "run_id": run_id})
 
     async def split_line(
         self, line_id: int, parts: list[tuple[float, date]], *, run_id: str

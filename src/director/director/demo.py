@@ -644,6 +644,7 @@ class DemoDirector:
         sleep: Sleep = asyncio.sleep,
         wait_seconds: int | None = None,
         poll_seconds: float | None = None,
+        chain_wait_seconds: int = 20,
     ) -> None:
         self._cfg = cfg
         self._store = store
@@ -661,6 +662,8 @@ class DemoDirector:
         self._sleep = sleep
         self._wait = cfg.wait_seconds if wait_seconds is None else wait_seconds
         self._poll = cfg.poll_seconds if poll_seconds is None else poll_seconds
+        # After a decision, what it triggers (an order going out) shows up within seconds.
+        self._chain_wait = min(chain_wait_seconds, self._wait)
         self._lock = asyncio.Lock()
 
     # -- reading ------------------------------------------------------------------------
@@ -821,9 +824,12 @@ class DemoDirector:
         rows = await self._approvals.list(status="pending", kind=None, po_name=po_name)
         return {row.id for row in rows}
 
-    async def _wait_for(self, check: Callable[[], Awaitable[bool]]) -> bool:
+    async def _wait_for(
+        self, check: Callable[[], Awaitable[bool]], *, wait: int | None = None
+    ) -> bool:
         """Poll until ``check`` says yes or the step's patience runs out."""
-        attempts = max(1, int(self._wait / self._poll)) if self._wait else 1
+        patience = self._wait if wait is None else wait
+        attempts = max(1, int(patience / self._poll)) if patience else 1
         for attempt in range(attempts):
             if await check():
                 return True
@@ -839,7 +845,12 @@ class DemoDirector:
         return await self._wait_for(check)
 
     async def _wait_for_approvals(
-        self, po_name: str, *, seen: set[int], kinds: set[str] | None = None
+        self,
+        po_name: str,
+        *,
+        seen: set[int],
+        kinds: set[str] | None = None,
+        wait: int | None = None,
     ) -> list[int]:
         found: list[int] = []
 
@@ -848,7 +859,7 @@ class DemoDirector:
             found[:] = [r.id for r in rows if r.id not in seen and (not kinds or r.kind in kinds)]
             return bool(found)
 
-        await self._wait_for(check)
+        await self._wait_for(check, wait=wait)
         return found
 
     async def _approve_chain(
@@ -866,7 +877,7 @@ class DemoDirector:
                 await self._resolver.approve(approval_id, actor=actor)
                 approved.append(approval_id)
             seen |= set(pending)
-            pending = await self._wait_for_approvals(po_name, seen=seen)
+            pending = await self._wait_for_approvals(po_name, seen=seen, wait=self._chain_wait)
         return approved
 
     @staticmethod
@@ -1105,6 +1116,9 @@ class DemoDirector:
                 "cada una"
                 for line in lines
             )
+            # What the list said before the quote: the buyer's target for the counter-offer
+            # (once recorded, the quote itself becomes the supplier's list entry).
+            state.records["quote_list_price"] = min(line.price_unit for line in lines)
             text = (
                 "Estimados,\n\n"
                 f"Gracias por su solicitud {po_name}. Nuestra cotización:\n{rows}\n\n"
@@ -1127,11 +1141,13 @@ class DemoDirector:
         quote_ids = await self._wait_for_approvals(po_name, seen=seen, kinds={"po_change"})
         if quote_ids and approve:
             quote_ids = await self._approve_chain(po_name, quote_ids, actor=actor)
+        list_price = state.records.get("quote_list_price")
         task = SourcingTask(
             kind="counter_offer",
             case_id=f"demo_offer_{new_id('o')}",
             po_name=po_name,
-            reason="the quote is above what we last paid (demo)",
+            target_price=float(list_price) if list_price else None,
+            reason="the quote is above the supplier's own list price (demo)",
         )
         result = await self._sourcing.run(task, requested_by=actor.email)
         if result["status"] in ("failed", "escalated"):

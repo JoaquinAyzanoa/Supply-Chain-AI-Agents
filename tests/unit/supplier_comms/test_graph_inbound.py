@@ -138,7 +138,40 @@ async def test_quotation_with_currency_mismatch_flags_that_line(
         }
     ]
     assert ports.date_changes == []
+    assert ports.line_prices == []  # a confirmed order keeps its agreed price
     assert "manual review" in ports.notes[-1][1]
+
+
+async def test_a_quote_on_a_sent_rfq_lands_on_the_line(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
+) -> None:
+    """The comparison and the counter-offer read the RFQ line: the quote must be there."""
+    ports.contexts["P00015"] = demo_context().model_copy(update={"state": "sent"})
+    ports.inbound[MSG] = "Cotizamos: bomba 480 PEN c/u, entrega en 10 días."
+    chat.responses.extend(
+        [
+            Classification(kind="quotation", confidence=0.9, reason="precios"),
+            QuotationData(
+                lines=[
+                    QuotedLine(
+                        po_line_id=31,
+                        description="Bomba",
+                        unit_price=480.0,
+                        currency="PEN",
+                        lead_days=10,
+                    )
+                ],
+                confidence=0.9,
+            ),
+        ]
+    )
+    agent = make_agent()
+    paused = await agent.run(_task("case_rfq"))
+    assert paused.status == "awaiting_approval"
+    applied = await agent.resume("case_rfq", {"approval_id": 101, "status": "approved"})
+    assert applied.status == "applied"
+    assert ports.line_prices == [{"line_id": 31, "price": 480.0, "run_id": applied.run_id}]
+    assert [u["price"] for u in ports.price_upserts] == [480.0]  # and the price list too
 
 
 async def test_out_of_office_is_no_action_without_approval(

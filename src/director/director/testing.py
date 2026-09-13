@@ -287,6 +287,7 @@ class MemoryDirectorModule(Module):
             sleep=no_sleep,
             wait_seconds=3,
             poll_seconds=1.0,
+            chain_wait_seconds=1,
         )
 
     def configure(self, binder: Binder) -> None:

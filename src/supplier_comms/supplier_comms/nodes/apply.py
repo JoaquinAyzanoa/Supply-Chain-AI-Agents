@@ -123,15 +123,21 @@ def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
                 await ports.set_line_date(line.id, date.fromisoformat(change.after), run_id=run_id)
                 confidences.append(change.confidence)
             elif change.field == "price" and line.product_tmpl_id and ctx.currency_id:
+                quoted = float(change.after.split()[0])
                 await ports.upsert_price(
                     partner_id=ctx.partner_id,
                     product_tmpl_id=line.product_tmpl_id,
                     product_id=line.product_id,
-                    price=float(change.after.split()[0]),
+                    price=quoted,
                     currency_id=ctx.currency_id,
                     min_qty=0.0,
                     lead_days=_lead_for(proposal, line.id),
                 )
+                if ctx.state in ("draft", "sent"):
+                    # On an RFQ the quote is the price we would pay: the line carries it, so
+                    # the sourcing agent's comparison and counter-offers see the quote, not
+                    # the list price. A confirmed order keeps its agreed price.
+                    await ports.set_line_price(line.id, quoted, run_id=run_id)
             elif change.field == "lead_days":
                 if not any(
                     c.field == "price" and c.po_line_id == line.id for c in proposal.applicable

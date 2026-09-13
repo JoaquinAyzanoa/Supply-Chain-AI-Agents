@@ -180,6 +180,10 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         await self._c.call(self._name, "button_confirm", [po_id])
         return await self.get(po_id)
 
+    async def set_line_price(self, line_id: int, price: float) -> None:
+        """The unit price a supplier quoted for a line (RFQs: what we would pay)."""
+        await self._c.write(PurchaseOrderLine.ODOO_MODEL, [line_id], {"price_unit": price})
+
     async def set_line_date_planned(
         self, line_id: int, new_date: datetime, *, source: EtaSource, run_id: str
     ) -> None:

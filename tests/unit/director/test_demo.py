@@ -245,6 +245,7 @@ async def test_the_whole_script_runs_unattended_and_decides_as_the_presenter(
     assert view["position"] == 4
     assert sent[1]["subject"] == "Re: [P00091] Cotización" and "USD 28.00" in sent[1]["text"]
     assert '"kind":"counter_offer"' in sourcing.sent[-1].task_json
+    assert '"target_price":25.0' in sourcing.sent[-1].task_json  # the list price before the quote
     assert view["outcomes"][-1]["approval_ids"] == [205]
     assert (await module.approvals.get(205)).status == "approved"
 
