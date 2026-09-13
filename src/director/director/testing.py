@@ -437,3 +437,6 @@ class MemoryPerformanceSource:
 
     async def rank(self, product_id: int) -> dict[str, Any]:
         return self.rankings.get(product_id) or {"product_id": product_id, "suppliers": []}
+
+    async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
+        return [await self.rank(pid) for pid in sorted(set(product_ids))]

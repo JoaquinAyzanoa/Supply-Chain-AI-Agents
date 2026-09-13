@@ -6,7 +6,7 @@
  * planner applies exactly that.
  */
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, Check, FlaskConical, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, FlaskConical, Sparkles, Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/auth/AuthProvider";
@@ -19,7 +19,17 @@ import { useResolveApproval } from "@/features/approvals/api";
 import { useI18n } from "@/i18n";
 import { cn, formatDate, formatMoney, formatNumber } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
-import { ACTIONABLE, useLineDemand, usePlanningRun, useWhatIf, type PlanningLineRow, type PlanningOverrides, type ReplenishmentLine } from "./api";
+import {
+  ACTIONABLE,
+  useLineDemand,
+  usePlanningRun,
+  useRunRanking,
+  useWhatIf,
+  type LineRanking,
+  type PlanningLineRow,
+  type PlanningOverrides,
+  type ReplenishmentLine,
+} from "./api";
 import { Sparkline } from "./Sparkline";
 
 type Editable = "order_qty" | "proposed_min" | "proposed_max";
@@ -30,6 +40,7 @@ export function PlanningRunPage() {
   const { t, locale } = useI18n();
   const { hasRole } = useAuth();
   const detail = usePlanningRun(runId);
+  const ranking = useRunRanking(runId);
   const resolve = useResolveApproval();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [edits, setEdits] = useState<Edits>({});
@@ -41,6 +52,8 @@ export function PlanningRunPage() {
     setSelected(new Set(rows.filter((r) => ACTIONABLE.has(r.line.action)).map((r) => r.line.line_id)));
     setEdits({});
   }, [detail.data?.run.run_id, rows.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const rankByLine = useMemo(() => new Map((ranking.data?.lines ?? []).map((item) => [item.line_id, item])), [ranking.data]);
 
   const groups = useMemo(() => {
     const by = new Map<string, PlanningLineRow[]>();
@@ -162,6 +175,12 @@ export function PlanningRunPage() {
                           </button>
                           {line.product_name ? <div className="max-w-[16rem] truncate text-xs text-muted-foreground">{line.product_name}</div> : null}
                           {line.exception ? <Badge variant="warning">{line.exception}</Badge> : null}
+                          {rankByLine.get(line.line_id)?.better ? (
+                            <Badge variant="warning" className="ml-1 gap-1">
+                              <Trophy className="h-3 w-3" />
+                              {t("planning.better_rated", { name: rankByLine.get(line.line_id)!.better!.partner_name, score: formatNumber(rankByLine.get(line.line_id)!.better!.score, locale, 0) })}
+                            </Badge>
+                          ) : null}
                           {applied ? <Badge variant="success">{t("planning.applied")}</Badge> : accepted === false ? <Badge variant="secondary">{t("planning.skipped")}</Badge> : null}
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-xs">{t(`planning.action.${line.action}`)}</TableCell>
@@ -197,6 +216,7 @@ export function PlanningRunPage() {
           <LineDrawer
             runId={runId}
             row={rows.find((r) => r.line.line_id === openLine)!}
+            ranking={rankByLine.get(openLine)}
             onClose={() => setOpenLine(null)}
           />
         ) : null}
@@ -221,6 +241,51 @@ export function PlanningRunPage() {
   );
 }
 
+/** The performance agent's ranking for the line's product: the chosen supplier is
+ *  marked, a better-scored one is called out, a newcomer without history is listed
+ *  with its price so it is never hidden. */
+function SupplierRanking({ ranking }: { ranking: LineRanking }) {
+  const { t, locale } = useI18n();
+  if (!ranking.suppliers.length) return null;
+  return (
+    <div className="mb-3">
+      <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">{t("planning.ranking")}</div>
+      {ranking.better ? (
+        <p className="mb-1 flex items-center gap-1 text-xs text-warning-text">
+          <Trophy className="h-3 w-3" /> {t("planning.ranking_better", { name: ranking.better.partner_name })}
+        </p>
+      ) : null}
+      <table className="w-full text-xs" aria-label={t("planning.ranking")}>
+        <thead>
+          <tr className="text-muted-foreground">
+            <th className="text-left font-medium">#</th>
+            <th className="text-left font-medium">{t("planning.rank.supplier")}</th>
+            <th className="text-right font-medium">{t("planning.rank.score")}</th>
+            <th className="text-right font-medium">{t("planning.rank.otif")}</th>
+            <th className="text-right font-medium">{t("planning.rank.lead")}</th>
+            <th className="text-right font-medium">{t("planning.rank.price")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ranking.suppliers.map((s) => (
+            <tr key={s.partner_id} className={cn(s.partner_id === ranking.supplier_id ? "font-semibold" : "")} title={s.why}>
+              <td>{s.rank}</td>
+              <td>
+                {s.partner_name}
+                {s.partner_id === ranking.supplier_id ? <span className="ml-1 font-normal text-muted-foreground">({t("planning.rank.chosen")})</span> : null}
+              </td>
+              <td className="text-right tabular-nums">{s.score === null || s.score === undefined ? t("planning.rank.no_history") : formatNumber(s.score, locale, 0)}</td>
+              <td className="text-right tabular-nums">{s.otif === null || s.otif === undefined ? "—" : `${Math.round(s.otif * 100)}%`}</td>
+              <td className="text-right tabular-nums">{formatNumber(s.lead_time_mean_days ?? s.promised_lead_days, locale, 0)} d</td>
+              <td className="text-right tabular-nums">{s.price === null || s.price === undefined ? "—" : formatMoney(s.price, s.currency, locale)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function NumberCell({ label, editable, value, onChange }: { label: string; editable: boolean; value: number; onChange: (raw: string) => void }) {
   const { locale } = useI18n();
   if (!editable) return <span>{formatNumber(value, locale, 2)}</span>;
@@ -237,7 +302,7 @@ function NumberCell({ label, editable, value, onChange }: { label: string; edita
   );
 }
 
-function LineDrawer({ runId, row, onClose }: { runId: string; row: PlanningLineRow; onClose: () => void }) {
+function LineDrawer({ runId, row, ranking, onClose }: { runId: string; row: PlanningLineRow; ranking?: LineRanking; onClose: () => void }) {
   const { t, locale } = useI18n();
   const line = row.line;
   const demand = useLineDemand(runId, line.line_id);
@@ -290,6 +355,7 @@ function LineDrawer({ runId, row, onClose }: { runId: string; row: PlanningLineR
           {t("planning.forecast_line", { method: line.forecast_method, rate: formatNumber(line.forecast_daily, locale, 2), wape: line.wape !== null && line.wape !== undefined ? `${Math.round(line.wape * 100)}%` : "—" })}
         </div>
       </div>
+      {ranking ? <SupplierRanking ranking={ranking} /> : null}
       <table className="mb-3 w-full text-xs">
         <thead>
           <tr className="text-muted-foreground">

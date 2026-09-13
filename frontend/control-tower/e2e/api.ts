@@ -256,6 +256,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path === "/api/exceptions") return json(route, 200, { as_of: "2026-09-14", late_pos: [], rfqs_no_reply: [], unlinked_mails: [], failed_runs: [], stale_approvals: [] });
     if (path === "/api/planning/runs") return json(route, 200, [state.run]);
     if (path === "/api/planning/runs/run_1") return json(route, 200, { run: state.run, lines: state.lines });
+    if (path === "/api/planning/runs/run_1/ranking") return json(route, 200, { run_id: "run_1", better_count: 0, lines: [] });
     if (path.startsWith("/api/planning/runs/run_1/lines/")) return json(route, 200, { line_id: "run_1:102", product_id: 102, forecast_daily: 2, sigma_daily: 0.5, days: [{ day: "2026-09-13", ordered: 3, delivered: 3 }] });
     if (path === "/api/runs") return json(route, 200, []);
     if (path === "/api/runs/scheduler") return json(route, 200, []);

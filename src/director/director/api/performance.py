@@ -21,6 +21,8 @@ class PerformanceSource(Protocol):
 
     async def rank(self, product_id: int) -> dict[str, Any]: ...
 
+    async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]: ...
+
 
 class HttpPerformanceSource:
     """The performance agent's ``GET /performance/*`` behind its bearer token."""
@@ -40,9 +42,18 @@ class HttpPerformanceSource:
         data: dict[str, Any] = await self._get(f"/performance/rank/{product_id}")
         return data
 
-    async def _get(self, path: str) -> Any:
+    async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
+        if not product_ids:
+            return []
+        ids = ",".join(str(pid) for pid in sorted(set(product_ids)))
+        data: list[dict[str, Any]] = await self._get(
+            "/performance/rank", params={"product_ids": ids}
+        )
+        return data
+
+    async def _get(self, path: str, *, params: dict[str, str] | None = None) -> Any:
         try:
-            response = await self._http.get(path)
+            response = await self._http.get(path, params=params)
         except httpx.HTTPError as exc:
             raise ScError(
                 "the performance agent did not answer", details={"error": str(exc)}

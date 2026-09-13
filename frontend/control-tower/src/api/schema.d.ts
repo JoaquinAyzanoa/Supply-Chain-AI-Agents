@@ -368,6 +368,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/planning/runs/{run_id}/ranking": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Run Ranking
+         * @description Supplier ranking for every line of the run, from the performance agent's scores.
+         */
+        get: operations["run_ranking_api_planning_runs__run_id__ranking_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/planning/runs/{run_id}/what-if": {
         parameters: {
             query?: never;
@@ -994,6 +1014,25 @@ export interface components {
             /** Until */
             until?: string | null;
         };
+        /**
+         * LineRanking
+         * @description Who could supply one line's product, best first, and whether someone beats the
+         *     supplier the planner chose (the price list's preferred one).
+         */
+        LineRanking: {
+            better?: components["schemas"]["RankedSupplier"] | null;
+            /** Line Id */
+            line_id: string;
+            /** Product Id */
+            product_id: number;
+            /** Supplier Id */
+            supplier_id?: number | null;
+            /**
+             * Suppliers
+             * @default []
+             */
+            suppliers: components["schemas"]["RankedSupplier"][];
+        };
         /** LiveResponse */
         LiveResponse: {
             /** Service */
@@ -1432,6 +1471,21 @@ export interface components {
             name: string;
             /** Path */
             path: string;
+        };
+        /** RunRanking */
+        RunRanking: {
+            /**
+             * Better Count
+             * @default 0
+             */
+            better_count: number;
+            /**
+             * Lines
+             * @default []
+             */
+            lines: components["schemas"]["LineRanking"][];
+            /** Run Id */
+            run_id: string;
         };
         /** RuntimeSettings */
         RuntimeSettings: {
@@ -2292,6 +2346,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LineDemand"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_ranking_api_planning_runs__run_id__ranking_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunRanking"];
                 };
             };
             /** @description Validation Error */

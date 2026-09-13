@@ -1487,6 +1487,55 @@
         "title": "LineDemand",
         "type": "object"
       },
+      "LineRanking": {
+        "additionalProperties": false,
+        "description": "Who could supply one line's product, best first, and whether someone beats the\nsupplier the planner chose (the price list's preferred one).",
+        "properties": {
+          "better": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RankedSupplier"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "line_id": {
+            "title": "Line Id",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "supplier_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Id"
+          },
+          "suppliers": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/RankedSupplier"
+            },
+            "title": "Suppliers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "line_id",
+          "product_id"
+        ],
+        "title": "LineRanking",
+        "type": "object"
+      },
       "LiveResponse": {
         "properties": {
           "service": {
@@ -2619,6 +2668,33 @@
           "name"
         ],
         "title": "RouteInfo",
+        "type": "object"
+      },
+      "RunRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "better_count": {
+            "default": 0,
+            "title": "Better Count",
+            "type": "integer"
+          },
+          "lines": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/LineRanking"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id"
+        ],
+        "title": "RunRanking",
         "type": "object"
       },
       "RuntimeSettings": {
@@ -4362,6 +4438,54 @@
           }
         ],
         "summary": "Line Demand",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
+    "/api/planning/runs/{run_id}/ranking": {
+      "get": {
+        "description": "Supplier ranking for every line of the run, from the performance agent's scores.",
+        "operationId": "run_ranking_api_planning_runs__run_id__ranking_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunRanking"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run Ranking",
         "tags": [
           "planning"
         ]

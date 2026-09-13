@@ -9,6 +9,9 @@ export type ReplenishmentLine = Schemas["ReplenishmentLine"];
 export type PlanningOverrides = Schemas["PlanningOverrides"];
 export type WhatIfResponse = Schemas["WhatIfResponse"];
 export type LineDemand = Schemas["LineDemand"];
+export type RunRanking = Schemas["RunRanking"];
+export type LineRanking = Schemas["LineRanking"];
+export type RankedSupplier = Schemas["RankedSupplier"];
 
 export const ACTIONABLE = new Set(["update_rule", "create_rfq", "update_rule_and_rfq"]);
 
@@ -37,6 +40,15 @@ export function useLineDemand(runId: string, lineId: string | null) {
           params: { path: { run_id: runId, line_id: lineId! }, query: { days: 90 } },
         }),
       ),
+  });
+}
+
+/** Who could supply each line, best first, from the performance agent's scores. */
+export function useRunRanking(runId: string) {
+  return useQuery({
+    queryKey: ["planning", "ranking", runId],
+    staleTime: 5 * 60_000,
+    queryFn: async () => unwrap(await api.GET("/api/planning/runs/{run_id}/ranking", { params: { path: { run_id: runId } } })),
   });
 }
 

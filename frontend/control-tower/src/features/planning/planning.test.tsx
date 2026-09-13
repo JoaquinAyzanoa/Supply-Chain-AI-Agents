@@ -84,6 +84,24 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (url.pathname === "/api/auth/me") return jsonResponse(200, { email: "ana@x.com", name: "Ana", role: "approver" });
   if (url.pathname === "/api/planning/runs") return jsonResponse(200, [RUN]);
   if (url.pathname === "/api/planning/runs/run_1") return jsonResponse(200, DETAIL);
+  if (url.pathname === "/api/planning/runs/run_1/ranking")
+    return jsonResponse(200, {
+      run_id: "run_1",
+      better_count: 1,
+      lines: [
+        {
+          line_id: "run_1:102",
+          product_id: 102,
+          supplier_id: 7,
+          better: { rank: 1, partner_id: 46, partner_name: "Hidraulica Alterna", score: 91.2, otif: 0.95, lead_time_mean_days: 9, price: 98, currency: "PEN", min_qty: 0, promised_lead_days: 7, samples: {}, why: "score 91.2" },
+          suppliers: [
+            { rank: 1, partner_id: 46, partner_name: "Hidraulica Alterna", score: 91.2, otif: 0.95, lead_time_mean_days: 9, price: 98, currency: "PEN", min_qty: 0, promised_lead_days: 7, samples: {}, why: "score 91.2" },
+            { rank: 2, partner_id: 7, partner_name: "Proveedor Hidraulica", score: 75.5, otif: 0.5, lead_time_mean_days: 42.3, price: 104.16, currency: "PEN", min_qty: 0, promised_lead_days: 10, samples: {}, why: "score 75.5" },
+            { rank: 3, partner_id: 47, partner_name: "Nuevo Proveedor", score: null, otif: null, lead_time_mean_days: null, price: 90, currency: "PEN", min_qty: 0, promised_lead_days: 5, samples: {}, why: "no history yet" },
+          ],
+        },
+      ],
+    });
   if (url.pathname === "/api/planning/runs/run_1/lines/run_1:102/demand")
     return jsonResponse(200, {
       line_id: "run_1:102",
@@ -168,6 +186,14 @@ describe("planning review", () => {
     await userEvent.click(await screen.findByRole("button", { name: "HYD-102" }));
     const drawer = screen.getByRole("complementary", { name: "Line details" });
     expect(drawer).toHaveTextContent("Demand doubled.");
+    // the ranking: the chosen supplier is marked, a better one is called out, a newcomer is listed
+    expect(await screen.findByText("Better rated: Hidraulica Alterna (91)")).toBeInTheDocument();
+    const rankTable = within(drawer).getByRole("table", { name: "Suppliers for this product" });
+    const rankRows = within(rankTable).getAllByRole("row");
+    expect(rankRows[1]).toHaveTextContent("Hidraulica Alterna");
+    expect(rankRows[2]).toHaveTextContent("Proveedor Hidraulica(chosen)");
+    expect(rankRows[3]).toHaveTextContent("no history");
+    expect(drawer).toHaveTextContent("Hidraulica Alterna scores higher than the chosen supplier.");
     expect(await within(drawer).findByRole("img", { name: "demand 2 days" })).toBeInTheDocument();
     expect(drawer).toHaveTextContent("Forecast ses: 2 per day (WAPE 12%)");
 
