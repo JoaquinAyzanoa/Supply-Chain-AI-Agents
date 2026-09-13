@@ -48,7 +48,14 @@ from sc_core.shared.time import local_today
 router = APIRouter(prefix="/board", tags=["board"])
 
 Column = Literal[
-    "proposed", "rfq_sent", "quote_received", "confirmed", "incoming", "received", "closed"
+    "proposed",
+    "rfq_sent",
+    "quote_received",
+    "confirmed",
+    "incoming",
+    "received",
+    "invoicing",
+    "closed",
 ]
 COLUMNS: tuple[Column, ...] = (
     "proposed",
@@ -57,6 +64,7 @@ COLUMNS: tuple[Column, ...] = (
     "confirmed",
     "incoming",
     "received",
+    "invoicing",
     "closed",
 )
 Delivery = Literal["on_time", "due_soon", "late", "none"]
@@ -67,6 +75,7 @@ class PendingApproval(StrictModel):
     id: int
     kind: str
     summary: str
+    requested_by: str | None = None
 
 
 class BoardCard(StrictModel):
@@ -82,6 +91,8 @@ class BoardCard(StrictModel):
     date_planned: date | None = None
     eta_source: str | None = None
     supplier_confirmed: bool = False
+    invoice_status: str | None = None
+    discrepancy: bool = False
     column: Column
     delivery: Delivery = "none"
     days_late: int = 0
@@ -138,6 +149,8 @@ class SupplierConfirmedRequest(StrictModel):
 class BoardOrders(Protocol):
     async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]: ...
 
+    async def by_names(self, names: list[str]) -> list[PurchaseOrder]: ...
+
     async def confirm(self, po_id: int) -> PurchaseOrder: ...
 
     async def cancel(self, po_id: int) -> None: ...
@@ -155,6 +168,9 @@ class OdooBoardOrders:
 
     async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
         return await self._orders.board_orders(closed_since=closed_since)
+
+    async def by_names(self, names: list[str]) -> list[PurchaseOrder]:
+        return await self._orders.by_names(names)
 
     async def confirm(self, po_id: int) -> PurchaseOrder:
         return await self._orders.confirm(po_id)
@@ -187,7 +203,9 @@ def column_for(
         return "quote_received" if "po_change" in pending_kinds else "rfq_sent"
     if po.state == "purchase":
         if po.receipt_status == "full":
-            return "received"
+            # received and waiting for the supplier's invoice; then checked or drafted
+            invoiced = "vendor_bill" in pending_kinds or po.invoice_status == "invoiced"
+            return "invoicing" if invoiced else "received"
         if po.date_planned is not None and (po.date_planned.date() - today).days <= due_soon_days:
             return "incoming"
         return "confirmed"
@@ -222,6 +240,12 @@ async def build_board(
     for approval in pending:
         if approval.po_id is not None:
             by_po.setdefault(approval.po_id.name, []).append(approval)
+    # An order someone still has to decide on belongs on the board however old it is
+    # (an invoice for a receipt of months ago, for instance).
+    known = {po.name for po in rows}
+    missing = sorted({name for name in by_po if name not in known})
+    if missing:
+        rows = [*rows, *await orders.by_names(missing)]
     contacts = await mail.contacts()
     policy = await source.effective_policy()
     facts = {f.po_name: f for f in await source.gather(today)}
@@ -274,9 +298,18 @@ async def build_board(
                 ),
                 next_action_at=step.due if step else None,
                 pending_approval=(
-                    PendingApproval(id=first.id, kind=first.kind, summary=first.summary)
+                    PendingApproval(
+                        id=first.id,
+                        kind=first.kind,
+                        summary=first.summary,
+                        requested_by=first.requested_by,
+                    )
                     if first
                     else None
+                ),
+                invoice_status=po.invoice_status,
+                discrepancy=any(
+                    a.kind == "send_email" and a.requested_by == "logistics" for a in mine
                 ),
                 escalated=any(a.kind == "escalation" for a in mine)
                 or (bool(open_cases) and open_cases[0].status == "escalated"),

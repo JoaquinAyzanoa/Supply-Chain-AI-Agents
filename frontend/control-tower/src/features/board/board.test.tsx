@@ -37,6 +37,8 @@ const card = (over: Partial<Card> & Pick<Card, "po_id" | "po_name" | "column" | 
   summary: null,
   act_kind: null,
   can_act: false,
+  invoice_status: null,
+  discrepancy: false,
   odoo_url: `http://odoo/purchase.order/${over.po_id}`,
   ...over,
 });
@@ -44,7 +46,7 @@ const card = (over: Partial<Card> & Pick<Card, "po_id" | "po_name" | "column" | 
 const BOARD: Schemas["Board"] = {
   as_of: "2026-09-14",
   due_soon_days: 5,
-  counts: { proposed: 0, rfq_sent: 1, quote_received: 1, confirmed: 0, incoming: 1, received: 0, closed: 1 },
+  counts: { proposed: 0, rfq_sent: 1, quote_received: 1, confirmed: 0, incoming: 1, received: 0, invoicing: 0, closed: 1 },
   planning: { approval_id: 40, run_id: "run_7", as_of: "2026-09-14", summary: "2 RFQs, 3 rules" },
   cards: [
     card({ po_id: 2, po_name: "P00002", column: "rfq_sent", state: "sent", days_silent: 3, last_outbound: "2026-09-11", next_action: "follow_up", next_action_at: "2026-09-14" }),
@@ -144,6 +146,7 @@ describe("orders board", () => {
     expect(sent).toHaveTextContent("Next: Reminder");
     expect(within(screen.getByRole("region", { name: "Quotation received" })).getByRole("article", { name: "P00003" })).toHaveTextContent("Needs approval");
     expect(screen.getByRole("region", { name: "Proposals" })).toHaveTextContent("No orders here.");
+    expect(screen.getByRole("region", { name: "Invoicing" })).toBeInTheDocument();
     expect(screen.getByText(/Daily plan for/)).toHaveTextContent("Daily plan for Sep 14, 2026 awaits review: 2 RFQs, 3 rules.");
     expect(screen.getByRole("link", { name: "Review the plan" })).toHaveAttribute("href", "/planning/run_7");
     expect(screen.getAllByRole("link", { name: /Approvals/ })[0]).toHaveTextContent("1"); // the inbox count on the nav

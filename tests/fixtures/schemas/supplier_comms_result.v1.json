@@ -38,6 +38,8 @@
             "quotation",
             "eta_update",
             "question",
+            "shipping_notice",
+            "invoice",
             "other"
           ],
           "title": "Kind",
@@ -87,7 +89,8 @@
             "request_eta",
             "follow_up",
             "send_po",
-            "reply"
+            "reply",
+            "discrepancy"
           ],
           "title": "Kind",
           "type": "string"

@@ -71,7 +71,9 @@ class SupplierCommsTask(StrictModel):
 
 # --- what the agent produces along the way ------------------------------------------
 
-ClassificationKind = Literal["quotation", "eta_update", "question", "other"]
+ClassificationKind = Literal[
+    "quotation", "eta_update", "question", "shipping_notice", "invoice", "other"
+]
 
 
 class Classification(StrictModel):
@@ -133,7 +135,7 @@ class ChangeProposal(StrictModel):
         return [c for c in self.changes if not c.needs_review]
 
 
-DraftKind = Literal["rfq", "request_eta", "follow_up", "send_po", "reply"]
+DraftKind = Literal["rfq", "request_eta", "follow_up", "send_po", "reply", "discrepancy"]
 
 
 class OutboundDraft(StrictModel):
@@ -258,7 +260,298 @@ class InventoryPlanningResult(StrictModel):
         return self.outcome.status
 
 
+# --- logistics (phase 9) --------------------------------------------------------------
+
+LogisticsTaskKind = Literal["track_shipment", "reconcile_receipt", "report_discrepancy"]
+
+
+class LogisticsTask(StrictModel):
+    """What the director asks the logistics agent to do."""
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: LogisticsTaskKind
+    case_id: str = Field(min_length=1)
+    po_name: str | None = Field(default=None, description="Odoo order name, e.g. P00015")
+    graph_message_id: str | None = Field(
+        default=None, description="track_shipment: the supplier's shipping notice"
+    )
+    picking_id: int | None = Field(
+        default=None, description="reconcile_receipt / report_discrepancy: the receipt"
+    )
+    notes: str | None = Field(
+        default=None, max_length=2000, description="report_discrepancy: the clerk's words"
+    )
+    require_approval: bool = Field(default=False, description="a person asked; show it first")
+
+    @model_validator(mode="after")
+    def _required_by_kind(self) -> LogisticsTask:
+        if self.kind == "track_shipment" and not (self.po_name and self.graph_message_id):
+            raise ValueError("track_shipment needs po_name and graph_message_id")
+        if self.kind in ("reconcile_receipt", "report_discrepancy") and self.picking_id is None:
+            raise ValueError(f"{self.kind} needs picking_id")
+        return self
+
+
+class ShipmentInfo(StrictModel):
+    """What a shipping notice says: who carries it, the number to track, when it arrives."""
+
+    carrier: str | None = Field(default=None, max_length=100)
+    tracking_number: str | None = Field(default=None, max_length=100)
+    ship_date: date | None = None
+    eta_date: date | None = Field(default=None, description="arrival the agent derived")
+    eta_date_raw: str | None = Field(default=None, max_length=100)
+    partial: bool = False
+    packing_list: bool = False
+    notes: str | None = Field(default=None, max_length=1000)
+    confidence: float = Field(default=1.0, ge=0, le=1)
+
+
+DiscrepancyKind = Literal["short", "over", "damaged"]
+
+
+class ReceiptDiscrepancy(StrictModel):
+    po_line_id: int | None = None
+    product: str = Field(min_length=1)
+    kind: DiscrepancyKind
+    expected: float = Field(ge=0)
+    received: float = Field(ge=0)
+    uom: str | None = None
+
+    @property
+    def difference(self) -> float:
+        return self.received - self.expected
+
+
+class ReceiptReconciliation(StrictModel):
+    """Counted against expected on one receipt; empty ``discrepancies`` means a match."""
+
+    picking_id: int
+    picking_name: str = Field(min_length=1)
+    lines: int = Field(ge=0)
+    tolerance_pct: float = Field(default=0.0, ge=0)
+    discrepancies: list[ReceiptDiscrepancy] = Field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.discrepancies
+
+
+class LogisticsResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: LogisticsTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    po_name: str | None = None
+    shipment: ShipmentInfo | None = None
+    proposal: ChangeProposal | None = None
+    reconciliation: ReceiptReconciliation | None = None
+    outbound: OutboundSummary | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
+# --- invoice matching (phase 9) ----------------------------------------------------
+
+InvoiceTaskKind = Literal["match_bill"]
+
+
+class InvoiceMatchTask(StrictModel):
+    """What the director asks the invoice matching agent to do."""
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: InvoiceTaskKind
+    case_id: str = Field(min_length=1)
+    po_name: str | None = Field(default=None, description="the order, when already known")
+    graph_message_id: str | None = Field(
+        default=None, description="the supplier's email with the invoice attached"
+    )
+    move_id: int | None = Field(default=None, description="a vendor bill typed in Odoo")
+    notes: str | None = Field(default=None, max_length=2000)
+    require_approval: bool = Field(default=False, description="a person asked; show it first")
+
+    @model_validator(mode="after")
+    def _required_by_kind(self) -> InvoiceMatchTask:
+        if not (self.graph_message_id or self.move_id):
+            raise ValueError("match_bill needs graph_message_id or move_id")
+        return self
+
+
+class InvoiceLine(StrictModel):
+    description: str = Field(min_length=1, max_length=300)
+    product_ref: str | None = Field(default=None, max_length=100)
+    qty: float | None = Field(default=None, ge=0)
+    unit_price: float | None = Field(default=None, ge=0)
+    total: float | None = Field(default=None)
+
+
+class InvoiceData(StrictModel):
+    """What the invoice says, as printed (from the PDF, the email or the Odoo bill)."""
+
+    supplier_name: str | None = Field(default=None, max_length=200)
+    invoice_number: str | None = Field(default=None, max_length=100)
+    invoice_date: date | None = None
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    po_reference: str | None = Field(default=None, max_length=50)
+    lines: list[InvoiceLine] = Field(default_factory=list)
+    subtotal: float | None = None
+    tax: float | None = None
+    total: float | None = None
+    confidence: float = Field(default=1.0, ge=0, le=1)
+
+
+MatchStatus = Literal["ok", "price_variance", "qty_variance", "not_received", "unmatched"]
+
+
+class MatchLine(StrictModel):
+    po_line_id: int | None = None
+    product: str | None = None
+    invoice_description: str = Field(min_length=1)
+    invoice_qty: float | None = None
+    invoice_price: float | None = None
+    po_qty: float | None = None
+    po_price: float | None = None
+    received_qty: float | None = None
+    invoiced_qty: float | None = None
+    status: MatchStatus
+    note: str | None = None
+    similarity: float = Field(default=0.0, ge=0, le=1)
+
+
+BillVerdict = Literal["clean", "hold"]
+
+
+class BillMatch(StrictModel):
+    po_name: str | None = None
+    verdict: BillVerdict
+    lines: list[MatchLine] = Field(default_factory=list)
+    invoice_total: float | None = None
+    invoice_subtotal: float | None = None
+    expected_subtotal: float | None = None
+    price_tolerance_pct: float = 0.0
+    reasons: list[str] = Field(default_factory=list)
+
+
+class InvoiceMatchResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: InvoiceTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    po_name: str | None = None
+    invoice: InvoiceData | None = None
+    match: BillMatch | None = None
+    bill_id: int | None = None
+    bill_name: str | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
+# --- supplier performance (phase 9) ---------------------------------------------------
+
+PerformanceTaskKind = Literal["weekly_scorecard"]
+
+
+class SupplierPerformanceTask(StrictModel):
+    """What the director asks the performance agent to do (the weekly run)."""
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: PerformanceTaskKind
+    case_id: str = Field(min_length=1)
+    as_of: date | None = Field(default=None, description="period end; today when omitted")
+    partner_ids: list[int] = Field(
+        default_factory=list, description="empty = every active supplier"
+    )
+
+
+class SupplierScore(StrictModel):
+    """One supplier's numbers for a period, the model's paragraph and the flagged changes."""
+
+    partner_id: int
+    partner_name: str = Field(min_length=1)
+    period_start: date
+    period_end: date
+    otif: float | None = Field(default=None, ge=0, le=1)
+    lead_time_mean_days: float | None = Field(default=None, ge=0)
+    lead_time_sigma_days: float | None = Field(default=None, ge=0)
+    promise_drift_days: float | None = None
+    response_hours_median: float | None = Field(default=None, ge=0)
+    quality_rate: float | None = Field(default=None, ge=0, le=1)
+    price_cv: float | None = Field(default=None, ge=0)
+    score: float = Field(ge=0, le=100)
+    samples: dict[str, int] = Field(default_factory=dict)
+    scorecard: str | None = Field(default=None, max_length=1000)
+    trends: list[str] = Field(default_factory=list)
+
+
+class PerformanceApplied(StrictModel):
+    partners: int = 0
+    price_list_entries: int = 0
+    planning_params: int = 0
+
+
+class SupplierPerformanceResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: PerformanceTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    period_start: date | None = None
+    period_end: date | None = None
+    scores: list[SupplierScore] = Field(default_factory=list)
+    applied: PerformanceApplied | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
+class RankedSupplier(StrictModel):
+    rank: int = 0
+    partner_id: int
+    partner_name: str
+    score: float | None = None
+    otif: float | None = None
+    lead_time_mean_days: float | None = None
+    price: float | None = None
+    currency: str | None = None
+    min_qty: float = 0.0
+    promised_lead_days: int = 0
+    samples: dict[str, int] = Field(default_factory=dict)
+    why: str = ""
+
+
+class SupplierRanking(StrictModel):
+    product_id: int
+    suppliers: list[RankedSupplier] = Field(default_factory=list)
+
+
 CONTRACTS: dict[str, type[StrictModel]] = {
+    "supplier_performance_task": SupplierPerformanceTask,
+    "supplier_performance_result": SupplierPerformanceResult,
+    "invoice_match_task": InvoiceMatchTask,
+    "invoice_match_result": InvoiceMatchResult,
+    "logistics_task": LogisticsTask,
+    "logistics_result": LogisticsResult,
     "supplier_comms_task": SupplierCommsTask,
     "supplier_comms_result": SupplierCommsResult,
     "inventory_planning_task": InventoryPlanningTask,

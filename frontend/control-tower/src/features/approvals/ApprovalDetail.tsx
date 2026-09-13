@@ -15,12 +15,16 @@ import { formatDateTime } from "@/lib/utils";
 import { agentName } from "@/features/cases/labels";
 import { useResolveApproval } from "./api";
 import { ChangesCard, EmailCard, EscalationCard, PlanCard, type EmailEdits } from "./ApprovalCards";
+import { BillCard } from "./BillCard";
+import { ScoreCard } from "./ScoreCard";
 import {
+  billPayload,
   changePayload,
   emailPayload,
   escalationPayload,
   kindOf,
   planPayload,
+  scoresPayload,
   type Approval,
   type ProposedChange,
 } from "./types";
@@ -41,6 +45,8 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
     () => (kind === "escalation" ? escalationPayload.parse(approval.payload) : null),
     [kind, approval],
   );
+  const bill = useMemo(() => (kind === "vendor_bill" ? billPayload.parse(approval.payload) : null), [kind, approval]);
+  const scores = useMemo(() => (kind === "supplier_score" ? scoresPayload.parse(approval.payload) : null), [kind, approval]);
   const [editing, setEditing] = useState(false);
   const [emailEdits, setEmailEdits] = useState<EmailEdits>({ subject: "", html_body: "" });
   const [accepted, setAccepted] = useState<Set<number>>(new Set());
@@ -121,6 +127,8 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
         {changes ? <ChangesCard payload={changes} accepted={accepted} onToggle={toggle} /> : null}
         {plan ? <PlanCard payload={plan} /> : null}
         {escalation ? <EscalationCard payload={escalation} caseCode={approval.case_code} withChat={withChat} /> : null}
+        {bill ? <BillCard payload={bill} /> : null}
+        {scores ? <ScoreCard payload={scores} /> : null}
         {kind === "other" ? (
           <pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">{JSON.stringify(approval.payload, null, 2)}</pre>
         ) : null}

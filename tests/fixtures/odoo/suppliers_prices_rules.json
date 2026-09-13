@@ -73,7 +73,7 @@
       "email": "azure.Interior24@example.com",
       "email_normalized": "azure.interior24@example.com",
       "is_company": true,
-      "supplier_rank": 4,
+      "supplier_rank": 8,
       "parent_id": false,
       "commercial_partner_id": [
        15,
@@ -307,7 +307,7 @@
       "qty_forecast": 65.0,
       "qty_on_hand": 55.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-07",
+      "lead_days_date": "2026-10-08",
       "supplier_id": false,
       "active": true
      },
@@ -332,7 +332,7 @@
       "qty_forecast": 253.0,
       "qty_on_hand": 230.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-07",
+      "lead_days_date": "2026-10-08",
       "supplier_id": false,
       "active": true
      },
@@ -357,7 +357,7 @@
       "qty_forecast": 181.0,
       "qty_on_hand": 164.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-07",
+      "lead_days_date": "2026-10-08",
       "supplier_id": false,
       "active": true
      },
@@ -382,7 +382,7 @@
       "qty_forecast": 53.0,
       "qty_on_hand": 55.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-12",
+      "lead_days_date": "2026-10-13",
       "supplier_id": false,
       "active": true
      },
@@ -407,7 +407,7 @@
       "qty_forecast": 126.0,
       "qty_on_hand": 106.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-12",
+      "lead_days_date": "2026-10-13",
       "supplier_id": false,
       "active": true
      },
@@ -432,7 +432,7 @@
       "qty_forecast": 35.0,
       "qty_on_hand": 35.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-22",
+      "lead_days_date": "2026-10-23",
       "supplier_id": false,
       "active": true
      },
@@ -457,7 +457,7 @@
       "qty_forecast": 213.0,
       "qty_on_hand": 182.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-07",
+      "lead_days_date": "2026-10-08",
       "supplier_id": false,
       "active": true
      },
@@ -482,7 +482,7 @@
       "qty_forecast": 47.0,
       "qty_on_hand": 37.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-17",
+      "lead_days_date": "2026-10-18",
       "supplier_id": false,
       "active": true
      },
@@ -507,7 +507,7 @@
       "qty_forecast": 58.0,
       "qty_on_hand": 0.0,
       "trigger": "auto",
-      "lead_days_date": "2026-09-14",
+      "lead_days_date": "2026-09-15",
       "supplier_id": false,
       "active": true
      },
@@ -532,7 +532,7 @@
       "qty_forecast": 50.0,
       "qty_on_hand": 0.0,
       "trigger": "auto",
-      "lead_days_date": "2026-09-17",
+      "lead_days_date": "2026-09-18",
       "supplier_id": false,
       "active": true
      },
@@ -557,7 +557,7 @@
       "qty_forecast": 15.0,
       "qty_on_hand": 0.0,
       "trigger": "auto",
-      "lead_days_date": "2026-09-16",
+      "lead_days_date": "2026-09-17",
       "supplier_id": false,
       "active": true
      },
@@ -582,7 +582,7 @@
       "qty_forecast": 31.0,
       "qty_on_hand": 31.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-17",
+      "lead_days_date": "2026-10-18",
       "supplier_id": false,
       "active": true
      },
@@ -607,7 +607,7 @@
       "qty_forecast": 35.0,
       "qty_on_hand": 35.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-22",
+      "lead_days_date": "2026-10-23",
       "supplier_id": false,
       "active": true
      },
@@ -632,7 +632,7 @@
       "qty_forecast": 41.0,
       "qty_on_hand": 43.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-10",
+      "lead_days_date": "2026-10-11",
       "supplier_id": false,
       "active": true
      },
@@ -657,7 +657,7 @@
       "qty_forecast": 38.0,
       "qty_on_hand": 39.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-17",
+      "lead_days_date": "2026-10-18",
       "supplier_id": false,
       "active": true
      },
@@ -682,7 +682,7 @@
       "qty_forecast": 43.0,
       "qty_on_hand": 45.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-10",
+      "lead_days_date": "2026-10-11",
       "supplier_id": false,
       "active": true
      },
@@ -707,7 +707,7 @@
       "qty_forecast": 94.0,
       "qty_on_hand": 79.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-12",
+      "lead_days_date": "2026-10-13",
       "supplier_id": false,
       "active": true
      }
@@ -783,7 +783,7 @@
       "qty_forecast": 65.0,
       "qty_on_hand": 55.0,
       "trigger": "auto",
-      "lead_days_date": "2026-10-07",
+      "lead_days_date": "2026-10-08",
       "supplier_id": false,
       "active": true
      }

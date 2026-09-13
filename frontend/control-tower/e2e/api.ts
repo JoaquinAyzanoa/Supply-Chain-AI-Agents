@@ -111,7 +111,7 @@ export function makeState() {
       as_of: "2026-09-14",
       due_soon_days: 5,
       planning: { approval_id: 2, run_id: "run_1", as_of: "2026-09-14", summary: "2 RFQs, 3 rules" },
-      counts: { proposed: 0, rfq_sent: 1, quote_received: 0, confirmed: 0, incoming: 1, received: 0, closed: 0 },
+      counts: { proposed: 0, rfq_sent: 1, quote_received: 0, confirmed: 0, incoming: 1, received: 0, invoicing: 0, closed: 0 },
       cards: [
         {
           po_id: 15,
@@ -143,6 +143,8 @@ export function makeState() {
           summary: "RFQ sent, waiting for the supplier",
           act_kind: "rfq_no_reply",
           can_act: false,
+          invoice_status: null,
+          discrepancy: false,
           odoo_url: "http://odoo/purchase.order/15",
         },
         {
@@ -175,6 +177,8 @@ export function makeState() {
           summary: null,
           act_kind: "late_po",
           can_act: true,
+          invoice_status: null,
+          discrepancy: false,
           odoo_url: "http://odoo/purchase.order/16",
         },
       ],
@@ -232,6 +236,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       return json(route, 200, { id, status: body.status, resolved_by: user.name, callback_status: "sent" });
     }
     if (path === "/api/board") return json(route, 200, state.board);
+    if (path === "/api/performance/scores") return json(route, 200, []);
     if (path === "/api/mailbox/sync") return json(route, 200, { status: "ok", fetched: 0, linked: 0, unlinked: 0, ignored: 0, errors: 0, linked_po_names: [], message: "no new emails" });
     const move = path.match(/^\/api\/board\/(\w+)\/move$/);
     if (move && request.method() === "POST") {
@@ -251,6 +256,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path === "/api/exceptions") return json(route, 200, { as_of: "2026-09-14", late_pos: [], rfqs_no_reply: [], unlinked_mails: [], failed_runs: [], stale_approvals: [] });
     if (path === "/api/planning/runs") return json(route, 200, [state.run]);
     if (path === "/api/planning/runs/run_1") return json(route, 200, { run: state.run, lines: state.lines });
+    if (path === "/api/planning/runs/run_1/ranking") return json(route, 200, { run_id: "run_1", better_count: 0, lines: [] });
     if (path.startsWith("/api/planning/runs/run_1/lines/")) return json(route, 200, { line_id: "run_1:102", product_id: 102, forecast_daily: 2, sigma_daily: 0.5, days: [{ day: "2026-09-13", ordered: 3, delivered: 3 }] });
     if (path === "/api/runs") return json(route, 200, []);
     if (path === "/api/runs/scheduler") return json(route, 200, []);

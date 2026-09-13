@@ -1,0 +1,26 @@
+[project]
+name = "logistics"
+version = "0.1.0"
+description = "Logistics agent: shipment notices, receipt reconciliation and discrepancy reports with human approval"
+requires-python = ">=3.13,<3.15"
+dependencies = [
+  "sc_core",
+  "supplier_comms",
+  "fastapi>=0.116.1",
+  "fastapi-injector>=0.8.0",
+  "injector>=0.22.0",
+  "langgraph>=1.2,<2",
+  "loguru>=0.7.3",
+  "pydantic>=2.11.0",
+]
+
+[tool.uv.sources]
+sc_core = { workspace = true }
+supplier_comms = { workspace = true }
+
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["logistics"]

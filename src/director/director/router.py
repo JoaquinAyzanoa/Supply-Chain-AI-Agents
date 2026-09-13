@@ -18,15 +18,29 @@ from collections.abc import Callable
 from typing import Any, Literal
 
 from director.store import CaseKind
-from sc_core.schema.a2a import InventoryPlanningTask, SupplierCommsTask
+from sc_core.schema.a2a import (
+    InventoryPlanningTask,
+    InvoiceMatchTask,
+    LogisticsTask,
+    SupplierCommsTask,
+    SupplierPerformanceTask,
+)
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import BaseEvent
 
-AgentName = Literal["supplier_comms", "inventory_planning", "logistics"]
+AgentName = Literal[
+    "supplier_comms", "inventory_planning", "logistics", "invoice_match", "supplier_performance"
+]
 
 # Phase 9 adds the logistics task; the union keeps ``Route.dispatches`` typed
 # without a wrapper per agent (the ``kind`` literals never overlap).
-AgentTask = SupplierCommsTask | InventoryPlanningTask
+AgentTask = (
+    SupplierCommsTask
+    | InventoryPlanningTask
+    | LogisticsTask
+    | InvoiceMatchTask
+    | SupplierPerformanceTask
+)
 
 
 class Dispatch(StrictModel):
@@ -80,6 +94,7 @@ def _build_routes() -> dict[type[BaseEvent], Handler]:
         ev.ScheduledTick: jobs.dispatch,
         ev.OdooPurchaseConfirmed: odoo_events.on_po_confirmed,
         ev.OdooReceiptValidated: odoo_events.on_receipt,
+        ev.OdooBillCreated: odoo_events.on_bill_created,
         ev.OdooOrderpointTriggered: odoo_events.on_orderpoint,
         ev.OdooApprovalResolved: odoo_events.on_approval_resolved,
         ev.AgentRunFinished: agent_events.on_run_finished,

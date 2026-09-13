@@ -29,6 +29,7 @@ from director.api.chat import (
 )
 from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import HttpMailboxSync, MailboxSync
+from director.api.performance import HttpPerformanceSource, PerformanceSource
 from director.api.planning import (
     DemandSource,
     HttpDemandSource,
@@ -47,6 +48,7 @@ from director.escalation import (
     OdooEscalator,
 )
 from director.handlers.followups import FollowUpJob, MailActivity
+from director.handlers.performance import PerformanceJob
 from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
 from director.jobs import JobRunner
@@ -243,6 +245,12 @@ class DirectorModule(Module):
                     escalator=escalator,
                     conversations=PostgresConversationLookup(db),
                 ),
+                "supplier_performance": PerformanceJob(
+                    cases=cases,
+                    agents=agents,
+                    escalator=escalator,
+                    conversations=PostgresConversationLookup(db),
+                ),
             }
         )
 
@@ -265,6 +273,11 @@ class DirectorModule(Module):
     @singleton
     def provide_demand_source(self, settings: Settings) -> DemandSource:  # type: ignore[type-abstract]
         return HttpDemandSource(settings.a2a.inventory_planning_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_performance_source(self, settings: Settings) -> PerformanceSource:  # type: ignore[type-abstract]
+        return HttpPerformanceSource(settings.a2a.supplier_performance_url, settings.a2a_token)
 
     @provider
     @singleton

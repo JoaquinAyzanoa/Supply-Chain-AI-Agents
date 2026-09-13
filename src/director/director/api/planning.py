@@ -22,8 +22,15 @@ from pydantic import ValidationError
 
 from director.agents import Agents
 from director.api.auth import Approver, Principal, Viewer
+from director.api.performance import PerformanceSource
 from sc_core.infra.db import Database
-from sc_core.schema.a2a import InventoryPlanningResult, InventoryPlanningTask, PlanningOverrides
+from sc_core.schema.a2a import (
+    InventoryPlanningResult,
+    InventoryPlanningTask,
+    PlanningOverrides,
+    RankedSupplier,
+    SupplierRanking,
+)
 from sc_core.schema.base import StrictModel
 from sc_core.schema.planning import ReplenishmentLine
 from sc_core.shared.errors import ScError
@@ -85,6 +92,58 @@ class LineDemand(StrictModel):
     since: date | None = None
     until: date | None = None
     days: list[DemandDay] = []
+
+
+class LineRanking(StrictModel):
+    """Who could supply one line's product, best first, and whether someone beats the
+    supplier the planner chose (the price list's preferred one)."""
+
+    line_id: str
+    product_id: int
+    supplier_id: int | None = None
+    suppliers: list[RankedSupplier] = []
+    better: RankedSupplier | None = None
+
+
+class RunRanking(StrictModel):
+    run_id: str
+    lines: list[LineRanking] = []
+    better_count: int = 0
+
+
+def better_than_chosen(ranking: SupplierRanking, supplier_id: int | None) -> RankedSupplier | None:
+    """The top-ranked supplier when it is not the chosen one and has a real score.
+
+    A newcomer without history is never "better": it is listed, not recommended.
+    """
+    if not ranking.suppliers:
+        return None
+    first = ranking.suppliers[0]
+    if first.partner_id == supplier_id or first.score is None:
+        return None
+    return first
+
+
+def rank_lines(
+    run_id: str, lines: list[PlanningLineRow], rankings: dict[int, SupplierRanking]
+) -> RunRanking:
+    out: list[LineRanking] = []
+    for row in lines:
+        ranking = rankings.get(row.line.product_id)
+        if ranking is None:
+            continue
+        out.append(
+            LineRanking(
+                line_id=row.line.line_id,
+                product_id=row.line.product_id,
+                supplier_id=row.line.supplier_id,
+                suppliers=ranking.suppliers,
+                better=better_than_chosen(ranking, row.line.supplier_id),
+            )
+        )
+    return RunRanking(
+        run_id=run_id, lines=out, better_count=sum(1 for item in out if item.better is not None)
+    )
 
 
 @runtime_checkable
@@ -250,6 +309,26 @@ async def what_if(
     return WhatIfResponse(
         baseline=baseline, simulated=result.proposal.lines[0], run_id=result.run_id
     )
+
+
+@router.get("/runs/{run_id}/ranking", response_model=RunRanking)
+async def run_ranking(
+    run_id: str,
+    _: Principal = Viewer,
+    store: PlanningReadStore = Injected(PlanningReadStore),  # type: ignore[type-abstract]
+    performance: PerformanceSource = Injected(PerformanceSource),  # type: ignore[type-abstract]
+) -> RunRanking:
+    """Supplier ranking for every line of the run, from the performance agent's scores."""
+    if await store.run(run_id) is None:
+        raise HTTPException(status_code=404, detail="planning run not found")
+    lines = await store.lines(run_id)
+    product_ids = sorted({row.line.product_id for row in lines})
+    try:
+        rows = await performance.rank_many(product_ids)
+    except ScError as exc:
+        raise HTTPException(status_code=502, detail=exc.message) from exc
+    rankings = {r.product_id: r for r in (SupplierRanking.model_validate(row) for row in rows)}
+    return rank_lines(run_id, lines, rankings)
 
 
 @router.get("/runs/{run_id}/lines/{line_id}/demand", response_model=LineDemand)

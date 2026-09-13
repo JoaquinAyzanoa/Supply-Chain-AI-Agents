@@ -4,7 +4,7 @@
  * (EmailEdits, ChangeEdits or PlanEdits).
  */
 import { Link } from "@tanstack/react-router";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, Trophy } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Input, Label, Textarea } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useI18n } from "@/i18n";
 import { formatDate, formatNumber } from "@/lib/utils";
 import { CaseChat } from "@/features/chat/CaseChat";
+import { useRunRanking } from "@/features/planning/api";
 import { EmailPreview } from "./EmailPreview";
 import type { ChangePayload, EmailPayload, EscalationPayload, PlanPayload, ProposedChange } from "./types";
 
@@ -155,6 +156,7 @@ function formatValue(field: string, value: string | number | null | undefined, l
 export function PlanCard({ payload }: { payload: PlanPayload }) {
   const { t, locale } = useI18n();
   const totals = payload.totals;
+  const ranking = useRunRanking(payload.run_id); // who else could supply each line
   return (
     <div className="flex flex-col gap-3 text-sm">
       {payload.summary ? <p className="whitespace-pre-line">{payload.summary}</p> : null}
@@ -165,6 +167,11 @@ export function PlanCard({ payload }: { payload: PlanPayload }) {
         <Badge variant={totals.exceptions ? "warning" : "secondary"}>
           {t("approvals.plan.exceptions", { n: totals.exceptions ?? payload.exceptions.length })}
         </Badge>
+        {ranking.data && ranking.data.better_count > 0 ? (
+          <Badge variant="warning" className="gap-1">
+            <Trophy className="h-3 w-3" /> {t("approvals.plan.better", { n: ranking.data.better_count })}
+          </Badge>
+        ) : null}
       </div>
       <Link to="/planning/$runId" params={{ runId: payload.run_id }} className="inline-flex items-center gap-1 text-primary underline">
         {t("approvals.plan.review")} <ExternalLink className="h-3 w-3" />

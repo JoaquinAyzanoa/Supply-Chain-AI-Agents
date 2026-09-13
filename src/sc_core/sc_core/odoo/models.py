@@ -112,6 +112,7 @@ def odoo_now() -> str:
 
 PurchaseState = Literal["draft", "sent", "to approve", "purchase", "done", "cancel"]
 ReceiptStatus = Literal["pending", "partial", "full"]
+InvoiceStatus = Literal["no", "to invoice", "invoiced"]
 EtaSource = Literal["supplier", "tracking", "estimated"]
 
 
@@ -132,6 +133,7 @@ class PurchaseOrder(OdooModel):
     company_id: Ref | None = None
     user_id: Ref | None = None
     receipt_status: ReceiptStatus | None = None
+    invoice_status: InvoiceStatus | None = None
     order_line: list[int] = []
     picking_ids: list[int] = []
     sc_external_ref: str | None = None
@@ -164,6 +166,7 @@ class PurchaseOrderLine(OdooModel):
     date_planned: datetime | None = None
     qty_received: float = 0.0
     qty_invoiced: float = 0.0
+    qty_to_invoice: float = 0.0
     state: PurchaseState | None = None
 
     @property
@@ -262,6 +265,75 @@ class StockMove(OdooModel):
     date: datetime | None = None
 
 
+class StockMoveLine(OdooModel):
+    """What was counted on a receipt line (``quantity``), against its move."""
+
+    ODOO_MODEL: ClassVar[str] = "stock.move.line"
+
+    product_id: Ref
+    move_id: Ref | None = None
+    picking_id: Ref | None = None
+    quantity: float = 0.0  # counted, in the line's unit
+    quantity_product_uom: float = 0.0  # the same, in the product's unit
+    picked: bool = False
+    state: str
+    date: datetime | None = None
+    lot_id: Ref | None = None
+
+
+# --- accounting ----------------------------------------------------------------
+
+BillState = Literal["draft", "posted", "cancel"]
+
+
+class AccountMove(OdooModel):
+    """A vendor bill (``move_type`` in_invoice / in_refund). Read and drafted, never posted."""
+
+    ODOO_MODEL: ClassVar[str] = "account.move"
+
+    name: str | None = None
+    move_type: str
+    state: BillState
+    partner_id: Ref | None = None
+    invoice_date: date | None = None
+    invoice_date_due: date | None = None
+    ref: str | None = None  # the supplier's invoice number
+    payment_reference: str | None = None
+    invoice_origin: str | None = None
+    amount_untaxed: float = 0.0
+    amount_total: float = 0.0
+    amount_residual: float = 0.0
+    currency_id: Ref | None = None
+    payment_state: str | None = None
+    purchase_id: Ref | None = None
+    invoice_line_ids: list[int] = []
+    create_date: datetime | None = None
+    # what the invoice matching agent wrote (the "AI Agent" tab of the invoice form)
+    sc_match_verdict: str | None = None
+    sc_matched_po_id: Ref | None = None
+    sc_match_summary: str | None = None
+    sc_checked_at: datetime | None = None
+
+    @property
+    def is_draft(self) -> bool:
+        return self.state == "draft"
+
+
+class AccountMoveLine(OdooModel):
+    ODOO_MODEL: ClassVar[str] = "account.move.line"
+
+    move_id: Ref
+    product_id: Ref | None = None
+    name: str | None = None
+    quantity: float = 0.0
+    price_unit: float = 0.0
+    discount: float = 0.0
+    price_subtotal: float = 0.0
+    price_total: float = 0.0
+    purchase_line_id: Ref | None = None
+    display_type: str | None = None
+
+
 # --- partners and activities -------------------------------------------------
 
 
@@ -301,7 +373,14 @@ class Activity(OdooModel):
 # --- sc_agents addon ----------------------------------------------------------
 
 ApprovalKind = Literal[
-    "send_email", "po_change", "orderpoint_change", "planning_run", "unlinked_mail", "escalation"
+    "send_email",
+    "po_change",
+    "orderpoint_change",
+    "planning_run",
+    "unlinked_mail",
+    "escalation",
+    "vendor_bill",
+    "supplier_score",
 ]
 ApprovalStatus = Literal["pending", "approved", "rejected", "expired"]
 RunStatus = Literal[

@@ -20,6 +20,7 @@ import { PlanningPage } from "@/features/planning/PlanningPage";
 import { PlanningRunPage } from "@/features/planning/PlanningRunPage";
 import { RunsPage, type RunsSearch } from "@/features/runs/RunsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
+import { SuppliersPage } from "@/features/suppliers/SuppliersPage";
 
 export interface RouterContext {
   auth: AuthState;
@@ -98,6 +99,7 @@ export const casesRoute = createRoute({
 });
 export const caseRoute = child("/cases/$caseId", CaseTimelinePage);
 export const exceptionsRoute = child("/exceptions", ExceptionsBoardPage);
+export const suppliersRoute = child("/suppliers", SuppliersPage);
 export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
 const runsSearch = z.object({
@@ -130,6 +132,7 @@ const routeTree = rootRoute.addChildren([
     casesRoute,
     caseRoute,
     exceptionsRoute,
+    suppliersRoute,
     planningRoute,
     planningRunRoute,
     runsRoute,

@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_sc_agents" model="ir.ui.view">
+        <field name="name">res.partner.form.sc_agents</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="Supplier performance" name="sc_performance" invisible="not supplier_rank">
+                    <group>
+                        <group>
+                            <field name="sc_score"/>
+                            <field name="sc_otif" widget="percentage"/>
+                        </group>
+                        <group>
+                            <field name="sc_lead_time_mean"/>
+                            <field name="sc_lead_time_std"/>
+                            <field name="sc_scored_at"/>
+                        </group>
+                    </group>
+                    <p class="text-muted">
+                        Computed by the supplier performance agent from receipts, promises,
+                        emails and prices; updated after each approved weekly run.
+                    </p>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -20,6 +20,7 @@ class LineView(StrictModel):
     currency: str | None = None
     date_planned: date | None = None
     qty_received: float = 0.0
+    qty_invoiced: float = 0.0
 
 
 class PoContext(StrictModel):

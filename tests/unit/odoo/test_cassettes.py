@@ -13,10 +13,12 @@ from datetime import date
 
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import (
+    AccountMoveRepo,
     OrderpointRepo,
     PartnerRepo,
     PickingRepo,
     PurchaseOrderRepo,
+    StockMoveLineRepo,
     SupplierInfoRepo,
 )
 
@@ -60,6 +62,34 @@ async def test_pickings_for_demo_order(cassette: Cassette) -> None:
     assert pickings and pickings[0].purchase_id is not None and pickings[0].purchase_id.id == po.id
     moves = await PickingRepo(client).moves(pickings[0].id)
     assert moves and moves[0].picking_id is not None and moves[0].picking_id.id == pickings[0].id
+
+
+async def test_received_lines_and_draft_bill_for_hidraulica(cassette: Cassette) -> None:
+    """P00016 (Proveedor Hidraulica) was received in full and is still to invoice."""
+    client = cassette("bills_and_move_lines")
+    po = await PurchaseOrderRepo(client).get_by_name("P00016")
+    assert po is not None and po.partner_id.name == "Proveedor Hidraulica"
+
+    received = await StockMoveLineRepo(client).received_for_po(po.id)
+    assert len(received) == len(po.order_line) == 14
+    assert all(line.state == "done" and line.picked for line in received)
+    by_picking = await StockMoveLineRepo(client).for_picking(received[0].picking_id.id)  # type: ignore[union-attr]
+    assert {line.id for line in by_picking} == {line.id for line in received}
+    valve = next(line for line in received if "[CBEA-LHN]" in line.product_id.name)
+    assert valve.quantity == 13.0
+
+    bills = AccountMoveRepo(client)
+    draft = await bills.create_draft_bill(po.id, ref="F001-000123", invoice_date=date(2024, 9, 2))
+    assert draft.is_draft and draft.ref == "F001-000123" and draft.invoice_date == date(2024, 9, 2)
+    assert draft.partner_id is not None and draft.partner_id.name == "Proveedor Hidraulica"
+    again = await bills.create_draft_bill(po.id, ref="F001-000123", invoice_date=date(2024, 9, 2))
+    assert again.id == draft.id  # idempotent: one draft per order
+    lines = await bills.lines(draft.id)
+    assert len(lines) == 14 and all(line.purchase_line_id is not None for line in lines)
+    assert sum(line.quantity for line in lines) == sum(line.quantity for line in received)
+    assert (await bills.find_by_ref(po.partner_id.id, "F001-000123")) is not None
+    assert [b.id for b in await bills.bills_for_po(po.id)] == [draft.id]
+    assert draft.id in {b.id for b in await bills.bills_for_partner(po.partner_id.id)}
 
 
 async def test_partner_email_lookups(cassette: Cassette) -> None:

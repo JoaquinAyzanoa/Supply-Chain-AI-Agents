@@ -34,6 +34,165 @@ def language_name(lang: Language) -> str:
 MESSAGES: dict[str, dict[Language, str]] = {
     # --- shared ----------------------------------------------------------------------
     "signature": {"en": "Purchasing Team", "es": "Equipo de Compras"},
+    # --- logistics: shipping notices -------------------------------------------------
+    "shipment.summary": {
+        "en": (
+            "arrival {date} on {n} line(s) per the shipping notice "
+            "(carrier {carrier}, tracking {tracking})"
+        ),
+        "es": (
+            "llegada {date} en {n} línea(s) según el aviso de despacho "
+            "(transportista {carrier}, guía {tracking})"
+        ),
+    },
+    "shipment.low_confidence": {
+        "en": "arrival date inferred with low confidence",
+        "es": "fecha de llegada deducida con baja confianza",
+    },
+    "shipment.no_date": {
+        "en": "shipping notice on {po} recorded; it gives no arrival date",
+        "es": "aviso de despacho de {po} registrado; no indica fecha de llegada",
+    },
+    "shipment.unchanged": {
+        "en": "shipping notice on {po} confirms the planned arrival {date}",
+        "es": "el aviso de despacho de {po} confirma la llegada prevista {date}",
+    },
+    "shipment.carrier": {"en": "Carrier", "es": "Transportista"},
+    "shipment.tracking": {"en": "Tracking", "es": "Guía"},
+    "shipment.shipped": {"en": "Dispatched", "es": "Despachado"},
+    "shipment.arrival": {"en": "Arrival", "es": "Llegada"},
+    "shipment.partial": {"en": "Partial shipment", "es": "Envío parcial"},
+    "shipment.applied_note": {
+        "en": "<p>Shipping notice applied: {n} date(s) updated, approved by {who}.</p>",
+        "es": "<p>Aviso de despacho aplicado: {n} fecha(s) actualizada(s), aprobado por {who}.</p>",
+    },
+    "shipment.applied_summary": {
+        "en": "arrival date from the shipping notice applied on {n} line(s) of {po}",
+        "es": "fecha de llegada del aviso de despacho aplicada en {n} línea(s) de {po}",
+    },
+    # --- supplier performance -------------------------------------------------------------
+    "score.nobody": {
+        "en": "no supplier had a confirmed order since {since}; nothing to score",
+        "es": "ningún proveedor tuvo órdenes confirmadas desde {since}; nada que puntuar",
+    },
+    "score.approval_summary": {
+        "en": (
+            "Weekly supplier scorecards to {end}: {n} supplier(s), {flagged} with changes to watch"
+        ),
+        "es": (
+            "Puntuaciones semanales de proveedores al {end}: {n} proveedor(es), "
+            "{flagged} con cambios a vigilar"
+        ),
+    },
+    "score.applied_summary": {
+        "en": "scores written on {partners} supplier(s), {entries} price list lead time(s) and "
+        "{params} planning parameter(s)",
+        "es": "puntuaciones escritas en {partners} proveedor(es), {entries} plazo(s) de la "
+        "lista de precios y {params} parámetro(s) de planificación",
+    },
+    "score.rejected_summary": {
+        "en": "weekly scorecards not applied: rejected by {who} ({reason})",
+        "es": "puntuaciones semanales no aplicadas: rechazadas por {who} ({reason})",
+    },
+    # --- invoice matching ---------------------------------------------------------------
+    "bill.already": {
+        "en": "invoice {number} is already recorded as {bill}",
+        "es": "la factura {number} ya está registrada como {bill}",
+    },
+    "bill.no_order": {
+        "en": "the invoice could not be matched to an order: {why}",
+        "es": "la factura no pudo asociarse a una orden: {why}",
+    },
+    "bill.no_supplier": {
+        "en": "the invoice names no order and its sender is not a known supplier",
+        "es": "la factura no indica orden y su remitente no es un proveedor conocido",
+    },
+    "bill.approval_clean": {
+        "en": "Record invoice {number} from {partner} for {po} ({amount}): it matches",
+        "es": "Registrar la factura {number} de {partner} por {po} ({amount}): coincide",
+    },
+    "bill.approval_hold": {
+        "en": "Invoice {number} from {partner} for {po} ({amount}) does not match: decide",
+        "es": "La factura {number} de {partner} por {po} ({amount}) no coincide: decidir",
+    },
+    "bill.auto_reason": {
+        "en": "clean invoice under the automatic limit of {amount}",
+        "es": "factura sin diferencias bajo el límite automático de {amount}",
+    },
+    "bill.col.product": {"en": "Product", "es": "Producto"},
+    "bill.col.billed": {"en": "Billed", "es": "Facturado"},
+    "bill.col.price": {"en": "Unit price", "es": "Precio unitario"},
+    "bill.col.ordered": {"en": "Ordered @ price", "es": "Pedido @ precio"},
+    "bill.col.received": {"en": "Received", "es": "Recibido"},
+    "bill.col.status": {"en": "Check", "es": "Verificación"},
+    "bill.status.ok": {"en": "ok", "es": "ok"},
+    "bill.status.price_variance": {"en": "price differs", "es": "precio distinto"},
+    "bill.status.qty_variance": {"en": "more than ordered", "es": "más de lo pedido"},
+    "bill.status.not_received": {"en": "not received", "es": "no recibido"},
+    "bill.status.unmatched": {"en": "not on the order", "es": "no está en la orden"},
+    "bill.verdict.clean": {"en": "matches", "es": "coincide"},
+    "bill.verdict.hold": {"en": "does not match", "es": "no coincide"},
+    "bill.check_clean": {
+        "en": "All {n} line(s) match the order and the receipts.",
+        "es": "Las {n} línea(s) coinciden con la orden y las recepciones.",
+    },
+    "bill.check_hold": {"en": "Held: {reasons}.", "es": "Retenida: {reasons}."},
+    "bill.checked_note": {
+        "en": "<p>Vendor bill {bill} checked against the order: {verdict}. Decided by {who}.</p>",
+        "es": "<p>Factura {bill} verificada contra la orden: {verdict}. Decidido por {who}.</p>",
+    },
+    "bill.checked_summary": {
+        "en": "bill {bill} checked against {po}",
+        "es": "factura {bill} verificada contra {po}",
+    },
+    "bill.created_note": {
+        "en": "<p>Invoice {number} recorded as draft bill {bill} ({verdict}), approved by {who}. "
+        "Nothing is posted: accounting posts it.</p>",
+        "es": (
+            "<p>Factura {number} registrada como borrador {bill} ({verdict}), aprobada por {who}. "
+            "No se contabiliza: contabilidad la valida.</p>"
+        ),
+    },
+    "bill.created_summary": {
+        "en": "invoice {number} recorded as draft bill {bill} on {po}",
+        "es": "factura {number} registrada como borrador {bill} en {po}",
+    },
+    "bill.rejected_note": {
+        "en": "<p>Invoice {number} not recorded: rejected by {who}. Reason: {reason}</p>",
+        "es": "<p>Factura {number} no registrada: rechazada por {who}. Motivo: {reason}</p>",
+    },
+    "bill.rejected_summary": {
+        "en": "invoice {number} not recorded: rejected by {who} ({reason})",
+        "es": "factura {number} no registrada: rechazada por {who} ({reason})",
+    },
+    # --- logistics: receipts ------------------------------------------------------------
+    "receipt.match_note": {
+        "en": "<p>Receipt {picking} checked: {n} line(s) received as ordered.</p>",
+        "es": "<p>Recepción {picking} verificada: {n} línea(s) recibidas según lo pedido.</p>",
+    },
+    "receipt.match_summary": {
+        "en": "receipt {picking} matches {po}: {n} line(s) in full",
+        "es": "la recepción {picking} coincide con {po}: {n} línea(s) completas",
+    },
+    "receipt.col.product": {"en": "Product", "es": "Producto"},
+    "receipt.col.expected": {"en": "Expected", "es": "Esperado"},
+    "receipt.col.received": {"en": "Received", "es": "Recibido"},
+    "receipt.col.difference": {"en": "Difference", "es": "Diferencia"},
+    "receipt.kind.short": {"en": "short", "es": "faltante"},
+    "receipt.kind.over": {"en": "over", "es": "excedente"},
+    "receipt.kind.damaged": {"en": "damaged", "es": "dañado"},
+    "receipt.approval_summary": {
+        "en": "Report receipt discrepancies to {partner} on {po}",
+        "es": "Reportar diferencias de recepción a {partner} por {po}",
+    },
+    "receipt.kind_label": {
+        "en": "receipt discrepancy report",
+        "es": "reporte de diferencias de recepción",
+    },
+    "receipt.sent_summary": {
+        "en": "receipt discrepancy report sent to {partner} for {po}",
+        "es": "reporte de diferencias de recepción enviado a {partner} por {po}",
+    },
     "common.no_reason": {"en": "no reason given", "es": "sin motivo"},
     "common.open_outlook": {"en": "Open in Outlook", "es": "Abrir en Outlook"},
     "common.open_control_tower": {

@@ -102,6 +102,41 @@ async def _seed(module: MemoryDirectorModule) -> None:
     b.add(_po(6, "P00006", "purchase", planned_in=-4, sc_eta_source="supplier"))
     b.add(_po(7, "P00007", "purchase", planned_in=-1, receipt_status="full"))
     b.add(_po(8, "P00008", "done"))
+    b.add(
+        _po(
+            9,
+            "P00009",
+            "purchase",
+            planned_in=-10,
+            receipt_status="full",
+            invoice_status="invoiced",
+        )
+    )
+    b.add(
+        _po(
+            10,
+            "P00010",
+            "purchase",
+            planned_in=-9,
+            receipt_status="full",
+            invoice_status="to invoice",
+        )
+    )
+    module.approvals.seed(
+        34, kind="vendor_bill", summary="Record invoice F001-000123", po=(10, "P00010")
+    )
+    module.approvals.seed(
+        35,
+        kind="send_email",
+        summary="Report receipt discrepancies",
+        po=(7, "P00007"),
+        requested_by="logistics",
+    )
+    b.add(_po(11, "P00011", "purchase", planned_in=-400, receipt_status="full"))
+    b.off_board.add(11)  # received a year ago: off the board unless someone must decide on it
+    module.approvals.seed(
+        36, kind="vendor_bill", summary="Record invoice F001-000900", po=(11, "P00011")
+    )
     module.approvals.seed(31, kind="po_change", summary="date change on P00003", po=(3, "P00003"))
     module.approvals.seed(32, kind="escalation", summary="P00006 needs a person", po=(6, "P00006"))
     module.approvals.seed(
@@ -150,8 +185,15 @@ async def test_board_puts_every_order_in_its_column_with_colours_and_badges(
         "P00006": "incoming",
         "P00007": "received",
         "P00008": "closed",
+        "P00009": "invoicing",
+        "P00010": "invoicing",
+        "P00011": "invoicing",
     }
     assert board["counts"]["incoming"] == 2 and board["due_soon_days"] == 5
+    assert board["counts"]["invoicing"] == 3
+    assert by_name["P00007"]["discrepancy"] is True and by_name["P00009"]["discrepancy"] is False
+    assert by_name["P00010"]["pending_approval"]["kind"] == "vendor_bill"
+    assert by_name["P00007"]["pending_approval"]["requested_by"] == "logistics"
     assert (
         by_name["P00005"]["delivery"] == "due_soon" and by_name["P00004"]["delivery"] == "on_time"
     )
@@ -185,6 +227,7 @@ async def test_board_puts_every_order_in_its_column_with_colours_and_badges(
         "id": 31,
         "kind": "po_change",
         "summary": "date change on P00003",
+        "requested_by": "supplier_comms",
     }
     assert by_name["P00001"]["odoo_url"] == "http://odoo.test:8069/odoo/purchase.order/1"
     assert board["cards"][-1]["po_name"] == "P00008"  # closed last; late first within a column

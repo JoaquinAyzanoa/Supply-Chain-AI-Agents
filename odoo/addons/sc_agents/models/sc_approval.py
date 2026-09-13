@@ -29,6 +29,8 @@ APPROVAL_KINDS = [
     ("planning_run", "Planning run"),
     ("unlinked_mail", "Unlinked mail"),
     ("escalation", "Escalation"),
+    ("vendor_bill", "Vendor bill"),
+    ("supplier_score", "Supplier scorecards"),
 ]
 APPROVAL_STATUSES = [
     ("pending", "Pending"),

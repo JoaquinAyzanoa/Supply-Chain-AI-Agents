@@ -56,9 +56,12 @@ just run director      # exactly what the container runs
 
 The director container publishes on host port 8010 by default (8000 is often
 taken on developer machines), mail_sync on 8011, the scheduler on 8012, the
-supplier_comms agent on 8013 and the inventory_planning agent on 8014;
-override with `SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`,
-`SC_SUPPLIER_COMMS_PORT`, `SC_INVENTORY_PLANNING_PORT`.
+supplier_comms agent on 8013, the inventory_planning agent on 8014 and the
+logistics agent on 8015, the invoice_match agent on 8016 and the
+supplier_performance agent on 8017; override with `SC_DIRECTOR_PORT`,
+`SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`, `SC_SUPPLIER_COMMS_PORT`,
+`SC_INVENTORY_PLANNING_PORT`, `SC_LOGISTICS_PORT`, `SC_INVOICE_MATCH_PORT`,
+`SC_SUPPLIER_PERFORMANCE_PORT`.
 Odoo publishes on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
@@ -264,6 +267,89 @@ model only explains.
   plan on the demo and leaves the approval pending in Odoo. Model answers for
   the unit tests are replayed from `tests/fixtures/llm/inventory_planning.json`.
 
+## Logistics agent
+
+`logistics` closes the loop between the order and the warehouse. It reuses
+the supplier agent's ports as a library (one place knows how to read an
+email from Graph and send a draft) and has its own graph, task and result.
+
+- **Shipping notices**: when the supplier agent classifies an email as
+  `shipping_notice`, the director sends `track_shipment` on the same case.
+  The model extracts carrier, tracking number, dispatch and arrival dates
+  (`prompts/extract_shipment.md`); a carrier adapter (`carriers/`, a fake
+  for now) may refine the arrival; the proposal is a `po_change` approval
+  with source `tracking`. Approved: the accepted lines, every open receipt
+  and the order's ETA fields get the date, and the chatter shows the facts.
+- **Receipts**: a validated receipt (`odoo.receipt_validated`) becomes
+  `reconcile_receipt`. The comparison is arithmetic (`reconcile.py`): counted
+  against expected per line, `short` or `over` beyond
+  `SC__LOGISTICS__RECEIPT_TOLERANCE_PCT` (default 0, exact), extra move lines
+  are `over`. A match leaves a note; a discrepancy becomes an email the model
+  writes from the table (`prompts/draft_discrepancy.md`), always approved by
+  a person, sent from Outlook like every other email. `report_discrepancy`
+  carries a clerk's words (damage, for instance) into that email even when
+  the count matches.
+- Late pickings need no extra job: the follow-up job already acts on late
+  orders by their planned dates.
+- Bills and receipts are read through `AccountMoveRepo` and
+  `StockMoveLineRepo`; the accounting module is installed with
+  `just odoo-install account` on an existing database.
+
+## Invoice matching agent
+
+`invoice_match` checks a supplier's invoice against the order and what was
+received, and never posts an accounting entry.
+
+- **Inputs**: an email the supplier agent classifies as `invoice` (the PDF
+  text and the body go to the model, `prompts/extract_invoice.md`, which
+  copies the numbers as printed; a structured XML e-invoice would skip the
+  model through the `parse_xml` hook), or a vendor bill a person typed in
+  Odoo (`odoo.bill_created`, already structured, no model call).
+- **Matching** (`matching.py`, no model): the order comes from the task, the
+  invoice's reference, the email text, or the supplier's open orders by
+  total (one match, or the case is escalated). Lines map by the product
+  code in Odoo's product name, then by description similarity; each line is
+  `ok`, `price_variance` (beyond `SC__INVOICE_MATCH__PRICE_TOLERANCE_PCT`,
+  default 1%), `not_received` (billed more than received and not yet
+  billed), `qty_variance` or `unmatched`. An invoice number already recorded
+  is left alone.
+- **Decision**: one `vendor_bill` approval carries the verdict and the
+  table. Clean: approving creates the draft bill from the order (Odoo's own
+  action, idempotent); `SC__INVOICE_MATCH__BILL_AUTO_APPROVE_AMOUNT` lets
+  clean invoices up to that total through without a person (default 0:
+  always ask). Held: approving means "record it anyway", rejecting leaves
+  the invoice with the supplier; asking for a credit note is a chat
+  instruction on the case. A bill typed in Odoo only gets its match note.
+
+## Supplier performance agent
+
+`supplier_performance` runs every Monday at 07:00 (scheduler job
+`supplier_performance`, through the director) over the last
+`SC__SUPPLIER_PERFORMANCE__MONTHS` (12) of history per active supplier.
+
+- **Metrics in code** (`metrics.py`): OTIF against the first promise (the
+  confirmation snapshot on the case, else the line's planned date), observed
+  lead time (confirmed to received, mean and std, 5% trimmed), promise drift,
+  median reply time from the order's emails, receipt problems (the logistics
+  agent's discrepancy reports over received lines) and price stability from
+  the price list. The score (0 to 100) weighs only the components with data;
+  weights are settings (`SC__SUPPLIER_PERFORMANCE__WEIGHT_*`).
+- **The model** writes one paragraph per supplier from those numbers
+  (`prompts/scorecard.md`) and may add short trend flags; the code flags lead
+  time up 30%, OTIF down ten points, slower replies and more receipt
+  problems against the previous run.
+- **One approval per run** (`supplier_score`): approving writes the partner
+  fields (`sc_score`, `sc_otif`, `sc_lead_time_mean`, `sc_lead_time_std`,
+  shown on the partner's "Supplier performance" tab), the price list lead
+  times (`product.supplierinfo.delay`) and the planner's parameters
+  (`planning_params.lead_time_mean_days`, source `measured`), so the next
+  plan uses observed lead times. Observations and scores live in
+  `lead_time_observations` and `supplier_scores` (migration 008).
+- **Ranking**: `GET /performance/rank/{product_id}` on the agent (bearer)
+  joins the latest scores with the price list, ordered by score, then price,
+  then lead time, each with a one-line reason; the director proxies it and
+  the scores to the Control Tower under `/api/performance/*`.
+
 ## Orchestrator
 
 `director` is the only service that knows the agents exist. Every event
@@ -321,22 +407,26 @@ The people's side of the system: a React app served by the director under
 
 - **Board** (the landing page): every purchase order as a card in the column
   its life is at: proposals, quotation requested, quotation received, order
-  confirmed, to receive, received, closed. The card's edge tells the delivery
+  confirmed, to receive, received, invoicing (the invoice is being checked
+  or the bill is drafted), closed. The card's edge tells the delivery
   state (green on time, amber due soon, red late with the days); its frame
   tells what a person owes it (amber: an approval, purple: an escalation,
   dashed: on hold); the body shows supplier, amount, planned date, the last
   email and the agents' next step. Approvers drag cards where Odoo allows
   (send a proposal, confirm an RFQ, close or cancel an order, with a note
   that lands in the chatter); the other columns follow emails and receipts.
-  A card opens a side panel with the facts, the pending approval resolvable
-  in place, the case history and the "Talk to your AI" chat. Filters:
+  Badges say when an invoice waits for a check or a receipt had a
+  discrepancy. A card opens a side panel with the facts, the pending approval
+  resolvable in place, the case history and the "Talk to your AI" chat. Filters:
   search, supplier, buyer, "only with problems". "Check the mailbox" reads the
   inbox right away instead of waiting for the next scheduled poll and says
   what it found.
 - **Approvals**: the inbox. Emails are previewed sanitised (no scripts, no
   remote images) and can be edited before sending; order changes show a
   before/after table with per-line toggles; planning runs link to their
-  review; escalations show the model's summary and the last events. Every
+  review; escalations show the model's summary and the last events;
+  invoices show the verdict and the line-by-line check; the weekly supplier
+  scorecards show every supplier's numbers and paragraph. Every
   card says why the agent proposed it and links to Odoo, the Outlook draft
   and the Langfuse trace. Approving here resolves the `sc.approval` in Odoo
   through the bot, so Odoo fires the same agent callback as its own buttons.
@@ -356,6 +446,9 @@ The people's side of the system: a React app served by the director under
 - **Planning**: the run's lines grouped by supplier, editable quantities and
   min/max, a per-line drawer with the explanation, the 90-day demand and a
   what-if simulation; approving the selected lines is one resume call.
+- **Suppliers**: the latest scorecard per supplier from the weekly run: score,
+  on-time in-full, observed lead time, reply time, receipt problems, flagged
+  changes and the paragraph.
 - **Runs**: agent runs with model, tokens, cost and duration; scheduler runs.
 - **Settings** (admins): model per agent, follow-up policy, which suppliers
   and which email kinds go out without approval (for example reminders and
@@ -402,6 +495,8 @@ and performance agents see real history. It prints a summary (stock, demand
 shape, on-time share and observed lead time per supplier, open incoming
 orders) and is safe to run again. A fresh demo: `just odoo-reset`,
 `just odoo-init`, `just odoo-apikey`, `just odoo-configure`, `just odoo-seed`.
+An existing database gets a new module with `just odoo-install <module>`
+(phase 9 needs `account`: `just odoo-install account`).
 See `odoo/demo/README.md`.
 
 The supplier agent can also send a confirmed order as Odoo's own "Orden de

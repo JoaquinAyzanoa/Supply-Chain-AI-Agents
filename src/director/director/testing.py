@@ -15,6 +15,7 @@ from director.api.board import BoardMoves, BoardOrders
 from director.api.chat import CaseAssistant, ChatActions, EmailSnapshot
 from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import MailboxSync
+from director.api.performance import PerformanceSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
@@ -44,6 +45,9 @@ def memory_deps(
     cases: CaseStore | None = None,
     supplier_comms: AgentCaller | None = None,
     inventory_planning: AgentCaller | None = None,
+    logistics: AgentCaller | None = None,
+    invoice_match: AgentCaller | None = None,
+    supplier_performance: AgentCaller | None = None,
     escalator: Escalator | None = None,
     jobs: JobRunner | None = None,
     conversations: MemoryConversationLookup | None = None,
@@ -53,6 +57,16 @@ def memory_deps(
     if inventory_planning is not None:
         others["inventory_planning"] = AgentProxy(
             "inventory_planning", inventory_planning, max_concurrent=max_concurrent
+        )
+    if logistics is not None:
+        others["logistics"] = AgentProxy("logistics", logistics, max_concurrent=max_concurrent)
+    if invoice_match is not None:
+        others["invoice_match"] = AgentProxy(
+            "invoice_match", invoice_match, max_concurrent=max_concurrent
+        )
+    if supplier_performance is not None:
+        others["supplier_performance"] = AgentProxy(
+            "supplier_performance", supplier_performance, max_concurrent=max_concurrent
         )
     return Deps(
         cases=cases or MemoryCaseStore(),
@@ -76,6 +90,9 @@ class MemoryDirectorModule(Module):
         supplier_comms: AgentCaller | None = None,
         *,
         inventory_planning: AgentCaller | None = None,
+        logistics: AgentCaller | None = None,
+        invoice_match: AgentCaller | None = None,
+        supplier_performance: AgentCaller | None = None,
         cases: MemoryCaseStore | None = None,
         escalator: Escalator | None = None,
         jobs: JobRunner | None = None,
@@ -106,10 +123,14 @@ class MemoryDirectorModule(Module):
         self.mail_activity = MemoryMailActivity()
         self.board_orders = MemoryBoardOrders()
         self.mailbox = MemoryMailboxSync()
+        self.performance = MemoryPerformanceSource()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
             inventory_planning=inventory_planning,
+            logistics=logistics,
+            invoice_match=invoice_match,
+            supplier_performance=supplier_performance,
             escalator=self.escalator,
             jobs=jobs,
         )
@@ -150,6 +171,7 @@ class MemoryDirectorModule(Module):
         binder.bind(MailActivity, to=self.mail_activity, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardOrders, to=self.board_orders, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(MailboxSync, to=self.mailbox, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(PerformanceSource, to=self.performance, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardMoves, to=BoardMoves(self.board_orders, self.deps), scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
@@ -179,6 +201,7 @@ class MemoryApprovalsGateway:
         po: tuple[int, str] | None = (15, "P00015"),
         thread_id: str | None = "case_msg1",
         status: ApprovalStatus = "pending",
+        requested_by: str = "supplier_comms",
     ) -> Approval:
         import json as _json
 
@@ -190,7 +213,7 @@ class MemoryApprovalsGateway:
                 status=status,
                 po_id=Ref(id=po[0], name=po[1]) if po else None,
                 payload_json=_json.dumps(payload or {}),
-                requested_by="supplier_comms",
+                requested_by=requested_by,
                 case_id=thread_id,
                 thread_id=thread_id,
                 callback_status="none",
@@ -351,6 +374,7 @@ class MemoryBoardOrders:
 
     def __init__(self) -> None:
         self.orders: dict[int, PurchaseOrder] = {}
+        self.off_board: set[int] = set()  # too old for the board's window
         self.actions: list[tuple[str, int, Any]] = []
         self.notes: list[tuple[int, str]] = []
 
@@ -359,7 +383,10 @@ class MemoryBoardOrders:
         return po
 
     async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
-        return list(self.orders.values())
+        return [po for po in self.orders.values() if po.id not in self.off_board]
+
+    async def by_names(self, names: list[str]) -> list[PurchaseOrder]:
+        return [po for po in self.orders.values() if po.name in names]
 
     async def confirm(self, po_id: int) -> PurchaseOrder:
         self.actions.append(("confirm", po_id, None))
@@ -396,3 +423,20 @@ class MemoryMailboxSync:
         if self.fail:
             raise ScError("the mailbox service did not answer")
         return dict(self.report)
+
+
+class MemoryPerformanceSource:
+    """Scores and rankings as the performance agent would answer them."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+        self.rankings: dict[int, dict[str, Any]] = {}
+
+    async def scores(self) -> list[dict[str, Any]]:
+        return list(self.rows)
+
+    async def rank(self, product_id: int) -> dict[str, Any]:
+        return self.rankings.get(product_id) or {"product_id": product_id, "suppliers": []}
+
+    async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
+        return [await self.rank(pid) for pid in sorted(set(product_ids))]

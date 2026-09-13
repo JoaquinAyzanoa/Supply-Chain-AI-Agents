@@ -40,7 +40,17 @@ from director.router import Dispatch, Route, UnroutableEvent, route
 from director.store import Case, CaseStatus, CaseStore
 from sc_core.infra import tracing
 from sc_core.odoo.models import PurchaseOrder
-from sc_core.schema.a2a import InventoryPlanningResult, OutcomeStatus, SupplierCommsResult
+from sc_core.schema.a2a import (
+    InventoryPlanningResult,
+    InvoiceMatchResult,
+    InvoiceMatchTask,
+    LogisticsResult,
+    LogisticsTask,
+    OutcomeStatus,
+    SupplierCommsResult,
+    SupplierCommsTask,
+    SupplierPerformanceResult,
+)
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import (
     AgentRunFinished,
@@ -85,6 +95,10 @@ class AgentOutcome(StrictModel):
     approval_id: int | None = None
     sent_message_id: str | None = None
     error: dict[str, Any] | None = None
+    classification: str | None = None
+    """What the supplier agent made of an inbound email (routes a shipping notice on)."""
+    follow_on: Dispatch | None = None
+    """A second task another agent must run once this outcome is recorded."""
 
 
 class RecordOnly(StrictModel):
@@ -205,7 +219,41 @@ class AgentProxyExecutor(Executor):
             )
         else:
             outcome = outcome_from_reply(case, self._agent, task.kind, task.case_id, reply)
-        await ctx.send_message(outcome)
+        await ctx.send_message(follow_on_for(task, outcome))
+
+
+def follow_on_for(task: Any, outcome: AgentOutcome) -> AgentOutcome:
+    """What the supplier agent read decides who works next: a shipping notice goes to
+    the logistics agent, an invoice to the invoice matching agent."""
+    if not (
+        isinstance(task, SupplierCommsTask)
+        and task.kind == "handle_inbound"
+        and task.po_name
+        and task.graph_message_id
+    ):
+        return outcome
+    follow: Dispatch | None = None
+    if outcome.classification == "shipping_notice":
+        follow = Dispatch(
+            agent="logistics",
+            task=LogisticsTask(
+                kind="track_shipment",
+                case_id=f"{task.case_id}_ship",
+                po_name=task.po_name,
+                graph_message_id=task.graph_message_id,
+            ),
+        )
+    elif outcome.classification == "invoice":
+        follow = Dispatch(
+            agent="invoice_match",
+            task=InvoiceMatchTask(
+                kind="match_bill",
+                case_id=f"{task.case_id}_bill",
+                po_name=task.po_name,
+                graph_message_id=task.graph_message_id,
+            ),
+        )
+    return outcome.model_copy(update={"follow_on": follow}) if follow else outcome
 
 
 def _error_payload(text: str | None) -> dict[str, Any] | None:
@@ -269,7 +317,12 @@ def outcome_from_reply(
             run_id=result.run_id,
             approval_id=result.outcome.approval_id,
         )
-    outbound = result.outbound
+    outbound = getattr(result, "outbound", None)
+    classification = (
+        result.classification.kind
+        if isinstance(result, SupplierCommsResult) and result.classification
+        else None
+    )
     return AgentOutcome(
         case=case,
         agent=agent,
@@ -280,17 +333,40 @@ def outcome_from_reply(
         run_id=result.run_id,
         approval_id=result.outcome.approval_id,
         sent_message_id=outbound.sent_message_id if outbound else None,
+        classification=classification,
     )
 
 
-def _parse_result(agent: str, text: str) -> SupplierCommsResult | InventoryPlanningResult | None:
-    """Each agent has its own result contract; a reply that fits neither is not a result."""
-    contracts: tuple[type[SupplierCommsResult] | type[InventoryPlanningResult], ...] = (
-        (InventoryPlanningResult, SupplierCommsResult)
-        if agent == "inventory_planning"
-        else (SupplierCommsResult, InventoryPlanningResult)
-    )
-    for contract in contracts:
+AgentResult = (
+    SupplierCommsResult
+    | InventoryPlanningResult
+    | LogisticsResult
+    | InvoiceMatchResult
+    | SupplierPerformanceResult
+)
+_ALL_RESULTS: tuple[type[AgentResult], ...] = (
+    SupplierCommsResult,
+    InventoryPlanningResult,
+    LogisticsResult,
+    InvoiceMatchResult,
+    SupplierPerformanceResult,
+)
+_FIRST_CONTRACT: dict[str, type[AgentResult]] = {
+    "supplier_comms": SupplierCommsResult,
+    "inventory_planning": InventoryPlanningResult,
+    "logistics": LogisticsResult,
+    "invoice_match": InvoiceMatchResult,
+    "supplier_performance": SupplierPerformanceResult,
+}
+_CONTRACTS: dict[str, tuple[type[AgentResult], ...]] = {
+    name: (first, *[c for c in _ALL_RESULTS if c is not first])
+    for name, first in _FIRST_CONTRACT.items()
+}
+
+
+def _parse_result(agent: str, text: str) -> AgentResult | None:
+    """Each agent has its own result contract; a reply that fits none is not a result."""
+    for contract in _CONTRACTS.get(agent, _CONTRACTS["supplier_comms"]):
         try:
             return contract.model_validate_json(text)
         except ValidationError:
@@ -313,6 +389,34 @@ class ConsolidateExecutor(Executor):
         await ctx.yield_output(
             await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
         )
+        if outcome.follow_on is not None:
+            await ctx.yield_output(await self._follow_on(outcome.case, outcome.follow_on))
+
+    async def _follow_on(self, case: Case, dispatch: Dispatch) -> CaseUpdate:
+        """Run the next agent's task on the same case and record it like the first."""
+        deps, task = self._deps, dispatch.task
+        await deps.cases.add_event(
+            case.case_id,
+            "task_sent",
+            {
+                "agent": dispatch.agent,
+                "task": task.kind,
+                "thread_id": task.case_id,
+                "po_name": getattr(task, "po_name", None),
+            },
+        )
+        try:
+            reply = await deps.agents.for_name(dispatch.agent).send(
+                task.model_dump_json(), case_id=case.case_id
+            )
+        except (ScError, LookupError) as exc:
+            error = exc if isinstance(exc, ScError) else ScError(str(exc))
+            outcome = outcome_from_reply(
+                case, dispatch.agent, task.kind, task.case_id, None, error=error
+            )
+        else:
+            outcome = outcome_from_reply(case, dispatch.agent, task.kind, task.case_id, reply)
+        return await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
 
     @handler
     async def record(self, item: RecordOnly, ctx: WorkflowContext[Any, CaseUpdate]) -> None:
@@ -485,7 +589,13 @@ async def consolidate_outcome(
 
 # --- building and running -----------------------------------------------------------
 
-AGENT_NAMES = ("supplier_comms", "inventory_planning")  # phase 9 adds logistics
+AGENT_NAMES = (
+    "supplier_comms",
+    "inventory_planning",
+    "logistics",
+    "invoice_match",
+    "supplier_performance",
+)
 
 
 def build_workflow(deps: Deps) -> Workflow:

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import UTC, date, datetime
+from typing import Any
 
 import pytest
 
@@ -21,7 +22,7 @@ from sc_core.odoo.repositories import (
     PurchaseOrderRepo,
     SupplierInfoRepo,
 )
-from sc_core.shared.errors import NotFound, ValidationFailed
+from sc_core.shared.errors import NotFound, ScError, ValidationFailed
 
 from . import samples
 from .conftest import LOGIN_OK, ScriptedOdoo, rpc_ok
@@ -316,3 +317,102 @@ async def test_mail_link_is_idempotent(odoo: ScriptedOdoo, client_factory: Facto
     )
     assert link.id == 1
     assert len([c for c in odoo.calls() if c[1] == "execute_kw"]) == 1
+
+
+BILL_ROW: dict[str, Any] = {
+    "id": 9,
+    "name": False,
+    "move_type": "in_invoice",
+    "state": "draft",
+    "partner_id": [45, "Proveedor Hidraulica"],
+    "invoice_date": False,
+    "invoice_date_due": False,
+    "ref": False,
+    "payment_reference": False,
+    "invoice_origin": "P00016",
+    "amount_untaxed": 100.0,
+    "amount_total": 118.0,
+    "amount_residual": 118.0,
+    "currency_id": [2, "USD"],
+    "payment_state": "not_paid",
+    "purchase_id": False,
+    "invoice_line_ids": [31, 32],
+    "create_date": "2026-09-13 01:00:00",
+}
+
+
+async def test_draft_bill_is_created_once_and_never_posted(
+    odoo: ScriptedOdoo, client_factory: Factory
+) -> None:
+    from sc_core.odoo.repositories import AccountMoveRepo
+
+    stamped = {**BILL_ROW, "ref": "F001-000123", "invoice_date": "2024-09-02"}
+    odoo.script += [
+        LOGIN_OK,
+        rpc_ok([]),  # no draft yet
+        rpc_ok({"type": "ir.actions.act_window", "res_id": 9}),  # action_create_invoice
+        rpc_ok([BILL_ROW]),  # the draft Odoo made
+        rpc_ok(True),  # write ref + date
+        rpc_ok([stamped]),  # read back
+    ]
+    repo = AccountMoveRepo(client_factory())
+    bill = await repo.create_draft_bill(16, ref="F001-000123", invoice_date=date(2024, 9, 2))
+    assert bill.id == 9 and bill.is_draft and bill.ref == "F001-000123"
+    methods = [odoo.execute_kw_args(i)[1] for i in range(5)]
+    assert methods == ["search_read", "action_create_invoice", "search_read", "write", "read"]
+    assert "action_post" not in methods  # accounting stays with people
+    model, _, args, _ = odoo.execute_kw_args(1)
+    assert model == "purchase.order" and args == [[16]]
+    _, _, write_args, _ = odoo.execute_kw_args(3)
+    assert write_args == [[9], {"ref": "F001-000123", "invoice_date": "2024-09-02"}]
+
+    # a second call finds the draft and touches nothing
+    odoo.script += [rpc_ok([stamped])]
+    again = await repo.create_draft_bill(16, ref="F001-000123", invoice_date=date(2024, 9, 2))
+    assert again.id == 9
+    assert [odoo.execute_kw_args(i)[1] for i in range(5, 6)] == ["search_read"]
+
+
+async def test_bill_check_is_written_on_the_bill_and_never_posts(
+    odoo: ScriptedOdoo, client_factory: Factory
+) -> None:
+    from sc_core.odoo.repositories import AccountMoveRepo
+
+    odoo.script += [LOGIN_OK, rpc_ok(True), rpc_ok(True)]
+    repo = AccountMoveRepo(client_factory())
+    await repo.record_check(9, verdict="hold", po_id=16, summary="Held: 1 line(s) price variance.")
+    await repo.post_note(9, "<p>checked</p>")
+    model, method, args, _ = odoo.execute_kw_args(0)
+    assert (model, method) == ("account.move", "write") and args[0] == [9]
+    values = args[1]
+    assert values["sc_match_verdict"] == "hold" and values["sc_matched_po_id"] == 16
+    assert values["sc_match_summary"].startswith("Held:") and values["sc_checked_at"]
+    assert odoo.execute_kw_args(1)[:3] == ("account.move", "sc_post_note", [9, "<p>checked</p>"])
+    with pytest.raises(ScError):
+        await repo.record_check(9, verdict="posted", po_id=None, summary="x")
+
+
+async def test_supplier_scorecards_need_no_record_to_hang_on(
+    odoo: ScriptedOdoo, client_factory: Factory
+) -> None:
+    from sc_core.odoo.repositories import ApprovalRepo
+
+    row = {
+        **samples.APPROVAL_ROW,
+        "id": 41,
+        "kind": "supplier_score",
+        "po_id": False,
+        "res_model": False,
+        "res_id": 0,
+    }
+    odoo.script += [LOGIN_OK, rpc_ok(41), rpc_ok([row])]
+    approval = await ApprovalRepo(client_factory()).create(
+        kind="supplier_score",
+        summary="Weekly supplier scorecards",
+        payload={"scores": []},
+        requested_by="supplier_performance",
+        case_id="scores_1",
+    )
+    assert approval.id == 41 and approval.kind == "supplier_score"
+    _, method, args, _ = odoo.execute_kw_args(0)
+    assert method == "create" and "po_id" not in args[0] and "res_model" not in args[0]

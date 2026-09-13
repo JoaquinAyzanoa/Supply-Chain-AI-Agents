@@ -22,7 +22,7 @@ from sc_core.infra.settings import Settings
 from sc_core.schema import events as ev
 from sc_core.schema.events import event_id_for
 
-from .helpers import agent_reply, po_confirmed
+from .helpers import agent_reply, logistics_reply, po_confirmed
 
 SECRET = "director-secret"
 
@@ -38,7 +38,14 @@ def agent() -> FakeAgentCaller:
 
 
 @pytest.fixture
-def client(cases: MemoryCaseStore, agent: FakeAgentCaller) -> Iterator[TestClient]:
+def logistics() -> FakeAgentCaller:
+    return FakeAgentCaller()
+
+
+@pytest.fixture
+def client(
+    cases: MemoryCaseStore, agent: FakeAgentCaller, logistics: FakeAgentCaller
+) -> Iterator[TestClient]:
     settings = Settings(
         _env_file=None,
         service_name="director",
@@ -49,7 +56,7 @@ def client(cases: MemoryCaseStore, agent: FakeAgentCaller) -> Iterator[TestClien
         settings,
         version=__version__,
         routers=[events.router],
-        modules=[MemoryDirectorModule(supplier_comms=agent, cases=cases)],
+        modules=[MemoryDirectorModule(supplier_comms=agent, cases=cases, logistics=logistics)],
     )
     with TestClient(app) as c:
         yield c
@@ -118,9 +125,18 @@ def test_unknown_event_type_is_422(client: TestClient) -> None:
     assert _post(client, body).status_code == 422
 
 
-def test_receipt_and_approval_events_are_recorded(
-    client: TestClient, cases: MemoryCaseStore, agent: FakeAgentCaller
+def test_receipt_goes_to_logistics_and_approval_events_are_recorded(
+    client: TestClient, cases: MemoryCaseStore, agent: FakeAgentCaller, logistics: FakeAgentCaller
 ) -> None:
+    logistics.replies.append(
+        logistics_reply(
+            "reconcile_receipt",
+            "odoo_picking_5_done",
+            "no_action",
+            "receipt WH/IN/00005 matches P00066: 2 line(s) in full",
+            po_name="P00066",
+        )
+    )
     receipt = ev.OdooReceiptValidated(
         source="odoo",
         case_id="odoo_picking_5_done",
@@ -144,7 +160,13 @@ def test_receipt_and_approval_events_are_recorded(
     )
     assert _post(client, _odoo_body(resolved)).status_code == 202
     assert agent.sent == []
+    [sent] = logistics.sent
+    assert '"kind":"reconcile_receipt"' in sent.task_json and '"picking_id":5' in sent.task_json
     kinds = {c.kind for c in cases.cases.values()}
     assert kinds == {"receipt", "rfq"}
+    results = [e.payload for e in cases.case_events if e.kind == "result"]
+    assert (
+        results and results[0]["agent"] == "logistics" and "matches P00066" in results[0]["summary"]
+    )
     notes = [e.payload["text"] for e in cases.case_events if e.kind == "note"]
-    assert any("WH/IN/00005" in n for n in notes) and any("Approval #7" in n for n in notes)
+    assert any("Approval #7" in n for n in notes)

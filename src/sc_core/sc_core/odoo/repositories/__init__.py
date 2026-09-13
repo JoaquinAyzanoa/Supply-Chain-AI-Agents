@@ -7,6 +7,7 @@ Nothing here decides *whether* to write: that is the agents' and the
 approvals' job.
 """
 
+from sc_core.odoo.repositories.account_move import AccountMoveRepo
 from sc_core.odoo.repositories.activity import ActivityRepo
 from sc_core.odoo.repositories.agent_run import AgentRunRepo
 from sc_core.odoo.repositories.approval import ApprovalRepo
@@ -23,9 +24,11 @@ from sc_core.odoo.repositories.planning import (
     supplier_terms,
 )
 from sc_core.odoo.repositories.purchase_order import PurchaseOrderRepo
+from sc_core.odoo.repositories.stock_move_line import StockMoveLineRepo
 from sc_core.odoo.repositories.supplierinfo import SupplierInfoRepo
 
 __all__ = [
+    "AccountMoveRepo",
     "ActivityRepo",
     "AgentRunRepo",
     "ApprovalRepo",
@@ -38,6 +41,7 @@ __all__ = [
     "ProductRepo",
     "PurchaseOrderRepo",
     "QuantRepo",
+    "StockMoveLineRepo",
     "SupplierInfoRepo",
     "WarehouseRepo",
     "supplier_terms",

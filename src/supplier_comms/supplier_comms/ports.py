@@ -176,6 +176,7 @@ class LivePorts:
                     currency=line.currency_id.name if line.currency_id else currency,
                     date_planned=line.date_planned.date() if line.date_planned else None,
                     qty_received=line.qty_received,
+                    qty_invoiced=line.qty_invoiced,
                 )
                 for line in lines
             ],

@@ -318,6 +318,35 @@ async def test_planning_runs_detail_and_what_if(
     assert detail["lines"][0]["line"]["order_qty"] == 23 and detail["lines"][0]["accepted"] is None
     assert client.get("/api/planning/runs/nope", headers=viewer).status_code == 404
 
+    # the ranking: Hidraulica is the line's supplier; a better-scored one exists for 101
+    module.planning.line_rows["run_1"].append(
+        PlanningLineRow(line=_line("run_1:102", product_id=102, supplier_id=45))
+    )
+    module.performance.rankings[101] = {
+        "product_id": 101,
+        "suppliers": [
+            {"rank": 1, "partner_id": 46, "partner_name": "Hidraulica Alterna", "score": 91.0},
+            {"rank": 2, "partner_id": 45, "partner_name": "Proveedor Hidraulica", "score": 75.5},
+        ],
+    }
+    module.performance.rankings[102] = {
+        "product_id": 102,
+        "suppliers": [
+            {"rank": 1, "partner_id": 47, "partner_name": "Nuevo", "score": None},  # no history
+            {"rank": 2, "partner_id": 45, "partner_name": "Proveedor Hidraulica", "score": 75.5},
+        ],
+    }
+    ranking = client.get("/api/planning/runs/run_1/ranking", headers=viewer).json()
+    assert ranking["run_id"] == "run_1" and ranking["better_count"] == 1
+    first, second = ranking["lines"]
+    assert (
+        first["line_id"] == "run_1:101" and first["better"]["partner_name"] == "Hidraulica Alterna"
+    )
+    assert [s["partner_id"] for s in first["suppliers"]] == [46, 45]
+    assert second["better"] is None  # a newcomer without a score is listed, not recommended
+    assert client.get("/api/planning/runs/nope/ranking", headers=viewer).status_code == 404
+    module.planning.line_rows["run_1"].pop()
+
     simulated = _line("run_2:101", service_level=0.99, ss=9, rop=23, order_up_to=37, order_qty=27)
     result = InventoryPlanningResult(
         kind="what_if",

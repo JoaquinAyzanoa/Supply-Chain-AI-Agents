@@ -45,4 +45,16 @@
             'code': 'records.sc_emit_receipt_validated()',
         })]"/>
     </record>
+    <record id="automation_bill_created" model="base.automation">
+        <field name="name">SC agents: vendor bill created</field>
+        <field name="model_id" ref="account.model_account_move"/>
+        <field name="trigger">on_create</field>
+        <field name="filter_domain">[("move_type", "=", "in_invoice")]</field>
+        <field name="action_server_ids" eval="[(0, 0, {
+            'name': 'SC agents: emit odoo.bill_created',
+            'model_id': ref('account.model_account_move'),
+            'state': 'code',
+            'code': 'records.sc_emit_bill_created()',
+        })]"/>
+    </record>
 </odoo>

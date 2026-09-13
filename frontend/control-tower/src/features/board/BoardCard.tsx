@@ -89,7 +89,13 @@ export function OrderCard({
             </div>
           ) : null}
           <div className="mt-1 flex flex-wrap gap-1">
-            {card.pending_approval ? <Badge variant="warning">{t("board.approval")}</Badge> : null}
+            {card.pending_approval ? (
+              <Badge variant="warning">{card.pending_approval.kind === "vendor_bill" ? t("board.invoice_to_check") : t("board.approval")}</Badge>
+            ) : null}
+            {card.discrepancy ? <Badge variant="destructive">{t("board.discrepancy")}</Badge> : null}
+            {card.column === "invoicing" && !card.pending_approval && card.invoice_status === "invoiced" ? (
+              <Badge variant="success">{t("board.bill_drafted")}</Badge>
+            ) : null}
             {card.escalated ? <Badge className="border-transparent bg-violet-500/15 text-violet-700 dark:text-violet-300">{t("board.escalated")}</Badge> : null}
             {card.on_hold_until ? <Badge variant="secondary">{t("board.hold", { date: formatDate(card.on_hold_until, locale) })}</Badge> : null}
             {card.column === "confirmed" || card.column === "incoming" ? (

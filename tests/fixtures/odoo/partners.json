@@ -68,7 +68,7 @@
       "email": "azure.Interior24@example.com",
       "email_normalized": "azure.interior24@example.com",
       "is_company": true,
-      "supplier_rank": 4,
+      "supplier_rank": 8,
       "parent_id": false,
       "commercial_partner_id": [
        15,
@@ -136,7 +136,7 @@
       "email": "azure.Interior24@example.com",
       "email_normalized": "azure.interior24@example.com",
       "is_company": true,
-      "supplier_rank": 4,
+      "supplier_rank": 8,
       "parent_id": false,
       "commercial_partner_id": [
        15,
@@ -821,7 +821,7 @@
       "email": "azure.Interior24@example.com",
       "email_normalized": "azure.interior24@example.com",
       "is_company": true,
-      "supplier_rank": 4,
+      "supplier_rank": 8,
       "parent_id": false,
       "commercial_partner_id": [
        15,
