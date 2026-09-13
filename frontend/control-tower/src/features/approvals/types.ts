@@ -33,6 +33,7 @@ export const proposedChange = z
     confidence: z.number().nullish(),
     needs_review: z.boolean().default(false),
     review_reason: z.string().nullish(),
+    schedule: z.array(z.object({ qty: z.number(), date: z.string().nullish(), date_raw: z.string().nullish() }).loose()).default([]),
   })
   .loose();
 export type ProposedChange = z.infer<typeof proposedChange>;

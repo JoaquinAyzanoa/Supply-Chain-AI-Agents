@@ -81,6 +81,7 @@ class TaskEnvelope(StrictModel):
     case: Case
     event_id: str
     dispatch: Dispatch
+    web_link: str | None = None  # the email the task is about, for the timeline
 
 
 class AgentOutcome(StrictModel):
@@ -195,7 +196,12 @@ class RouteExecutor(Executor):
             return
         for dispatch in item.route.dispatches:
             await ctx.send_message(
-                TaskEnvelope(case=item.case, event_id=item.event.event_id, dispatch=dispatch)
+                TaskEnvelope(
+                    case=item.case,
+                    event_id=item.event.event_id,
+                    dispatch=dispatch,
+                    web_link=getattr(item.event, "web_link", None),
+                )
             )
 
 
@@ -222,6 +228,7 @@ class AgentProxyExecutor(Executor):
                 "thread_id": task.case_id,
                 "po_name": getattr(task, "po_name", None),
                 "event_id": envelope.event_id,
+                "web_link": envelope.web_link,
             },
         )
         proxy = self._deps.agents.for_name(self._agent)

@@ -111,7 +111,15 @@ def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
             line = lines.get(change.po_line_id)
             if line is None or (wanted is not None and line.id not in wanted):
                 continue
-            if change.field == "date_planned":
+            if change.field == "date_planned" and len(change.schedule) >= 2:
+                # a split delivery: the line becomes one line per part, each with its date
+                await ports.split_line(
+                    line.id,
+                    [(p.qty, p.date) for p in change.schedule if p.date is not None],
+                    run_id=run_id,
+                )
+                confidences.append(change.confidence)
+            elif change.field == "date_planned":
                 await ports.set_line_date(line.id, date.fromisoformat(change.after), run_id=run_id)
                 confidences.append(change.confidence)
             elif change.field == "price" and line.product_tmpl_id and ctx.currency_id:

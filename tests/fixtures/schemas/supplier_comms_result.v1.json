@@ -60,6 +60,48 @@
       "title": "Classification",
       "type": "object"
     },
+    "DeliverySplit": {
+      "additionalProperties": false,
+      "description": "Part of a line the supplier delivers on its own date.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "date_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "as the supplier wrote it",
+          "title": "Date Raw"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        }
+      },
+      "required": [
+        "qty"
+      ],
+      "title": "DeliverySplit",
+      "type": "object"
+    },
     "OutboundSummary": {
       "additionalProperties": false,
       "properties": {
@@ -241,6 +283,14 @@
           "default": null,
           "title": "Review Reason"
         },
+        "schedule": {
+          "description": "a split delivery: the parts behind the first date",
+          "items": {
+            "$ref": "#/$defs/DeliverySplit"
+          },
+          "title": "Schedule",
+          "type": "array"
+        },
         "source": {
           "default": "supplier",
           "enum": [
@@ -364,10 +414,45 @@
           "default": null,
           "title": "Currency"
         },
+        "deliveries": {
+          "description": "when the line arrives in parts, each with its date",
+          "items": {
+            "$ref": "#/$defs/DeliverySplit"
+          },
+          "title": "Deliveries",
+          "type": "array"
+        },
         "description": {
           "minLength": 1,
           "title": "Description",
           "type": "string"
+        },
+        "eta_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "this line's delivery date",
+          "title": "Eta Date"
+        },
+        "eta_date_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "this line's date, as written",
+          "title": "Eta Date Raw"
         },
         "lead_days": {
           "anyOf": [

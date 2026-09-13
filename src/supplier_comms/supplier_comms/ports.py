@@ -94,6 +94,10 @@ class AgentPorts(Protocol):
 
     async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None: ...
 
+    async def split_line(
+        self, line_id: int, parts: list[tuple[float, date]], *, run_id: str
+    ) -> list[int]: ...
+
     async def upsert_price(
         self,
         *,
@@ -323,6 +327,16 @@ class LivePorts:
     async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None:
         when = datetime(new_date.year, new_date.month, new_date.day, 12, 0, tzinfo=UTC)
         await self._pos.set_line_date_planned(line_id, when, source="supplier", run_id=run_id)
+
+    async def split_line(
+        self, line_id: int, parts: list[tuple[float, date]], *, run_id: str
+    ) -> list[int]:
+        return await self._pos.split_line(
+            line_id,
+            [(qty, datetime(d.year, d.month, d.day, 12, 0, tzinfo=UTC)) for qty, d in parts],
+            source="supplier",
+            run_id=run_id,
+        )
 
     async def upsert_price(
         self,

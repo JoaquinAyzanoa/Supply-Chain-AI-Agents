@@ -22,7 +22,8 @@ import { useApproval } from "@/features/approvals/api";
 import { CaseEvents } from "@/features/cases/CaseTimeline";
 import { useCase } from "@/features/cases/api";
 import { CaseChat } from "@/features/chat/CaseChat";
-import { PlaybookOutlook } from "@/features/playbooks/PlaybookBadge";
+import { PlaybookBadge, PlaybookOutlook } from "@/features/playbooks/PlaybookBadge";
+import type { PlaybookPosition } from "@/features/playbooks/api";
 import { useNegotiate, useStartRound } from "@/features/sourcing/api";
 import { targetsFor, useActNow, useMoveCard, useSupplierConfirmed, type BoardCard, type Column } from "./api";
 import { useOrderDetail } from "./api";
@@ -86,17 +87,7 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
           ) : null}
         </div>
 
-        {card.playbook ? (
-          <section className="rounded-md border p-3" aria-label={t("board.drawer.playbook")}>
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold">{t("board.drawer.playbook")}</h3>
-              <Link to="/playbooks" className="text-xs text-primary underline">
-                {t("board.drawer.playbooks_page")}
-              </Link>
-            </div>
-            <PlaybookOutlook position={card.playbook} />
-          </section>
-        ) : null}
+        {card.playbook ? <PlaybookLine position={card.playbook} /> : null}
 
         <OrderLines poName={card.po_name} />
 
@@ -185,6 +176,30 @@ function OrderLines({ poName }: { poName: string }) {
       </Table>
       {currency}
     </div>
+  );
+}
+
+/** One line: where the order is in its playbook; the steps open only on request. */
+function PlaybookLine({ position }: { position: PlaybookPosition }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  return (
+    <section aria-label={t("board.drawer.playbook")} className="text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <PlaybookBadge position={position} />
+        <Button variant="ghost" size="sm" onClick={() => setOpen((on) => !on)} aria-expanded={open}>
+          {open ? t("board.drawer.playbook_hide") : t("board.drawer.playbook_show")}
+        </Button>
+        <Link to="/playbooks" className="text-xs text-primary underline">
+          {t("board.drawer.playbooks_page")}
+        </Link>
+      </div>
+      {open ? (
+        <div className="mt-2 rounded-md border p-3">
+          <PlaybookOutlook position={position} />
+        </div>
+      ) : null}
+    </section>
   );
 }
 

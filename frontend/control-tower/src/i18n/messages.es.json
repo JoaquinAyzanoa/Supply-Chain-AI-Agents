@@ -787,5 +787,8 @@
   "settings.f.sourcing_freight_pct": "Flete estimado sobre precios cotizados (%)",
   "settings.f.negotiation_cap_pct": "Tope de contraoferta (% bajo el precio cotizado)",
   "settings.h.negotiation_cap_pct": "Una persona nunca ve una oferta más abajo de la cotización que esto.",
-  "settings.f.negotiation_max_rounds": "Rondas de negociación por línea"
+  "settings.f.negotiation_max_rounds": "Rondas de negociación por línea",
+  "board.drawer.playbook_show": "Ver pasos",
+  "board.drawer.playbook_hide": "Ocultar pasos",
+  "approvals.changes.split": "Entrega parcial"
 }

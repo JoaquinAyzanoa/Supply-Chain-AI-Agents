@@ -12,6 +12,7 @@ ends. What the agent itself drafted (subject, recipients) may be summarised.
 
 from __future__ import annotations
 
+import datetime as dt
 from datetime import date
 from typing import ClassVar, Literal
 
@@ -96,6 +97,15 @@ class Classification(StrictModel):
     reason: str = Field(min_length=1, max_length=500)
 
 
+class DeliverySplit(StrictModel):
+    """Part of a line the supplier delivers on its own date."""
+
+    qty: float = Field(gt=0)
+    # the field is named "date": the annotation must not look the name up in the class
+    date: dt.date | None = None
+    date_raw: str | None = Field(default=None, description="as the supplier wrote it")
+
+
 class QuotedLine(StrictModel):
     """One product as the supplier quoted it, mapped to our order line when possible."""
 
@@ -107,6 +117,11 @@ class QuotedLine(StrictModel):
     currency: str | None = Field(default=None, min_length=3, max_length=3)
     lead_days: int | None = Field(default=None, ge=0)
     min_qty: float | None = Field(default=None, ge=0)
+    eta_date_raw: str | None = Field(default=None, description="this line's date, as written")
+    eta_date: date | None = Field(default=None, description="this line's delivery date")
+    deliveries: list[DeliverySplit] = Field(
+        default_factory=list, description="when the line arrives in parts, each with its date"
+    )
     confidence: float = Field(default=1.0, ge=0, le=1)
 
 
@@ -134,6 +149,9 @@ class ProposedChange(StrictModel):
     confidence: float = Field(ge=0, le=1)
     needs_review: bool = False
     review_reason: str | None = None
+    schedule: list[DeliverySplit] = Field(
+        default_factory=list, description="a split delivery: the parts behind the first date"
+    )
 
 
 class ChangeProposal(StrictModel):

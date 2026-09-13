@@ -787,5 +787,8 @@
   "settings.f.sourcing_freight_pct": "Freight estimate on quoted prices (%)",
   "settings.f.negotiation_cap_pct": "Counter-offer cap (% below the quoted price)",
   "settings.h.negotiation_cap_pct": "A person never sees an offer further below the quote than this.",
-  "settings.f.negotiation_max_rounds": "Negotiation rounds per line"
+  "settings.f.negotiation_max_rounds": "Negotiation rounds per line",
+  "board.drawer.playbook_show": "Show steps",
+  "board.drawer.playbook_hide": "Hide steps",
+  "approvals.changes.split": "Split delivery"
 }

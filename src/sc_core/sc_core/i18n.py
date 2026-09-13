@@ -439,6 +439,15 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "es": "fecha de entrega {date} en {n} línea(s)",
     },
     "changes.prices": {"en": "{n} price(s)", "es": "{n} precio(s)"},
+    "changes.splits": {"en": "{n} split delivery(ies)", "es": "{n} entrega(s) parcial(es)"},
+    "changes.low_date": {
+        "en": "date read with low confidence",
+        "es": "fecha interpretada con baja confianza",
+    },
+    "changes.split_mismatch": {
+        "en": "the parts add up to {parts}, the line orders {qty}",
+        "es": "las partes suman {parts}, la línea pide {qty}",
+    },
     "changes.leads": {"en": "{n} lead time(s)", "es": "{n} plazo(s)"},
     "changes.to_review": {"en": "; {n} to review", "es": "; {n} para revisar"},
     "changes.supplier_wrote": {"en": ' (supplier: "{raw}")', "es": ' (proveedor: "{raw}")'},

@@ -147,6 +147,7 @@ function EventLine({ event }: { event: CaseEvent }) {
             task: labelFor(t, "task", text("task")),
             agent: labelFor(t, "agent", text("agent")),
           })}
+          <EmailLink href={text("web_link")} />
         </p>
       );
     case "result":

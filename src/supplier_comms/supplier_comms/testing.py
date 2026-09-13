@@ -77,6 +77,7 @@ class FakePorts:
     pdf_bytes: bytes = b"%PDF-1.4 fake purchase order"
     attachments: dict[str, list[str]] = field(default_factory=dict)
     date_changes: list[dict[str, Any]] = field(default_factory=list)
+    splits: list[dict[str, Any]] = field(default_factory=list)
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
     eta_meta: list[dict[str, Any]] = field(default_factory=list)
     profiles: dict[int, SupplierProfile] = field(default_factory=dict)
@@ -191,6 +192,18 @@ class FakePorts:
         self.date_changes.append(
             {"line_id": line_id, "date": new_date.isoformat(), "run_id": run_id}
         )
+
+    async def split_line(
+        self, line_id: int, parts: list[tuple[float, date]], *, run_id: str
+    ) -> list[int]:
+        self.splits.append(
+            {
+                "line_id": line_id,
+                "parts": [(qty, d.isoformat()) for qty, d in parts],
+                "run_id": run_id,
+            }
+        )
+        return [9000 + len(self.splits) * 10 + i for i in range(1, len(parts))]
 
     async def upsert_price(
         self,

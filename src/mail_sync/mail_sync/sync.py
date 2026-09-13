@@ -167,6 +167,7 @@ class SyncRunner:
                     has_attachments=message.has_attachments,
                     confidence=link.confidence,
                     rule=link.rule,
+                    web_link=message.web_link,
                 )
             )
             await self._state.mark_processed(

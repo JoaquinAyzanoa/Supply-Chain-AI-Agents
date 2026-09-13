@@ -56,6 +56,7 @@ class InboundMailLinked(BaseEvent):
     has_attachments: bool = False
     confidence: LinkConfidence
     rule: str = Field(description="which linking rule matched, for audit")
+    web_link: str | None = Field(default=None, description="where a person opens it in Outlook")
 
 
 class InboundMailUnlinked(BaseEvent):

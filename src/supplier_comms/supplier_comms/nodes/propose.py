@@ -13,12 +13,19 @@ changes are shown to the human but never written by ``apply_changes``.
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from loguru import logger
 
 from sc_core.i18n import Language, t
-from sc_core.schema.a2a import ChangeProposal, ProposedChange, QuotationData
+from sc_core.schema.a2a import (
+    ChangeProposal,
+    DeliverySplit,
+    ProposedChange,
+    QuotationData,
+    QuotedLine,
+)
 from supplier_comms.models import LineView, PoContext
 from supplier_comms.nodes.common import context_of, finish
 from supplier_comms.state import Node
@@ -32,21 +39,38 @@ def build_proposal(
     changes: list[ProposedChange] = []
     low = data.confidence < REVIEW_THRESHOLD
 
-    if data.eta_date is not None:
-        for line in ctx.lines:
-            if line.date_planned != data.eta_date:
-                changes.append(
-                    ProposedChange(
-                        po_line_id=line.id,
-                        product=line.product,
-                        field="date_planned",
-                        before=line.date_planned.isoformat() if line.date_planned else None,
-                        after=data.eta_date.isoformat(),
-                        confidence=data.confidence,
-                        needs_review=low,
-                        review_reason="fecha interpretada con baja confianza" if low else None,
-                    )
-                )
+    quoted_by_line = {q.po_line_id: q for q in data.lines if q.po_line_id is not None}
+    for line in ctx.lines:
+        quoted = quoted_by_line.get(line.id)
+        first_date, schedule = line_dates(quoted, data)
+        if first_date is None:
+            continue
+        if line.date_planned == first_date and not schedule:
+            continue
+        confidence = min(quoted.confidence, data.confidence) if quoted else data.confidence
+        line_low = confidence < REVIEW_THRESHOLD
+        reason = t("changes.low_date", language) if line_low else None
+        if schedule and abs(sum(p.qty for p in schedule) - line.qty) > 1e-6:
+            line_low = True
+            reason = t(
+                "changes.split_mismatch",
+                language,
+                parts=f"{sum(p.qty for p in schedule):g}",
+                qty=f"{line.qty:g}",
+            )
+        changes.append(
+            ProposedChange(
+                po_line_id=line.id,
+                product=line.product,
+                field="date_planned",
+                before=line.date_planned.isoformat() if line.date_planned else None,
+                after=first_date.isoformat(),
+                confidence=confidence,
+                needs_review=line_low,
+                review_reason=reason,
+                schedule=schedule,
+            )
+        )
 
     lines_by_id = {line.id: line for line in ctx.lines}
     for quoted in data.lines:
@@ -133,6 +157,27 @@ def _reason(mismatch: bool, low: bool, line: LineView) -> str | None:
     return None
 
 
+def line_dates(
+    quoted: QuotedLine | None, data: QuotationData
+) -> tuple[date | None, list[DeliverySplit]]:
+    """The first delivery date of a line and, when it arrives in parts, the whole schedule.
+
+    A date on the quoted line beats the date of the whole reply; a split with two or more
+    dated parts becomes a schedule ordered by date.
+    """
+    if quoted is not None:
+        parts = sorted(
+            (p for p in quoted.deliveries if p.date is not None), key=lambda p: p.date or date.max
+        )
+        if len(parts) >= 2:
+            return parts[0].date, parts
+        if len(parts) == 1:
+            return parts[0].date, []
+        if quoted.eta_date is not None:
+            return quoted.eta_date, []
+    return data.eta_date, []
+
+
 def _summary(changes: list[ProposedChange], data: QuotationData, language: Language) -> str:
     if not changes:
         return t("changes.none", language)
@@ -146,6 +191,9 @@ def _summary(changes: list[ProposedChange], data: QuotationData, language: Langu
         parts.append(t("changes.prices", language, n=len(prices)))
     if leads:
         parts.append(t("changes.leads", language, n=len(leads)))
+    splits = sum(1 for c in dates if c.schedule)
+    if splits:
+        parts.append(t("changes.splits", language, n=splits))
     review = sum(1 for c in changes if c.needs_review)
     text = ", ".join(parts)
     if review:

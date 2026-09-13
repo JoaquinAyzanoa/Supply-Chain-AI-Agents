@@ -16,10 +16,17 @@ from sc_core.odoo.models import (
     to_odoo_datetime,
 )
 from sc_core.odoo.repositories.base import Repo
-from sc_core.shared.errors import ExternalServiceError, ValidationFailed
+from sc_core.shared.errors import ExternalServiceError, NotFound, ValidationFailed
 
 OPEN_STATES = ["purchase"]
 RFQ_STATES = ["draft", "sent", "to approve"]
+
+
+def _ref_id(value: Any) -> int | None:
+    """A many2one as Odoo returns it (``[id, name]``) or an id; ``False`` is None."""
+    if isinstance(value, list | tuple):
+        return int(value[0]) if value else None
+    return int(value) if value else None
 
 
 class PurchaseOrderRepo(Repo[PurchaseOrder]):
@@ -181,6 +188,57 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
             source=source,
             run_id=run_id,
         )
+
+    async def split_line(
+        self,
+        line_id: int,
+        parts: list[tuple[float, datetime]],
+        *,
+        source: EtaSource,
+        run_id: str,
+    ) -> list[int]:
+        """A partial delivery: the line keeps the first part and its date; the other parts
+        become new lines of the same product and price with their own dates. Odoo adjusts
+        the receipt moves of a confirmed order by itself. Returns the ids of the new lines."""
+        if len(parts) < 2:
+            raise ValidationFailed("a split needs at least two parts")
+        rows = await self._c.read(
+            PurchaseOrderLine.ODOO_MODEL,
+            [line_id],
+            ["order_id", "product_id", "name", "product_uom", "price_unit", "taxes_id", "sequence"],
+        )
+        if not rows:
+            raise NotFound(f"purchase order line {line_id} not found")
+        row = rows[0]
+        first_qty, first_date = parts[0]
+        await self._c.write(
+            PurchaseOrderLine.ODOO_MODEL,
+            [line_id],
+            {"product_qty": first_qty, "date_planned": to_odoo_datetime(first_date)},
+        )
+        await self._c.call(
+            PurchaseOrderLine.ODOO_MODEL,
+            "sc_log_eta_change",
+            [line_id],
+            source=source,
+            run_id=run_id,
+        )
+        created: list[int] = []
+        for qty, when in parts[1:]:
+            values: dict[str, Any] = {
+                "order_id": _ref_id(row.get("order_id")),
+                "product_id": _ref_id(row.get("product_id")),
+                "name": row.get("name"),
+                "product_uom": _ref_id(row.get("product_uom")),
+                "price_unit": row.get("price_unit"),
+                "product_qty": qty,
+                "date_planned": to_odoo_datetime(when),
+                "sequence": row.get("sequence") or 10,
+            }
+            if row.get("taxes_id"):
+                values["taxes_id"] = [(6, 0, list(row["taxes_id"]))]
+            created.append(int(await self._c.create(PurchaseOrderLine.ODOO_MODEL, values)))
+        return created
 
     async def set_eta_meta(self, po_id: int, *, source: EtaSource, confidence: float) -> None:
         if not 0.0 <= confidence <= 1.0:
