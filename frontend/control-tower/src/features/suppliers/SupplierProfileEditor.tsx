@@ -14,6 +14,12 @@ import { useSaveProfile, useSupplierProfile, type ProfileUpdate } from "@/featur
 import { useI18n } from "@/i18n";
 
 const FORMALITY = ["", "formal", "neutral", "informal"] as const;
+/** The two facts people set by hand: the planner reads them to consolidate orders. */
+const FREIGHT_FACTS = new Set(["free_freight_over", "freight_cost"]);
+
+function numberOrNull(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
 
 export function SupplierProfileEditor({ partnerId }: { partnerId: number }) {
   const { t } = useI18n();
@@ -31,6 +37,8 @@ export function SupplierProfileEditor({ partnerId }: { partnerId: number }) {
         sign_off: profile.data.sign_off ?? null,
         contacts: [...(profile.data.contacts ?? [])],
         notes: profile.data.notes ?? "",
+        free_freight_over: numberOrNull(profile.data.facts?.free_freight_over),
+        freight_cost: numberOrNull(profile.data.facts?.freight_cost),
       });
   }, [profile.data]);
   if (profile.isPending || !draft) return <Loading />;
@@ -46,7 +54,8 @@ export function SupplierProfileEditor({ partnerId }: { partnerId: number }) {
       setMessage(exc instanceof Error ? exc.message : String(exc));
     }
   };
-  const facts = Object.entries(profile.data.facts ?? {});
+  const facts = Object.entries(profile.data.facts ?? {}).filter(([k]) => !FREIGHT_FACTS.has(k));
+  const setNumber = (field: "free_freight_over" | "freight_cost", raw: string) => setDraft({ ...draft, [field]: raw === "" ? null : Math.max(0, Number(raw)) });
   return (
     <div className="grid gap-2 md:grid-cols-4" data-testid={`profile-${partnerId}`}>
       <div className="flex flex-col gap-1">
@@ -70,6 +79,17 @@ export function SupplierProfileEditor({ partnerId }: { partnerId: number }) {
       <div className="flex flex-col gap-1">
         <Label htmlFor={id("contacts")}>{t("suppliers.profile.contacts")}</Label>
         <Input id={id("contacts")} className="h-8" value={draft.contacts.join(", ")} disabled={!editable} onChange={(e) => setDraft({ ...draft, contacts: e.target.value.split(",").map((c) => c.trim()).filter(Boolean) })} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={id("free_freight_over")}>{t("suppliers.profile.free_freight_over")}</Label>
+        <Input id={id("free_freight_over")} className="h-8" type="number" min={0} step="1" value={draft.free_freight_over ?? ""} disabled={!editable} onChange={(e) => setNumber("free_freight_over", e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={id("freight_cost")}>{t("suppliers.profile.freight_cost")}</Label>
+        <Input id={id("freight_cost")} className="h-8" type="number" min={0} step="1" value={draft.freight_cost ?? ""} disabled={!editable} onChange={(e) => setNumber("freight_cost", e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-1 md:col-span-2">
+        <span className="text-xs text-muted-foreground">{t("suppliers.profile.freight_hint")}</span>
       </div>
       <div className="flex flex-col gap-1 md:col-span-4">
         <Label htmlFor={id("notes")}>{t("suppliers.profile.notes")}</Label>

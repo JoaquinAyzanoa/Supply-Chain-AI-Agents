@@ -30,6 +30,7 @@ import {
   type PlanningOverrides,
   type ReplenishmentLine,
 } from "./api";
+import { PortfolioWhatIf } from "./PortfolioWhatIf";
 import { Sparkline } from "./Sparkline";
 
 type Editable = "order_qty" | "proposed_min" | "proposed_max";
@@ -215,6 +216,7 @@ export function PlanningRunPage() {
               </Table>
             </section>
           ))}
+          {rows.length && hasRole("approver") ? <PortfolioWhatIf runId={runId} /> : null}
         </div>
         {openLine ? (
           <LineDrawer
@@ -364,6 +366,15 @@ function LineDrawer({
         <p className="mb-3 flex gap-2 rounded-md bg-muted/50 p-2">
           <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
           <span>{line.explanation}</span>
+        </p>
+      ) : null}
+      {line.consolidation ? (
+        <p className="mb-3 text-xs text-muted-foreground">
+          {t("planning.consolidation", {
+            days: formatNumber(line.consolidation.days_early, locale, 0),
+            freight: formatMoney(line.consolidation.freight_saved, line.currency, locale),
+            stock: formatMoney(line.consolidation.stock_cost, line.currency, locale),
+          })}
         </p>
       ) : null}
       <div className="mb-3">

@@ -17,6 +17,7 @@ from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import MailboxSync
 from director.api.performance import PerformanceSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
+from director.api.risk import RiskSource
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
 from director.autonomy import AutoAction, AutoActionsStore, AutonomyChanges, Reverter
@@ -42,6 +43,7 @@ from director.workflow import ConfirmedOrders, Deps, Orchestrator
 from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app.realtime import MemoryRealtime, Realtime
+from sc_core.infra.calendar import CalendarStore, MemoryCalendarStore
 from sc_core.infra.locks import MemoryLock
 from sc_core.infra.profiles import MemoryProfileStore, ProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
@@ -167,6 +169,8 @@ class MemoryDirectorModule(Module):
         self.mailbox = MemoryMailboxSync()
         self.performance = MemoryPerformanceSource()
         self.sourcing_source = MemorySourcingSource()
+        self.risk_source = MemoryRiskSource()
+        self.calendar = MemoryCalendarStore()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -243,6 +247,8 @@ class MemoryDirectorModule(Module):
         binder.bind(PlaybookStore, to=self.playbook_store, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(PlaybookEngine, to=self.playbooks, scope=singleton)
         binder.bind(SourcingSource, to=self.sourcing_source, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(RiskSource, to=self.risk_source, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(CalendarStore, to=self.calendar, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(SourcingDispatcher, to=self.sourcing, scope=singleton)
         binder.bind(RuntimeSettingsReader, to=self.runtime_reader, scope=singleton)
         binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
@@ -537,6 +543,23 @@ class MemoryPerformanceSource:
 
     async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
         return [await self.rank(pid) for pid in sorted(set(product_ids))]
+
+
+class MemoryRiskSource:
+    """The risk radar as the planner would answer it."""
+
+    def __init__(self) -> None:
+        self.report_data: dict[str, Any] = {
+            "as_of": "2026-09-14",
+            "warehouse_code": "WH",
+            "products": [],
+            "suppliers": [],
+            "cash_exposure": 0.0,
+            "at_risk_30": 0,
+        }
+
+    async def report(self, *, warehouse_code: str | None = None) -> dict[str, Any]:
+        return dict(self.report_data)
 
 
 class MemorySourcingSource:

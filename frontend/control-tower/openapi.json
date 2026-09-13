@@ -47,6 +47,38 @@
         "title": "Accepted",
         "type": "object"
       },
+      "ActRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the late order to source elsewhere",
+            "title": "Po Name"
+          },
+          "qty": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "override the suggested quantity",
+            "title": "Qty"
+          }
+        },
+        "title": "ActRequest",
+        "type": "object"
+      },
       "ActResponse": {
         "additionalProperties": false,
         "properties": {
@@ -1152,6 +1184,123 @@
         "title": "BoardCard",
         "type": "object"
       },
+      "CalendarEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "a category path; empty = everything",
+            "title": "Category"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "factor": {
+            "default": 1.0,
+            "description": "demand multiplier while it runs",
+            "exclusiveMinimum": 0.0,
+            "maximum": 10.0,
+            "title": "Factor",
+            "type": "number"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "enum": [
+              "promotion",
+              "holiday",
+              "project"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "one product; empty = see category",
+            "title": "Product Id"
+          },
+          "quantity": {
+            "default": 0.0,
+            "description": "project: units over the period",
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "number"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "start_date",
+          "end_date"
+        ],
+        "title": "CalendarEvent",
+        "type": "object"
+      },
       "CaseDetail": {
         "additionalProperties": false,
         "properties": {
@@ -1508,6 +1657,100 @@
         ],
         "title": "CheckStatus",
         "type": "string"
+      },
+      "ClassWhatIfRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "abc_class": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Abc Class",
+            "type": "string"
+          },
+          "overrides": {
+            "$ref": "#/components/schemas/PlanningOverrides"
+          }
+        },
+        "required": [
+          "abc_class",
+          "overrides"
+        ],
+        "title": "ClassWhatIfRequest",
+        "type": "object"
+      },
+      "ClassWhatIfResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "abc_class": {
+            "title": "Abc Class",
+            "type": "string"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/PortfolioTotals"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "simulated": {
+            "$ref": "#/components/schemas/PortfolioTotals"
+          }
+        },
+        "required": [
+          "abc_class",
+          "baseline",
+          "simulated",
+          "run_id"
+        ],
+        "title": "ClassWhatIfResponse",
+        "type": "object"
+      },
+      "ConsolidationNote": {
+        "additionalProperties": false,
+        "description": "Why a line is bought early: the freight it saves against the stock it costs.",
+        "properties": {
+          "days_early": {
+            "minimum": 0.0,
+            "title": "Days Early",
+            "type": "number"
+          },
+          "freight_saved": {
+            "minimum": 0.0,
+            "title": "Freight Saved",
+            "type": "number"
+          },
+          "stock_cost": {
+            "minimum": 0.0,
+            "title": "Stock Cost",
+            "type": "number"
+          },
+          "supplier_id": {
+            "title": "Supplier Id",
+            "type": "integer"
+          },
+          "supplier_name": {
+            "default": "",
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "threshold": {
+            "minimum": 0.0,
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "supplier_id",
+          "freight_saved",
+          "stock_cost",
+          "days_early",
+          "threshold"
+        ],
+        "title": "ConsolidationNote",
+        "type": "object"
       },
       "DecideRequest": {
         "additionalProperties": false,
@@ -3305,6 +3548,56 @@
         "title": "PolicyView",
         "type": "object"
       },
+      "PortfolioTotals": {
+        "additionalProperties": false,
+        "description": "A whole class at a glance: what it would cost and what it would risk.",
+        "properties": {
+          "expected_stockouts": {
+            "description": "sum of 30-day stockout probabilities",
+            "title": "Expected Stockouts",
+            "type": "number"
+          },
+          "lines": {
+            "title": "Lines",
+            "type": "integer"
+          },
+          "orders": {
+            "description": "lines that order something",
+            "title": "Orders",
+            "type": "integer"
+          },
+          "service_level": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Level"
+          },
+          "spend": {
+            "description": "order quantities at the reference price",
+            "title": "Spend",
+            "type": "number"
+          },
+          "stock_value": {
+            "description": "order-up-to levels at the reference price",
+            "title": "Stock Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lines",
+          "orders",
+          "spend",
+          "stock_value",
+          "expected_stockouts"
+        ],
+        "title": "PortfolioTotals",
+        "type": "object"
+      },
       "PreviewRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3484,6 +3777,32 @@
               }
             ],
             "title": "Formality"
+          },
+          "free_freight_over": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "order value from which the supplier ships free",
+            "title": "Free Freight Over"
+          },
+          "freight_cost": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "freight charged below that value",
+            "title": "Freight Cost"
           },
           "greeting": {
             "anyOf": [
@@ -3711,10 +4030,21 @@
               "update_rule_and_rfq",
               "hold",
               "manual_review",
+              "consolidate",
               "none"
             ],
             "title": "Action",
             "type": "string"
+          },
+          "consolidation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConsolidationNote"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "coverage_days": {
             "anyOf": [
@@ -4330,6 +4660,13 @@
           },
           "autonomy": {
             "$ref": "#/components/schemas/AutonomyPolicy"
+          },
+          "holding_cost_pct_year": {
+            "default": 20.0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Holding Cost Pct Year",
+            "type": "number"
           },
           "ignored_senders": {
             "default": [],
@@ -6982,6 +7319,151 @@
         ]
       }
     },
+    "/api/planning/calendar": {
+      "get": {
+        "operationId": "list_events_api_planning_calendar_get",
+        "parameters": [
+          {
+            "description": "events ending on or after this day",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "events ending on or after this day",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEvent"
+                  },
+                  "title": "Response List Events Api Planning Calendar Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Events",
+        "tags": [
+          "planning"
+        ]
+      },
+      "post": {
+        "operationId": "add_event_api_planning_calendar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEvent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Event",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
+    "/api/planning/calendar/{event_id}": {
+      "delete": {
+        "operationId": "remove_event_api_planning_calendar__event_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Event",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
     "/api/planning/runs": {
       "get": {
         "operationId": "list_planning_runs_api_planning_runs_get",
@@ -7258,6 +7740,64 @@
         ]
       }
     },
+    "/api/planning/runs/{run_id}/what-if-class": {
+      "post": {
+        "description": "Recompute every product of one ABC class with other parameters; nothing is written.",
+        "operationId": "what_if_class_api_planning_runs__run_id__what_if_class_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassWhatIfRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassWhatIfResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "What If Class",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
     "/api/playbooks": {
       "get": {
         "operationId": "list_playbooks_api_playbooks_get",
@@ -7517,6 +8057,120 @@
         "summary": "Tick",
         "tags": [
           "playbooks"
+        ]
+      }
+    },
+    "/api/risk": {
+      "get": {
+        "operationId": "risk_radar_api_risk_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "warehouse_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Warehouse Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Risk Radar Api Risk Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Risk Radar",
+        "tags": [
+          "risk"
+        ]
+      }
+    },
+    "/api/risk/{product_id}/act": {
+      "post": {
+        "description": "One click: an alternative source for the late order behind the risk, or a quote round.",
+        "operationId": "act_on_risk_api_risk__product_id__act_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "title": "Product Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Act On Risk",
+        "tags": [
+          "risk"
         ]
       }
     },

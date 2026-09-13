@@ -36,6 +36,7 @@ from director.api.planning import (
     PlanningReadStore,
     PostgresPlanningReadStore,
 )
+from director.api.risk import HttpRiskSource, RiskSource
 from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
 from director.autonomy import (
@@ -80,6 +81,7 @@ from sc_core.app import create_application
 from sc_core.app.realtime import Realtime, RedisRealtime
 from sc_core.app.static import mount_spa
 from sc_core.graph import policy_from
+from sc_core.infra.calendar import CalendarStore, PostgresCalendarStore
 from sc_core.infra.db import Database
 from sc_core.infra.locks import RedisLock
 from sc_core.infra.module import (
@@ -314,6 +316,16 @@ class DirectorModule(Module):
     @singleton
     def provide_performance_source(self, settings: Settings) -> PerformanceSource:  # type: ignore[type-abstract]
         return HttpPerformanceSource(settings.a2a.supplier_performance_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_risk_source(self, settings: Settings) -> RiskSource:  # type: ignore[type-abstract]
+        return HttpRiskSource(settings.a2a.inventory_planning_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_calendar(self, db: Database) -> CalendarStore:  # type: ignore[type-abstract]
+        return PostgresCalendarStore(db)
 
     @provider
     @singleton

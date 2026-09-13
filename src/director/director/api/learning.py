@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_injector import Injected
 from loguru import logger
+from pydantic import Field
 
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import Admin, Approver, Principal, Viewer
@@ -46,6 +47,9 @@ class SuggestionAction(StrictModel):
     approval_id: int | None = None
 
 
+FREIGHT_FACTS = ("free_freight_over", "freight_cost")
+
+
 class ProfileUpdate(StrictModel):
     language: str | None = None
     formality: str | None = None
@@ -53,6 +57,14 @@ class ProfileUpdate(StrictModel):
     sign_off: str | None = None
     contacts: list[str] = []
     notes: str = ""
+    # Freight terms are the one fact people set by hand; the planner reads them when it
+    # decides whether pulling an order forward is cheaper than paying freight twice.
+    free_freight_over: float | None = Field(
+        default=None, ge=0, description="order value from which the supplier ships free"
+    )
+    freight_cost: float | None = Field(
+        default=None, ge=0, description="freight charged below that value"
+    )
 
 
 @router.get("/stats", response_model=FeedbackSummary)
@@ -165,10 +177,17 @@ async def put_profile(
     profiles: ProfileStore = Injected(ProfileStore),  # type: ignore[type-abstract]
 ) -> SupplierProfile:
     current = await profiles.get(partner_id)
+    facts = dict(current.facts) if current else {}
+    for key in FREIGHT_FACTS:
+        value = getattr(body, key)
+        if value is None:
+            facts.pop(key, None)
+        else:
+            facts[key] = value
     profile = SupplierProfile(
         partner_id=partner_id,
-        facts=current.facts if current else {},
-        **body.model_dump(),
+        facts=facts,
+        **body.model_dump(exclude=set(FREIGHT_FACTS)),
     )
     saved = await profiles.save(profile, by=principal.email)
     logger.bind(partner_id=partner_id, by=principal.email).info("supplier profile saved")

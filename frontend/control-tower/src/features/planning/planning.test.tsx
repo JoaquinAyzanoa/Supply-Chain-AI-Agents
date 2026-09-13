@@ -72,6 +72,7 @@ const DETAIL: PlanningRunDetail = {
 
 let resolved: Record<string, unknown>[];
 let simulated: Record<string, unknown>[];
+let calendar: Record<string, unknown>[];
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -83,6 +84,26 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   url.pathname = decodeURIComponent(url.pathname); // openapi-fetch encodes the ":" in line ids
   if (url.pathname === "/api/auth/me") return jsonResponse(200, { email: "ana@x.com", name: "Ana", role: "approver" });
   if (url.pathname === "/api/planning/runs") return jsonResponse(200, [RUN]);
+  if (url.pathname === "/api/planning/calendar" && request.method === "GET") return jsonResponse(200, calendar);
+  if (url.pathname === "/api/planning/calendar" && request.method === "POST") {
+    const body = (await request.json()) as Record<string, unknown>;
+    calendar.push({ ...body, id: calendar.length + 1, created_by: "ana@x.com" });
+    return jsonResponse(201, calendar[calendar.length - 1]);
+  }
+  if (url.pathname.startsWith("/api/planning/calendar/") && request.method === "DELETE") {
+    calendar = calendar.filter((e) => e.id !== Number(url.pathname.split("/").pop()));
+    return new Response(null, { status: 204 });
+  }
+  if (url.pathname === "/api/planning/runs/run_1/what-if-class" && request.method === "POST") {
+    const body = (await request.json()) as Record<string, unknown>;
+    simulated.push(body);
+    return jsonResponse(200, {
+      abc_class: body.abc_class,
+      run_id: "run_3",
+      baseline: { lines: 1, orders: 1, spend: 230, stock_value: 330, expected_stockouts: 0.9, service_level: 0.95 },
+      simulated: { lines: 1, orders: 1, spend: 270, stock_value: 370, expected_stockouts: 0.4, service_level: 0.99 },
+    });
+  }
   if (url.pathname === "/api/planning/runs/run_1") return jsonResponse(200, DETAIL);
   if (url.pathname === "/api/planning/runs/run_1/ranking")
     return jsonResponse(200, {
@@ -146,6 +167,7 @@ describe("planning review", () => {
   beforeEach(() => {
     resolved = [];
     simulated = [];
+    calendar = [];
     vi.spyOn(globalThis, "fetch").mockImplementation(fakeFetch);
     authStore.set({ token: "jwt", user: { email: "ana@x.com", name: "Ana", role: "approver" } });
   });
@@ -155,6 +177,45 @@ describe("planning review", () => {
     renderAt("/planning");
     expect(await screen.findByRole("link", { name: "Sep 14, 2026" })).toHaveAttribute("href", "/planning/run_1");
     expect(screen.getByText("14 rules, 3 RFQs")).toBeInTheDocument();
+  });
+
+  it("keeps the demand calendar: an approver adds a promotion and removes it", async () => {
+    renderAt("/planning");
+    const section = await screen.findByRole("region", { name: "Demand calendar" });
+    expect(await within(section).findByText("No events yet.")).toBeInTheDocument();
+    await userEvent.type(within(section).getByLabelText("Name"), "Feria");
+    await userEvent.type(within(section).getByLabelText("From"), "2026-10-01");
+    await userEvent.type(within(section).getByLabelText("To"), "2026-10-07");
+    await userEvent.clear(within(section).getByLabelText("Demand factor"));
+    await userEvent.type(within(section).getByLabelText("Demand factor"), "2");
+    await userEvent.click(within(section).getByRole("button", { name: "Add event" }));
+    await waitFor(() => expect(calendar).toHaveLength(1));
+    expect(calendar[0]).toMatchObject({ kind: "promotion", name: "Feria", start_date: "2026-10-01", end_date: "2026-10-07", factor: 2, quantity: 0, product_id: null });
+    expect(await within(section).findByText("Feria added; the next plan uses it.")).toBeInTheDocument();
+    const row = (await within(section).findAllByRole("row"))[1]!;
+    expect(row).toHaveTextContent("Promotion");
+    expect(row).toHaveTextContent("all products");
+    expect(row).toHaveTextContent("×2");
+    await userEvent.click(within(section).getByRole("button", { name: "Remove Feria" }));
+    await waitFor(() => expect(calendar).toHaveLength(0));
+    expect(await within(section).findByText("No events yet.")).toBeInTheDocument();
+  });
+
+  it("simulates a whole class and shows the totals before and after", async () => {
+    renderAt("/planning/run_1");
+    const panel = await screen.findByRole("region", { name: "Portfolio what-if" });
+    await userEvent.selectOptions(within(panel).getByLabelText("Class"), "B");
+    await userEvent.clear(within(panel).getByLabelText("Service level"));
+    await userEvent.type(within(panel).getByLabelText("Service level"), "0.99");
+    await userEvent.click(within(panel).getByRole("button", { name: "Simulate class" }));
+    await waitFor(() => expect(simulated).toHaveLength(1));
+    expect(simulated[0]).toEqual({ abc_class: "B", overrides: { service_level: 0.99, review_period_days: null, lead_time_days: null, max_coverage_days: null } });
+    const rows = await within(panel).findAllByRole("row");
+    expect(rows[2]).toHaveTextContent("Spend");
+    expect(rows[2]).toHaveTextContent("230");
+    expect(rows[2]).toHaveTextContent("270");
+    expect(rows[4]).toHaveTextContent("Expected stockouts (30 d)");
+    expect(rows[4]).toHaveTextContent("0.4");
   });
 
   it("groups lines by supplier, edits a quantity and approves only the selected lines", async () => {

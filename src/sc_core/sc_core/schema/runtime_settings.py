@@ -70,6 +70,8 @@ class RuntimeSettings(StrictModel):
     sourcing_freight_pct: float = Field(default=5.0, ge=0, le=100)
     negotiation_cap_pct: float = Field(default=10.0, ge=0, le=50)
     negotiation_max_rounds: int = Field(default=2, ge=1, le=5)
+    # Order consolidation: what a year of holding stock costs, as a share of its value.
+    holding_cost_pct_year: float = Field(default=20.0, ge=0, le=100)
 
     @classmethod
     def from_settings(cls, settings: Settings) -> RuntimeSettings:

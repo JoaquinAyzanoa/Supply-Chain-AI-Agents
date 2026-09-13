@@ -35,7 +35,7 @@ from sc_core.schema.events import BaseEvent, NeedsProposed, event_id_for
 from sc_core.schema.planning import ReplenishmentLine, ReplenishmentProposal
 
 PLAN_STEP = "planning_run"
-ACTIONABLE = ("update_rule", "create_rfq", "update_rule_and_rfq")
+ACTIONABLE = ("update_rule", "create_rfq", "update_rule_and_rfq", "consolidate")
 
 
 def make_plan_approval(
@@ -205,7 +205,10 @@ def make_apply(
         # supplier fields are the reference (what we last paid, who listed it).
         needs: list[Need] = []
         for line in lines:
-            if line.action in ("create_rfq", "update_rule_and_rfq") and line.order_qty > 0:
+            if (
+                line.action in ("create_rfq", "update_rule_and_rfq", "consolidate")
+                and line.order_qty > 0
+            ):
                 needs.append(
                     Need(
                         product_id=line.product_id,

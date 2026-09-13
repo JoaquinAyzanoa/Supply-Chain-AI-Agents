@@ -520,6 +520,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/planning/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Events */
+        get: operations["list_events_api_planning_calendar_get"];
+        put?: never;
+        /** Add Event */
+        post: operations["add_event_api_planning_calendar_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/planning/calendar/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove Event */
+        delete: operations["remove_event_api_planning_calendar__event_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/planning/runs": {
         parameters: {
             query?: never;
@@ -614,6 +649,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/planning/runs/{run_id}/what-if-class": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What If Class
+         * @description Recompute every product of one ABC class with other parameters; nothing is written.
+         */
+        post: operations["what_if_class_api_planning_runs__run_id__what_if_class_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/playbooks": {
         parameters: {
             query?: never;
@@ -700,6 +755,43 @@ export interface paths {
          * @description Move every active run now (the hourly job does the same).
          */
         post: operations["tick_api_playbooks_tick_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/risk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Risk Radar */
+        get: operations["risk_radar_api_risk_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/risk/{product_id}/act": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Act On Risk
+         * @description One click: an alternative source for the late order behind the risk, or a quote round.
+         */
+        post: operations["act_on_risk_api_risk__product_id__act_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -933,6 +1025,19 @@ export interface components {
             result?: {
                 [key: string]: unknown;
             } | null;
+        };
+        /** ActRequest */
+        ActRequest: {
+            /**
+             * Po Name
+             * @description the late order to source elsewhere
+             */
+            po_name?: string | null;
+            /**
+             * Qty
+             * @description override the suggested quantity
+             */
+            qty?: number | null;
         };
         /** ActResponse */
         ActResponse: {
@@ -1284,6 +1389,59 @@ export interface components {
              */
             supplier_confirmed: boolean;
         };
+        /** CalendarEvent */
+        CalendarEvent: {
+            /**
+             * Category
+             * @description a category path; empty = everything
+             */
+            category?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Created By */
+            created_by?: string | null;
+            /**
+             * End Date
+             * Format: date
+             */
+            end_date: string;
+            /**
+             * Factor
+             * @description demand multiplier while it runs
+             * @default 1
+             */
+            factor: number;
+            /** Id */
+            id?: number | null;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "promotion" | "holiday" | "project";
+            /** Name */
+            name: string;
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Product Id
+             * @description one product; empty = see category
+             */
+            product_id?: number | null;
+            /**
+             * Quantity
+             * @description project: units over the period
+             * @default 0
+             */
+            quantity: number;
+            /**
+             * Start Date
+             * Format: date
+             */
+            start_date: string;
+        };
         /** CaseDetail */
         CaseDetail: {
             /**
@@ -1406,6 +1564,45 @@ export interface components {
          * @enum {string}
          */
         CheckStatus: "ok" | "fail";
+        /** ClassWhatIfRequest */
+        ClassWhatIfRequest: {
+            /**
+             * Abc Class
+             * @enum {string}
+             */
+            abc_class: "A" | "B" | "C";
+            overrides: components["schemas"]["PlanningOverrides"];
+        };
+        /** ClassWhatIfResponse */
+        ClassWhatIfResponse: {
+            /** Abc Class */
+            abc_class: string;
+            baseline: components["schemas"]["PortfolioTotals"];
+            /** Run Id */
+            run_id: string;
+            simulated: components["schemas"]["PortfolioTotals"];
+        };
+        /**
+         * ConsolidationNote
+         * @description Why a line is bought early: the freight it saves against the stock it costs.
+         */
+        ConsolidationNote: {
+            /** Days Early */
+            days_early: number;
+            /** Freight Saved */
+            freight_saved: number;
+            /** Stock Cost */
+            stock_cost: number;
+            /** Supplier Id */
+            supplier_id: number;
+            /**
+             * Supplier Name
+             * @default
+             */
+            supplier_name: string;
+            /** Threshold */
+            threshold: number;
+        };
         /** DecideRequest */
         DecideRequest: {
             facts?: components["schemas"]["ActionFacts"];
@@ -2055,6 +2252,36 @@ export interface components {
             /** Version */
             version: number;
         };
+        /**
+         * PortfolioTotals
+         * @description A whole class at a glance: what it would cost and what it would risk.
+         */
+        PortfolioTotals: {
+            /**
+             * Expected Stockouts
+             * @description sum of 30-day stockout probabilities
+             */
+            expected_stockouts: number;
+            /** Lines */
+            lines: number;
+            /**
+             * Orders
+             * @description lines that order something
+             */
+            orders: number;
+            /** Service Level */
+            service_level?: number | null;
+            /**
+             * Spend
+             * @description order quantities at the reference price
+             */
+            spend: number;
+            /**
+             * Stock Value
+             * @description order-up-to levels at the reference price
+             */
+            stock_value: number;
+        };
         /** PreviewRequest */
         PreviewRequest: {
             /**
@@ -2126,6 +2353,16 @@ export interface components {
             contacts: string[];
             /** Formality */
             formality?: string | null;
+            /**
+             * Free Freight Over
+             * @description order value from which the supplier ships free
+             */
+            free_freight_over?: number | null;
+            /**
+             * Freight Cost
+             * @description freight charged below that value
+             */
+            freight_cost?: number | null;
             /** Greeting */
             greeting?: string | null;
             /** Language */
@@ -2216,7 +2453,8 @@ export interface components {
              * @default none
              * @enum {string}
              */
-            action: "update_rule" | "create_rfq" | "update_rule_and_rfq" | "hold" | "manual_review" | "none";
+            action: "update_rule" | "create_rfq" | "update_rule_and_rfq" | "hold" | "manual_review" | "consolidate" | "none";
+            consolidation?: components["schemas"]["ConsolidationNote"] | null;
             /** Coverage Days */
             coverage_days?: number | null;
             /** Currency */
@@ -2432,6 +2670,11 @@ export interface components {
              */
             auto_send_partner_ids: number[];
             autonomy?: components["schemas"]["AutonomyPolicy"];
+            /**
+             * Holding Cost Pct Year
+             * @default 20
+             */
+            holding_cost_pct_year: number;
             /**
              * Ignored Senders
              * @default []
@@ -3767,6 +4010,100 @@ export interface operations {
             };
         };
     };
+    list_events_api_planning_calendar_get: {
+        parameters: {
+            query?: {
+                /** @description events ending on or after this day */
+                since?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_event_api_planning_calendar_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CalendarEvent"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEvent"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_event_api_planning_calendar__event_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                event_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_planning_runs_api_planning_runs_get: {
         parameters: {
             query?: {
@@ -3916,6 +4253,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WhatIfResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    what_if_class_api_planning_runs__run_id__what_if_class_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClassWhatIfRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassWhatIfResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4094,6 +4466,74 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    risk_radar_api_risk_get: {
+        parameters: {
+            query?: {
+                warehouse_code?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    act_on_risk_api_risk__product_id__act_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ActRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

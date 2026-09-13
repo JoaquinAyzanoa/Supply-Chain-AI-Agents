@@ -26,8 +26,10 @@ from sc_core.graph import (
     build_checkpointer,
     policy_from,
 )
+from sc_core.infra.calendar import PostgresCalendarStore
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.profiles import PostgresProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.llm import default_budget
@@ -101,6 +103,8 @@ class InventoryPlanningModule(Module):
             language=settings.agents.language,
             publish=publisher.publish,
             langfuse=settings.langfuse,
+            calendar=PostgresCalendarStore(db),
+            profiles=PostgresProfileStore(db),
         )
 
     @provider

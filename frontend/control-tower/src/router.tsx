@@ -20,6 +20,7 @@ import { CasesPage } from "@/features/cases/CasesPage";
 import { ExceptionsBoardPage } from "@/features/exceptions/ExceptionsBoard";
 import { PlanningPage } from "@/features/planning/PlanningPage";
 import { PlanningRunPage } from "@/features/planning/PlanningRunPage";
+import { RiskPage } from "@/features/risk/RiskPage";
 import { RunsPage, type RunsSearch } from "@/features/runs/RunsPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { SuppliersPage } from "@/features/suppliers/SuppliersPage";
@@ -106,6 +107,7 @@ export const autonomyRoute = child("/autonomy", AutonomyPage);
 export const playbooksRoute = child("/playbooks", PlaybooksPage);
 export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
+export const riskRoute = child("/risk", RiskPage);
 const runsSearch = z.object({
   agent: z.string().optional(),
   model: z.string().optional(),
@@ -141,6 +143,7 @@ const routeTree = rootRoute.addChildren([
     playbooksRoute,
     planningRoute,
     planningRunRoute,
+    riskRoute,
     runsRoute,
     settingsRoute,
   ]),

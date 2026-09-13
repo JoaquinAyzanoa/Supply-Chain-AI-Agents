@@ -4,7 +4,7 @@
  * bottom bar on phones.
  */
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Activity, CalendarClock, ClipboardCheck, History, Kanban, ListChecks, LogOut, Settings, ShieldCheck, Truck } from "lucide-react";
+import { Activity, CalendarClock, ClipboardCheck, History, Kanban, ListChecks, LogOut, Settings, ShieldCheck, Siren, Truck } from "lucide-react";
 
 import { useAuth } from "@/auth/AuthProvider";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +20,7 @@ const NAV = [
   { to: "/approvals", key: "nav.approvals", icon: ClipboardCheck, role: "viewer" },
   { to: "/cases", key: "nav.cases", icon: History, role: "viewer" },
   { to: "/planning", key: "nav.planning", icon: CalendarClock, role: "viewer" },
+  { to: "/risk", key: "nav.risk", icon: Siren, role: "viewer" },
   { to: "/suppliers", key: "nav.suppliers", icon: Truck, role: "viewer" },
   { to: "/autonomy", key: "nav.autonomy", icon: ShieldCheck, role: "viewer" },
   { to: "/playbooks", key: "nav.playbooks", icon: ListChecks, role: "viewer" },

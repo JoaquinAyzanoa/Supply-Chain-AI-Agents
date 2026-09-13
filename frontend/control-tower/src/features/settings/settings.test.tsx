@@ -27,6 +27,7 @@ const CURRENT: Schemas["SettingsVersion"] = {
     planning_service_level: null,
     planning_review_period_days: null,
     planning_max_coverage_days: null,
+    holding_cost_pct_year: 20,
     sourcing_top_n: 3,
     sourcing_deadline_days: 5,
     sourcing_freight_pct: 5,

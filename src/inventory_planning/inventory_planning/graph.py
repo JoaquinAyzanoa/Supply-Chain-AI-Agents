@@ -33,6 +33,7 @@ from inventory_planning.nodes.apply import (
 )
 from inventory_planning.nodes.propose import (
     make_compute,
+    make_consolidate,
     make_detect,
     make_explain,
     make_forecast,
@@ -46,6 +47,8 @@ from inventory_planning.runs import RunStore
 from inventory_planning.state import Node, PlanningState
 from sc_core.graph import ApprovalGateway
 from sc_core.i18n import Language, t
+from sc_core.infra.calendar import CalendarStore
+from sc_core.infra.profiles import ProfileReader
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
@@ -72,6 +75,8 @@ class Deps:
     holds: HoldStore | None = None  # rule changes a person rejected twice
     language: Language = "en"  # for what people read; internals stay English
     publish: Publish = _no_publish
+    calendar: CalendarStore | None = None  # promotions, holidays, projects
+    profiles: ProfileReader | None = None  # supplier freight terms for consolidation
     langfuse: LangfuseCfg | None = None
     today: Callable[[], date] = field(default=local_today)
 
@@ -79,7 +84,8 @@ class Deps:
 def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     g: StateGraph = StateGraph(PlanningState)
     _add(g, "load", make_load(deps.data, deps.cfg, today=deps.today))
-    _add(g, "forecast", make_forecast())
+    _add(g, "forecast", make_forecast(deps.calendar))
+    _add(g, "consolidate", make_consolidate(deps.profiles, deps.runtime))
     _add(
         g,
         "compute",
@@ -112,7 +118,8 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     g.add_conditional_edges("load", _continue_or_end, {"go": "forecast", "end": END})
     g.add_edge("forecast", "compute")
     g.add_edge("compute", "detect")
-    g.add_edge("detect", "review")
+    g.add_edge("detect", "consolidate")
+    g.add_edge("consolidate", "review")
     g.add_edge("review", "explain")
     g.add_edge("explain", "propose")
     g.add_conditional_edges(

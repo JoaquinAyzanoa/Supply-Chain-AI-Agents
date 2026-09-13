@@ -257,13 +257,16 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path.endsWith("/chat") && request.method() === "GET") return json(route, 200, []);
     if (path === "/api/exceptions") return json(route, 200, { as_of: "2026-09-14", late_pos: [], rfqs_no_reply: [], unlinked_mails: [], failed_runs: [], stale_approvals: [] });
     if (path === "/api/planning/runs") return json(route, 200, [state.run]);
+    if (path === "/api/planning/calendar" && request.method() === "GET") return json(route, 200, []);
+    if (path === "/api/planning/calendar" && request.method() === "POST") return json(route, 403, { detail: "approver role required" });
+    if (path === "/api/risk") return json(route, 200, { as_of: "2026-09-14", warehouse_code: "WH", products: [], suppliers: [], cash_exposure: 0, at_risk_30: 0 });
     if (path === "/api/planning/runs/run_1") return json(route, 200, { run: state.run, lines: state.lines });
     if (path === "/api/planning/runs/run_1/ranking") return json(route, 200, { run_id: "run_1", better_count: 0, lines: [] });
     if (path.startsWith("/api/planning/runs/run_1/lines/")) return json(route, 200, { line_id: "run_1:102", product_id: 102, forecast_daily: 2, sigma_daily: 0.5, days: [{ day: "2026-09-13", ordered: 3, delivered: 3 }] });
     if (path === "/api/runs") return json(route, 200, []);
     if (path === "/api/runs/scheduler") return json(route, 200, []);
     if (path === "/api/settings" && request.method() === "GET")
-      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], ignored_senders: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null, sourcing_top_n: 3, sourcing_deadline_days: 5, sourcing_freight_pct: 5, negotiation_cap_pct: 10, negotiation_max_rounds: 2 } });
+      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], ignored_senders: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null, holding_cost_pct_year: 20, sourcing_top_n: 3, sourcing_deadline_days: 5, sourcing_freight_pct: 5, negotiation_cap_pct: 10, negotiation_max_rounds: 2 } });
     if (path === "/api/settings/models") return json(route, 200, []);
     if (path === "/api/autonomy" && request.method() === "GET") return json(route, 200, { version: 0, changed_by: "environment", changed_at: null, policy: { rules: [] }, pending: null });
     if (path === "/api/autonomy/actions") return json(route, 200, []);

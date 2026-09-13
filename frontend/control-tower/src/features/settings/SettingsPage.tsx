@@ -51,6 +51,7 @@ interface Draft {
   planning_service_level: string;
   planning_review_period_days: string;
   planning_max_coverage_days: string;
+  holding_cost_pct_year: string;
   sourcing_top_n: string;
   sourcing_deadline_days: string;
   sourcing_freight_pct: string;
@@ -71,6 +72,7 @@ function toDraft(settings: RuntimeSettings): Draft {
     planning_service_level: settings.planning_service_level === null || settings.planning_service_level === undefined ? "" : String(settings.planning_service_level),
     planning_review_period_days: settings.planning_review_period_days === null || settings.planning_review_period_days === undefined ? "" : String(settings.planning_review_period_days),
     planning_max_coverage_days: settings.planning_max_coverage_days === null || settings.planning_max_coverage_days === undefined ? "" : String(settings.planning_max_coverage_days),
+    holding_cost_pct_year: String(settings.holding_cost_pct_year ?? 20),
     sourcing_top_n: String(settings.sourcing_top_n ?? 3),
     sourcing_deadline_days: String(settings.sourcing_deadline_days ?? 5),
     sourcing_freight_pct: String(settings.sourcing_freight_pct ?? 5),
@@ -105,6 +107,7 @@ export function fromDraft(draft: Draft, base: RuntimeSettings): RuntimeSettings 
     planning_service_level: intOrNull(draft.planning_service_level),
     planning_review_period_days: intOrNull(draft.planning_review_period_days),
     planning_max_coverage_days: intOrNull(draft.planning_max_coverage_days),
+    holding_cost_pct_year: Number(draft.holding_cost_pct_year),
     sourcing_top_n: Number(draft.sourcing_top_n),
     sourcing_deadline_days: Number(draft.sourcing_deadline_days),
     sourcing_freight_pct: Number(draft.sourcing_freight_pct),
@@ -212,6 +215,7 @@ export function SettingsPage() {
           {field("planning_service_level", t("settings.f.planning_service_level"))}
           {field("planning_review_period_days", t("settings.f.planning_review_period_days"))}
           {field("planning_max_coverage_days", t("settings.f.planning_max_coverage_days"))}
+          {field("holding_cost_pct_year", t("settings.f.holding_cost_pct_year"), t("settings.h.holding_cost_pct_year"), "number")}
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.sourcing")}</h2>

@@ -13,6 +13,7 @@ from director.api import (
     auth,
     autonomy,
     board,
+    calendar,
     cases,
     chat,
     exceptions,
@@ -21,6 +22,7 @@ from director.api import (
     performance,
     planning,
     playbooks,
+    risk,
     runs,
     settings,
     sourcing,
@@ -39,6 +41,8 @@ api_router.include_router(cases.router)
 api_router.include_router(chat.router)
 api_router.include_router(exceptions.router)
 api_router.include_router(planning.router)
+api_router.include_router(calendar.router)
+api_router.include_router(risk.router)
 api_router.include_router(playbooks.router)
 api_router.include_router(runs.router)
 api_router.include_router(settings.router)
