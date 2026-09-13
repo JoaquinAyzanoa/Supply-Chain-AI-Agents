@@ -423,5 +423,11 @@
   "board.mailbox.check": "Revisar el correo",
   "board.mailbox.reading": "Leyendo…",
   "board.mailbox.result": "Correo revisado: {what}.",
-  "board.drawer.events": "{n} entradas"
+  "board.drawer.events": "{n} entradas",
+  "agent.logistics": "el agente de logística",
+  "agent.name.logistics": "Agente de logística",
+  "task.track_shipment": "Aviso de despacho",
+  "task.reconcile_receipt": "Verificación de recepción",
+  "task.report_discrepancy": "Reporte de diferencias de recepción",
+  "event.shipping_notice": "Aviso de despacho"
 }

@@ -10,6 +10,7 @@ resolution-markers = [
 members = [
     "director",
     "inventory-planning",
+    "logistics",
     "mail-sync",
     "sc-core",
     "scheduler",
@@ -1213,6 +1214,33 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/3b/f4b1548d4f5b99186737fe27aec238e9823e8d5d23bf4df007c030689dc5/librt-0.15.0-cp314-cp314t-win32.whl", hash = "sha256:6912fa5e635d74529ac7cdb1bdf6ca3af4453da8d1edbe0110ee1cb4ad407ebf", size = 104381, upload-time = "2026-08-07T10:48:21.048Z" },
     { url = "https://files.pythonhosted.org/packages/80/b6/134afad262def1de04c0843c376d02135f1168af43f22e09a52bd8394727/librt-0.15.0-cp314-cp314t-win_amd64.whl", hash = "sha256:8e11699ed745931c395acd3621b07062e0f840efa6935aad87a64ed0995f0915", size = 127034, upload-time = "2026-08-07T10:48:22.561Z" },
     { url = "https://files.pythonhosted.org/packages/99/5f/1b6846b20572bd699c9e9ec321a5f781845bee477df2aa2a43b28bc40119/librt-0.15.0-cp314-cp314t-win_arm64.whl", hash = "sha256:5d2a91724463bfed4f573cd7a9fdc856d2e230d0c0e5a61416a93481dccd8605", size = 110827, upload-time = "2026-08-07T10:48:23.804Z" },
+]
+
+[[package]]
+name = "logistics"
+version = "0.1.0"
+source = { editable = "src/logistics" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "fastapi-injector" },
+    { name = "injector" },
+    { name = "langgraph" },
+    { name = "loguru" },
+    { name = "pydantic" },
+    { name = "sc-core" },
+    { name = "supplier-comms" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "fastapi-injector", specifier = ">=0.8.0" },
+    { name = "injector", specifier = ">=0.22.0" },
+    { name = "langgraph", specifier = ">=1.2,<2" },
+    { name = "loguru", specifier = ">=0.7.3" },
+    { name = "pydantic", specifier = ">=2.11.0" },
+    { name = "sc-core", editable = "src/sc_core" },
+    { name = "supplier-comms", editable = "src/supplier_comms" },
 ]
 
 [[package]]

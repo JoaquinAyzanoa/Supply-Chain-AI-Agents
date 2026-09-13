@@ -71,7 +71,7 @@ class SupplierCommsTask(StrictModel):
 
 # --- what the agent produces along the way ------------------------------------------
 
-ClassificationKind = Literal["quotation", "eta_update", "question", "other"]
+ClassificationKind = Literal["quotation", "eta_update", "question", "shipping_notice", "other"]
 
 
 class Classification(StrictModel):
@@ -133,7 +133,7 @@ class ChangeProposal(StrictModel):
         return [c for c in self.changes if not c.needs_review]
 
 
-DraftKind = Literal["rfq", "request_eta", "follow_up", "send_po", "reply"]
+DraftKind = Literal["rfq", "request_eta", "follow_up", "send_po", "reply", "discrepancy"]
 
 
 class OutboundDraft(StrictModel):
@@ -258,7 +258,107 @@ class InventoryPlanningResult(StrictModel):
         return self.outcome.status
 
 
+# --- logistics (phase 9) --------------------------------------------------------------
+
+LogisticsTaskKind = Literal["track_shipment", "reconcile_receipt", "report_discrepancy"]
+
+
+class LogisticsTask(StrictModel):
+    """What the director asks the logistics agent to do."""
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: LogisticsTaskKind
+    case_id: str = Field(min_length=1)
+    po_name: str | None = Field(default=None, description="Odoo order name, e.g. P00015")
+    graph_message_id: str | None = Field(
+        default=None, description="track_shipment: the supplier's shipping notice"
+    )
+    picking_id: int | None = Field(
+        default=None, description="reconcile_receipt / report_discrepancy: the receipt"
+    )
+    notes: str | None = Field(
+        default=None, max_length=2000, description="report_discrepancy: the clerk's words"
+    )
+    require_approval: bool = Field(default=False, description="a person asked; show it first")
+
+    @model_validator(mode="after")
+    def _required_by_kind(self) -> LogisticsTask:
+        if self.kind == "track_shipment" and not (self.po_name and self.graph_message_id):
+            raise ValueError("track_shipment needs po_name and graph_message_id")
+        if self.kind in ("reconcile_receipt", "report_discrepancy") and self.picking_id is None:
+            raise ValueError(f"{self.kind} needs picking_id")
+        return self
+
+
+class ShipmentInfo(StrictModel):
+    """What a shipping notice says: who carries it, the number to track, when it arrives."""
+
+    carrier: str | None = Field(default=None, max_length=100)
+    tracking_number: str | None = Field(default=None, max_length=100)
+    ship_date: date | None = None
+    eta_date: date | None = Field(default=None, description="arrival the agent derived")
+    eta_date_raw: str | None = Field(default=None, max_length=100)
+    partial: bool = False
+    packing_list: bool = False
+    notes: str | None = Field(default=None, max_length=1000)
+    confidence: float = Field(default=1.0, ge=0, le=1)
+
+
+DiscrepancyKind = Literal["short", "over", "damaged"]
+
+
+class ReceiptDiscrepancy(StrictModel):
+    po_line_id: int | None = None
+    product: str = Field(min_length=1)
+    kind: DiscrepancyKind
+    expected: float = Field(ge=0)
+    received: float = Field(ge=0)
+    uom: str | None = None
+
+    @property
+    def difference(self) -> float:
+        return self.received - self.expected
+
+
+class ReceiptReconciliation(StrictModel):
+    """Counted against expected on one receipt; empty ``discrepancies`` means a match."""
+
+    picking_id: int
+    picking_name: str = Field(min_length=1)
+    lines: int = Field(ge=0)
+    tolerance_pct: float = Field(default=0.0, ge=0)
+    discrepancies: list[ReceiptDiscrepancy] = Field(default_factory=list)
+
+    @property
+    def ok(self) -> bool:
+        return not self.discrepancies
+
+
+class LogisticsResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: LogisticsTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    po_name: str | None = None
+    shipment: ShipmentInfo | None = None
+    proposal: ChangeProposal | None = None
+    reconciliation: ReceiptReconciliation | None = None
+    outbound: OutboundSummary | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
 CONTRACTS: dict[str, type[StrictModel]] = {
+    "logistics_task": LogisticsTask,
+    "logistics_result": LogisticsResult,
     "supplier_comms_task": SupplierCommsTask,
     "supplier_comms_result": SupplierCommsResult,
     "inventory_planning_task": InventoryPlanningTask,

@@ -1,0 +1,541 @@
+{
+  "$defs": {
+    "ChangeProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "changes": {
+          "items": {
+            "$ref": "#/$defs/ProposedChange"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
+        "summary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "changes",
+        "summary"
+      ],
+      "title": "ChangeProposal",
+      "type": "object"
+    },
+    "OutboundSummary": {
+      "additionalProperties": false,
+      "properties": {
+        "attachments": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Attachments",
+          "type": "array"
+        },
+        "draft_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Draft Id"
+        },
+        "kind": {
+          "enum": [
+            "rfq",
+            "request_eta",
+            "follow_up",
+            "send_po",
+            "reply",
+            "discrepancy"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "sent_message_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sent Message Id"
+        },
+        "subject": {
+          "title": "Subject",
+          "type": "string"
+        },
+        "to": {
+          "items": {
+            "type": "string"
+          },
+          "title": "To",
+          "type": "array"
+        },
+        "web_link": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Web Link"
+        }
+      },
+      "required": [
+        "kind",
+        "to",
+        "subject"
+      ],
+      "title": "OutboundSummary",
+      "type": "object"
+    },
+    "Outcome": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Id"
+        },
+        "status": {
+          "enum": [
+            "sent",
+            "applied",
+            "awaiting_approval",
+            "rejected",
+            "no_action",
+            "escalated",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "summary"
+      ],
+      "title": "Outcome",
+      "type": "object"
+    },
+    "ProposedChange": {
+      "additionalProperties": false,
+      "properties": {
+        "after": {
+          "title": "After",
+          "type": "string"
+        },
+        "before": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Before"
+        },
+        "confidence": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "field": {
+          "enum": [
+            "date_planned",
+            "price",
+            "lead_days"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "needs_review": {
+          "default": false,
+          "title": "Needs Review",
+          "type": "boolean"
+        },
+        "po_line_id": {
+          "title": "Po Line Id",
+          "type": "integer"
+        },
+        "product": {
+          "title": "Product",
+          "type": "string"
+        },
+        "review_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Review Reason"
+        },
+        "source": {
+          "default": "supplier",
+          "enum": [
+            "supplier",
+            "tracking",
+            "estimated"
+          ],
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "po_line_id",
+        "product",
+        "field",
+        "before",
+        "after",
+        "confidence"
+      ],
+      "title": "ProposedChange",
+      "type": "object"
+    },
+    "ReceiptDiscrepancy": {
+      "additionalProperties": false,
+      "properties": {
+        "expected": {
+          "minimum": 0,
+          "title": "Expected",
+          "type": "number"
+        },
+        "kind": {
+          "enum": [
+            "short",
+            "over",
+            "damaged"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "po_line_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Po Line Id"
+        },
+        "product": {
+          "minLength": 1,
+          "title": "Product",
+          "type": "string"
+        },
+        "received": {
+          "minimum": 0,
+          "title": "Received",
+          "type": "number"
+        },
+        "uom": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uom"
+        }
+      },
+      "required": [
+        "product",
+        "kind",
+        "expected",
+        "received"
+      ],
+      "title": "ReceiptDiscrepancy",
+      "type": "object"
+    },
+    "ReceiptReconciliation": {
+      "additionalProperties": false,
+      "description": "Counted against expected on one receipt; empty ``discrepancies`` means a match.",
+      "properties": {
+        "discrepancies": {
+          "items": {
+            "$ref": "#/$defs/ReceiptDiscrepancy"
+          },
+          "title": "Discrepancies",
+          "type": "array"
+        },
+        "lines": {
+          "minimum": 0,
+          "title": "Lines",
+          "type": "integer"
+        },
+        "picking_id": {
+          "title": "Picking Id",
+          "type": "integer"
+        },
+        "picking_name": {
+          "minLength": 1,
+          "title": "Picking Name",
+          "type": "string"
+        },
+        "tolerance_pct": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Tolerance Pct",
+          "type": "number"
+        }
+      },
+      "required": [
+        "picking_id",
+        "picking_name",
+        "lines"
+      ],
+      "title": "ReceiptReconciliation",
+      "type": "object"
+    },
+    "ShipmentInfo": {
+      "additionalProperties": false,
+      "description": "What a shipping notice says: who carries it, the number to track, when it arrives.",
+      "properties": {
+        "carrier": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Carrier"
+        },
+        "confidence": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "eta_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "arrival the agent derived",
+          "title": "Eta Date"
+        },
+        "eta_date_raw": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eta Date Raw"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "packing_list": {
+          "default": false,
+          "title": "Packing List",
+          "type": "boolean"
+        },
+        "partial": {
+          "default": false,
+          "title": "Partial",
+          "type": "boolean"
+        },
+        "ship_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ship Date"
+        },
+        "tracking_number": {
+          "anyOf": [
+            {
+              "maxLength": 100,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tracking Number"
+        }
+      },
+      "title": "ShipmentInfo",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "case_id": {
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "track_shipment",
+        "reconcile_receipt",
+        "report_discrepancy"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "outbound": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/OutboundSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "po_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Po Name"
+    },
+    "proposal": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChangeProposal"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reconciliation": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ReceiptReconciliation"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "shipment": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ShipmentInfo"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "trace_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Trace Id"
+    }
+  },
+  "required": [
+    "kind",
+    "case_id",
+    "run_id",
+    "outcome"
+  ],
+  "title": "LogisticsResult",
+  "type": "object"
+}

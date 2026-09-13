@@ -4,8 +4,8 @@
   supplier with a request to confirm the delivery date. (The blueprint said
   ``request_eta``; phase 5.5 added ``send_po``, which sends the order *and*
   asks for the date, so it is the right first message on a fresh order.)
-* Receipt validated → recorded on the case; the logistics agent (phase 9)
-  will reconcile it.
+* Receipt validated → ``logistics.reconcile_receipt``: counted against
+  expected; a discrepancy becomes an email the supplier gets after approval.
 * Orderpoint triggered → ``inventory_planning.review_product`` for that product.
 * Approval resolved → mirrored on the case so the story shows who decided.
 """
@@ -14,7 +14,7 @@ from __future__ import annotations
 
 from director.router import Dispatch, Route
 from director.store import CaseKind
-from sc_core.schema.a2a import InventoryPlanningTask, SupplierCommsTask
+from sc_core.schema.a2a import InventoryPlanningTask, LogisticsTask, SupplierCommsTask
 from sc_core.schema.events import (
     BaseEvent,
     OdooApprovalResolved,
@@ -46,12 +46,26 @@ def on_po_confirmed(event: BaseEvent) -> Route:
 
 
 def on_receipt(event: BaseEvent) -> Route:
+    """A validated receipt is reconciled by the logistics agent; one without an order is
+    only recorded (nothing to compare it with)."""
     assert isinstance(event, OdooReceiptValidated)
+    if not event.po_name:
+        return Route(
+            case_kind="receipt",
+            note=f"receipt {event.picking_name} validated without a purchase order",
+        )
+    task = LogisticsTask(
+        kind="reconcile_receipt",
+        case_id=event.case_id,
+        po_name=event.po_name,
+        picking_id=event.picking_id,
+    )
     return Route(
         case_kind="receipt",
         po_name=event.po_name,
         partner_id=event.partner_id,
-        note=f"receipt {event.picking_name} validated; logistics reconciliation arrives in phase 9",
+        dispatches=[Dispatch(agent="logistics", task=task)],
+        snapshot={"picking_id": event.picking_id, "picking_name": event.picking_name},
     )
 
 

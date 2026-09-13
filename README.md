@@ -56,9 +56,10 @@ just run director      # exactly what the container runs
 
 The director container publishes on host port 8010 by default (8000 is often
 taken on developer machines), mail_sync on 8011, the scheduler on 8012, the
-supplier_comms agent on 8013 and the inventory_planning agent on 8014;
-override with `SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`,
-`SC_SUPPLIER_COMMS_PORT`, `SC_INVENTORY_PLANNING_PORT`.
+supplier_comms agent on 8013, the inventory_planning agent on 8014 and the
+logistics agent on 8015; override with `SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`,
+`SC_SCHEDULER_PORT`, `SC_SUPPLIER_COMMS_PORT`, `SC_INVENTORY_PLANNING_PORT`,
+`SC_LOGISTICS_PORT`.
 Odoo publishes on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
@@ -263,6 +264,34 @@ model only explains.
   approval and no writes. `just run-job inventory_planning` runs the daily
   plan on the demo and leaves the approval pending in Odoo. Model answers for
   the unit tests are replayed from `tests/fixtures/llm/inventory_planning.json`.
+
+## Logistics agent
+
+`logistics` closes the loop between the order and the warehouse. It reuses
+the supplier agent's ports as a library (one place knows how to read an
+email from Graph and send a draft) and has its own graph, task and result.
+
+- **Shipping notices**: when the supplier agent classifies an email as
+  `shipping_notice`, the director sends `track_shipment` on the same case.
+  The model extracts carrier, tracking number, dispatch and arrival dates
+  (`prompts/extract_shipment.md`); a carrier adapter (`carriers/`, a fake
+  for now) may refine the arrival; the proposal is a `po_change` approval
+  with source `tracking`. Approved: the accepted lines, every open receipt
+  and the order's ETA fields get the date, and the chatter shows the facts.
+- **Receipts**: a validated receipt (`odoo.receipt_validated`) becomes
+  `reconcile_receipt`. The comparison is arithmetic (`reconcile.py`): counted
+  against expected per line, `short` or `over` beyond
+  `SC__LOGISTICS__RECEIPT_TOLERANCE_PCT` (default 0, exact), extra move lines
+  are `over`. A match leaves a note; a discrepancy becomes an email the model
+  writes from the table (`prompts/draft_discrepancy.md`), always approved by
+  a person, sent from Outlook like every other email. `report_discrepancy`
+  carries a clerk's words (damage, for instance) into that email even when
+  the count matches.
+- Late pickings need no extra job: the follow-up job already acts on late
+  orders by their planned dates.
+- Bills and receipts are read through `AccountMoveRepo` and
+  `StockMoveLineRepo`; the accounting module is installed with
+  `just odoo-install account` on an existing database.
 
 ## Orchestrator
 

@@ -423,5 +423,11 @@
   "board.mailbox.check": "Check the mailbox",
   "board.mailbox.reading": "Reading…",
   "board.mailbox.result": "Mailbox read: {what}.",
-  "board.drawer.events": "{n} entries"
+  "board.drawer.events": "{n} entries",
+  "agent.logistics": "the logistics agent",
+  "agent.name.logistics": "Logistics agent",
+  "task.track_shipment": "Shipping notice",
+  "task.reconcile_receipt": "Receipt check",
+  "task.report_discrepancy": "Receipt discrepancy report",
+  "event.shipping_notice": "Shipping notice"
 }
