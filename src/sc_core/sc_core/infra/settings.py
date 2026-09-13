@@ -213,6 +213,17 @@ class SupplierCommsCfg(_Section):
     max_attachment_chars: int = Field(default=12_000, ge=0)
 
 
+class LogisticsCfg(_Section):
+    """The logistics agent: shipping notices, receipt reconciliation, discrepancy reports."""
+
+    # How Odoo reaches this agent for approval callbacks (inside compose: http://logistics:8000).
+    public_url: str = "http://localhost:8015"
+    # Counted quantity may differ from the expected one by this share before a line is a
+    # discrepancy. Default 0: exact.
+    receipt_tolerance_pct: float = Field(default=0.0, ge=0, le=100)
+    max_attachment_chars: int = Field(default=12_000, ge=0)
+
+
 class A2aCfg(_Section):
     """Agent-to-agent calls (director -> agents). Bearer token on every call.
 
@@ -226,6 +237,7 @@ class A2aCfg(_Section):
     # Where the director reaches each agent (inside compose: http://<service>:8000).
     supplier_comms_url: str = "http://localhost:8013"
     inventory_planning_url: str = "http://localhost:8014"
+    logistics_url: str = "http://localhost:8015"
 
 
 class DirectorCfg(_Section):
@@ -333,6 +345,7 @@ class Settings(BaseSettings):
     planning: PlanningCfg = Field(default_factory=PlanningCfg)
     ui: UiCfg = Field(default_factory=UiCfg)
     supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
+    logistics: LogisticsCfg = Field(default_factory=LogisticsCfg)
 
     @property
     def a2a_token(self) -> str:

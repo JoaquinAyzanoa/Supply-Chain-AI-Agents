@@ -123,7 +123,7 @@
    }
   },
   {
-   "key": "e0950513d7ea9d5e90469cbc",
+   "key": "d29991294cc850d0632fd74c",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -155,6 +155,7 @@
        "date_planned",
        "qty_received",
        "qty_invoiced",
+       "qty_to_invoice",
        "state"
       ],
       "offset": 0,
@@ -194,6 +195,7 @@
       "date_planned": "2026-09-12 14:13:23",
       "qty_received": 0.0,
       "qty_invoiced": 0.0,
+      "qty_to_invoice": 0.0,
       "state": "purchase"
      },
      {
@@ -221,6 +223,7 @@
       "date_planned": "2026-09-12 14:13:23",
       "qty_received": 0.0,
       "qty_invoiced": 0.0,
+      "qty_to_invoice": 0.0,
       "state": "purchase"
      }
     ]
@@ -682,6 +685,49 @@
       ]
      },
      {
+      "id": 8,
+      "name": "P00008",
+      "state": "purchase",
+      "partner_id": [
+       9,
+       "Wood Corner"
+      ],
+      "partner_ref": false,
+      "origin": false,
+      "date_order": "2026-09-07 14:13:18",
+      "date_approve": "2026-09-03 14:13:18",
+      "date_planned": "2026-09-12 00:00:00",
+      "amount_untaxed": 6465.5,
+      "amount_total": 6465.5,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       2,
+       "Mitchell Admin"
+      ],
+      "receipt_status": false,
+      "order_line": [
+       17,
+       18
+      ],
+      "picking_ids": [],
+      "sc_external_ref": false,
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       3,
+       "sc.approval,3"
+      ]
+     },
+     {
       "id": 9,
       "name": "P00009",
       "state": "purchase",
@@ -764,49 +810,6 @@
       "sc_pending_approval_id": [
        10,
        "sc.approval,10"
-      ]
-     },
-     {
-      "id": 8,
-      "name": "P00008",
-      "state": "purchase",
-      "partner_id": [
-       9,
-       "Wood Corner"
-      ],
-      "partner_ref": false,
-      "origin": false,
-      "date_order": "2026-09-07 14:13:18",
-      "date_approve": "2026-09-03 14:13:18",
-      "date_planned": "2026-09-12 00:00:00",
-      "amount_untaxed": 6465.5,
-      "amount_total": 6465.5,
-      "currency_id": [
-       1,
-       "USD"
-      ],
-      "company_id": [
-       1,
-       "Hidráulica Andina SAC"
-      ],
-      "user_id": [
-       2,
-       "Mitchell Admin"
-      ],
-      "receipt_status": false,
-      "order_line": [
-       17,
-       18
-      ],
-      "picking_ids": [],
-      "sc_external_ref": false,
-      "sc_eta_source": false,
-      "sc_eta_confidence": 0.0,
-      "sc_needs_human": true,
-      "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": [
-       3,
-       "sc.approval,3"
       ]
      },
      {
@@ -911,7 +914,7 @@
       "origin": "phase 6 round trip",
       "date_order": "2026-09-12 15:04:28",
       "date_approve": "2026-09-12 15:04:29",
-      "date_planned": "2026-10-12 15:04:28",
+      "date_planned": "2026-10-09 12:00:00",
       "amount_untaxed": 208.32,
       "amount_total": 239.57,
       "currency_id": [
@@ -934,14 +937,11 @@
        3550
       ],
       "sc_external_ref": "e2e-odoo-events-3e22b376",
-      "sc_eta_source": false,
-      "sc_eta_confidence": 0.0,
-      "sc_needs_human": true,
+      "sc_eta_source": "supplier",
+      "sc_eta_confidence": 0.85,
+      "sc_needs_human": false,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": [
-       18,
-       "sc.approval,18"
-      ]
+      "sc_pending_approval_id": false
      }
     ]
    }

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from collections.abc import Callable
 from datetime import UTC, date, datetime
+from typing import Any
 
 import pytest
 
@@ -316,3 +317,57 @@ async def test_mail_link_is_idempotent(odoo: ScriptedOdoo, client_factory: Facto
     )
     assert link.id == 1
     assert len([c for c in odoo.calls() if c[1] == "execute_kw"]) == 1
+
+
+BILL_ROW: dict[str, Any] = {
+    "id": 9,
+    "name": False,
+    "move_type": "in_invoice",
+    "state": "draft",
+    "partner_id": [45, "Proveedor Hidraulica"],
+    "invoice_date": False,
+    "invoice_date_due": False,
+    "ref": False,
+    "payment_reference": False,
+    "invoice_origin": "P00016",
+    "amount_untaxed": 100.0,
+    "amount_total": 118.0,
+    "amount_residual": 118.0,
+    "currency_id": [2, "USD"],
+    "payment_state": "not_paid",
+    "purchase_id": False,
+    "invoice_line_ids": [31, 32],
+    "create_date": "2026-09-13 01:00:00",
+}
+
+
+async def test_draft_bill_is_created_once_and_never_posted(
+    odoo: ScriptedOdoo, client_factory: Factory
+) -> None:
+    from sc_core.odoo.repositories import AccountMoveRepo
+
+    stamped = {**BILL_ROW, "ref": "F001-000123", "invoice_date": "2024-09-02"}
+    odoo.script += [
+        LOGIN_OK,
+        rpc_ok([]),  # no draft yet
+        rpc_ok({"type": "ir.actions.act_window", "res_id": 9}),  # action_create_invoice
+        rpc_ok([BILL_ROW]),  # the draft Odoo made
+        rpc_ok(True),  # write ref + date
+        rpc_ok([stamped]),  # read back
+    ]
+    repo = AccountMoveRepo(client_factory())
+    bill = await repo.create_draft_bill(16, ref="F001-000123", invoice_date=date(2024, 9, 2))
+    assert bill.id == 9 and bill.is_draft and bill.ref == "F001-000123"
+    methods = [odoo.execute_kw_args(i)[1] for i in range(5)]
+    assert methods == ["search_read", "action_create_invoice", "search_read", "write", "read"]
+    assert "action_post" not in methods  # accounting stays with people
+    model, _, args, _ = odoo.execute_kw_args(1)
+    assert model == "purchase.order" and args == [[16]]
+    _, _, write_args, _ = odoo.execute_kw_args(3)
+    assert write_args == [[9], {"ref": "F001-000123", "invoice_date": "2024-09-02"}]
+
+    # a second call finds the draft and touches nothing
+    odoo.script += [rpc_ok([stamped])]
+    again = await repo.create_draft_bill(16, ref="F001-000123", invoice_date=date(2024, 9, 2))
+    assert again.id == 9
+    assert [odoo.execute_kw_args(i)[1] for i in range(5, 6)] == ["search_read"]

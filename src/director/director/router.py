@@ -18,7 +18,7 @@ from collections.abc import Callable
 from typing import Any, Literal
 
 from director.store import CaseKind
-from sc_core.schema.a2a import InventoryPlanningTask, SupplierCommsTask
+from sc_core.schema.a2a import InventoryPlanningTask, LogisticsTask, SupplierCommsTask
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import BaseEvent
 
@@ -26,7 +26,7 @@ AgentName = Literal["supplier_comms", "inventory_planning", "logistics"]
 
 # Phase 9 adds the logistics task; the union keeps ``Route.dispatches`` typed
 # without a wrapper per agent (the ``kind`` literals never overlap).
-AgentTask = SupplierCommsTask | InventoryPlanningTask
+AgentTask = SupplierCommsTask | InventoryPlanningTask | LogisticsTask
 
 
 class Dispatch(StrictModel):

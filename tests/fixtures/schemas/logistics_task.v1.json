@@ -1,0 +1,91 @@
+{
+  "additionalProperties": false,
+  "description": "What the director asks the logistics agent to do.",
+  "properties": {
+    "case_id": {
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "graph_message_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "track_shipment: the supplier's shipping notice",
+      "title": "Graph Message Id"
+    },
+    "kind": {
+      "enum": [
+        "track_shipment",
+        "reconcile_receipt",
+        "report_discrepancy"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "report_discrepancy: the clerk's words",
+      "title": "Notes"
+    },
+    "picking_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "reconcile_receipt / report_discrepancy: the receipt",
+      "title": "Picking Id"
+    },
+    "po_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Odoo order name, e.g. P00015",
+      "title": "Po Name"
+    },
+    "require_approval": {
+      "default": false,
+      "description": "a person asked; show it first",
+      "title": "Require Approval",
+      "type": "boolean"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "kind",
+    "case_id"
+  ],
+  "title": "LogisticsTask",
+  "type": "object"
+}

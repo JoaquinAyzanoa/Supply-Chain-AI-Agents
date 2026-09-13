@@ -25,6 +25,7 @@ PROMPT_DIRS = [
     SRC / "supplier_comms" / "supplier_comms" / "prompts",
     SRC / "director" / "director" / "prompts",
     SRC / "inventory_planning" / "inventory_planning" / "prompts",
+    SRC / "logistics" / "logistics" / "prompts",
 ]
 LABEL = "production"
 

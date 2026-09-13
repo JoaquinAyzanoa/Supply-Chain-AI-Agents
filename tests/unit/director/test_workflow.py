@@ -21,7 +21,7 @@ from sc_core.schema import events as ev
 from sc_core.schema.events import ScheduledTick
 from sc_core.shared.errors import ExternalServiceError
 
-from .helpers import agent_reply, linked, po_confirmed, tick
+from .helpers import agent_reply, classified_reply, linked, logistics_reply, po_confirmed, tick
 
 
 @pytest.fixture
@@ -208,13 +208,9 @@ async def test_unknown_sender_escalates_without_calling_an_agent(
 async def test_record_only_event_closes_a_fresh_case(
     orchestrator: Orchestrator, cases: MemoryCaseStore, agent: FakeAgentCaller
 ) -> None:
+    # a receipt without an order: nothing to reconcile, so it is only recorded
     receipt = ev.OdooReceiptValidated(
-        source="odoo",
-        case_id="odoo_pick_5",
-        picking_id=5,
-        picking_name="WH/IN/00005",
-        po_id=66,
-        po_name="P00066",
+        source="odoo", case_id="odoo_pick_5", picking_id=5, picking_name="WH/IN/00005"
     )
     await orchestrator.handle(receipt)
     [case] = cases.cases.values()
@@ -462,3 +458,57 @@ async def test_error_document_reply_becomes_a_readable_failure(
     assert case.summary == "supplier_comms failed: The method x does not exist"
     result = next(e for e in cases.case_events if e.kind == "result")
     assert result.payload["error"]["code"] == "odoo_rpc_error"
+
+
+async def test_shipping_notice_goes_on_to_the_logistics_agent(
+    cases: MemoryCaseStore,
+    agent: FakeAgentCaller,
+    escalator: MemoryEscalator,
+    results: MemoryEventResults,
+    conversations: MemoryConversationLookup,
+) -> None:
+    """The supplier agent reads the email and says "shipping notice"; the director then
+    asks the logistics agent to track it on the same case, without a second event."""
+    logistics = FakeAgentCaller()
+    orchestrator = Orchestrator(
+        memory_deps(
+            cases=cases,
+            supplier_comms=agent,
+            logistics=logistics,
+            escalator=escalator,
+            conversations=conversations,
+        ),
+        results,
+    )
+    agent.replies.append(classified_reply("handle_inbound", "case_msg1", "shipping_notice"))
+    logistics.replies.append(
+        logistics_reply(
+            "track_shipment",
+            "case_msg1_ship",
+            "awaiting_approval",
+            "arrival proposed",
+            approval_id=77,
+        )
+    )
+    event = linked()
+    await orchestrator.handle(event)
+
+    [sent] = logistics.sent
+    task = json.loads(sent.task_json)
+    assert task["kind"] == "track_shipment" and task["case_id"] == "case_msg1_ship"
+    assert task["po_name"] == "P00015" and task["graph_message_id"] == "AAMk1"
+    [case] = cases.cases.values()
+    assert sent.case_id == case.case_id
+    assert case.status == "awaiting_approval" and case.agent == "logistics"
+    assert case.summary == "arrival proposed"
+    assert _kinds(cases, case.case_id) == [
+        "event_received",
+        "task_sent",
+        "result",
+        "task_sent",
+        "result",
+        "approval_requested",
+    ]
+    updates = results.results[event.event_id]["updates"]
+    assert [u["detail"]["agent"] for u in updates] == ["supplier_comms", "logistics"]
+    assert escalator.calls == []

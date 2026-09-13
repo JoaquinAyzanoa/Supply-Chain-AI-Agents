@@ -34,6 +34,70 @@ def language_name(lang: Language) -> str:
 MESSAGES: dict[str, dict[Language, str]] = {
     # --- shared ----------------------------------------------------------------------
     "signature": {"en": "Purchasing Team", "es": "Equipo de Compras"},
+    # --- logistics: shipping notices -------------------------------------------------
+    "shipment.summary": {
+        "en": (
+            "arrival {date} on {n} line(s) per the shipping notice "
+            "(carrier {carrier}, tracking {tracking})"
+        ),
+        "es": (
+            "llegada {date} en {n} línea(s) según el aviso de despacho "
+            "(transportista {carrier}, guía {tracking})"
+        ),
+    },
+    "shipment.low_confidence": {
+        "en": "arrival date inferred with low confidence",
+        "es": "fecha de llegada deducida con baja confianza",
+    },
+    "shipment.no_date": {
+        "en": "shipping notice on {po} recorded; it gives no arrival date",
+        "es": "aviso de despacho de {po} registrado; no indica fecha de llegada",
+    },
+    "shipment.unchanged": {
+        "en": "shipping notice on {po} confirms the planned arrival {date}",
+        "es": "el aviso de despacho de {po} confirma la llegada prevista {date}",
+    },
+    "shipment.carrier": {"en": "Carrier", "es": "Transportista"},
+    "shipment.tracking": {"en": "Tracking", "es": "Guía"},
+    "shipment.shipped": {"en": "Dispatched", "es": "Despachado"},
+    "shipment.arrival": {"en": "Arrival", "es": "Llegada"},
+    "shipment.partial": {"en": "Partial shipment", "es": "Envío parcial"},
+    "shipment.applied_note": {
+        "en": "<p>Shipping notice applied: {n} date(s) updated, approved by {who}.</p>",
+        "es": "<p>Aviso de despacho aplicado: {n} fecha(s) actualizada(s), aprobado por {who}.</p>",
+    },
+    "shipment.applied_summary": {
+        "en": "arrival date from the shipping notice applied on {n} line(s) of {po}",
+        "es": "fecha de llegada del aviso de despacho aplicada en {n} línea(s) de {po}",
+    },
+    # --- logistics: receipts ------------------------------------------------------------
+    "receipt.match_note": {
+        "en": "<p>Receipt {picking} checked: {n} line(s) received as ordered.</p>",
+        "es": "<p>Recepción {picking} verificada: {n} línea(s) recibidas según lo pedido.</p>",
+    },
+    "receipt.match_summary": {
+        "en": "receipt {picking} matches {po}: {n} line(s) in full",
+        "es": "la recepción {picking} coincide con {po}: {n} línea(s) completas",
+    },
+    "receipt.col.product": {"en": "Product", "es": "Producto"},
+    "receipt.col.expected": {"en": "Expected", "es": "Esperado"},
+    "receipt.col.received": {"en": "Received", "es": "Recibido"},
+    "receipt.col.difference": {"en": "Difference", "es": "Diferencia"},
+    "receipt.kind.short": {"en": "short", "es": "faltante"},
+    "receipt.kind.over": {"en": "over", "es": "excedente"},
+    "receipt.kind.damaged": {"en": "damaged", "es": "dañado"},
+    "receipt.approval_summary": {
+        "en": "Report receipt discrepancies to {partner} on {po}",
+        "es": "Reportar diferencias de recepción a {partner} por {po}",
+    },
+    "receipt.kind_label": {
+        "en": "receipt discrepancy report",
+        "es": "reporte de diferencias de recepción",
+    },
+    "receipt.sent_summary": {
+        "en": "receipt discrepancy report sent to {partner} for {po}",
+        "es": "reporte de diferencias de recepción enviado a {partner} por {po}",
+    },
     "common.no_reason": {"en": "no reason given", "es": "sin motivo"},
     "common.open_outlook": {"en": "Open in Outlook", "es": "Abrir en Outlook"},
     "common.open_control_tower": {

@@ -7,7 +7,14 @@ from typing import Any
 
 from sc_core.a2a import AgentReply
 from sc_core.schema import events as ev
-from sc_core.schema.a2a import OutboundSummary, Outcome, OutcomeStatus, SupplierCommsResult
+from sc_core.schema.a2a import (
+    Classification,
+    LogisticsResult,
+    OutboundSummary,
+    Outcome,
+    OutcomeStatus,
+    SupplierCommsResult,
+)
 
 
 def agent_reply(
@@ -36,6 +43,42 @@ def agent_reply(
     )
     a2a_status = "input_required" if status == "awaiting_approval" else "completed"
     return AgentReply(status=a2a_status, text=result.model_dump_json())
+
+
+def logistics_reply(
+    kind: str,
+    thread_id: str,
+    status: OutcomeStatus,
+    summary: str = "done",
+    *,
+    approval_id: int | None = None,
+    po_name: str | None = "P00015",
+) -> AgentReply:
+    """A well-formed logistics result as the A2A client would return it."""
+    result = LogisticsResult(
+        kind=kind,  # type: ignore[arg-type]
+        case_id=thread_id,
+        run_id="run_l1",
+        outcome=Outcome(status=status, summary=summary, approval_id=approval_id),
+        po_name=po_name,
+    )
+    a2a_status = "input_required" if status == "awaiting_approval" else "completed"
+    return AgentReply(status=a2a_status, text=result.model_dump_json())
+
+
+def classified_reply(
+    kind: str, thread_id: str, classification: str, *, po_name: str = "P00015"
+) -> AgentReply:
+    """A supplier_comms ``handle_inbound`` result carrying the model's classification."""
+    result = SupplierCommsResult(
+        kind=kind,  # type: ignore[arg-type]
+        case_id=thread_id,
+        run_id="run_1",
+        outcome=Outcome(status="no_action", summary=f"{classification}: nothing to change"),
+        po_name=po_name,
+        classification=Classification(kind=classification, confidence=0.9, reason="test"),  # type: ignore[arg-type]
+    )
+    return AgentReply(status="completed", text=result.model_dump_json())
 
 
 def linked(**overrides: Any) -> ev.InboundMailLinked:

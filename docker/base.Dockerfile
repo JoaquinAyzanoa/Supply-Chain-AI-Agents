@@ -18,6 +18,8 @@ ENV UV_COMPILE_BYTECODE=1 \
 # Lockfile and workspace roots first so dependency layers cache well.
 COPY pyproject.toml uv.lock ./
 COPY src/sc_core ./src/sc_core
+# logistics reuses the supplier agent as a library; the extra copy is harmless elsewhere
+COPY src/supplier_comms ./src/supplier_comms
 COPY src/${MEMBER} ./src/${MEMBER}
 
 RUN uv sync --frozen --no-dev --no-editable --package "${MEMBER}"

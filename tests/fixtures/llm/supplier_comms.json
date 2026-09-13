@@ -818,6 +818,758 @@
     "cost_usd": 0.00035238000000000007,
     "duration_ms": 3301.6682999987097
    }
+  },
+  {
+   "key": "419e8ab9e00504cbe5b1b149",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "You write on behalf of the company's purchasing team. Professional, courteous and direct tone. Short sentences. Address the supplier formally. Never invent data: when something is missing (price, lead time, quantity), ask for it explicitly. Never promise payments or terms that are not on the order.\n\nWrite the email in Spanish. Always sign as \"Equipo de Compras\".\n\nMandatory formats in every structured output:\n- Dates: ISO 8601 (YYYY-MM-DD). When the supplier's date is ambiguous (for example \"20/10\"), read it as day/month and lower the confidence.\n- Currency: three-letter ISO code (PEN, USD). Never convert between currencies.\n- Quantities: decimal number with a dot; keep the supplier's unit of measure.\n- Order identifiers: exactly as they appear in the subject, for example P00015.\n- Confidence: a number between 0 and 1; use less than 0.7 whenever you had to interpret.\n\nTask: write a request for quotation (RFQ) to the supplier for the given order.\n\nBefore writing, read the order lines with the get_po_lines tool and, if useful, the supplier's price history. Do not invent products, quantities or lead times.\n\nThe email must:\n- State the purpose briefly: we request a quotation for the products of the order.\n- List each product with its quantity and unit in a simple HTML table.\n- Ask explicitly for: unit price and currency, lead time (date or days), offer validity, payment terms if applicable.\n- Mention the delivery date we need, when the order has one.\n- Ask them to reply to this same email without changing the subject.\n- Close with the signature given in the tone instructions.\n\nDo not put the order name in the subject: the system adds it. The subject must be short and clear, for example \"Request for quotation\".",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Today's date: 2026-09-12\nOrder: P00015 (state: purchase, id: 7)\nSupplier: Proveedor Hidraulica (partner_id: 42)\nOrder planned date: 2026-10-01\nTotal amount: 1250.00 PEN\nPrevious emails on this order: 1\nLines:\nid | product | quantity | unit | unit price | currency | planned date | received\n31 | Bomba hidráulica 2HP | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\n32 | Manguera 1/2\" | 20 | m | 12.50 | PEN | 2026-10-01 | 0",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.2,
+     "max_tokens": null,
+     "response_format": null,
+     "tools": [
+      "{'type': 'function', 'function': {'name': 'get_po_lines', 'description': 'Lines of an order: product, quantity, unit, price and planned date.', 'parameters': {'properties': {'po_name': {'description': 'Order name, for example P00015', 'title': 'Po Name', 'type': 'string'}}, 'required': ['po_name'], 'title': 'PoLinesArgs', 'type': 'object'}}}",
+      "{'type': 'function', 'function': {'name': 'get_supplier_price_history', 'description': 'Prices previously agreed with the supplier (price lists in Odoo).', 'parameters': {'properties': {'partner_id': {'description': 'Supplier id in Odoo', 'title': 'Partner Id', 'type': 'integer'}, 'product_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'Product id; empty = all', 'title': 'Product Id'}}, 'required': ['partner_id'], 'title': 'PriceHistoryArgs', 'type': 'object'}}}",
+      "{'type': 'function', 'function': {'name': 'get_open_pos_for_supplier', 'description': 'Open orders with the supplier: name, state, planned date, amount.', 'parameters': {'properties': {'partner_id': {'description': 'Supplier id in Odoo', 'title': 'Partner Id', 'type': 'integer'}}, 'required': ['partner_id'], 'title': 'OpenPosArgs', 'type': 'object'}}}"
+     ]
+    }
+   },
+   "result": {
+    "text": "I'll review the order lines and the supplier's price history first.",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "Let me read the order lines with the tool, and maybe supplier price history.\n\nLet me call get_po_lines and get_supplier_price_history.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "I'll review the order lines and the supplier's price history first.",
+        "additional_properties": {}
+       },
+       {
+        "type": "function_call",
+        "call_id": "call_00_2Exnb3btPDvdAjp2ww7C6688",
+        "name": "get_po_lines",
+        "arguments": "{\"po_name\": \"P00015\"}",
+        "additional_properties": {
+         "tool_call_index": 0,
+         "tool_call_choice_index": 0
+        }
+       },
+       {
+        "type": "function_call",
+        "call_id": "call_01_IgFco9ynCcxUsBREXBkt2596",
+        "name": "get_supplier_price_history",
+        "arguments": "{\"partner_id\": 42}",
+        "additional_properties": {
+         "tool_call_index": 1,
+         "tool_call_choice_index": 0
+        }
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "tool_calls",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 1096,
+     "output_tokens": 120
+    },
+    "cost_usd": 0.00018704000000000003,
+    "duration_ms": 1530.1038999969023
+   }
+  },
+  {
+   "key": "15a04bdeabccef09dcb360c3",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "You write on behalf of the company's purchasing team. Professional, courteous and direct tone. Short sentences. Address the supplier formally. Never invent data: when something is missing (price, lead time, quantity), ask for it explicitly. Never promise payments or terms that are not on the order.\n\nWrite the email in Spanish. Always sign as \"Equipo de Compras\".\n\nMandatory formats in every structured output:\n- Dates: ISO 8601 (YYYY-MM-DD). When the supplier's date is ambiguous (for example \"20/10\"), read it as day/month and lower the confidence.\n- Currency: three-letter ISO code (PEN, USD). Never convert between currencies.\n- Quantities: decimal number with a dot; keep the supplier's unit of measure.\n- Order identifiers: exactly as they appear in the subject, for example P00015.\n- Confidence: a number between 0 and 1; use less than 0.7 whenever you had to interpret.\n\nTask: write a request for quotation (RFQ) to the supplier for the given order.\n\nBefore writing, read the order lines with the get_po_lines tool and, if useful, the supplier's price history. Do not invent products, quantities or lead times.\n\nThe email must:\n- State the purpose briefly: we request a quotation for the products of the order.\n- List each product with its quantity and unit in a simple HTML table.\n- Ask explicitly for: unit price and currency, lead time (date or days), offer validity, payment terms if applicable.\n- Mention the delivery date we need, when the order has one.\n- Ask them to reply to this same email without changing the subject.\n- Close with the signature given in the tone instructions.\n\nDo not put the order name in the subject: the system adds it. The subject must be short and clear, for example \"Request for quotation\".",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Today's date: 2026-09-12\nOrder: P00015 (state: purchase, id: 7)\nSupplier: Proveedor Hidraulica (partner_id: 42)\nOrder planned date: 2026-10-01\nTotal amount: 1250.00 PEN\nPrevious emails on this order: 1\nLines:\nid | product | quantity | unit | unit price | currency | planned date | received\n31 | Bomba hidráulica 2HP | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\n32 | Manguera 1/2\" | 20 | m | 12.50 | PEN | 2026-10-01 | 0",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "Let me read the order lines with the tool, and maybe supplier price history.\n\nLet me call get_po_lines and get_supplier_price_history.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "I'll review the order lines and the supplier's price history first.",
+        "additional_properties": {}
+       },
+       {
+        "type": "function_call",
+        "call_id": "call_00_2Exnb3btPDvdAjp2ww7C6688",
+        "name": "get_po_lines",
+        "arguments": "{\"po_name\": \"P00015\"}",
+        "additional_properties": {
+         "tool_call_index": 0,
+         "tool_call_choice_index": 0
+        }
+       },
+       {
+        "type": "function_call",
+        "call_id": "call_01_IgFco9ynCcxUsBREXBkt2596",
+        "name": "get_supplier_price_history",
+        "arguments": "{\"partner_id\": 42}",
+        "additional_properties": {
+         "tool_call_index": 1,
+         "tool_call_choice_index": 0
+        }
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "tool",
+      "contents": [
+       {
+        "type": "function_result",
+        "call_id": "call_00_2Exnb3btPDvdAjp2ww7C6688",
+        "result": "[{\"id\": 31, \"product\": \"Bomba hidráulica 2HP\", \"product_id\": 101, \"product_tmpl_id\": 1001, \"qty\": 2.0, \"uom\": \"Unidades\", \"price_unit\": 500.0, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}, {\"id\": 32, \"product\": \"Manguera 1/2\\\"\", \"product_id\": 102, \"product_tmpl_id\": 1002, \"qty\": 20.0, \"uom\": \"m\", \"price_unit\": 12.5, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}]",
+        "items": [
+         {
+          "type": "text",
+          "text": "[{\"id\": 31, \"product\": \"Bomba hidráulica 2HP\", \"product_id\": 101, \"product_tmpl_id\": 1001, \"qty\": 2.0, \"uom\": \"Unidades\", \"price_unit\": 500.0, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}, {\"id\": 32, \"product\": \"Manguera 1/2\\\"\", \"product_id\": 102, \"product_tmpl_id\": 1002, \"qty\": 20.0, \"uom\": \"m\", \"price_unit\": 12.5, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}]",
+          "additional_properties": {}
+         }
+        ],
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "tool",
+      "contents": [
+       {
+        "type": "function_result",
+        "call_id": "call_01_IgFco9ynCcxUsBREXBkt2596",
+        "result": "[]",
+        "items": [
+         {
+          "type": "text",
+          "text": "[]",
+          "additional_properties": {}
+         }
+        ],
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.2,
+     "max_tokens": null,
+     "response_format": null,
+     "tools": [
+      "{'type': 'function', 'function': {'name': 'get_po_lines', 'description': 'Lines of an order: product, quantity, unit, price and planned date.', 'parameters': {'properties': {'po_name': {'description': 'Order name, for example P00015', 'title': 'Po Name', 'type': 'string'}}, 'required': ['po_name'], 'title': 'PoLinesArgs', 'type': 'object'}}}",
+      "{'type': 'function', 'function': {'name': 'get_supplier_price_history', 'description': 'Prices previously agreed with the supplier (price lists in Odoo).', 'parameters': {'properties': {'partner_id': {'description': 'Supplier id in Odoo', 'title': 'Partner Id', 'type': 'integer'}, 'product_id': {'anyOf': [{'type': 'integer'}, {'type': 'null'}], 'default': None, 'description': 'Product id; empty = all', 'title': 'Product Id'}}, 'required': ['partner_id'], 'title': 'PriceHistoryArgs', 'type': 'object'}}}",
+      "{'type': 'function', 'function': {'name': 'get_open_pos_for_supplier', 'description': 'Open orders with the supplier: name, state, planned date, amount.', 'parameters': {'properties': {'partner_id': {'description': 'Supplier id in Odoo', 'title': 'Partner Id', 'type': 'integer'}}, 'required': ['partner_id'], 'title': 'OpenPosArgs', 'type': 'object'}}}"
+     ]
+    }
+   },
+   "result": {
+    "text": "Asunto: Solicitud de cotización\n\nEstimado equipo de Proveedor Hidraulica:\n\nReciban un cordial saludo de nuestra parte.\n\nNos dirigimos a ustedes para solicitar una cotización por los productos de la orden P00015. A continuación, el detalle:\n\n<table>\n  <thead>\n    <tr>\n      <th>Producto</th>\n      <th>Cantidad</th>\n      <th>Unidad</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>Bomba hidráulica 2HP</td>\n      <td>2.0</td>\n      <td>Unidades</td>\n    </tr>\n    <tr>\n      <td>Manguera 1/2\"</td>\n      <td>20.0</td>\n      <td>m</td>\n    </tr>\n  </tbody>\n</table>\n\nPara poder evaluar su oferta, les agradeceremos indicarnos de forma explícita:\n\n- Precio unitario y moneda (código ISO de tres letras, por ejemplo PEN o USD).\n- Plazo de entrega: fecha indicada o número de días.\n- Validez de la oferta.\n- Condiciones de pago, si corresponden.\n\nNecesitamos la entrega para el 2026-10-01. Por favor, confirmen si pueden cumplir esa fecha.\n\nLes pedimos responder a este mismo correo, sin modificar el asunto.\n\nQuedamos atentos a su respuesta.\n\nSaludos cordiales,\n\nEquipo de Compras\n\nConfianza: 0.95",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "No price history. Write the email in Spanish.\n\nSubject: \"Solicitud de cotización\" (short, clear, no order name).\n\nInclude HTML table with products, quantities, units.\n\nAsk for unit price and currency, lead time, offer validity, payment terms.\n\nMention delivery date 2026-10-01.\n\nAsk reply to same email without changing subject.\n\nSign \"Equipo de Compras\".\n\nConfidence? The instructions mention confidence as a mandatory format in structured output. This is an email, mostly unstructured. I could add a brief confidence note. Hmm — \"Confidence: a number between 0 and 1\" is listed under mandatory formats in every structured output. The email is the output; it's not really structured. I'll include a small confidence line? That might break the email format. I think a brief note is acceptable but perhaps safer to include a short confidence field at the end after signature? I'd rather include it as a discreet line since the instructions demand it in structured outputs. The email body is structured with a table... I'll add \"Confianza: 0.9\" maybe as a separate line after signature. Hmm, that could look odd in an email to a supplier. But the instructions are mandatory. I'll include it after the signature as a small note. Actually many of these tasks expect it. Let me include \"Confianza: 0.9\" at the end.\n\nWait, but no interpretation was needed — all data came from tools. So 0.95 maybe. Dates are from tools unambiguously. I'll use 0.95.\n\nCurrency: PEN — never convert.\n\nQuantities: 2.0 and 20.0? \"Quantities: decimal number with a dot; keep the supplier's unit of measure.\" So 2.0 Unidades, 20.0 m. Hmm, in a table that may look odd but follow the format. I'll write 2.0 and 20.0.\n\nWrite email in Spanish.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "Asunto: Solicitud de cotización\n\nEstimado equipo de Proveedor Hidraulica:\n\nReciban un cordial saludo de nuestra parte.\n\nNos dirigimos a ustedes para solicitar una cotización por los productos de la orden P00015. A continuación, el detalle:\n\n<table>\n  <thead>\n    <tr>\n      <th>Producto</th>\n      <th>Cantidad</th>\n      <th>Unidad</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>Bomba hidráulica 2HP</td>\n      <td>2.0</td>\n      <td>Unidades</td>\n    </tr>\n    <tr>\n      <td>Manguera 1/2\"</td>\n      <td>20.0</td>\n      <td>m</td>\n    </tr>\n  </tbody>\n</table>\n\nPara poder evaluar su oferta, les agradeceremos indicarnos de forma explícita:\n\n- Precio unitario y moneda (código ISO de tres letras, por ejemplo PEN o USD).\n- Plazo de entrega: fecha indicada o número de días.\n- Validez de la oferta.\n- Condiciones de pago, si corresponden.\n\nNecesitamos la entrega para el 2026-10-01. Por favor, confirmen si pueden cumplir esa fecha.\n\nLes pedimos responder a este mismo correo, sin modificar el asunto.\n\nQuedamos atentos a su respuesta.\n\nSaludos cordiales,\n\nEquipo de Compras\n\nConfianza: 0.95",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "stop",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 1461,
+     "output_tokens": 769
+    },
+    "cost_usd": 0.00041986000000000004,
+    "duration_ms": 4058.2807999962824
+   }
+  },
+  {
+   "key": "5d7f92efb31d57f95dc8efc2",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "You write on behalf of the company's purchasing team. Professional, courteous and direct tone. Short sentences. Address the supplier formally. Never invent data: when something is missing (price, lead time, quantity), ask for it explicitly. Never promise payments or terms that are not on the order.\n\nWrite the email in Spanish. Always sign as \"Equipo de Compras\".\n\nMandatory formats in every structured output:\n- Dates: ISO 8601 (YYYY-MM-DD). When the supplier's date is ambiguous (for example \"20/10\"), read it as day/month and lower the confidence.\n- Currency: three-letter ISO code (PEN, USD). Never convert between currencies.\n- Quantities: decimal number with a dot; keep the supplier's unit of measure.\n- Order identifiers: exactly as they appear in the subject, for example P00015.\n- Confidence: a number between 0 and 1; use less than 0.7 whenever you had to interpret.\n\nTask: write a request for quotation (RFQ) to the supplier for the given order.\n\nBefore writing, read the order lines with the get_po_lines tool and, if useful, the supplier's price history. Do not invent products, quantities or lead times.\n\nThe email must:\n- State the purpose briefly: we request a quotation for the products of the order.\n- List each product with its quantity and unit in a simple HTML table.\n- Ask explicitly for: unit price and currency, lead time (date or days), offer validity, payment terms if applicable.\n- Mention the delivery date we need, when the order has one.\n- Ask them to reply to this same email without changing the subject.\n- Close with the signature given in the tone instructions.\n\nDo not put the order name in the subject: the system adds it. The subject must be short and clear, for example \"Request for quotation\".",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Today's date: 2026-09-12\nOrder: P00015 (state: purchase, id: 7)\nSupplier: Proveedor Hidraulica (partner_id: 42)\nOrder planned date: 2026-10-01\nTotal amount: 1250.00 PEN\nPrevious emails on this order: 1\nLines:\nid | product | quantity | unit | unit price | currency | planned date | received\n31 | Bomba hidráulica 2HP | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\n32 | Manguera 1/2\" | 20 | m | 12.50 | PEN | 2026-10-01 | 0",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "Let me read the order lines with the tool, and maybe supplier price history.\n\nLet me call get_po_lines and get_supplier_price_history.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "I'll review the order lines and the supplier's price history first.",
+        "additional_properties": {}
+       },
+       {
+        "type": "function_call",
+        "call_id": "call_00_2Exnb3btPDvdAjp2ww7C6688",
+        "name": "get_po_lines",
+        "arguments": "{\"po_name\": \"P00015\"}",
+        "additional_properties": {
+         "tool_call_index": 0,
+         "tool_call_choice_index": 0
+        }
+       },
+       {
+        "type": "function_call",
+        "call_id": "call_01_IgFco9ynCcxUsBREXBkt2596",
+        "name": "get_supplier_price_history",
+        "arguments": "{\"partner_id\": 42}",
+        "additional_properties": {
+         "tool_call_index": 1,
+         "tool_call_choice_index": 0
+        }
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "tool",
+      "contents": [
+       {
+        "type": "function_result",
+        "call_id": "call_00_2Exnb3btPDvdAjp2ww7C6688",
+        "result": "[{\"id\": 31, \"product\": \"Bomba hidráulica 2HP\", \"product_id\": 101, \"product_tmpl_id\": 1001, \"qty\": 2.0, \"uom\": \"Unidades\", \"price_unit\": 500.0, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}, {\"id\": 32, \"product\": \"Manguera 1/2\\\"\", \"product_id\": 102, \"product_tmpl_id\": 1002, \"qty\": 20.0, \"uom\": \"m\", \"price_unit\": 12.5, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}]",
+        "items": [
+         {
+          "type": "text",
+          "text": "[{\"id\": 31, \"product\": \"Bomba hidráulica 2HP\", \"product_id\": 101, \"product_tmpl_id\": 1001, \"qty\": 2.0, \"uom\": \"Unidades\", \"price_unit\": 500.0, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}, {\"id\": 32, \"product\": \"Manguera 1/2\\\"\", \"product_id\": 102, \"product_tmpl_id\": 1002, \"qty\": 20.0, \"uom\": \"m\", \"price_unit\": 12.5, \"currency\": \"PEN\", \"date_planned\": \"2026-10-01\", \"qty_received\": 0.0}]",
+          "additional_properties": {}
+         }
+        ],
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "tool",
+      "contents": [
+       {
+        "type": "function_result",
+        "call_id": "call_01_IgFco9ynCcxUsBREXBkt2596",
+        "result": "[]",
+        "items": [
+         {
+          "type": "text",
+          "text": "[]",
+          "additional_properties": {}
+         }
+        ],
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "No price history. Write the email in Spanish.\n\nSubject: \"Solicitud de cotización\" (short, clear, no order name).\n\nInclude HTML table with products, quantities, units.\n\nAsk for unit price and currency, lead time, offer validity, payment terms.\n\nMention delivery date 2026-10-01.\n\nAsk reply to same email without changing subject.\n\nSign \"Equipo de Compras\".\n\nConfidence? The instructions mention confidence as a mandatory format in structured output. This is an email, mostly unstructured. I could add a brief confidence note. Hmm — \"Confidence: a number between 0 and 1\" is listed under mandatory formats in every structured output. The email is the output; it's not really structured. I'll include a small confidence line? That might break the email format. I think a brief note is acceptable but perhaps safer to include a short confidence field at the end after signature? I'd rather include it as a discreet line since the instructions demand it in structured outputs. The email body is structured with a table... I'll add \"Confianza: 0.9\" maybe as a separate line after signature. Hmm, that could look odd in an email to a supplier. But the instructions are mandatory. I'll include it after the signature as a small note. Actually many of these tasks expect it. Let me include \"Confianza: 0.9\" at the end.\n\nWait, but no interpretation was needed — all data came from tools. So 0.95 maybe. Dates are from tools unambiguously. I'll use 0.95.\n\nCurrency: PEN — never convert.\n\nQuantities: 2.0 and 20.0? \"Quantities: decimal number with a dot; keep the supplier's unit of measure.\" So 2.0 Unidades, 20.0 m. Hmm, in a table that may look odd but follow the format. I'll write 2.0 and 20.0.\n\nWrite email in Spanish.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "Asunto: Solicitud de cotización\n\nEstimado equipo de Proveedor Hidraulica:\n\nReciban un cordial saludo de nuestra parte.\n\nNos dirigimos a ustedes para solicitar una cotización por los productos de la orden P00015. A continuación, el detalle:\n\n<table>\n  <thead>\n    <tr>\n      <th>Producto</th>\n      <th>Cantidad</th>\n      <th>Unidad</th>\n    </tr>\n  </thead>\n  <tbody>\n    <tr>\n      <td>Bomba hidráulica 2HP</td>\n      <td>2.0</td>\n      <td>Unidades</td>\n    </tr>\n    <tr>\n      <td>Manguera 1/2\"</td>\n      <td>20.0</td>\n      <td>m</td>\n    </tr>\n  </tbody>\n</table>\n\nPara poder evaluar su oferta, les agradeceremos indicarnos de forma explícita:\n\n- Precio unitario y moneda (código ISO de tres letras, por ejemplo PEN o USD).\n- Plazo de entrega: fecha indicada o número de días.\n- Validez de la oferta.\n- Condiciones de pago, si corresponden.\n\nNecesitamos la entrega para el 2026-10-01. Por favor, confirmen si pueden cumplir esa fecha.\n\nLes pedimos responder a este mismo correo, sin modificar el asunto.\n\nQuedamos atentos a su respuesta.\n\nSaludos cordiales,\n\nEquipo de Compras\n\nConfianza: 0.95",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Now deliver the final email as JSON with the keys subject and html_body. The html_body must be simple HTML (p, table, ul) without styles or scripts.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Answer only with a valid JSON object that satisfies this schema, with no additional text:\n{\"description\": \"What the model must return after drafting.\", \"properties\": {\"subject\": {\"description\": \"asunto sin el token de orden\", \"maxLength\": 200, \"minLength\": 3, \"title\": \"Subject\", \"type\": \"string\"}, \"html_body\": {\"description\": \"cuerpo completo en HTML sencillo\", \"minLength\": 20, \"title\": \"Html Body\", \"type\": \"string\"}}, \"required\": [\"subject\", \"html_body\"], \"title\": \"DraftOutput\", \"type\": \"object\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.0,
+     "max_tokens": null,
+     "response_format": {
+      "type": "json_object"
+     },
+     "tools": []
+    }
+   },
+   "result": {
+    "text": "{\"subject\": \"Solicitud de cotización\", \"html_body\": \"<p>Estimado equipo de Proveedor Hidraulica:</p><p>Reciban un cordial saludo de nuestra parte.</p><p>Nos dirigimos a ustedes para solicitar una cotización por los productos de la orden P00015. A continuación, el detalle:</p><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th></tr></thead><tbody><tr><td>Bomba hidráulica 2HP</td><td>2.0</td><td>Unidades</td></tr><tr><td>Manguera 1/2\\\"</td><td>20.0</td><td>m</td></tr></tbody></table><p>Para poder evaluar su oferta, les agradeceremos indicarnos de forma explícita:</p><ul><li>Precio unitario y moneda (código ISO de tres letras, por ejemplo PEN o USD).</li><li>Plazo de entrega: fecha indicada o número de días.</li><li>Validez de la oferta.</li><li>Condiciones de pago, si corresponden.</li></ul><p>Necesitamos la entrega para el 2026-10-01. Por favor, confirmen si pueden cumplir esa fecha.</p><p>Les pedimos responder a este mismo correo, sin modificar el asunto.</p><p>Quedamos atentos a su respuesta.</p><p>Saludos cordiales,</p><p>Equipo de Compras</p>\"}",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text",
+        "text": "{\"subject\": \"Solicitud de cotización\", \"html_body\": \"<p>Estimado equipo de Proveedor Hidraulica:</p><p>Reciban un cordial saludo de nuestra parte.</p><p>Nos dirigimos a ustedes para solicitar una cotización por los productos de la orden P00015. A continuación, el detalle:</p><table><thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th></tr></thead><tbody><tr><td>Bomba hidráulica 2HP</td><td>2.0</td><td>Unidades</td></tr><tr><td>Manguera 1/2\\\"</td><td>20.0</td><td>m</td></tr></tbody></table><p>Para poder evaluar su oferta, les agradeceremos indicarnos de forma explícita:</p><ul><li>Precio unitario y moneda (código ISO de tres letras, por ejemplo PEN o USD).</li><li>Plazo de entrega: fecha indicada o número de días.</li><li>Validez de la oferta.</li><li>Condiciones de pago, si corresponden.</li></ul><p>Necesitamos la entrega para el 2026-10-01. Por favor, confirmen si pueden cumplir esa fecha.</p><p>Les pedimos responder a este mismo correo, sin modificar el asunto.</p><p>Quedamos atentos a su respuesta.</p><p>Saludos cordiales,</p><p>Equipo de Compras</p>\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "stop",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 1425,
+     "output_tokens": 370
+    },
+    "cost_usd": 0.00030310000000000005,
+    "duration_ms": 1838.355899999442
+   }
+  },
+  {
+   "key": "99cf2eb9ee052320104425b3",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Mandatory formats in every structured output:\n- Dates: ISO 8601 (YYYY-MM-DD). When the supplier's date is ambiguous (for example \"20/10\"), read it as day/month and lower the confidence.\n- Currency: three-letter ISO code (PEN, USD). Never convert between currencies.\n- Quantities: decimal number with a dot; keep the supplier's unit of measure.\n- Order identifiers: exactly as they appear in the subject, for example P00015.\n- Confidence: a number between 0 and 1; use less than 0.7 whenever you had to interpret.\n\nTask: classify the email received from a supplier about the given order.\n\nPossible categories (use exactly one):\n- quotation: the supplier gives prices, lead times or terms for the products (quotation, proforma, price list).\n- eta_update: the supplier confirms, changes or delays the delivery date, or reports a partial delivery.\n- shipping_notice: the supplier says the goods were dispatched or are on their way: carrier, tracking or waybill number, dispatch date, expected arrival, packing list.\n- question: the supplier asks something or requests a clarification and expects an answer from us.\n- other: automatic reply, out of office, empty acknowledgement, advertising, or anything that needs no action.\n\nIf the email brings prices and also a delivery date, classify it as quotation. A dispatch with a tracking number is shipping_notice even when it names an arrival date. Give the reason in one sentence and a confidence between 0 and 1.\n\nAnswer only with JSON with the keys kind, confidence and reason.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Today's date: 2026-09-12\nOrder: P00015 (state: purchase, id: 7)\nSupplier: Proveedor Hidraulica (partner_id: 42)\nOrder planned date: 2026-10-01\nTotal amount: 1250.00 PEN\nPrevious emails on this order: 1\nLines:\nid | product | quantity | unit | unit price | currency | planned date | received\n31 | Bomba hidráulica 2HP | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\n32 | Manguera 1/2\" | 20 | m | 12.50 | PEN | 2026-10-01 | 0\nSupplier's email:\nEstimados, confirmamos que la orden P00015 llega el 20 de octubre de 2026. Quedamos atentos. Saludos, Ventas.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Answer only with a valid JSON object that satisfies this schema, with no additional text:\n{\"additionalProperties\": false, \"properties\": {\"kind\": {\"enum\": [\"quotation\", \"eta_update\", \"question\", \"shipping_notice\", \"other\"], \"title\": \"Kind\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}, \"reason\": {\"maxLength\": 500, \"minLength\": 1, \"title\": \"Reason\", \"type\": \"string\"}}, \"required\": [\"kind\", \"confidence\", \"reason\"], \"title\": \"Classification\", \"type\": \"object\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.0,
+     "max_tokens": null,
+     "response_format": {
+      "type": "json_object"
+     },
+     "tools": []
+    }
+   },
+   "result": {
+    "text": "{\"kind\": \"eta_update\", \"confidence\": 0.92, \"reason\": \"El proveedor confirma que la orden P00015 llegará el 20 de octubre de 2026, modificando la fecha prevista del 1 de octubre, sin aportar precios ni datos de envío.\"}",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "The supplier confirms delivery date 20 October 2026, which changes/delays the planned date 2026-10-01. That's eta_update. Confidence high ~0.9.\n\nReason in one sentence.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "{\"kind\": \"eta_update\", \"confidence\": 0.92, \"reason\": \"El proveedor confirma que la orden P00015 llegará el 20 de octubre de 2026, modificando la fecha prevista del 1 de octubre, sin aportar precios ni datos de envío.\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "stop",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 729,
+     "output_tokens": 113
+    },
+    "cost_usd": 0.00013370000000000002,
+    "duration_ms": 2122.264499994344
+   }
+  },
+  {
+   "key": "51c09913f1bc694b3b5ca3e2",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Mandatory formats in every structured output:\n- Dates: ISO 8601 (YYYY-MM-DD). When the supplier's date is ambiguous (for example \"20/10\"), read it as day/month and lower the confidence.\n- Currency: three-letter ISO code (PEN, USD). Never convert between currencies.\n- Quantities: decimal number with a dot; keep the supplier's unit of measure.\n- Order identifiers: exactly as they appear in the subject, for example P00015.\n- Confidence: a number between 0 and 1; use less than 0.7 whenever you had to interpret.\n\nTask: extract from the supplier's email (and from the attachments, when they have text) the structured data that affects the given order.\n\nRules:\n- Match each quoted product to the order line whose product matches and put its id in po_line_id. Without a clear match, leave po_line_id empty and lower that line's confidence.\n- unit_price is the price per unit, before taxes when the supplier separates them. currency is the three-letter ISO code the supplier uses; when it is not stated, leave currency empty (do not assume the order's currency).\n- lead_days is the lead time in days when the supplier gives it in days; min_qty the minimum quantity when mentioned.\n- eta_date_raw is the delivery date exactly as the supplier wrote it; eta_date is that date as YYYY-MM-DD relative to today's date given. Leave both empty when the supplier gives no date. When the date is ambiguous, read it as day/month and lower confidence.\n- notes: relevant terms in one or two sentences (validity, payment, partial deliveries). Nothing else.\n- Overall confidence between 0 and 1: below 0.7 whenever you had to interpret.\n\nAnswer only with JSON that satisfies the given schema.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Today's date: 2026-09-12\nOrder: P00015 (state: purchase, id: 7)\nSupplier: Proveedor Hidraulica (partner_id: 42)\nOrder planned date: 2026-10-01\nTotal amount: 1250.00 PEN\nPrevious emails on this order: 1\nLines:\nid | product | quantity | unit | unit price | currency | planned date | received\n31 | Bomba hidráulica 2HP | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\n32 | Manguera 1/2\" | 20 | m | 12.50 | PEN | 2026-10-01 | 0\nSupplier's email:\nEstimados, confirmamos que la orden P00015 llega el 20 de octubre de 2026. Quedamos atentos. Saludos, Ventas.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Answer only with a valid JSON object that satisfies this schema, with no additional text:\n{\"$defs\": {\"QuotedLine\": {\"additionalProperties\": false, \"description\": \"One product as the supplier quoted it, mapped to our order line when possible.\", \"properties\": {\"po_line_id\": {\"anyOf\": [{\"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"matching purchase.order.line id\", \"title\": \"Po Line Id\"}, \"product_ref\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"supplier's product reference\", \"title\": \"Product Ref\"}, \"description\": {\"minLength\": 1, \"title\": \"Description\", \"type\": \"string\"}, \"qty\": {\"anyOf\": [{\"minimum\": 0, \"type\": \"number\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Qty\"}, \"unit_price\": {\"anyOf\": [{\"minimum\": 0, \"type\": \"number\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Unit Price\"}, \"currency\": {\"anyOf\": [{\"maxLength\": 3, \"minLength\": 3, \"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Currency\"}, \"lead_days\": {\"anyOf\": [{\"minimum\": 0, \"type\": \"integer\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Lead Days\"}, \"min_qty\": {\"anyOf\": [{\"minimum\": 0, \"type\": \"number\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Min Qty\"}, \"confidence\": {\"default\": 1.0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"required\": [\"description\"], \"title\": \"QuotedLine\", \"type\": \"object\"}}, \"additionalProperties\": false, \"description\": \"Structured content of a supplier reply: prices, lead times and the delivery date.\", \"properties\": {\"lines\": {\"items\": {\"$ref\": \"#/$defs/QuotedLine\"}, \"title\": \"Lines\", \"type\": \"array\"}, \"eta_date_raw\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"the date as the supplier wrote it\", \"title\": \"Eta Date Raw\"}, \"eta_date\": {\"anyOf\": [{\"format\": \"date\", \"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"ISO date the agent derived\", \"title\": \"Eta Date\"}, \"currency\": {\"anyOf\": [{\"maxLength\": 3, \"minLength\": 3, \"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Currency\"}, \"notes\": {\"anyOf\": [{\"maxLength\": 1000, \"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"title\": \"Notes\"}, \"confidence\": {\"default\": 1.0, \"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}}, \"title\": \"QuotationData\", \"type\": \"object\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.0,
+     "max_tokens": null,
+     "response_format": {
+      "type": "json_object"
+     },
+     "tools": []
+    }
+   },
+   "result": {
+    "text": "{\"lines\": [], \"eta_date_raw\": \"20 de octubre de 2026\", \"eta_date\": \"2026-10-20\", \"currency\": null, \"notes\": \"El proveedor solo confirma la entrega de la orden P00015 para el 20 de octubre de 2026; no menciona precios, cantidades ni condiciones de pago o entregas parciales.\", \"confidence\": 0.9}",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "The email only confirms delivery date: 20 de octubre de 2026 → 2026-10-20. No product lines quoted, no prices. So lines empty. eta_date_raw \"20 de octubre de 2026\" — as supplier wrote it. eta_date 2026-10-20.\n\nNo lines matched, so no po_line_id. Confidence: date is unambiguous (Spanish month name). Confidence should be high, maybe 0.9. But the email doesn't quote products, so lines empty. Overall confidence... interpretation minimal. I'd say 0.9. Actually since supplier gave no per-line info, that's fine—nothing to interpret. Let's set 0.9.\n\nCurrency: not stated → null. Notes: \"El proveedor confirma la entrega de la orden P00015 para el 20 de octubre de 2026; no menciona precios ni condiciones.\" Keep one or two sentences.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "{\"lines\": [], \"eta_date_raw\": \"20 de octubre de 2026\", \"eta_date\": \"2026-10-20\", \"currency\": null, \"notes\": \"El proveedor solo confirma la entrega de la orden P00015 para el 20 de octubre de 2026; no menciona precios, cantidades ni condiciones de pago o entregas parciales.\", \"confidence\": 0.9}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "stop",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 1365,
+     "output_tokens": 288
+    },
+    "cost_usd": 0.00027174,
+    "duration_ms": 1990.6618000022718
+   }
+  },
+  {
+   "key": "baeb1b7e0e962c040615bc48",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Task: decide which purchase order a supplier email belongs to when the automatic rules could not link it.\n\nYou have the email text and the list of candidate orders (supplier, products, quantities, dates). Pick an order only when the email identifies it clearly: it names the order number, its products or quantities, or answers something only that order explains. When no candidate fits, or two fit equally well, answer with an empty po_name.\n\nGive the confidence between 0 and 1 (below 0.7 when you had to assume) and the reason in one sentence a buyer can verify.\n\nAnswer only with JSON with the keys po_name, confidence and reason.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Today's date: 2026-09-12\nSender: ventas.hidraulica.sc@gmail.com\nOrder token in the subject: none\nCandidate orders:\n- P00015 | supplier: Proveedor Hidraulica | state: purchase | planned date: 2026-10-01\nid | product | quantity | unit | unit price | currency | planned date | received\n31 | Bomba hidráulica 2HP | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\n32 | Manguera 1/2\" | 20 | m | 12.50 | PEN | 2026-10-01 | 0\n- P00016 | supplier: Proveedor Hidraulica | state: purchase | planned date: 2026-10-01\nid | product | quantity | unit | unit price | currency | planned date | received\n41 | Válvula de bola 1\" | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\nSupplier's email:\nBuenos días, la válvula de bola de 1 pulgada sale el lunes. Saludos.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Answer only with a valid JSON object that satisfies this schema, with no additional text:\n{\"description\": \"The model's pick among candidate orders for a message the rules could not link.\", \"properties\": {\"po_name\": {\"anyOf\": [{\"type\": \"string\"}, {\"type\": \"null\"}], \"default\": null, \"description\": \"chosen order; empty when none\", \"title\": \"Po Name\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}, \"reason\": {\"maxLength\": 500, \"minLength\": 1, \"title\": \"Reason\", \"type\": \"string\"}}, \"required\": [\"confidence\", \"reason\"], \"title\": \"UnlinkedResolution\", \"type\": \"object\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.0,
+     "max_tokens": null,
+     "response_format": {
+      "type": "json_object"
+     },
+     "tools": []
+    }
+   },
+   "result": {
+    "text": "{\"po_name\": \"P00016\", \"confidence\": 0.92, \"reason\": \"The email specifies a 1-inch ball valve, which matches the only product (Válvula de bola 1\\\") in order P00016.\"}",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "The email mentions \"válvula de bola de 1 pulgada\" which matches P00016 product \"Válvula de bola 1\"\"\"]. So po_name P00016, confidence high ~0.9.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "{\"po_name\": \"P00016\", \"confidence\": 0.92, \"reason\": \"The email specifies a 1-inch ball valve, which matches the only product (Válvula de bola 1\\\") in order P00016.\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "stop",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 616,
+     "output_tokens": 103
+    },
+    "cost_usd": 0.00011508000000000002,
+    "duration_ms": 1423.0979999992996
+   }
+  },
+  {
+   "key": "cb2059a07af17b54af18711d",
+   "request": {
+    "model": "deepseek-v4-flash",
+    "messages": [
+     {
+      "type": "message",
+      "role": "system",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Mandatory formats in every structured output:\n- Dates: ISO 8601 (YYYY-MM-DD). When the supplier's date is ambiguous (for example \"20/10\"), read it as day/month and lower the confidence.\n- Currency: three-letter ISO code (PEN, USD). Never convert between currencies.\n- Quantities: decimal number with a dot; keep the supplier's unit of measure.\n- Order identifiers: exactly as they appear in the subject, for example P00016.\n- Confidence: a number between 0 and 1; use less than 0.7 whenever you had to interpret.\n\nTask: classify the email received from a supplier about the given order.\n\nPossible categories (use exactly one):\n- quotation: the supplier gives prices, lead times or terms for the products (quotation, proforma, price list).\n- eta_update: the supplier confirms, changes or delays the delivery date, or reports a partial delivery.\n- shipping_notice: the supplier says the goods were dispatched or are on their way: carrier, tracking or waybill number, dispatch date, expected arrival, packing list.\n- question: the supplier asks something or requests a clarification and expects an answer from us.\n- other: automatic reply, out of office, empty acknowledgement, advertising, or anything that needs no action.\n\nIf the email brings prices and also a delivery date, classify it as quotation. A dispatch with a tracking number is shipping_notice even when it names an arrival date. Give the reason in one sentence and a confidence between 0 and 1.\n\nAnswer only with JSON with the keys kind, confidence and reason.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Today's date: 2026-09-12\nOrder: P00016 (state: purchase, id: 7)\nSupplier: Proveedor Hidraulica (partner_id: 42)\nOrder planned date: 2026-10-01\nTotal amount: 1250.00 PEN\nPrevious emails on this order: 1\nLines:\nid | product | quantity | unit | unit price | currency | planned date | received\n41 | Válvula de bola 1\" | 2 | Unidades | 500.00 | PEN | 2026-10-01 | 0\nSupplier's email:\nBuenos días, la válvula de bola de 1 pulgada sale el lunes. Saludos.",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     },
+     {
+      "type": "message",
+      "role": "user",
+      "contents": [
+       {
+        "type": "text",
+        "text": "Answer only with a valid JSON object that satisfies this schema, with no additional text:\n{\"additionalProperties\": false, \"properties\": {\"kind\": {\"enum\": [\"quotation\", \"eta_update\", \"question\", \"shipping_notice\", \"other\"], \"title\": \"Kind\", \"type\": \"string\"}, \"confidence\": {\"maximum\": 1, \"minimum\": 0, \"title\": \"Confidence\", \"type\": \"number\"}, \"reason\": {\"maxLength\": 500, \"minLength\": 1, \"title\": \"Reason\", \"type\": \"string\"}}, \"required\": [\"kind\", \"confidence\", \"reason\"], \"title\": \"Classification\", \"type\": \"object\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "options": {
+     "temperature": 0.0,
+     "max_tokens": null,
+     "response_format": {
+      "type": "json_object"
+     },
+     "tools": []
+    }
+   },
+   "result": {
+    "text": "{\"kind\": \"shipping_notice\", \"confidence\": 0.62, \"reason\": \"The supplier states the 1\\\" ball valve \\\"sale el lunes\\\", i.e. it will be dispatched/leave on Monday, which is a dispatch date, although no carrier, tracking number or waybill is provided.\"}",
+    "messages": [
+     {
+      "type": "message",
+      "role": "assistant",
+      "contents": [
+       {
+        "type": "text_reasoning",
+        "text": "The email: \"Buenos días, la válvula de bola de 1 pulgada sale el lunes.\" — \"the 1 inch ball valve leaves on Monday\". \"Sale\" = it ships/leaves. This suggests dispatch. But does it give tracking? No. Hmm. \"sale el lunes\" means it goes out on Monday - dispatch date. This is a shipping notice? The definition: \"the supplier says the goods were dispatched or are on their way: carrier, tracking or waybill number, dispatch date, expected arrival, packing list.\" Dispatch date is given implicitly (Monday). So shipping_notice seems plausible. But it could also be eta_update — confirming the delivery date... Actually \"sale el lunes\" refers to when it leaves supplier, which is a dispatch date, not the arrival. Hmm.\n\nThe categories: eta_update is \"confirms, changes or delays the delivery date, or reports a partial delivery.\" shipping_notice is \"goods were dispatched or are on their way: ... dispatch date...\"\n\n\"sale el lunes\" = departure date. Since it's about goods leaving, I'd say shipping_notice. But no tracking number. The rule says \"A dispatch with a tracking number is shipping_notice even when it names an arrival date.\" Here there's no tracking number but a dispatch date.\n\nHmm, ambiguous. I think shipping_notice is the best fit since it announces the shipment leaving on Monday. Alternatively eta_update since it confirms the date. Actually the planned date is 2026-10-01, and \"el lunes\" - Monday. Today is 2026-09-12 which is a Saturday. Next Monday would be 2026-09-14. That's earlier than the planned date — but it says \"sale\" (leaves supplier), not arrival.\n\nI'll go with shipping_notice, confidence ~0.65 (since no carrier/tracking, and \"sale\" could be interpreted). Actually let me think again — is it an eta update? \"the valve leaves on Monday\" - it's informing when the goods will be dispatched. I think shipping_notice is appropriate, but with lower confidence because there's no carrier/tracking and it's interpreted.\n\nLet me set confidence 0.6.\n\nReason: supplier states the ball valve will be dispatched (\"sale\") on Monday, a dispatch date, though no carrier or tracking number is given.",
+        "additional_properties": {}
+       },
+       {
+        "type": "text",
+        "text": "{\"kind\": \"shipping_notice\", \"confidence\": 0.62, \"reason\": \"The supplier states the 1\\\" ball valve \\\"sale el lunes\\\", i.e. it will be dispatched/leave on Monday, which is a dispatch date, although no carrier, tracking number or waybill is provided.\"}",
+        "additional_properties": {}
+       }
+      ],
+      "additional_properties": {}
+     }
+    ],
+    "finish_reason": "stop",
+    "model": "deepseek-flash",
+    "usage": {
+     "input_tokens": 685,
+     "output_tokens": 573
+    },
+    "cost_usd": 0.00025634000000000003,
+    "duration_ms": 3063.155800002278
+   }
   }
  ]
 }

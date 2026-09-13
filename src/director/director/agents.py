@@ -81,6 +81,11 @@ def build_agents(settings: Settings) -> Agents:
         token=settings.a2a_token,
         timeout_seconds=max(settings.a2a.timeout_seconds, 900.0),  # a full plan takes minutes
     )
+    logistics = A2AClient(
+        settings.a2a.logistics_url,
+        token=settings.a2a_token,
+        timeout_seconds=settings.a2a.timeout_seconds,
+    )
     return Agents(
         supplier_comms=AgentProxy(
             "supplier_comms", supplier_comms, max_concurrent=settings.a2a.max_concurrent
@@ -88,6 +93,9 @@ def build_agents(settings: Settings) -> Agents:
         others={
             "inventory_planning": AgentProxy(
                 "inventory_planning", inventory_planning, max_concurrent=1
-            )
+            ),
+            "logistics": AgentProxy(
+                "logistics", logistics, max_concurrent=settings.a2a.max_concurrent
+            ),
         },
     )
