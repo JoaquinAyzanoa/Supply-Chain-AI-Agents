@@ -49,7 +49,8 @@ async def test_clean_invoice_by_email_becomes_a_draft_bill_after_approval(
     assert (
         "FACTURA ELECTRONICA F001-000123" in chat.last_prompt_text()
     )  # the PDF text reached the model
-    assert ports.created == []  # nothing in Odoo before the decision
+    assert ports.created == [] and ports.checks == []  # nothing in Odoo before the decision
+    assert created["res_model"] == "purchase.order" and created["res_id"] == 7  # no bill yet
 
     done = await agent.resume(
         "c_inv1", {"approval_id": 101, "status": "approved", "resolved_by": "Ana"}
@@ -61,6 +62,16 @@ async def test_clean_invoice_by_email_becomes_a_draft_bill_after_approval(
     [(po_id, note)] = ports.base.notes
     assert po_id == 7 and "F001-000123" in note and "Ana" in note and "border" in note
     assert "Nothing is posted" in note
+    # the new bill's "AI Agent" tab and chatter carry the verdict too
+    assert ports.checks == [
+        {
+            "move_id": 501,
+            "verdict": "clean",
+            "po_id": 7,
+            "summary": "All 2 line(s) match the order and the receipts.",
+        }
+    ]
+    assert ports.bill_notes == [(501, note)]
     assert ports.runs[paused.run_id]["status"] == "applied"
     assert (await agent.snapshot("c_inv1")).get("attachments_text") is None
 
@@ -104,7 +115,7 @@ async def test_price_variance_is_held_and_approving_creates_the_bill_anyway(
         },
     )
     assert rejected.status == "rejected" and "ask for a credit note" in rejected.outcome.summary
-    assert ports.created == []
+    assert ports.created == [] and ports.checks == [] and ports.bill_notes == []  # no bill exists
 
 
 async def test_clean_invoice_under_the_limit_needs_nobody(
@@ -195,11 +206,18 @@ async def test_bill_typed_in_odoo_is_checked_without_the_model(
     assert paused.match is not None and paused.match.verdict == "hold"
     [created] = approval_ports.created
     assert created["payload"]["existing_bill_name"] == "BILL/2026/10/0003"
+    # the approval hangs on the bill, and the invoice form shows the verdict before anyone decides
+    assert created["res_model"] == "account.move" and created["res_id"] == 90
+    assert ports.checks == [
+        {"move_id": 90, "verdict": "hold", "po_id": 7, "summary": "Held: 1 line(s) price variance."}
+    ]
     done = await agent.resume(
         "c_inv7", {"approval_id": 101, "status": "approved", "resolved_by": "Ana"}
     )
     assert done.status == "applied" and done.bill_id == 90 and ports.created == []  # no second bill
     assert any("BILL/2026/10/0003" in n and "does not match" in n for _, n in ports.base.notes)
+    [(move_id, bill_note)] = ports.bill_notes
+    assert move_id == 90 and "does not match" in bill_note and "Ana" in bill_note
 
 
 async def test_unknown_bill_or_order_fails_plainly(make_agent: Any) -> None:

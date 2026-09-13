@@ -47,6 +47,8 @@ class FakeInvoicePorts:
     candidate_orders: dict[int, list[PoCandidate]] = field(default_factory=dict)
     existing: dict[tuple[int, str], tuple[int, str | None]] = field(default_factory=dict)
     created: list[dict[str, Any]] = field(default_factory=list)
+    checks: list[dict[str, Any]] = field(default_factory=list)  # what the invoice form shows
+    bill_notes: list[tuple[int, str]] = field(default_factory=list)
     runs: dict[str, dict[str, Any]] = field(default_factory=dict)
 
     async def load_po(self, po_name: str) -> PoContext | None:
@@ -81,6 +83,16 @@ class FakeInvoicePorts:
 
     async def post_note(self, po_id: int, html: str) -> None:
         await self.base.post_note(po_id, html)
+
+    async def record_check(
+        self, move_id: int, *, verdict: str, po_id: int | None, summary: str
+    ) -> None:
+        self.checks.append(
+            {"move_id": move_id, "verdict": verdict, "po_id": po_id, "summary": summary}
+        )
+
+    async def post_bill_note(self, move_id: int, html: str) -> None:
+        self.bill_notes.append((move_id, html))
 
     async def start_run(
         self,

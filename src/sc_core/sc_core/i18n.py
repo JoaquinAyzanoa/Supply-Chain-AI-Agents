@@ -132,6 +132,11 @@ MESSAGES: dict[str, dict[Language, str]] = {
     "bill.status.unmatched": {"en": "not on the order", "es": "no está en la orden"},
     "bill.verdict.clean": {"en": "matches", "es": "coincide"},
     "bill.verdict.hold": {"en": "does not match", "es": "no coincide"},
+    "bill.check_clean": {
+        "en": "All {n} line(s) match the order and the receipts.",
+        "es": "Las {n} línea(s) coinciden con la orden y las recepciones.",
+    },
+    "bill.check_hold": {"en": "Held: {reasons}.", "es": "Retenida: {reasons}."},
     "bill.checked_note": {
         "en": "<p>Vendor bill {bill} checked against the order: {verdict}. Decided by {who}.</p>",
         "es": "<p>Factura {bill} verificada contra la orden: {verdict}. Decidido por {who}.</p>",

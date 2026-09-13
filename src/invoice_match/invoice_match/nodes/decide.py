@@ -15,6 +15,7 @@ from typing import Any
 from loguru import logger
 
 from invoice_match.nodes.common import bill_of, context_of, esc, finish, invoice_of, style_tables
+from invoice_match.nodes.record import check_summary
 from invoice_match.ports import InvoicePorts
 from invoice_match.state import Node
 from sc_core.graph import ApprovalRequest, decision_for
@@ -58,6 +59,9 @@ def make_bill_approval(
                 "existing_bill_name": bill.name if bill else None,
             },
             po_id=ctx.id,
+            # A bill that exists hangs the approval on itself, so the invoice form lists it.
+            res_model="account.move" if bill else "purchase.order",
+            res_id=bill.move_id if bill else None,
             auto_approve=auto,
             auto_reason=t("bill.auto_reason", language, amount=auto_approve_amount)
             if auto
@@ -97,17 +101,15 @@ def make_apply(ports: InvoicePorts, *, language: Language = "en") -> Node:
         decision = decision_for(state, BILL_STEP)
         who = decision.resolved_by if decision and decision.resolved_by else "-"
         if bill is not None:
-            await ports.post_note(
-                ctx.id,
-                t(
-                    "bill.checked_note",
-                    language,
-                    bill=esc(bill.name or str(bill.move_id)),
-                    verdict=esc(t(f"bill.verdict.{match.verdict}", language)),
-                    who=esc(who),
-                )
-                + match_html(match, language),
-            )
+            note = t(
+                "bill.checked_note",
+                language,
+                bill=esc(bill.name or str(bill.move_id)),
+                verdict=esc(t(f"bill.verdict.{match.verdict}", language)),
+                who=esc(who),
+            ) + match_html(match, language)
+            await ports.post_note(ctx.id, note)
+            await ports.post_bill_note(bill.move_id, note)
             return finish(
                 "applied",
                 t("bill.checked_summary", language, bill=bill.name or bill.move_id, po=ctx.name),
@@ -116,18 +118,19 @@ def make_apply(ports: InvoicePorts, *, language: Language = "en") -> Node:
         bill_id, bill_name = await ports.create_draft_bill(
             ctx.id, ref=invoice.invoice_number, invoice_date=invoice.invoice_date
         )
-        await ports.post_note(
-            ctx.id,
-            t(
-                "bill.created_note",
-                language,
-                number=esc(invoice.invoice_number or "-"),
-                bill=esc(bill_name or str(bill_id)),
-                who=esc(who),
-                verdict=esc(t(f"bill.verdict.{match.verdict}", language)),
-            )
-            + match_html(match, language),
+        note = t(
+            "bill.created_note",
+            language,
+            number=esc(invoice.invoice_number or "-"),
+            bill=esc(bill_name or str(bill_id)),
+            who=esc(who),
+            verdict=esc(t(f"bill.verdict.{match.verdict}", language)),
+        ) + match_html(match, language)
+        await ports.post_note(ctx.id, note)
+        await ports.record_check(
+            bill_id, verdict=match.verdict, po_id=ctx.id, summary=check_summary(match, language)
         )
+        await ports.post_bill_note(bill_id, note)
         logger.bind(po_name=ctx.name, bill_id=bill_id, verdict=match.verdict).info(
             "draft bill created"
         )
@@ -155,16 +158,17 @@ def make_rejected(ports: InvoicePorts, *, language: Language = "en") -> Node:
         reason = (
             decision.reason if decision and decision.reason else t("common.no_reason", language)
         )
-        await ports.post_note(
-            ctx.id,
-            t(
-                "bill.rejected_note",
-                language,
-                number=esc(invoice.invoice_number or "-"),
-                who=esc(who),
-                reason=esc(reason),
-            ),
+        note = t(
+            "bill.rejected_note",
+            language,
+            number=esc(invoice.invoice_number or "-"),
+            who=esc(who),
+            reason=esc(reason),
         )
+        await ports.post_note(ctx.id, note)
+        bill = bill_of(state)
+        if bill is not None:
+            await ports.post_bill_note(bill.move_id, note)
         return finish(
             "rejected",
             t(

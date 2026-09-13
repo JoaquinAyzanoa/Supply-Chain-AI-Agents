@@ -7,7 +7,7 @@ stays with people (see ``tests/unit/odoo/test_repositories.py``).
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 
 from sc_core.odoo.models import AccountMove, AccountMoveLine, to_odoo_date
 from sc_core.odoo.repositories.base import Repo
@@ -53,6 +53,26 @@ class AccountMoveRepo(Repo[AccountMove]):
             order="id asc",
         )
         return [AccountMoveLine.from_odoo(r) for r in rows]
+
+    async def record_check(
+        self, move_id: int, *, verdict: str, po_id: int | None, summary: str
+    ) -> None:
+        """What the matching agent concluded, shown on the invoice form's "AI Agent" tab."""
+        if verdict not in ("clean", "hold"):
+            raise ScError("a bill check is clean or hold", details={"verdict": verdict})
+        await self._write(
+            [move_id],
+            {
+                "sc_match_verdict": verdict,
+                "sc_matched_po_id": po_id or False,
+                "sc_match_summary": summary,
+                "sc_checked_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S"),
+            },
+        )
+
+    async def post_note(self, move_id: int, html: str) -> None:
+        """A chatter note on the bill (the addon's ``sc_post_note`` keeps the HTML)."""
+        await self._c.call_model(AccountMove.ODOO_MODEL, "sc_post_note", move_id, html)
 
     async def create_draft_bill(
         self, po_id: int, *, ref: str | None = None, invoice_date: date | None = None

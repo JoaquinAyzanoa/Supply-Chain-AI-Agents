@@ -18,6 +18,7 @@ from invoice_match.nodes.decide import BILL_STEP, make_apply, make_bill_approval
 from invoice_match.nodes.load import make_load_context
 from invoice_match.nodes.match import make_match
 from invoice_match.nodes.read import make_read_invoice
+from invoice_match.nodes.record import make_record_check
 from invoice_match.ports import InvoicePorts
 from invoice_match.state import InvoiceMatchState, Node
 from sc_core.graph import ApprovalGateway
@@ -61,13 +62,15 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
             language=deps.language,
         ),
     )
+    _add(g, "record_check", make_record_check(deps.ports, language=deps.language))
     _add(g, "apply", make_apply(deps.ports, language=deps.language))
     _add(g, "rejected", make_rejected(deps.ports, language=deps.language))
 
     g.add_edge(START, "load_context")
     g.add_conditional_edges("load_context", _continue_or_end, {"go": "read_invoice", "end": END})
     g.add_edge("read_invoice", "match")
-    g.add_conditional_edges("match", _continue_or_end, {"go": f"{BILL_STEP}.request", "end": END})
+    g.add_conditional_edges("match", _continue_or_end, {"go": "record_check", "end": END})
+    g.add_edge("record_check", f"{BILL_STEP}.request")
     deps.approvals.add_approval(
         g,
         step=BILL_STEP,

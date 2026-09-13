@@ -41,6 +41,12 @@ class InvoicePorts(Protocol):
 
     async def post_note(self, po_id: int, html: str) -> None: ...
 
+    async def record_check(
+        self, move_id: int, *, verdict: str, po_id: int | None, summary: str
+    ) -> None: ...
+
+    async def post_bill_note(self, move_id: int, html: str) -> None: ...
+
     async def start_run(
         self,
         *,
@@ -162,6 +168,14 @@ class LiveInvoicePorts:
 
     async def post_note(self, po_id: int, html: str) -> None:
         await self._base.post_note(po_id, html)
+
+    async def record_check(
+        self, move_id: int, *, verdict: str, po_id: int | None, summary: str
+    ) -> None:
+        await self._bills.record_check(move_id, verdict=verdict, po_id=po_id, summary=summary)
+
+    async def post_bill_note(self, move_id: int, html: str) -> None:
+        await self._bills.post_note(move_id, html)
 
     async def start_run(
         self,

@@ -829,7 +829,7 @@
    }
   },
   {
-   "key": "941962c4401b3db0928e1195",
+   "key": "017c46be9d151b6ecbfcc97d",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -881,7 +881,11 @@
        "payment_state",
        "purchase_id",
        "invoice_line_ids",
-       "create_date"
+       "create_date",
+       "sc_match_verdict",
+       "sc_matched_po_id",
+       "sc_match_summary",
+       "sc_checked_at"
       ],
       "offset": 0,
       "order": "id desc",
@@ -934,13 +938,17 @@
        127,
        128
       ],
-      "create_date": "2026-09-12 23:47:11"
+      "create_date": "2026-09-12 23:47:11",
+      "sc_match_verdict": false,
+      "sc_matched_po_id": false,
+      "sc_match_summary": false,
+      "sc_checked_at": false
      }
     ]
    }
   },
   {
-   "key": "941962c4401b3db0928e1195",
+   "key": "017c46be9d151b6ecbfcc97d",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -992,7 +1000,11 @@
        "payment_state",
        "purchase_id",
        "invoice_line_ids",
-       "create_date"
+       "create_date",
+       "sc_match_verdict",
+       "sc_matched_po_id",
+       "sc_match_summary",
+       "sc_checked_at"
       ],
       "offset": 0,
       "order": "id desc",
@@ -1045,7 +1057,11 @@
        127,
        128
       ],
-      "create_date": "2026-09-12 23:47:11"
+      "create_date": "2026-09-12 23:47:11",
+      "sc_match_verdict": false,
+      "sc_matched_po_id": false,
+      "sc_match_summary": false,
+      "sc_checked_at": false
      }
     ]
    }
@@ -1412,7 +1428,7 @@
    }
   },
   {
-   "key": "5d75e5186923c53bbf65a2c5",
+   "key": "51d6e9da6a47129ddcffd8e2",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -1462,7 +1478,11 @@
        "payment_state",
        "purchase_id",
        "invoice_line_ids",
-       "create_date"
+       "create_date",
+       "sc_match_verdict",
+       "sc_matched_po_id",
+       "sc_match_summary",
+       "sc_checked_at"
       ],
       "offset": 0,
       "limit": 1,
@@ -1515,13 +1535,17 @@
        127,
        128
       ],
-      "create_date": "2026-09-12 23:47:11"
+      "create_date": "2026-09-12 23:47:11",
+      "sc_match_verdict": false,
+      "sc_matched_po_id": false,
+      "sc_match_summary": false,
+      "sc_checked_at": false
      }
     ]
    }
   },
   {
-   "key": "12e299bcb1b8ccbf95a8b6fd",
+   "key": "df27bc177f02f7ac0d067f89",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -1566,7 +1590,11 @@
        "payment_state",
        "purchase_id",
        "invoice_line_ids",
-       "create_date"
+       "create_date",
+       "sc_match_verdict",
+       "sc_matched_po_id",
+       "sc_match_summary",
+       "sc_checked_at"
       ],
       "offset": 0,
       "order": "id desc",
@@ -1619,13 +1647,17 @@
        127,
        128
       ],
-      "create_date": "2026-09-12 23:47:11"
+      "create_date": "2026-09-12 23:47:11",
+      "sc_match_verdict": false,
+      "sc_matched_po_id": false,
+      "sc_match_summary": false,
+      "sc_checked_at": false
      }
     ]
    }
   },
   {
-   "key": "3734e2d5b5eaa1d66f73e4ed",
+   "key": "70a87a5fbc63f014f3b4a89f",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -1670,7 +1702,11 @@
        "payment_state",
        "purchase_id",
        "invoice_line_ids",
-       "create_date"
+       "create_date",
+       "sc_match_verdict",
+       "sc_matched_po_id",
+       "sc_match_summary",
+       "sc_checked_at"
       ],
       "offset": 0,
       "limit": 50,
@@ -1724,7 +1760,11 @@
        127,
        128
       ],
-      "create_date": "2026-09-12 23:47:11"
+      "create_date": "2026-09-12 23:47:11",
+      "sc_match_verdict": false,
+      "sc_matched_po_id": false,
+      "sc_match_summary": false,
+      "sc_checked_at": false
      }
     ]
    }

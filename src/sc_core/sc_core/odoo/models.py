@@ -308,6 +308,11 @@ class AccountMove(OdooModel):
     purchase_id: Ref | None = None
     invoice_line_ids: list[int] = []
     create_date: datetime | None = None
+    # what the invoice matching agent wrote (the "AI Agent" tab of the invoice form)
+    sc_match_verdict: str | None = None
+    sc_matched_po_id: Ref | None = None
+    sc_match_summary: str | None = None
+    sc_checked_at: datetime | None = None
 
     @property
     def is_draft(self) -> bool:

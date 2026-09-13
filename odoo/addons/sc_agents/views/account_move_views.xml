@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_move_form_sc_agents" model="ir.ui.view">
+        <field name="name">account.move.form.sc_agents</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//notebook" position="inside">
+                <page string="AI Agent" name="sc_agent" invisible="move_type not in ('in_invoice', 'in_refund')">
+                    <group>
+                        <group string="Invoice check">
+                            <field name="sc_match_verdict" widget="badge"
+                                   decoration-success="sc_match_verdict == 'clean'"
+                                   decoration-warning="sc_match_verdict == 'hold'"/>
+                            <field name="sc_matched_po_id"/>
+                            <field name="sc_checked_at"/>
+                        </group>
+                        <group string="Why">
+                            <field name="sc_match_summary" nolabel="1" colspan="2"/>
+                        </group>
+                    </group>
+                    <separator string="Approvals"/>
+                    <field name="sc_approval_ids" readonly="1">
+                        <list>
+                            <field name="create_date"/>
+                            <field name="kind"/>
+                            <field name="summary"/>
+                            <field name="status" widget="badge"
+                                   decoration-success="status == 'approved'"
+                                   decoration-danger="status == 'rejected'"
+                                   decoration-warning="status == 'pending'"/>
+                            <field name="resolved_by_id"/>
+                        </list>
+                    </field>
+                    <p class="text-muted">
+                        The invoice matching agent compares the bill with the order and the
+                        receipts. It never posts: a person approves, and the bill stays in draft.
+                    </p>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

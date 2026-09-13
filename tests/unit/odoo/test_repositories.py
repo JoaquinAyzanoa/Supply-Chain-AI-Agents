@@ -22,7 +22,7 @@ from sc_core.odoo.repositories import (
     PurchaseOrderRepo,
     SupplierInfoRepo,
 )
-from sc_core.shared.errors import NotFound, ValidationFailed
+from sc_core.shared.errors import NotFound, ScError, ValidationFailed
 
 from . import samples
 from .conftest import LOGIN_OK, ScriptedOdoo, rpc_ok
@@ -371,6 +371,25 @@ async def test_draft_bill_is_created_once_and_never_posted(
     again = await repo.create_draft_bill(16, ref="F001-000123", invoice_date=date(2024, 9, 2))
     assert again.id == 9
     assert [odoo.execute_kw_args(i)[1] for i in range(5, 6)] == ["search_read"]
+
+
+async def test_bill_check_is_written_on_the_bill_and_never_posts(
+    odoo: ScriptedOdoo, client_factory: Factory
+) -> None:
+    from sc_core.odoo.repositories import AccountMoveRepo
+
+    odoo.script += [LOGIN_OK, rpc_ok(True), rpc_ok(True)]
+    repo = AccountMoveRepo(client_factory())
+    await repo.record_check(9, verdict="hold", po_id=16, summary="Held: 1 line(s) price variance.")
+    await repo.post_note(9, "<p>checked</p>")
+    model, method, args, _ = odoo.execute_kw_args(0)
+    assert (model, method) == ("account.move", "write") and args[0] == [9]
+    values = args[1]
+    assert values["sc_match_verdict"] == "hold" and values["sc_matched_po_id"] == 16
+    assert values["sc_match_summary"].startswith("Held:") and values["sc_checked_at"]
+    assert odoo.execute_kw_args(1)[:3] == ("account.move", "sc_post_note", [9, "<p>checked</p>"])
+    with pytest.raises(ScError):
+        await repo.record_check(9, verdict="posted", po_id=None, summary="x")
 
 
 async def test_supplier_scorecards_need_no_record_to_hang_on(
