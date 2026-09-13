@@ -1,7 +1,12 @@
 """Load the Sun Hydraulics demo dataset into the local Odoo (idempotent).
 
-    python scripts/odoo_seed.py [--only catalogue|stock|demand|supply] [--months N]
+    python scripts/odoo_seed.py [--only catalogue|stock|demand|supply|announce] [--months N]
         [--seed N] [--dry-run]
+
+The history is loaded quietly (the addon's automations do not wake the
+agents); ``announce`` emits day one's receipts and bills to the director and
+is skipped by default so it can run once the agents are up (``just odoo-fresh``
+does that last).
 
 Runs as the administrator (password "admin" on the demo database, override
 with --password). Every record is looked up by its natural key first, so a
@@ -26,7 +31,7 @@ from odoo_seed_lib.dataset import DEFAULT_PATH, load  # noqa: E402
 
 from sc_core.infra.settings import Settings  # noqa: E402
 
-STAGES = ("catalogue", "stock", "demand", "supply")
+STAGES = ("catalogue", "stock", "demand", "supply", "announce")
 
 
 async def run(args: argparse.Namespace) -> int:
@@ -37,7 +42,7 @@ async def run(args: argparse.Namespace) -> int:
         )
     if args.seed is not None:
         ds = ds.model_copy(update={"seed": args.seed})
-    stages = [args.only] if args.only else list(STAGES)
+    stages = [args.only] if args.only else [s for s in STAGES if s != "announce"]
     print(
         f"dataset: {len(ds.products)} products, {len(ds.suppliers)} suppliers, "
         f"{len(ds.customers)} customers, {ds.history.months} months, seed {ds.seed}"
@@ -61,7 +66,7 @@ async def run(args: argparse.Namespace) -> int:
             f"catalogue: {len(products)} products, {rows} supplier terms, "
             f"{len(customers)} customers"
         )
-        if any(s in stages for s in ("stock", "demand", "supply")):
+        if any(s in stages for s in ("stock", "demand", "supply", "announce")):
             from odoo_seed_lib import history
 
             await history.run(client, ds, products, suppliers, customers, stages=stages)

@@ -113,6 +113,22 @@ async def report(
         "stock.warehouse.orderpoint", [["product_id", "in", list(product_ids)]]
     )
     lines.append(f"  reorder rules: {rules} of {len(products)} products")
+    rfqs = await odoo.search_count(
+        "purchase.order",
+        [["state", "in", ["draft", "sent"]], ["partner_id", "in", list(suppliers.values())]],
+    )
+    bills = await odoo.search_count(
+        "account.move", [["move_type", "=", "in_invoice"], ["state", "=", "draft"]]
+    )
+    lines.append(f"  open RFQs: {rfqs}; draft vendor bills: {bills}")
+
+    # what the planner will see on day one: on hand below the primary lead-time demand
+    short = []
+    for p in ds.products:
+        cover = p.demand.mean_weekly * p.suppliers["primary"].delay / 7
+        if on_hand[p.code] < cover:
+            short.append(f"{p.code} ({int(on_hand[p.code])} < {cover:.0f})")
+    lines.append(f"  below lead-time demand today: {len(short)}: " + ", ".join(short))
     return "\n".join(lines)
 
 

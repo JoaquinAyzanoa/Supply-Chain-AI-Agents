@@ -71,17 +71,33 @@ def week_starts(start: date, end: date) -> list[date]:
 def weekly_demand(
     product: Product, seasonality: list[float], weeks: list[date], rng: random.Random
 ) -> list[int]:
-    """One quantity per week from the profile: seasonality x trend x noise."""
+    """One quantity per week from the profile: seasonality x trend x noise.
+
+    An intermittent product sells in ``hit_rate`` of the weeks (the size of a
+    sale scaled up so the weekly mean holds); a product launched
+    ``since_months`` ago has no demand before its launch.
+    """
     profile = product.demand
-    span_days = max((weeks[-1] - weeks[0]).days, 1)
+    launch = (
+        weeks[-1] - timedelta(days=int(profile.since_months * 30.44))
+        if profile.since_months is not None
+        else None
+    )
     out = []
     for week in weeks:
+        if launch is not None and week < launch:
+            out.append(0)
+            continue
         years = (week - weeks[0]).days / 365.25
         trend = (1 + profile.trend_per_year) ** years
         mean = profile.mean_weekly * seasonality[week.month - 1] * trend
+        if profile.pattern == "intermittent":
+            if rng.random() >= profile.hit_rate:
+                out.append(0)
+                continue
+            mean = mean / profile.hit_rate
         qty = rng.gauss(mean, mean * profile.cv)
         out.append(max(0, round(qty)))
-    assert span_days > 0
     return out
 
 
@@ -127,20 +143,23 @@ def build_plan(ds: Dataset, *, today: date | None = None) -> Plan:
                         backorder=rng.random() < ds.history.backorder_share and part > 1,
                     )
                 )
-        plan.opening[product.code] = max(
-            1, math.ceil(product.demand.mean_weekly * product.stock.weeks_on_hand)
+        plan.opening[product.code] = (
+            0
+            if product.demand.since_months is not None  # not in the catalogue two years ago
+            else max(1, math.ceil(product.demand.mean_weekly * product.stock.weeks_on_hand))
         )
 
     # --- supply: one order per supplier per month, sized from the next month's demand ---
-    receipts = ds.history.receipts
     months = _month_starts(start, end)
     pindex = 0
     for i, month in enumerate(months):
         next_month = months[i + 1] if i + 1 < len(months) else end + timedelta(days=30)
         # Next month's demand plus 5 % is what gets bought in total; every third
-        # month half of it goes to the alternate supplier (when the product has
-        # one) and the primary gets the rest, so stock does not pile up.
+        # month half of it goes to one of the other suppliers (when the product
+        # has any, taking turns) and the primary gets the rest, so stock does
+        # not pile up and every supplier has receipts to be scored on.
         for key in ds.suppliers:
+            receipts = ds.receipts_for(key)
             lines: list[tuple[str, int]] = []
             for product in ds.products:
                 terms = product.suppliers.get(key)
@@ -150,14 +169,16 @@ def build_plan(ds: Dataset, *, today: date | None = None) -> Plan:
                     plan, product.code, next_month, next_month + timedelta(days=31)
                 )
                 total = math.ceil(need * 1.05)
-                alternate_turn = (
-                    "alternate" in product.suppliers and (i + _stable_hash(product.code)) % 3 == 0
+                others = [k for k in product.suppliers if k != "primary"]
+                turn = (i + _stable_hash(product.code)) % 3 == 0 and bool(others)
+                other_key = (
+                    others[((i + _stable_hash(product.code)) // 3) % len(others)] if turn else None
                 )
-                alternate_qty = math.ceil(total * 0.5) if alternate_turn else 0
+                other_qty = math.ceil(total * 0.5) if turn else 0
                 if key == "primary":
-                    need = total - alternate_qty
-                elif alternate_turn:
-                    need = alternate_qty
+                    need = total - other_qty
+                elif key == other_key:
+                    need = other_qty
                 else:
                     continue
                 if need <= 0:

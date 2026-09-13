@@ -24,7 +24,7 @@ from . import samples
 def test_purchase_order_from_real_row() -> None:
     po = PurchaseOrder.from_odoo(samples.PO_ROW)
     assert po.id == 15 and po.name == "P00015"
-    assert po.partner_id == Ref(id=12, name="Ready Mat")
+    assert po.partner_id == Ref(id=12, name="Proveedor Hidraulica")
     assert po.origin is None and po.partner_ref is None  # False -> None
     assert po.sc_eta_source is None and po.sc_pending_approval_id is None
     assert po.sc_needs_human is False  # bools stay bools
@@ -68,7 +68,7 @@ def test_picking_and_partner() -> None:
     assert pk.purchase_id == Ref(id=15, name="P00015") and pk.date_done is None
     partner = Partner.from_odoo(samples.PARTNER_ROW)
     assert partner.email_domain == "example.com"
-    assert partner.commercial_partner_id == Ref(id=15, name="Azure Interior")
+    assert partner.commercial_partner_id == Ref(id=15, name="Hidraulica Alterna SAC")
 
 
 def test_approval_row() -> None:

@@ -184,10 +184,18 @@ image member="director":
 ODOO_DB := "scai"
 ODOO_MODULES := "base,contacts,mail,product,purchase,stock,purchase_stock,sale_management,purchase_requisition,base_automation,account,sc_agents"
 
-# Create the Odoo database with demo data and install the modules (idempotent)
+# Create the Odoo database WITHOUT Odoo's demo data and install the modules (idempotent)
 odoo-init:
-    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{ODOO_MODULES}} --stop-after-init
+    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{ODOO_MODULES}} --without-demo=all --stop-after-init
     {{COMPOSE}} up -d odoo
+
+# Rebuild the whole local stack from zero: Odoo without demo data, empty app database, our dataset (destructive, asks first)
+odoo-fresh *args:
+    {{UV}} run python scripts/odoo_fresh.py {{args}}
+
+# Assert the local Odoo holds only our dataset (no Odoo demo partners or products)
+odoo-check:
+    {{UV}} run python scripts/odoo_check_clean.py
 
 # Install one Odoo module into the existing database
 odoo-install module="sc_agents":
@@ -227,6 +235,14 @@ odoo-shell:
 odoo-reset:
     {{COMPOSE}} rm -sfv odoo odoo-db
     docker volume rm scai_odoo-db-data scai_odoo-web-data
+
+# Delete the application database (cases, approvals, planning, users) and flush Redis, then migrate again (destructive)
+db-reset:
+    {{COMPOSE}} rm -sfv app-db
+    docker volume rm scai_app-db-data
+    {{COMPOSE}} up -d app-db redis
+    {{COMPOSE}} exec -T redis redis-cli FLUSHALL
+    {{UV}} run python -m sc_core.infra.migrate
 
 # --------------------------------------------------------------------
 # Mail (Microsoft Graph)

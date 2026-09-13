@@ -14,11 +14,11 @@
    "response": {
     "jsonrpc": "2.0",
     "id": 1,
-    "result": 8
+    "result": 6
    }
   },
   {
-   "key": "c99e9909143f210ae0940d10",
+   "key": "f27d1ba1e888ffabbb3a6375",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -31,9 +31,9 @@
      [
       [
        [
-        "name",
+        "sc_external_ref",
         "=",
-        "P00015"
+        "seed-open-20260912-2"
        ]
       ]
      ],
@@ -76,20 +76,20 @@
     "id": 2,
     "result": [
      {
-      "id": 15,
-      "name": "P00015",
+      "id": 74,
+      "name": "P00074",
       "state": "purchase",
       "partner_id": [
-       12,
-       "Ready Mat"
+       8,
+       "Proveedor Hidraulica"
       ],
       "partner_ref": false,
-      "origin": false,
-      "date_order": "2026-09-14 14:13:23",
-      "date_approve": "2026-09-12 14:13:23",
-      "date_planned": "2026-09-14 14:13:23",
-      "amount_untaxed": 6936.0,
-      "amount_total": 6936.0,
+      "origin": "SEED/2026-08",
+      "date_order": "2026-08-26 11:00:00",
+      "date_approve": "2026-08-26 11:00:00",
+      "date_planned": "2026-09-25 12:00:00",
+      "amount_untaxed": 4685.56,
+      "amount_total": 5388.39,
       "currency_id": [
        1,
        "USD"
@@ -100,32 +100,30 @@
       ],
       "user_id": [
        2,
-       "Mitchell Admin"
+       "Administrator"
       ],
       "receipt_status": "pending",
       "invoice_status": "no",
       "order_line": [
-       26,
-       27
+       790,
+       791,
+       792
       ],
       "picking_ids": [
-       13
+       6897
       ],
-      "sc_external_ref": false,
+      "sc_external_ref": "seed-open-20260912-2",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": true,
+      "sc_needs_human": false,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": [
-       12,
-       "sc.approval,12"
-      ]
+      "sc_pending_approval_id": false
      }
     ]
    }
   },
   {
-   "key": "b2f00749490f6b6742d32e2a",
+   "key": "468a7d82e372861ad21ee562",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -140,7 +138,7 @@
        [
         "purchase_id",
         "=",
-        15
+        74
        ],
        [
         "picking_type_code",
@@ -178,25 +176,26 @@
     "id": 3,
     "result": [
      {
-      "id": 13,
-      "name": "WH/IN/00006",
+      "id": 6897,
+      "name": "WH/IN/00082",
       "state": "assigned",
       "partner_id": [
-       12,
-       "Ready Mat"
+       8,
+       "Proveedor Hidraulica"
       ],
-      "origin": "P00015",
+      "origin": "P00074",
       "purchase_id": [
-       15,
-       "P00015"
+       74,
+       "P00074"
       ],
       "picking_type_code": "incoming",
-      "scheduled_date": "2026-09-12 14:13:23",
-      "date_deadline": "2026-09-12 14:13:23",
+      "scheduled_date": "2026-09-25 12:00:00",
+      "date_deadline": "2026-09-25 12:00:00",
       "date_done": false,
       "move_ids": [
-       30,
-       31
+       7704,
+       7705,
+       7706
       ],
       "sc_eta_source": false,
       "sc_needs_human": false,
@@ -206,7 +205,7 @@
    }
   },
   {
-   "key": "9ef66bbbd7e6dbe975ea9318",
+   "key": "ebb8f6e5fe71321f72c150d5",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -221,7 +220,7 @@
        [
         "picking_id",
         "=",
-        13
+        6897
        ]
       ]
      ],
@@ -247,42 +246,61 @@
     "id": 4,
     "result": [
      {
-      "id": 30,
+      "id": 7704,
       "product_id": [
-       32,
-       "[FURN_6667] Acoustic Bloc Screens (White)"
+       1,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+      ],
+      "product_uom_qty": 28.0,
+      "quantity": 28.0,
+      "state": "assigned",
+      "picking_id": [
+       6897,
+       "WH/IN/00082"
+      ],
+      "purchase_line_id": [
+       790,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
+      ],
+      "date": "2026-09-25 12:00:00"
+     },
+     {
+      "id": 7705,
+      "product_id": [
+       4,
+       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A"
       ],
       "product_uom_qty": 20.0,
       "quantity": 20.0,
       "state": "assigned",
       "picking_id": [
-       13,
-       "WH/IN/00006"
+       6897,
+       "WH/IN/00082"
       ],
       "purchase_line_id": [
-       26,
-       "[FURN_6667] Acoustic Bloc Screens (White)"
+       791,
+       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
       ],
-      "date": "2026-09-12 14:13:23"
+      "date": "2026-09-25 12:00:00"
      },
      {
-      "id": 31,
+      "id": 7706,
       "product_id": [
-       28,
-       "[FURN_9001] Flipover"
+       23,
+       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A"
       ],
-      "product_uom_qty": 10.0,
-      "quantity": 10.0,
+      "product_uom_qty": 56.0,
+      "quantity": 56.0,
       "state": "assigned",
       "picking_id": [
-       13,
-       "WH/IN/00006"
+       6897,
+       "WH/IN/00082"
       ],
       "purchase_line_id": [
-       27,
-       "[FURN_9001] Flipover"
+       792,
+       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
       ],
-      "date": "2026-09-12 14:13:23"
+      "date": "2026-09-25 12:00:00"
      }
     ]
    }

@@ -18,7 +18,7 @@ describe("notifications", () => {
     vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
       const url = new URL(input instanceof Request ? input.url : String(input));
       if (url.pathname === "/api/approvals/7")
-        return jsonResponse(200, { id: 7, kind: "send_email", status: "pending", summary: "Send reminder to Wood Corner", payload: {}, created_at: "2026-09-14T08:00:00Z" });
+        return jsonResponse(200, { id: 7, kind: "send_email", status: "pending", summary: "Send reminder to Proveedor Hidraulica", payload: {}, created_at: "2026-09-14T08:00:00Z" });
       if (url.pathname === "/api/cases/case_x")
         return jsonResponse(200, { case: { case_id: "case_x", code: "C00007", kind: "eta", po_name: "P00006", status: "escalated", summary: "4 days late", created_at: "2026-09-10T08:00:00Z", updated_at: "2026-09-14T08:00:00Z" }, events: [], runs: [] });
       return jsonResponse(404, {});
@@ -46,7 +46,7 @@ describe("notifications", () => {
     expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(list).toHaveTextContent("Needs a person");
     expect(list).toHaveTextContent("C00007 · P00006 · 4 days late");
-    expect(list).toHaveTextContent("Send reminder to Wood Corner");
+    expect(list).toHaveTextContent("Send reminder to Proveedor Hidraulica");
     expect(screen.getByRole("button", { name: "Notifications" })).toBeInTheDocument(); // read now
 
     act(() => notifications.push({ id: "x", kind: "approval", text: "another", to: { path: "/approvals" } }));

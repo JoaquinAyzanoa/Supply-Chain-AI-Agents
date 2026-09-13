@@ -12,7 +12,7 @@ PO_ROW: dict[str, Any] = {
     "id": 15,
     "name": "P00015",
     "state": "purchase",
-    "partner_id": [12, "Ready Mat"],
+    "partner_id": [12, "Proveedor Hidraulica"],
     "date_order": "2026-09-10 20:21:42",
     "date_planned": "2026-09-08 20:21:42",
     "date_approve": "2026-09-08 20:21:42",
@@ -52,7 +52,7 @@ LINE_ROW: dict[str, Any] = {
 
 SUPPLIERINFO_ROW: dict[str, Any] = {
     "id": 18,
-    "partner_id": [11, "Gemini Furniture"],
+    "partner_id": [11, "Importadora del Sur SAC"],
     "product_tmpl_id": [5, "[FURN_7777] Office Chair"],
     "product_id": False,
     "product_name": False,
@@ -87,7 +87,7 @@ PICKING_ROW: dict[str, Any] = {
     "id": 13,
     "name": "WH/IN/00006",
     "state": "assigned",
-    "partner_id": [12, "Ready Mat"],
+    "partner_id": [12, "Proveedor Hidraulica"],
     "scheduled_date": "2026-09-08 20:21:42",
     "date_deadline": "2026-09-08 20:21:42",
     "date_done": False,
@@ -102,13 +102,13 @@ PICKING_ROW: dict[str, Any] = {
 
 PARTNER_ROW: dict[str, Any] = {
     "id": 15,
-    "name": "Azure Interior",
+    "name": "Hidraulica Alterna SAC",
     "email": "azure.Interior24@example.com",
     "email_normalized": "azure.interior24@example.com",
     "is_company": True,
     "supplier_rank": 1,
     "parent_id": False,
-    "commercial_partner_id": [15, "Azure Interior"],
+    "commercial_partner_id": [15, "Hidraulica Alterna SAC"],
     "child_ids": [27, 34, 28],
     "lang": "en_US",
     "active": True,

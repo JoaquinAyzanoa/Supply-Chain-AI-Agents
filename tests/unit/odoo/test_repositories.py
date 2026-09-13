@@ -134,7 +134,7 @@ async def test_supplierinfo_for_product_searches_template_and_variant(
         rpc_ok([samples.SUPPLIERINFO_ROW]),
     ]
     rows = await SupplierInfoRepo(client_factory()).for_product(32)
-    assert rows[0].partner_id.name == "Gemini Furniture"
+    assert rows[0].partner_id.name == "Importadora del Sur SAC"
     _, _, args, _ = odoo.execute_kw_args(1)
     assert args[0] == [
         ["product_tmpl_id", "=", 5],
