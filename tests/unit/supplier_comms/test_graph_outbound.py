@@ -91,6 +91,7 @@ async def test_send_rfq_pauses_on_approval_then_sends(
     }
     assert "Open in Outlook" in ports.notes[-1][1]
     assert sent.outbound is not None and sent.outbound.sent_message_id == "sent1"
+    assert ports.rfqs_marked_sent == [7]  # Odoo shows the RFQ as sent
     assert len(approval_ports.created) == 1  # no second approval on resume
 
 

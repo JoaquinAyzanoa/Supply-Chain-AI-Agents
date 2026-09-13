@@ -167,6 +167,8 @@ def make_send(
                 link=link,
             ),
         )
+        if outbound.get("kind") == "rfq":
+            await ports.mark_rfq_sent(ctx.id)  # the board moves it to Quotation requested
         logger.bind(po_name=ctx.name, kind=task.kind, message_id=ids.id).info("email sent")
         return finish(
             "sent",

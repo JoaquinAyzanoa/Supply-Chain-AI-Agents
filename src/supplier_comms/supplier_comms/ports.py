@@ -81,6 +81,8 @@ class AgentPorts(Protocol):
     # --- writes to Odoo (after approval only) -------------------------------------
     async def post_note(self, po_id: int, html: str) -> None: ...
 
+    async def mark_rfq_sent(self, po_id: int) -> None: ...
+
     async def supplier_profile(self, partner_id: int) -> SupplierProfile | None: ...
 
     # --- a new supplier (phase 11, after a partner_create approval) ---------------
@@ -315,6 +317,9 @@ class LivePorts:
         )
 
     # --- writes to Odoo -----------------------------------------------------------
+
+    async def mark_rfq_sent(self, po_id: int) -> None:
+        await self._pos.mark_rfq_sent(po_id)
 
     async def post_note(self, po_id: int, html: str) -> None:
         await self._pos.post_note(po_id, html)

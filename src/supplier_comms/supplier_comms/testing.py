@@ -78,6 +78,7 @@ class FakePorts:
     attachments: dict[str, list[str]] = field(default_factory=dict)
     date_changes: list[dict[str, Any]] = field(default_factory=list)
     splits: list[dict[str, Any]] = field(default_factory=list)
+    rfqs_marked_sent: list[int] = field(default_factory=list)
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
     eta_meta: list[dict[str, Any]] = field(default_factory=list)
     profiles: dict[int, SupplierProfile] = field(default_factory=dict)
@@ -175,6 +176,9 @@ class FakePorts:
         self.links.append(
             {"po_id": po_id, "graph_message_id": ids.id, "direction": "out", "case_id": case_id}
         )
+
+    async def mark_rfq_sent(self, po_id: int) -> None:
+        self.rfqs_marked_sent.append(po_id)
 
     async def post_note(self, po_id: int, html: str) -> None:
         self.notes.append((po_id, html))

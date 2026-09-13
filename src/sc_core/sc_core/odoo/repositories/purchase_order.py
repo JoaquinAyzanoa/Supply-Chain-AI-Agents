@@ -166,6 +166,12 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         """Lock a received order (``button_done`` through the addon)."""
         await self._c.call(self._name, "sc_mark_done", [po_id])
 
+    async def mark_rfq_sent(self, po_id: int) -> None:
+        """A draft RFQ whose email left: state ``sent``, as Odoo's own send button does."""
+        po = await self.get(po_id)
+        if po.state == "draft":
+            await self._write([po_id], {"state": "sent"})
+
     async def set_supplier_confirmed(self, po_id: int, value: bool) -> None:
         await self._c.call(self._name, "sc_set_supplier_confirmed", [po_id], value=value)
 
