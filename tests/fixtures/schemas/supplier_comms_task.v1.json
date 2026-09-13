@@ -62,7 +62,9 @@
         "follow_up",
         "send_po",
         "handle_inbound",
-        "resolve_unlinked"
+        "resolve_unlinked",
+        "decline_quote",
+        "counter_offer"
       ],
       "title": "Kind",
       "type": "string"
@@ -92,6 +94,19 @@
       "default": null,
       "description": "Odoo order name, e.g. P00015",
       "title": "Po Name"
+    },
+    "pre_approved": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the content was approved upstream (an award, a counter-offer): send without a second approval; the text says which approval",
+      "title": "Pre Approved"
     },
     "require_approval": {
       "default": false,

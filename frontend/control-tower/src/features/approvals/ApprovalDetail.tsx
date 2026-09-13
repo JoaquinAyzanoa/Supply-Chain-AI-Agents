@@ -19,6 +19,7 @@ import { ChangesCard, EmailCard, EscalationCard, PlanCard, type EmailEdits } fro
 import { AutonomyChangeCard } from "./AutonomyChangeCard";
 import { BillCard } from "./BillCard";
 import { ScoreCard } from "./ScoreCard";
+import { AwardCard, OfferCard, PartnerCard } from "./SourcingCards";
 import {
   billPayload,
   changePayload,
@@ -30,6 +31,9 @@ import {
   type Approval,
   type ProposedChange,
   autonomyChangePayload,
+  awardPayload,
+  offerPayload,
+  partnerPayload,
 } from "./types";
 
 export function ApprovalDetail({ approval, onBack, withChat = true }: { approval: Approval; onBack: () => void; withChat?: boolean }) {
@@ -51,6 +55,12 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
   const bill = useMemo(() => (kind === "vendor_bill" ? billPayload.parse(approval.payload) : null), [kind, approval]);
   const scores = useMemo(() => (kind === "supplier_score" ? scoresPayload.parse(approval.payload) : null), [kind, approval]);
   const autonomy = useMemo(() => (kind === "autonomy_change" ? autonomyChangePayload.parse(approval.payload) : null), [kind, approval]);
+  const award = useMemo(() => (kind === "award" ? awardPayload.parse(approval.payload) : null), [kind, approval]);
+  const offer = useMemo(() => (kind === "negotiation_offer" ? offerPayload.parse(approval.payload) : null), [kind, approval]);
+  const partner = useMemo(() => (kind === "partner_create" ? partnerPayload.parse(approval.payload) : null), [kind, approval]);
+  const [chosenPartner, setChosenPartner] = useState<number | null>(null);
+  const [offeredPrice, setOfferedPrice] = useState("");
+  const [partnerName, setPartnerName] = useState("");
   const [editing, setEditing] = useState(false);
   const [emailEdits, setEmailEdits] = useState<EmailEdits>({ subject: "", html_body: "" });
   const [accepted, setAccepted] = useState<Set<number>>(new Set());
@@ -65,7 +75,10 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
     setError(null);
     setEmailEdits({ subject: email?.subject ?? "", html_body: email?.html_body ?? "" });
     setAccepted(new Set((changes?.changes ?? []).filter((c) => !c.needs_review).map((c) => c.po_line_id)));
-  }, [approval.id, email, changes]);
+    setChosenPartner(award?.recommended_partner_id ?? award?.comparison.recommended_partner_id ?? null);
+    setOfferedPrice(offer ? String(offer.offered_price) : "");
+    setPartnerName(partner?.suggested_name ?? "");
+  }, [approval.id, email, changes, award, offer, partner]);
 
   const editedPayload = (): Record<string, unknown> | undefined => {
     if (email) {
@@ -76,6 +89,9 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
     }
     if (changes) return { accepted_line_ids: [...accepted] };
     if (plan) return { accepted_line_ids: plan.lines.map((line) => line.line_id) };
+    if (award && chosenPartner !== null) return { partner_id: chosenPartner };
+    if (offer) return { offered_price: Number(offeredPrice) };
+    if (partner && partnerName.trim()) return { name: partnerName.trim() };
     return undefined;
   };
 
@@ -134,6 +150,9 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
         {bill ? <BillCard payload={bill} /> : null}
         {scores ? <ScoreCard payload={scores} /> : null}
         {autonomy ? <AutonomyChangeCard payload={autonomy} /> : null}
+        {award ? <AwardCard payload={award} chosen={chosenPartner} onChoose={setChosenPartner} canAct={canAct} /> : null}
+        {offer ? <OfferCard payload={offer} offered={offeredPrice} onOffered={setOfferedPrice} canAct={canAct} /> : null}
+        {partner ? <PartnerCard payload={partner} name={partnerName} onName={setPartnerName} canAct={canAct} /> : null}
         {kind === "other" ? (
           <pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">{JSON.stringify(approval.payload, null, 2)}</pre>
         ) : null}
@@ -149,9 +168,25 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
 
       {canAct ? (
         <div className="flex flex-wrap items-center gap-2 border-t bg-card p-3">
-          <Button onClick={() => submit("approved")} disabled={resolve.isPending || (changes !== null && acceptedCount === 0)}>
+          <Button
+            onClick={() => submit("approved")}
+            disabled={
+              resolve.isPending ||
+              (changes !== null && acceptedCount === 0) ||
+              (award !== null && chosenPartner === null) ||
+              (offer !== null && !(Number(offeredPrice) >= offer.floor_price && Number(offeredPrice) < offer.current_price))
+            }
+          >
             <Check className="h-4 w-4" />
-            {changes ? t("approvals.approve_lines", { n: acceptedCount }) : editing ? t("approvals.approve_edited") : t("approvals.approve")}
+            {changes
+              ? t("approvals.approve_lines", { n: acceptedCount })
+              : award
+                ? t("approvals.award.approve")
+                : offer
+                  ? t("approvals.offer.approve")
+                  : editing
+                    ? t("approvals.approve_edited")
+                    : t("approvals.approve")}
           </Button>
           {email ? (
             <Button variant="outline" onClick={() => setEditing((on) => !on)} disabled={resolve.isPending}>

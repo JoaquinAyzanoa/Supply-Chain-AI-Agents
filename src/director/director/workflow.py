@@ -47,6 +47,7 @@ from sc_core.schema.a2a import (
     LogisticsResult,
     LogisticsTask,
     OutcomeStatus,
+    SourcingResult,
     SupplierCommsResult,
     SupplierCommsTask,
     SupplierPerformanceResult,
@@ -359,6 +360,7 @@ AgentResult = (
     | LogisticsResult
     | InvoiceMatchResult
     | SupplierPerformanceResult
+    | SourcingResult
 )
 _ALL_RESULTS: tuple[type[AgentResult], ...] = (
     SupplierCommsResult,
@@ -366,6 +368,7 @@ _ALL_RESULTS: tuple[type[AgentResult], ...] = (
     LogisticsResult,
     InvoiceMatchResult,
     SupplierPerformanceResult,
+    SourcingResult,
 )
 _FIRST_CONTRACT: dict[str, type[AgentResult]] = {
     "supplier_comms": SupplierCommsResult,
@@ -373,6 +376,7 @@ _FIRST_CONTRACT: dict[str, type[AgentResult]] = {
     "logistics": LogisticsResult,
     "invoice_match": InvoiceMatchResult,
     "supplier_performance": SupplierPerformanceResult,
+    "sourcing": SourcingResult,
 }
 _CONTRACTS: dict[str, tuple[type[AgentResult], ...]] = {
     name: (first, *[c for c in _ALL_RESULTS if c is not first])

@@ -108,3 +108,27 @@ async def test_partner_email_lookups(cassette: Cassette) -> None:
     assert any(p.id == hidraulica.id for p in same_domain)
     assert hidraulica.email_normalized in await repo.emails_of(hidraulica.id)
     assert await repo.find_by_email("nobody@nowhere.invalid") is None
+
+
+async def test_sourcing_reads_the_valve_price_list_and_the_suppliers_emails(
+    cassette: Cassette,
+) -> None:
+    """What a quote round on the demo valve starts from: three listed suppliers, one email."""
+    client = cassette("sourcing_round")
+    partners = PartnerRepo(client)
+    hidraulica = await partners.find_by_email(HIDRAULICA_EMAIL)
+    assert hidraulica is not None
+    company = await partners.commercial_partner(hidraulica)
+    assert company.name == HIDRAULICA and await partners.emails_of(company.id) == [HIDRAULICA_EMAIL]
+
+    [valve] = await client.search_read(
+        "product.product", [["default_code", "=", "CBEA-LHN"]], ["id"], limit=1
+    )
+    entries = await SupplierInfoRepo(client).for_product(int(valve["id"]))
+    by_partner = {e.partner_id.name: e for e in entries}
+    assert set(by_partner) == {HIDRAULICA, "Hidráulica Alterna SAC", "Importadora del Sur SAC"}
+    assert by_partner[HIDRAULICA].price == 104.16 and by_partner[HIDRAULICA].delay == 30
+    assert by_partner["Importadora del Sur SAC"].min_qty == 20.0
+    # the other two have no address in Odoo: a round marks their RFQs "no email"
+    for name in ("Hidráulica Alterna SAC", "Importadora del Sur SAC"):
+        assert await partners.emails_of(by_partner[name].partner_id.id) == []

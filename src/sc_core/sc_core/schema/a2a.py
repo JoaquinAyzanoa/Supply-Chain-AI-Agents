@@ -23,7 +23,14 @@ from sc_core.schema.planning import ReplenishmentProposal
 # --- tasks ------------------------------------------------------------------------
 
 TaskKind = Literal[
-    "send_rfq", "request_eta", "follow_up", "send_po", "handle_inbound", "resolve_unlinked"
+    "send_rfq",
+    "request_eta",
+    "follow_up",
+    "send_po",
+    "handle_inbound",
+    "resolve_unlinked",
+    "decline_quote",  # phase 11: the round went elsewhere
+    "counter_offer",  # phase 11: the sourcing agent negotiates through this agent
 ]
 
 
@@ -51,6 +58,11 @@ class SupplierCommsTask(StrictModel):
         description="a person asked for this email from the Control Tower: show the draft "
         "for approval before sending, whatever the automatic-send rules say",
     )
+    pre_approved: str | None = Field(
+        default=None,
+        description="the content was approved upstream (an award, a counter-offer): send "
+        "without a second approval; the text says which approval",
+    )
 
     @model_validator(mode="after")
     def _required_by_kind(self) -> SupplierCommsTask:
@@ -60,6 +72,8 @@ class SupplierCommsTask(StrictModel):
             "follow_up",
             "send_po",
             "handle_inbound",
+            "decline_quote",
+            "counter_offer",
         )
         needs_message = self.kind in ("handle_inbound", "resolve_unlinked")
         if needs_po and not self.po_name:
@@ -135,7 +149,9 @@ class ChangeProposal(StrictModel):
         return [c for c in self.changes if not c.needs_review]
 
 
-DraftKind = Literal["rfq", "request_eta", "follow_up", "send_po", "reply", "discrepancy"]
+DraftKind = Literal[
+    "rfq", "request_eta", "follow_up", "send_po", "reply", "discrepancy", "decline", "counter_offer"
+]
 
 
 class OutboundDraft(StrictModel):
@@ -545,7 +561,150 @@ class SupplierRanking(StrictModel):
     suppliers: list[RankedSupplier] = Field(default_factory=list)
 
 
+# --- sourcing and negotiation (phase 11) -------------------------------------------
+
+SourcingTaskKind = Literal["quote_round", "compare_quotes", "counter_offer", "alternate_source"]
+
+
+class SourcingTask(StrictModel):
+    """What the director asks the sourcing agent to do.
+
+    A round is described either by ``product_id`` + ``qty`` or by ``po_name``
+    (the lines of an existing order or RFQ, its partner being the incumbent).
+    """
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: SourcingTaskKind
+    case_id: str = Field(min_length=1)
+    po_name: str | None = Field(default=None, description="the order the task is about")
+    partner_id: int | None = Field(default=None, description="the incumbent supplier, if any")
+    product_id: int | None = None
+    qty: float | None = Field(default=None, gt=0)
+    partner_ids: list[int] = Field(default_factory=list, description="invite these as well")
+    exclude_partner_ids: list[int] = Field(default_factory=list)
+    round_id: int | None = Field(default=None, description="compare_quotes: the round")
+    target_price: float | None = Field(
+        default=None, gt=0, description="counter_offer: a buyer's target"
+    )
+    max_suppliers: int | None = Field(default=None, ge=1, le=10)
+    deadline_days: int | None = Field(default=None, ge=1, le=60)
+    notes: str | None = Field(default=None, max_length=2000)
+    reason: str | None = Field(default=None, max_length=500, description="why the task was raised")
+
+    @model_validator(mode="after")
+    def _required_by_kind(self) -> SourcingTask:
+        if self.kind == "quote_round" and not (self.po_name or (self.product_id and self.qty)):
+            raise ValueError("quote_round needs po_name or product_id and qty")
+        if self.kind == "compare_quotes" and not (self.round_id or self.po_name):
+            raise ValueError("compare_quotes needs round_id or po_name")
+        if self.kind in ("counter_offer", "alternate_source") and not self.po_name:
+            raise ValueError(f"{self.kind} needs po_name")
+        return self
+
+
+class QuoteLine(StrictModel):
+    """One product as one supplier quoted it (or lists it), with its landed cost."""
+
+    product_id: int
+    product: str
+    qty: float = Field(gt=0)
+    price_unit: float | None = Field(default=None, ge=0)
+    landed_unit: float | None = Field(default=None, ge=0)
+    lead_days: int | None = Field(default=None, ge=0)
+    min_qty: float = 0.0
+
+
+QuoteSource = Literal["reply", "price_list", "none"]
+
+
+class ComparedQuote(StrictModel):
+    """A supplier's offer over the round's basket, ranked against the others."""
+
+    partner_id: int
+    partner_name: str
+    po_name: str | None = Field(default=None, description="the RFQ sent to this supplier")
+    source: QuoteSource = "none"
+    currency: str | None = None
+    lines: list[QuoteLine] = Field(default_factory=list)
+    total: float | None = Field(default=None, ge=0, description="landed total over the basket")
+    lead_days: int | None = Field(default=None, ge=0, description="longest line lead time")
+    score: float | None = Field(default=None, ge=0, le=100)
+    complete: bool = True
+    rank: int = 0
+    composite: float | None = None
+    reasons: list[str] = Field(default_factory=list)
+    recommended: bool = False
+    first_time_supplier: bool = False
+
+
+class QuoteComparison(StrictModel):
+    round_id: int
+    source_po_name: str | None = None
+    basket: list[QuoteLine] = Field(default_factory=list, description="what was asked, per product")
+    quotes: list[ComparedQuote] = Field(default_factory=list)
+    recommended_partner_id: int | None = None
+    recommendation: str = ""
+    freight_pct: float = 0.0
+    weights: dict[str, float] = Field(default_factory=dict)
+    last_paid: dict[str, float] = Field(default_factory=dict, description="per product id")
+    invited: int = 0
+    replied: int = 0
+
+
+class CounterOffer(StrictModel):
+    """A negotiation move on one quoted line: what we ask, why, and the limits."""
+
+    po_name: str
+    partner_id: int
+    partner_name: str
+    product_id: int
+    product: str
+    qty: float = Field(gt=0)
+    currency: str | None = None
+    current_price: float = Field(gt=0)
+    target_price: float = Field(gt=0)
+    floor_price: float = Field(gt=0, description="never ask below this (cap on the move)")
+    offered_price: float = Field(gt=0)
+    cap_pct: float = Field(ge=0)
+    round_no: int = Field(ge=1)
+    max_rounds: int = Field(ge=1)
+    basis: str = Field(default="", description="where the target comes from")
+    justification: str = ""
+
+
+class InvitedRfq(StrictModel):
+    partner_id: int
+    partner_name: str
+    po_name: str | None = None
+    status: str = "created"  # created | sent | awaiting_approval | no_email | failed
+
+
+class SourcingResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: SourcingTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    round_id: int | None = None
+    invited: list[InvitedRfq] = Field(default_factory=list)
+    comparison: QuoteComparison | None = None
+    counter_offer: CounterOffer | None = None
+    awarded_po_name: str | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
 CONTRACTS: dict[str, type[StrictModel]] = {
+    "sourcing_task": SourcingTask,
+    "sourcing_result": SourcingResult,
+    "quote_comparison": QuoteComparison,
     "supplier_performance_task": SupplierPerformanceTask,
     "supplier_performance_result": SupplierPerformanceResult,
     "invoice_match_task": InvoiceMatchTask,

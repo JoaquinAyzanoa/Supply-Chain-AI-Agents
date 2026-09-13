@@ -1267,7 +1267,8 @@
               "unlinked",
               "receipt",
               "planning",
-              "invoice"
+              "invoice",
+              "sourcing"
             ],
             "title": "Kind",
             "type": "string"
@@ -1594,6 +1595,57 @@
           "routes"
         ],
         "title": "DiscoveryResponse",
+        "type": "object"
+      },
+      "DispatchResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "case_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Code"
+          },
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "thread_id": {
+            "title": "Thread Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "thread_id",
+          "status",
+          "summary"
+        ],
+        "title": "DispatchResponse",
         "type": "object"
       },
       "ExceptionItem": {
@@ -2318,6 +2370,44 @@
           "message"
         ],
         "title": "MoveResponse",
+        "type": "object"
+      },
+      "NegotiateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "po_name": {
+            "minLength": 1,
+            "title": "Po Name",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "target_price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Price"
+          }
+        },
+        "required": [
+          "po_name"
+        ],
+        "title": "NegotiateRequest",
         "type": "object"
       },
       "OrderDetail": {
@@ -4221,7 +4311,9 @@
                 "send_po",
                 "follow_up",
                 "request_eta",
-                "reply"
+                "reply",
+                "decline",
+                "counter_offer"
               ],
               "type": "string"
             },
@@ -4273,6 +4365,20 @@
             "description": "agent name -> model name from the registry",
             "title": "Model By Agent",
             "type": "object"
+          },
+          "negotiation_cap_pct": {
+            "default": 10.0,
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Negotiation Cap Pct",
+            "type": "number"
+          },
+          "negotiation_max_rounds": {
+            "default": 2,
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Negotiation Max Rounds",
+            "type": "integer"
           },
           "planning_max_coverage_days": {
             "anyOf": [
@@ -4338,6 +4444,27 @@
             },
             "title": "Rfq No Reply Days",
             "type": "array"
+          },
+          "sourcing_deadline_days": {
+            "default": 5,
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Sourcing Deadline Days",
+            "type": "integer"
+          },
+          "sourcing_freight_pct": {
+            "default": 5.0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Sourcing Freight Pct",
+            "type": "number"
+          },
+          "sourcing_top_n": {
+            "default": 3,
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Sourcing Top N",
+            "type": "integer"
           }
         },
         "title": "RuntimeSettings",
@@ -4517,6 +4644,94 @@
           "po_name"
         ],
         "title": "StartRequest",
+        "type": "object"
+      },
+      "StartRoundRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "deadline_days": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline Days"
+          },
+          "max_suppliers": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Suppliers"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "partner_ids": {
+            "description": "invite these as well",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Partner Ids",
+            "type": "array"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "requote this order's lines",
+            "title": "Po Name"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "qty": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qty"
+          }
+        },
+        "title": "StartRoundRequest",
         "type": "object"
       },
       "StepRecord": {
@@ -5951,7 +6166,8 @@
                     "unlinked",
                     "receipt",
                     "planning",
-                    "invoice"
+                    "invoice",
+                    "sourcing"
                   ],
                   "type": "string"
                 },
@@ -7621,6 +7837,322 @@
         "summary": "List Models",
         "tags": [
           "settings"
+        ]
+      }
+    },
+    "/api/sourcing/negotiate": {
+      "post": {
+        "description": "Ask the sourcing agent for a counter-offer on a quoted line; a person approves it.",
+        "operationId": "negotiate_api_sourcing_negotiate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NegotiateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Negotiate",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/negotiations": {
+      "get": {
+        "operationId": "negotiations_api_sourcing_negotiations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "po_name",
+            "required": true,
+            "schema": {
+              "title": "Po Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Negotiations Api Sourcing Negotiations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Negotiations",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/rounds": {
+      "get": {
+        "operationId": "rounds_api_sourcing_rounds_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "partner_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Partner Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Rounds Api Sourcing Rounds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Rounds",
+        "tags": [
+          "sourcing"
+        ]
+      },
+      "post": {
+        "description": "Start a quote round by hand; the invitations go through the supplier agent.",
+        "operationId": "start_round_api_sourcing_rounds_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRoundRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Round",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/rounds/{round_id}": {
+      "get": {
+        "operationId": "get_round_api_sourcing_rounds__round_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "round_id",
+            "required": true,
+            "schema": {
+              "title": "Round Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Round Api Sourcing Rounds  Round Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Round",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/rounds/{round_id}/compare": {
+      "post": {
+        "description": "Compare the quotes now instead of waiting for the deadline.",
+        "operationId": "compare_round_api_sourcing_rounds__round_id__compare_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "round_id",
+            "required": true,
+            "schema": {
+              "title": "Round Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Compare Round",
+        "tags": [
+          "sourcing"
         ]
       }
     },

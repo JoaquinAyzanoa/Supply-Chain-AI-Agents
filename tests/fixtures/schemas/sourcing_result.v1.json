@@ -1,0 +1,595 @@
+{
+  "$defs": {
+    "ComparedQuote": {
+      "additionalProperties": false,
+      "description": "A supplier's offer over the round's basket, ranked against the others.",
+      "properties": {
+        "complete": {
+          "default": true,
+          "title": "Complete",
+          "type": "boolean"
+        },
+        "composite": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Composite"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "first_time_supplier": {
+          "default": false,
+          "title": "First Time Supplier",
+          "type": "boolean"
+        },
+        "lead_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "longest line lead time",
+          "title": "Lead Days"
+        },
+        "lines": {
+          "items": {
+            "$ref": "#/$defs/QuoteLine"
+          },
+          "title": "Lines",
+          "type": "array"
+        },
+        "partner_id": {
+          "title": "Partner Id",
+          "type": "integer"
+        },
+        "partner_name": {
+          "title": "Partner Name",
+          "type": "string"
+        },
+        "po_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the RFQ sent to this supplier",
+          "title": "Po Name"
+        },
+        "rank": {
+          "default": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "recommended": {
+          "default": false,
+          "title": "Recommended",
+          "type": "boolean"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "source": {
+          "default": "none",
+          "enum": [
+            "reply",
+            "price_list",
+            "none"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "landed total over the basket",
+          "title": "Total"
+        }
+      },
+      "required": [
+        "partner_id",
+        "partner_name"
+      ],
+      "title": "ComparedQuote",
+      "type": "object"
+    },
+    "CounterOffer": {
+      "additionalProperties": false,
+      "description": "A negotiation move on one quoted line: what we ask, why, and the limits.",
+      "properties": {
+        "basis": {
+          "default": "",
+          "description": "where the target comes from",
+          "title": "Basis",
+          "type": "string"
+        },
+        "cap_pct": {
+          "minimum": 0,
+          "title": "Cap Pct",
+          "type": "number"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "current_price": {
+          "exclusiveMinimum": 0,
+          "title": "Current Price",
+          "type": "number"
+        },
+        "floor_price": {
+          "description": "never ask below this (cap on the move)",
+          "exclusiveMinimum": 0,
+          "title": "Floor Price",
+          "type": "number"
+        },
+        "justification": {
+          "default": "",
+          "title": "Justification",
+          "type": "string"
+        },
+        "max_rounds": {
+          "minimum": 1,
+          "title": "Max Rounds",
+          "type": "integer"
+        },
+        "offered_price": {
+          "exclusiveMinimum": 0,
+          "title": "Offered Price",
+          "type": "number"
+        },
+        "partner_id": {
+          "title": "Partner Id",
+          "type": "integer"
+        },
+        "partner_name": {
+          "title": "Partner Name",
+          "type": "string"
+        },
+        "po_name": {
+          "title": "Po Name",
+          "type": "string"
+        },
+        "product": {
+          "title": "Product",
+          "type": "string"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "integer"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        },
+        "round_no": {
+          "minimum": 1,
+          "title": "Round No",
+          "type": "integer"
+        },
+        "target_price": {
+          "exclusiveMinimum": 0,
+          "title": "Target Price",
+          "type": "number"
+        }
+      },
+      "required": [
+        "po_name",
+        "partner_id",
+        "partner_name",
+        "product_id",
+        "product",
+        "qty",
+        "current_price",
+        "target_price",
+        "floor_price",
+        "offered_price",
+        "cap_pct",
+        "round_no",
+        "max_rounds"
+      ],
+      "title": "CounterOffer",
+      "type": "object"
+    },
+    "InvitedRfq": {
+      "additionalProperties": false,
+      "properties": {
+        "partner_id": {
+          "title": "Partner Id",
+          "type": "integer"
+        },
+        "partner_name": {
+          "title": "Partner Name",
+          "type": "string"
+        },
+        "po_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Po Name"
+        },
+        "status": {
+          "default": "created",
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "partner_id",
+        "partner_name"
+      ],
+      "title": "InvitedRfq",
+      "type": "object"
+    },
+    "Outcome": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Id"
+        },
+        "status": {
+          "enum": [
+            "sent",
+            "applied",
+            "awaiting_approval",
+            "rejected",
+            "no_action",
+            "escalated",
+            "failed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "summary": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "summary"
+      ],
+      "title": "Outcome",
+      "type": "object"
+    },
+    "QuoteComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "basket": {
+          "description": "what was asked, per product",
+          "items": {
+            "$ref": "#/$defs/QuoteLine"
+          },
+          "title": "Basket",
+          "type": "array"
+        },
+        "freight_pct": {
+          "default": 0.0,
+          "title": "Freight Pct",
+          "type": "number"
+        },
+        "invited": {
+          "default": 0,
+          "title": "Invited",
+          "type": "integer"
+        },
+        "last_paid": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "description": "per product id",
+          "title": "Last Paid",
+          "type": "object"
+        },
+        "quotes": {
+          "items": {
+            "$ref": "#/$defs/ComparedQuote"
+          },
+          "title": "Quotes",
+          "type": "array"
+        },
+        "recommendation": {
+          "default": "",
+          "title": "Recommendation",
+          "type": "string"
+        },
+        "recommended_partner_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recommended Partner Id"
+        },
+        "replied": {
+          "default": 0,
+          "title": "Replied",
+          "type": "integer"
+        },
+        "round_id": {
+          "title": "Round Id",
+          "type": "integer"
+        },
+        "source_po_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Po Name"
+        },
+        "weights": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Weights",
+          "type": "object"
+        }
+      },
+      "required": [
+        "round_id"
+      ],
+      "title": "QuoteComparison",
+      "type": "object"
+    },
+    "QuoteLine": {
+      "additionalProperties": false,
+      "description": "One product as one supplier quoted it (or lists it), with its landed cost.",
+      "properties": {
+        "landed_unit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Landed Unit"
+        },
+        "lead_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lead Days"
+        },
+        "min_qty": {
+          "default": 0.0,
+          "title": "Min Qty",
+          "type": "number"
+        },
+        "price_unit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price Unit"
+        },
+        "product": {
+          "title": "Product",
+          "type": "string"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "integer"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        }
+      },
+      "required": [
+        "product_id",
+        "product",
+        "qty"
+      ],
+      "title": "QuoteLine",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "awarded_po_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Awarded Po Name"
+    },
+    "case_id": {
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "comparison": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/QuoteComparison"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "counter_offer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CounterOffer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "invited": {
+      "items": {
+        "$ref": "#/$defs/InvitedRfq"
+      },
+      "title": "Invited",
+      "type": "array"
+    },
+    "kind": {
+      "enum": [
+        "quote_round",
+        "compare_quotes",
+        "counter_offer",
+        "alternate_source"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "round_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Round Id"
+    },
+    "run_id": {
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "trace_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Trace Id"
+    }
+  },
+  "required": [
+    "kind",
+    "case_id",
+    "run_id",
+    "outcome"
+  ],
+  "title": "SourcingResult",
+  "type": "object"
+}

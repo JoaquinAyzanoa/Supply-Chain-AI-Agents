@@ -1,0 +1,303 @@
+{
+  "$defs": {
+    "ComparedQuote": {
+      "additionalProperties": false,
+      "description": "A supplier's offer over the round's basket, ranked against the others.",
+      "properties": {
+        "complete": {
+          "default": true,
+          "title": "Complete",
+          "type": "boolean"
+        },
+        "composite": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Composite"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "first_time_supplier": {
+          "default": false,
+          "title": "First Time Supplier",
+          "type": "boolean"
+        },
+        "lead_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "longest line lead time",
+          "title": "Lead Days"
+        },
+        "lines": {
+          "items": {
+            "$ref": "#/$defs/QuoteLine"
+          },
+          "title": "Lines",
+          "type": "array"
+        },
+        "partner_id": {
+          "title": "Partner Id",
+          "type": "integer"
+        },
+        "partner_name": {
+          "title": "Partner Name",
+          "type": "string"
+        },
+        "po_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the RFQ sent to this supplier",
+          "title": "Po Name"
+        },
+        "rank": {
+          "default": 0,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "recommended": {
+          "default": false,
+          "title": "Recommended",
+          "type": "boolean"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Score"
+        },
+        "source": {
+          "default": "none",
+          "enum": [
+            "reply",
+            "price_list",
+            "none"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "landed total over the basket",
+          "title": "Total"
+        }
+      },
+      "required": [
+        "partner_id",
+        "partner_name"
+      ],
+      "title": "ComparedQuote",
+      "type": "object"
+    },
+    "QuoteLine": {
+      "additionalProperties": false,
+      "description": "One product as one supplier quoted it (or lists it), with its landed cost.",
+      "properties": {
+        "landed_unit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Landed Unit"
+        },
+        "lead_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lead Days"
+        },
+        "min_qty": {
+          "default": 0.0,
+          "title": "Min Qty",
+          "type": "number"
+        },
+        "price_unit": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Price Unit"
+        },
+        "product": {
+          "title": "Product",
+          "type": "string"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "integer"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        }
+      },
+      "required": [
+        "product_id",
+        "product",
+        "qty"
+      ],
+      "title": "QuoteLine",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "basket": {
+      "description": "what was asked, per product",
+      "items": {
+        "$ref": "#/$defs/QuoteLine"
+      },
+      "title": "Basket",
+      "type": "array"
+    },
+    "freight_pct": {
+      "default": 0.0,
+      "title": "Freight Pct",
+      "type": "number"
+    },
+    "invited": {
+      "default": 0,
+      "title": "Invited",
+      "type": "integer"
+    },
+    "last_paid": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "description": "per product id",
+      "title": "Last Paid",
+      "type": "object"
+    },
+    "quotes": {
+      "items": {
+        "$ref": "#/$defs/ComparedQuote"
+      },
+      "title": "Quotes",
+      "type": "array"
+    },
+    "recommendation": {
+      "default": "",
+      "title": "Recommendation",
+      "type": "string"
+    },
+    "recommended_partner_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Recommended Partner Id"
+    },
+    "replied": {
+      "default": 0,
+      "title": "Replied",
+      "type": "integer"
+    },
+    "round_id": {
+      "title": "Round Id",
+      "type": "integer"
+    },
+    "source_po_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Po Name"
+    },
+    "weights": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Weights",
+      "type": "object"
+    }
+  },
+  "required": [
+    "round_id"
+  ],
+  "title": "QuoteComparison",
+  "type": "object"
+}

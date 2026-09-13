@@ -37,6 +37,8 @@ KIND_TO_DRAFT: dict[str, DraftKind] = {
     "request_eta": "request_eta",
     "follow_up": "follow_up",
     "send_po": "send_po",
+    "decline_quote": "decline",
+    "counter_offer": "counter_offer",
 }
 
 FINAL_INSTRUCTION = (

@@ -29,12 +29,11 @@ Sleep = Callable[[float], Awaitable[None]]
 SEND_STEP = "send_email"
 
 
+KNOWN_KINDS = ("rfq", "request_eta", "follow_up", "send_po", "reply", "decline", "counter_offer")
+
+
 def kind_label(kind: str, language: Language) -> str:
-    key = (
-        f"kind.{kind}"
-        if kind in ("rfq", "request_eta", "follow_up", "send_po", "reply")
-        else "kind.email"
-    )
+    key = f"kind.{kind}" if kind in KNOWN_KINDS else "kind.email"
     return t(key, language)
 
 
@@ -112,6 +111,8 @@ def make_send_approval(
                 email_kind=kind or None,
             ),
             force_approval=task_of(state).require_approval,
+            auto_approve=bool(task_of(state).pre_approved),
+            auto_reason=task_of(state).pre_approved,
         )
 
     return build

@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { Schemas } from "@/api/client";
 
 export type Approval = Schemas["ApprovalView"];
-export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation" | "vendor_bill" | "supplier_score" | "autonomy_change";
+export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation" | "vendor_bill" | "supplier_score" | "autonomy_change" | "award" | "negotiation_offer" | "partner_create";
 
 export const emailPayload = z
   .object({
@@ -190,7 +190,108 @@ export const autonomyChangePayload = z
   .loose();
 export type AutonomyChangePayload = z.infer<typeof autonomyChangePayload>;
 
-const KNOWN: ReadonlySet<string> = new Set(["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score", "autonomy_change"]);
+export const quoteLine = z
+  .object({
+    product_id: z.number(),
+    product: z.string().default(""),
+    qty: z.number().default(1),
+    price_unit: z.number().nullish(),
+    landed_unit: z.number().nullish(),
+    lead_days: z.number().nullish(),
+    min_qty: z.number().default(0),
+  })
+  .loose();
+
+export const comparedQuote = z
+  .object({
+    partner_id: z.number(),
+    partner_name: z.string(),
+    po_name: z.string().nullish(),
+    source: z.string().default("none"),
+    currency: z.string().nullish(),
+    lines: z.array(quoteLine).default([]),
+    total: z.number().nullish(),
+    lead_days: z.number().nullish(),
+    score: z.number().nullish(),
+    complete: z.boolean().default(true),
+    rank: z.number().default(0),
+    reasons: z.array(z.string()).default([]),
+    recommended: z.boolean().default(false),
+    first_time_supplier: z.boolean().default(false),
+  })
+  .loose();
+export type ComparedQuote = z.infer<typeof comparedQuote>;
+
+export const awardPayload = z
+  .object({
+    round_id: z.number().nullish(),
+    mode: z.string().default("round"),
+    source_po_name: z.string().nullish(),
+    recommended_partner_id: z.number().nullish(),
+    comparison: z
+      .object({
+        round_id: z.number().default(0),
+        basket: z.array(quoteLine).default([]),
+        quotes: z.array(comparedQuote).default([]),
+        recommended_partner_id: z.number().nullish(),
+        recommendation: z.string().default(""),
+        freight_pct: z.number().default(0),
+        invited: z.number().default(0),
+        replied: z.number().default(0),
+      })
+      .loose(),
+  })
+  .loose();
+export type AwardPayload = z.infer<typeof awardPayload>;
+
+export const offerPayload = z
+  .object({
+    po_name: z.string(),
+    partner_id: z.number(),
+    partner_name: z.string(),
+    product_id: z.number(),
+    product: z.string(),
+    qty: z.number().default(1),
+    currency: z.string().nullish(),
+    current_price: z.number(),
+    target_price: z.number(),
+    floor_price: z.number(),
+    offered_price: z.number(),
+    cap_pct: z.number().default(0),
+    round_no: z.number().default(1),
+    max_rounds: z.number().default(1),
+    basis: z.string().default(""),
+    justification: z.string().default(""),
+  })
+  .loose();
+export type OfferPayload = z.infer<typeof offerPayload>;
+
+export const partnerPayload = z
+  .object({
+    sender_address: z.string().nullish(),
+    suggested_name: z.string().default(""),
+    web_link: z.string().nullish(),
+    currency: z.string().nullish(),
+    notes: z.string().nullish(),
+    lines: z
+      .array(
+        z
+          .object({
+            product_ref: z.string().nullish(),
+            description: z.string().default(""),
+            qty: z.number().nullish(),
+            unit_price: z.number().nullish(),
+            currency: z.string().nullish(),
+            lead_days: z.number().nullish(),
+          })
+          .loose(),
+      )
+      .default([]),
+  })
+  .loose();
+export type PartnerPayload = z.infer<typeof partnerPayload>;
+
+const KNOWN: ReadonlySet<string> = new Set(["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score", "autonomy_change", "award", "negotiation_offer", "partner_create"]);
 
 export function kindOf(approval: Approval): ApprovalKind | "other" {
   return KNOWN.has(approval.kind) ? (approval.kind as ApprovalKind) : "other";

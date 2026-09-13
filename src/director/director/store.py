@@ -30,7 +30,9 @@ from sc_core.schema.base import StrictModel
 from sc_core.shared.idempotency import new_id
 from sc_core.shared.time import utc_now
 
-CaseKind = Literal["rfq", "eta", "inbound", "unlinked", "receipt", "planning", "invoice"]
+CaseKind = Literal[
+    "rfq", "eta", "inbound", "unlinked", "receipt", "planning", "invoice", "sourcing"
+]
 CaseStatus = Literal["open", "awaiting_approval", "done", "rejected", "failed", "escalated"]
 CaseEventKind = Literal[
     "event_received",

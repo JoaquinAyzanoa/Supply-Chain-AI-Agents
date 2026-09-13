@@ -263,7 +263,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path === "/api/runs") return json(route, 200, []);
     if (path === "/api/runs/scheduler") return json(route, 200, []);
     if (path === "/api/settings" && request.method() === "GET")
-      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], ignored_senders: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null } });
+      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], ignored_senders: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null, sourcing_top_n: 3, sourcing_deadline_days: 5, sourcing_freight_pct: 5, negotiation_cap_pct: 10, negotiation_max_rounds: 2 } });
     if (path === "/api/settings/models") return json(route, 200, []);
     if (path === "/api/autonomy" && request.method() === "GET") return json(route, 200, { version: 0, changed_by: "environment", changed_at: null, policy: { rules: [] }, pending: null });
     if (path === "/api/autonomy/actions") return json(route, 200, []);
@@ -271,6 +271,8 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       return json(route, 200, [{ name: "late_order", title: "Late order", description: "Ask, wait, chase.", trigger: "po_late", active_runs: 0, steps: [{ id: "ask_eta", label: "Ask the supplier for a new delivery date", kind: "agent", when: "not_received", agent: "supplier_comms", task: "request_eta", wait_days: null, until: null, action: null, active_runs: 0 }] }]);
     if (path === "/api/playbooks/runs" && request.method() === "GET") return json(route, 200, []);
     if (path === "/api/playbooks/runs" && request.method() === "POST") return json(route, 403, { detail: "approver role required" });
+    if (path === "/api/sourcing/rounds" && request.method() === "GET") return json(route, 200, []);
+    if (path.startsWith("/api/sourcing/") && request.method() === "POST") return json(route, 403, { detail: "approver role required" });
     if (path === "/api/learning/suggestions") return json(route, 200, []);
     if (path === "/api/learning/stats") return json(route, 200, { days: 90, total: 0, unchanged: 0, edited: 0, rejected: 0, expired: 0, by_kind: [], by_supplier: [] });
     if (path.startsWith("/api/learning/profiles/")) return json(route, 200, { partner_id: 45, language: null, formality: null, greeting: null, sign_off: null, contacts: [], notes: "", facts: {}, updated_at: null, updated_by: null });

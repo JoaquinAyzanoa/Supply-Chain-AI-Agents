@@ -54,7 +54,9 @@
             "follow_up",
             "send_po",
             "reply",
-            "discrepancy"
+            "discrepancy",
+            "decline",
+            "counter_offer"
           ],
           "title": "Kind",
           "type": "string"

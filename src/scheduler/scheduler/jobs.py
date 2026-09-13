@@ -64,6 +64,12 @@ def job_table(settings: Settings) -> list[Job]:
             timeout_seconds=1800,
         ),
         Job(
+            id="sourcing_rounds",
+            cron=s.sourcing_rounds_cron,
+            target=f"{director}/jobs/sourcing-rounds",
+            timeout_seconds=900,
+        ),
+        Job(
             id="calibration",
             cron=s.calibration_cron,
             target=f"{director}/jobs/calibration",

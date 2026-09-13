@@ -36,6 +36,12 @@ from supplier_comms.nodes.common import fail
 from supplier_comms.nodes.draft_outbound import KIND_TO_DRAFT, make_draft_outbound
 from supplier_comms.nodes.extract import make_extract
 from supplier_comms.nodes.load_context import make_load_context
+from supplier_comms.nodes.partner import (
+    PARTNER_STEP,
+    make_create_partner,
+    make_partner_approval,
+    make_partner_rejected,
+)
 from supplier_comms.nodes.propose import make_propose_changes
 from supplier_comms.nodes.resolve import make_resolve_unlinked
 from supplier_comms.nodes.send import (
@@ -49,7 +55,16 @@ from supplier_comms.ports import AgentPorts
 from supplier_comms.state import Node, SupplierCommsState
 from supplier_comms.tools import build_toolbox
 
-TERMINAL = ("send", "rejected", "apply_changes", "change_rejected", "no_action", "unsupported")
+TERMINAL = (
+    "send",
+    "rejected",
+    "apply_changes",
+    "change_rejected",
+    "no_action",
+    "unsupported",
+    "create_partner",
+    "partner_rejected",
+)
 
 
 @dataclass
@@ -109,6 +124,8 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
         ),
     )
     _add(g, "unsupported", _unsupported)
+    _add(g, "create_partner", make_create_partner(deps.ports, language=deps.language))
+    _add(g, "partner_rejected", make_partner_rejected(language=deps.language))
 
     g.add_edge(START, "load_context")
     g.add_conditional_edges(
@@ -122,9 +139,20 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
             "end": END,
         },
     )
-    # A resolved message goes back through load_context with the chosen order.
+    # A resolved message goes back through load_context with the chosen order; an
+    # unknown sender's quotation pauses on the partner_create approval.
     g.add_conditional_edges(
-        "resolve_unlinked", _continue_or_end, {"go": "load_context", "end": END}
+        "resolve_unlinked",
+        _after_resolve,
+        {"go": "load_context", "partner": f"{PARTNER_STEP}.request", "end": END},
+    )
+    deps.approvals.add_approval(
+        g,
+        step=PARTNER_STEP,
+        build=make_partner_approval(language=deps.language),
+        after=None,
+        approved="create_partner",
+        rejected="partner_rejected",
     )
     g.add_conditional_edges("draft_outbound", _continue_or_end, {"go": "create_draft", "end": END})
     deps.approvals.add_approval(
@@ -184,6 +212,12 @@ def _after_classify(state: dict[str, Any]) -> Hashable:
     if kind == "question":
         return "reply"
     return "no_action"
+
+
+def _after_resolve(state: dict[str, Any]) -> Hashable:
+    if state.get("outcome"):
+        return "end"
+    return "partner" if state.get("partner_candidate") else "go"
 
 
 def _continue_or_end(state: dict[str, Any]) -> Hashable:

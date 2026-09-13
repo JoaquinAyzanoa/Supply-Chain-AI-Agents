@@ -795,6 +795,101 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sourcing/negotiate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Negotiate
+         * @description Ask the sourcing agent for a counter-offer on a quoted line; a person approves it.
+         */
+        post: operations["negotiate_api_sourcing_negotiate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sourcing/negotiations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Negotiations */
+        get: operations["negotiations_api_sourcing_negotiations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sourcing/rounds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rounds */
+        get: operations["rounds_api_sourcing_rounds_get"];
+        put?: never;
+        /**
+         * Start Round
+         * @description Start a quote round by hand; the invitations go through the supplier agent.
+         */
+        post: operations["start_round_api_sourcing_rounds_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sourcing/rounds/{round_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Round */
+        get: operations["get_round_api_sourcing_rounds__round_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/sourcing/rounds/{round_id}/compare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compare Round
+         * @description Compare the quotes now instead of waiting for the deadline.
+         */
+        post: operations["compare_round_api_sourcing_rounds__round_id__compare_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/stream": {
         parameters: {
             query?: never;
@@ -1240,7 +1335,7 @@ export interface components {
              * Kind
              * @enum {string}
              */
-            kind: "rfq" | "eta" | "inbound" | "unlinked" | "receipt" | "planning" | "invoice";
+            kind: "rfq" | "eta" | "inbound" | "unlinked" | "receipt" | "planning" | "invoice" | "sourcing";
             /** Next Action At */
             next_action_at?: string | null;
             /** Partner Id */
@@ -1342,6 +1437,21 @@ export interface components {
             service: string;
             /** Version */
             version: string;
+        };
+        /** DispatchResponse */
+        DispatchResponse: {
+            /** Approval Id */
+            approval_id?: number | null;
+            /** Case Code */
+            case_code?: string | null;
+            /** Case Id */
+            case_id: string;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string;
+            /** Thread Id */
+            thread_id: string;
         };
         /** ExceptionItem */
         ExceptionItem: {
@@ -1633,6 +1743,15 @@ export interface components {
             message: string;
             /** Po Name */
             po_name: string;
+        };
+        /** NegotiateRequest */
+        NegotiateRequest: {
+            /** Po Name */
+            po_name: string;
+            /** Product Id */
+            product_id?: number | null;
+            /** Target Price */
+            target_price?: number | null;
         };
         /** OrderDetail */
         OrderDetail: {
@@ -2306,7 +2425,7 @@ export interface components {
              * Auto Send Kinds
              * @default []
              */
-            auto_send_kinds: ("rfq" | "send_po" | "follow_up" | "request_eta" | "reply")[];
+            auto_send_kinds: ("rfq" | "send_po" | "follow_up" | "request_eta" | "reply" | "decline" | "counter_offer")[];
             /**
              * Auto Send Partner Ids
              * @default []
@@ -2332,6 +2451,16 @@ export interface components {
             model_by_agent?: {
                 [key: string]: string;
             };
+            /**
+             * Negotiation Cap Pct
+             * @default 10
+             */
+            negotiation_cap_pct: number;
+            /**
+             * Negotiation Max Rounds
+             * @default 2
+             */
+            negotiation_max_rounds: number;
             /** Planning Max Coverage Days */
             planning_max_coverage_days?: number | null;
             /** Planning Review Period Days */
@@ -2359,6 +2488,21 @@ export interface components {
              *     ]
              */
             rfq_no_reply_days: number[];
+            /**
+             * Sourcing Deadline Days
+             * @default 5
+             */
+            sourcing_deadline_days: number;
+            /**
+             * Sourcing Freight Pct
+             * @default 5
+             */
+            sourcing_freight_pct: number;
+            /**
+             * Sourcing Top N
+             * @default 3
+             */
+            sourcing_top_n: number;
         };
         /** SchedulerRunView */
         SchedulerRunView: {
@@ -2413,6 +2557,29 @@ export interface components {
             playbook: string;
             /** Po Name */
             po_name: string;
+        };
+        /** StartRoundRequest */
+        StartRoundRequest: {
+            /** Deadline Days */
+            deadline_days?: number | null;
+            /** Max Suppliers */
+            max_suppliers?: number | null;
+            /** Notes */
+            notes?: string | null;
+            /**
+             * Partner Ids
+             * @description invite these as well
+             */
+            partner_ids?: number[];
+            /**
+             * Po Name
+             * @description requote this order's lines
+             */
+            po_name?: string | null;
+            /** Product Id */
+            product_id?: number | null;
+            /** Qty */
+            qty?: number | null;
         };
         /** StepRecord */
         StepRecord: {
@@ -3106,7 +3273,7 @@ export interface operations {
             query?: {
                 status?: ("open" | "awaiting_approval" | "done" | "rejected" | "failed" | "escalated") | null;
                 po?: string | null;
-                kind?: ("rfq" | "eta" | "inbound" | "unlinked" | "receipt" | "planning" | "invoice") | null;
+                kind?: ("rfq" | "eta" | "inbound" | "unlinked" | "receipt" | "planning" | "invoice" | "sourcing") | null;
                 /** @description only cases updated on or after this day */
                 since?: string | null;
                 limit?: number;
@@ -4087,6 +4254,203 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelOption"][];
+                };
+            };
+        };
+    };
+    negotiate_api_sourcing_negotiate_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NegotiateRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    negotiations_api_sourcing_negotiations_get: {
+        parameters: {
+            query: {
+                po_name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rounds_api_sourcing_rounds_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+                partner_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_round_api_sourcing_rounds_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartRoundRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_round_api_sourcing_rounds__round_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                round_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compare_round_api_sourcing_rounds__round_id__compare_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                round_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DispatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

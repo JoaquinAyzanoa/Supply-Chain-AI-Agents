@@ -31,6 +31,7 @@ class SupplierCommsState(BaseAgentState, total=False):
     resolution: dict[str, Any] | None  # resolve_unlinked: the model's pick and reason
     chosen_po_name: str | None
     escalation_approval_id: int | None
+    partner_candidate: dict[str, Any] | None  # an unknown sender who quoted: sender, lines
 
 
 # A graph node: takes the state, returns a partial update.

@@ -43,6 +43,18 @@ SKILLS = [
         tags=["outbound"],
     ),
     Skill(
+        id="decline_quote",
+        name="Decline a quote",
+        description="Thank a supplier whose quote was not chosen and keep the door open",
+        tags=["outbound", "sourcing"],
+    ),
+    Skill(
+        id="counter_offer",
+        name="Counter-offer",
+        description="Ask a supplier for a better price on a quoted line, within the buyer's limits",
+        tags=["outbound", "sourcing"],
+    ),
+    Skill(
         id="handle_inbound",
         name="Handle inbound",
         description="Interpret a supplier reply and propose order changes",

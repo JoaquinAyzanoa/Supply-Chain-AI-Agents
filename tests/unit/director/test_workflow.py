@@ -196,13 +196,13 @@ async def test_unknown_sender_escalates_without_calling_an_agent(
     escalator: MemoryEscalator,
 ) -> None:
     event = ev.InboundMailUnlinked(
-        source="mail_sync", case_id="case_msg3", graph_message_id="AAMk3", sender_address="a@b.c"
+        source="mail_sync", case_id="case_msg3", graph_message_id="AAMk3"
     )
     await orchestrator.handle(event)
     assert agent.sent == []
     [case] = cases.cases.values()
     assert case.kind == "unlinked" and case.status == "escalated" and case.po_name is None
-    assert len(escalator.calls) == 1 and "unknown sender" in escalator.calls[0]["reason"]
+    assert len(escalator.calls) == 1 and "without a sender" in escalator.calls[0]["reason"]
 
 
 async def test_record_only_event_closes_a_fresh_case(

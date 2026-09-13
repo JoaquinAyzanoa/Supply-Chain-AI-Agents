@@ -12,7 +12,7 @@ export type AutoAction = Schemas["AutoActionView"];
 
 export const RULE_KINDS = ["*", "send_email", "po_change", "vendor_bill", "orderpoint_change", "planning_run", "supplier_score", "unlinked_mail"] as const;
 export const LEVELS = ["approve", "auto_notice", "auto"] as const;
-export const EMAIL_KINDS = ["rfq", "send_po", "follow_up", "request_eta", "reply", "discrepancy"] as const;
+export const EMAIL_KINDS = ["rfq", "send_po", "follow_up", "request_eta", "reply", "discrepancy", "decline", "counter_offer"] as const;
 
 export function usePolicy() {
   return useQuery({ queryKey: ["autonomy", "policy"], queryFn: async () => unwrap(await api.GET("/api/autonomy")) });

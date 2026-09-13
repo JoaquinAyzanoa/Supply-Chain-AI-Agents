@@ -199,6 +199,7 @@ class SchedulerCfg(_Section):
     supplier_performance_cron: str = "0 7 * * 1"
     calibration_cron: str = "30 7 * * 1"  # what people decided last week, as suggestions
     playbooks_cron: str = "15 * * * *"  # every hour: due waits and resolved approvals move on
+    sourcing_rounds_cron: str = "45 * * * *"  # every hour: rounds past their deadline are compared
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 
@@ -238,6 +239,16 @@ class InvoiceMatchCfg(_Section):
     max_attachment_chars: int = Field(default=12_000, ge=0)
 
 
+class SourcingCfg(_Section):
+    """The sourcing agent: how a comparison weighs price, lead time and score."""
+
+    public_url: str = "http://localhost:8018"
+    weight_price: float = Field(default=0.6, ge=0)
+    weight_lead_time: float = Field(default=0.2, ge=0)
+    weight_score: float = Field(default=0.2, ge=0)
+    incomplete_penalty: float = Field(default=0.25, ge=0, le=1)  # a partial basket
+
+
 class SupplierPerformanceCfg(_Section):
     """The supplier performance agent: period, weights, limits."""
 
@@ -269,6 +280,7 @@ class A2aCfg(_Section):
     logistics_url: str = "http://localhost:8015"
     invoice_match_url: str = "http://localhost:8016"
     supplier_performance_url: str = "http://localhost:8017"
+    sourcing_url: str = "http://localhost:8018"
 
 
 class DirectorCfg(_Section):
@@ -379,6 +391,7 @@ class Settings(BaseSettings):
     logistics: LogisticsCfg = Field(default_factory=LogisticsCfg)
     invoice_match: InvoiceMatchCfg = Field(default_factory=InvoiceMatchCfg)
     supplier_performance: SupplierPerformanceCfg = Field(default_factory=SupplierPerformanceCfg)
+    sourcing: SourcingCfg = Field(default_factory=SourcingCfg)
 
     @property
     def a2a_token(self) -> str:

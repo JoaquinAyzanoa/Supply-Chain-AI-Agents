@@ -90,7 +90,9 @@
             "follow_up",
             "send_po",
             "reply",
-            "discrepancy"
+            "discrepancy",
+            "decline",
+            "counter_offer"
           ],
           "title": "Kind",
           "type": "string"
@@ -503,7 +505,9 @@
         "follow_up",
         "send_po",
         "handle_inbound",
-        "resolve_unlinked"
+        "resolve_unlinked",
+        "decline_quote",
+        "counter_offer"
       ],
       "title": "Kind",
       "type": "string"

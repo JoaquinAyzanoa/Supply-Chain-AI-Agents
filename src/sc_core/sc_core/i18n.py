@@ -233,6 +233,146 @@ MESSAGES: dict[str, dict[Language, str]] = {
     "kind.send_po": {"en": "purchase order", "es": "orden de compra"},
     "kind.reply": {"en": "reply", "es": "respuesta"},
     "kind.email": {"en": "email", "es": "correo"},
+    "kind.decline": {"en": "decline", "es": "declinación"},
+    "partner.approval_summary": {
+        "en": "New supplier? {sender} quoted {n} line(s) without an order of ours",
+        "es": "¿Proveedor nuevo? {sender} cotizó {n} línea(s) sin una orden nuestra",
+    },
+    "partner.rfq_origin": {"en": "quote from {sender}", "es": "cotización de {sender}"},
+    "partner.rfq_note": {
+        "en": (
+            "<p>RFQ created from the quotation {partner} sent: {n} line(s) at the quoted "
+            "prices.</p>"
+        ),
+        "es": (
+            "<p>RFQ creada desde la cotización que envió {partner}: {n} línea(s) a los "
+            "precios cotizados.</p>"
+        ),
+    },
+    "partner.created_summary": {
+        "en": (
+            "supplier {partner} created; RFQ {po} with {n} quoted line(s); not matched: {unmatched}"
+        ),
+        "es": (
+            "proveedor {partner} creado; RFQ {po} con {n} línea(s) cotizada(s); sin "
+            "coincidencia: {unmatched}"
+        ),
+    },
+    "partner.rejected_summary": {
+        "en": "supplier not created: rejected by {who} ({reason})",
+        "es": "proveedor no creado: rechazado por {who} ({reason})",
+    },
+    "kind.counter_offer": {"en": "counter-offer", "es": "contraoferta"},
+    # --- sourcing ---------------------------------------------------------------------
+    "sourcing.nobody": {
+        "en": "no supplier to invite for {product}: nobody lists it and no partner was named",
+        "es": "ningún proveedor que invitar para {product}: nadie lo lista y no se indicó socio",
+    },
+    "sourcing.round_started": {
+        "en": "quote round #{round_id} started: {n} supplier(s) invited for {products}",
+        "es": (
+            "ronda de cotización #{round_id} iniciada: {n} proveedor(es) invitado(s) para "
+            "{products}"
+        ),
+    },
+    "sourcing.award_summary": {
+        "en": (
+            "Award quote round #{round_id} ({products}): {recommended} recommended, "
+            "{replied} of {invited} replied"
+        ),
+        "es": (
+            "Adjudicar la ronda #{round_id} ({products}): se recomienda {recommended}, "
+            "respondieron {replied} de {invited}"
+        ),
+    },
+    "sourcing.alternate_summary": {
+        "en": (
+            "Alternative source for {po}: {recommended} can supply {products} from the price list"
+        ),
+        "es": (
+            "Fuente alternativa para {po}: {recommended} puede suministrar {products} según "
+            "lista de precios"
+        ),
+    },
+    "sourcing.awarded": {
+        "en": (
+            "round #{round_id} awarded to {partner}: {po} confirmed, {declined} other "
+            "quote(s) declined"
+        ),
+        "es": (
+            "ronda #{round_id} adjudicada a {partner}: {po} confirmada, {declined} otra(s) "
+            "cotización(es) declinada(s)"
+        ),
+    },
+    "sourcing.award_rejected": {
+        "en": "round #{round_id} not awarded: rejected by {who} ({reason})",
+        "es": "ronda #{round_id} sin adjudicar: rechazada por {who} ({reason})",
+    },
+    "sourcing.nothing_to_compare": {
+        "en": "round #{round_id} has no quote and no list price to compare",
+        "es": "la ronda #{round_id} no tiene cotizaciones ni precios de lista que comparar",
+    },
+    "sourcing.offer_summary": {
+        "en": (
+            "Counter-offer to {partner} on {po}: {product} at {offered} instead of "
+            "{current} (round {n} of {max})"
+        ),
+        "es": (
+            "Contraoferta a {partner} en {po}: {product} a {offered} en vez de {current} "
+            "(ronda {n} de {max})"
+        ),
+    },
+    "sourcing.offer_sent": {
+        "en": "counter-offer of {offered} sent to {partner} for {product} on {po}",
+        "es": "contraoferta de {offered} enviada a {partner} por {product} en {po}",
+    },
+    "sourcing.offer_rejected": {
+        "en": "counter-offer not sent: rejected by {who} ({reason})",
+        "es": "contraoferta no enviada: rechazada por {who} ({reason})",
+    },
+    "sourcing.at_target": {
+        "en": (
+            "{product} on {po} is already at or under the target of {target}; nothing to negotiate"
+        ),
+        "es": "{product} en {po} ya está en o bajo el objetivo de {target}; nada que negociar",
+    },
+    "sourcing.rounds_exhausted": {
+        "en": "{po}: {n} negotiation round(s) already made; a person decides",
+        "es": "{po}: ya se hicieron {n} ronda(s) de negociación; decide una persona",
+    },
+    "sourcing.no_alternate": {
+        "en": (
+            "no alternative supplier lists the products of {po}; a quote round would start "
+            "from zero"
+        ),
+        "es": (
+            "ningún proveedor alternativo lista los productos de {po}; una ronda partiría de cero"
+        ),
+    },
+    "sourcing.decline_notes": {
+        "en": (
+            "Our request for quotation went to another supplier this time. Thank them for "
+            "the quote, keep the door open for future needs, and do not give the winning "
+            "price."
+        ),
+        "es": (
+            "Esta vez la solicitud fue adjudicada a otro proveedor. Agradecer la "
+            "cotización, dejar la puerta abierta para futuras necesidades y no revelar el "
+            "precio ganador."
+        ),
+    },
+    "sourcing.counter_notes": {
+        "en": (
+            "Counter-offer: for {product} (qty {qty}) we ask {offered} {currency} per unit "
+            "instead of the quoted {current}. Basis: {basis}. Ask for confirmation of the "
+            "new price and keep the delivery terms."
+        ),
+        "es": (
+            "Contraoferta: para {product} (cant. {qty}) pedimos {offered} {currency} por "
+            "unidad en vez de los {current} cotizados. Base: {basis}. Pedir confirmación "
+            "del nuevo precio manteniendo las condiciones de entrega."
+        ),
+    },
     "send.approval_summary": {
         "en": "Send {label} to {partner} for {po}",
         "es": "Enviar {label} a {partner} por {po}",

@@ -5,7 +5,7 @@
  * screen and the exceptions board used to spread over three pages.
  */
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, ExternalLink, X, Zap } from "lucide-react";
+import { CheckCircle2, ExternalLink, Handshake, Scale, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/auth/AuthProvider";
@@ -23,6 +23,7 @@ import { CaseEvents } from "@/features/cases/CaseTimeline";
 import { useCase } from "@/features/cases/api";
 import { CaseChat } from "@/features/chat/CaseChat";
 import { PlaybookOutlook } from "@/features/playbooks/PlaybookBadge";
+import { useNegotiate, useStartRound } from "@/features/sourcing/api";
 import { targetsFor, useActNow, useMoveCard, useSupplierConfirmed, type BoardCard, type Column } from "./api";
 import { useOrderDetail } from "./api";
 import { DeliveryBadge } from "./BoardCard";
@@ -202,6 +203,8 @@ function Moves({ card }: { card: BoardCard }) {
   const move = useMoveCard();
   const mark = useSupplierConfirmed();
   const act = useActNow();
+  const startRound = useStartRound();
+  const negotiate = useNegotiate();
   const [closing, setClosing] = useState(false);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -221,7 +224,17 @@ function Moves({ card }: { card: BoardCard }) {
   };
   const showMark = card.column === "confirmed" || card.column === "incoming";
   const canActNow = card.act_kind !== null && card.act_kind !== undefined && card.can_act;
-  if (targets.length === 0 && !showMark && !canActNow) return null;
+  const isRfq = card.column === "proposed" || card.column === "rfq_sent" || card.column === "quote_received";
+  const sourcing = async (what: "round" | "offer") => {
+    setError(null);
+    try {
+      const result = what === "round" ? await startRound.mutateAsync({ po_name: card.po_name }) : await negotiate.mutateAsync({ po_name: card.po_name });
+      setMessage(result.summary);
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : String(exc));
+    }
+  };
+  if (targets.length === 0 && !showMark && !canActNow && !isRfq) return null;
   return (
     <section aria-label={t("board.move")} title={showMark && card.receipt_status !== "full" ? t("board.move.receive_in_odoo") : undefined}>
       <div className="flex flex-wrap items-center gap-2">
@@ -256,6 +269,16 @@ function Moves({ card }: { card: BoardCard }) {
             <Zap className="h-4 w-4" />
             {t("board.act_now")}
           </Button>
+        ) : null}
+        {isRfq ? (
+          <>
+            <Button variant="outline" size="sm" disabled={startRound.isPending} onClick={() => void sourcing("round")} title={t("sourcing.drawer.round_hint")}>
+              <Scale className="h-4 w-4" /> {t("sourcing.drawer.round")}
+            </Button>
+            <Button variant="outline" size="sm" disabled={negotiate.isPending} onClick={() => void sourcing("offer")} title={t("sourcing.drawer.offer_hint")}>
+              <Handshake className="h-4 w-4" /> {t("sourcing.drawer.offer")}
+            </Button>
+          </>
         ) : null}
         {showMark ? (
           <Button

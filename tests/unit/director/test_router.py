@@ -72,13 +72,23 @@ def test_unlinked_mail_with_candidates_becomes_resolve_task() -> None:
     assert dispatch.task.case_id == "case_msg2"
 
 
-def test_unlinked_mail_from_unknown_sender_escalates_without_agent() -> None:
+def test_unlinked_mail_from_unknown_sender_goes_to_the_supplier_agent() -> None:
+    # phase 11: the agent reads it; a quotation becomes a partner_create approval
     event = ev.InboundMailUnlinked(
         source="mail_sync", case_id="case_msg3", graph_message_id="AAMk3", sender_address="a@b.c"
     )
     decided = route(event)
+    assert decided.escalate is None and len(decided.dispatches) == 1
+    assert decided.dispatches[0].task.kind == "resolve_unlinked"
+
+
+def test_unlinked_mail_without_a_sender_escalates_without_agent() -> None:
+    event = ev.InboundMailUnlinked(
+        source="mail_sync", case_id="case_msg4", graph_message_id="AAMk4"
+    )
+    decided = route(event)
     assert decided.dispatches == [] and decided.escalate is not None
-    assert "unknown sender" in decided.escalate
+    assert "without a sender" in decided.escalate
 
 
 def test_po_confirmed_sends_the_order() -> None:

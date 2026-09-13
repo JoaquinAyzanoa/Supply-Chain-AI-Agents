@@ -199,6 +199,24 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         result = await self._c.call(self._name, "sc_post_note", [po_id], body=body_html)
         return int(result[0] if isinstance(result, list) else result)
 
+    async def group_alternatives(self, po_ids: Sequence[int]) -> int:
+        """Link RFQs as alternatives of one another (``purchase.order.group``): Odoo
+        shows them side by side and a buyer can compare their lines."""
+        group_id = await self._c.create(
+            "purchase.order.group", {"order_ids": [(6, 0, list(po_ids))]}
+        )
+        return int(group_id)
+
+    async def alternatives_of(self, po_id: int) -> list[PurchaseOrder]:
+        row = await self._c.search_read(
+            self._name, [["id", "=", po_id]], ["alternative_po_ids"], limit=1
+        )
+        ids = list(row[0].get("alternative_po_ids") or []) if row else []
+        return await self.get_many(ids) if ids else []
+
+    async def set_partner_ref(self, po_id: int, value: str) -> None:
+        await self._write([po_id], {"partner_ref": value})
+
     async def cancel(self, po_id: int) -> None:
         await self._c.call(self._name, "button_cancel", [po_id])
 

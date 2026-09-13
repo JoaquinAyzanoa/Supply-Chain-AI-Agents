@@ -18,7 +18,7 @@ from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from sc_core.mail.outbound import OutboundMailStore
 from sc_core.mail.protocol import MailClient
 from sc_core.odoo.client import OdooClient
-from sc_core.odoo.models import RunStatus
+from sc_core.odoo.models import NewOrderLine, RunStatus
 from sc_core.odoo.repositories import (
     AgentRunRepo,
     MailLinkRepo,
@@ -82,6 +82,15 @@ class AgentPorts(Protocol):
     async def post_note(self, po_id: int, html: str) -> None: ...
 
     async def supplier_profile(self, partner_id: int) -> SupplierProfile | None: ...
+
+    # --- a new supplier (phase 11, after a partner_create approval) ---------------
+    async def create_supplier(self, name: str, email: str | None) -> tuple[int, str]: ...
+
+    async def product_by_code(self, code: str) -> tuple[int, str] | None: ...
+
+    async def create_rfq(
+        self, partner_id: int, lines: list[dict[str, Any]], *, external_ref: str, origin: str
+    ) -> tuple[int, str]: ...
 
     async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None: ...
 
@@ -378,6 +387,32 @@ class LivePorts:
             conversation_id=message.conversation_id,
             internet_message_id=message.internet_message_id,
         )
+
+    async def create_supplier(self, name: str, email: str | None) -> tuple[int, str]:
+        partner = await self._partners.create_supplier(name=name, email=email)
+        return partner.id, partner.name
+
+    async def product_by_code(self, code: str) -> tuple[int, str] | None:
+        rows = await self._odoo.search_read(
+            "product.product",
+            [["default_code", "=", code.strip()], ["purchase_ok", "=", True]],
+            ["display_name"],
+            limit=1,
+        )
+        if not rows:
+            return None
+        return int(rows[0]["id"]), str(rows[0].get("display_name") or code)
+
+    async def create_rfq(
+        self, partner_id: int, lines: list[dict[str, Any]], *, external_ref: str, origin: str
+    ) -> tuple[int, str]:
+        po = await self._pos.create_rfq(
+            partner_id,
+            [NewOrderLine.model_validate(line) for line in lines],
+            external_ref=external_ref,
+            origin=origin,
+        )
+        return po.id, po.name
 
     async def partner_by_email(self, address: str) -> int | None:
         partner = await self._partners.find_by_email(address)

@@ -97,7 +97,23 @@ class PlanEdits(StrictModel):
     ] = {}  # per line: service_level, review_period_days, max_coverage_days
 
 
+class AwardEdits(StrictModel):
+    partner_id: int = Field(description="the supplier who gets the order")
+
+
+class OfferEdits(StrictModel):
+    offered_price: float = Field(gt=0, description="the unit price we ask; within the cap")
+
+
+class PartnerEdits(StrictModel):
+    name: str | None = Field(default=None, max_length=200)
+    email: str | None = Field(default=None, max_length=200)
+
+
 EDITS_BY_KIND: dict[str, type[StrictModel]] = {
+    "award": AwardEdits,
+    "negotiation_offer": OfferEdits,
+    "partner_create": PartnerEdits,
     "send_email": EmailEdits,
     "po_change": ChangeEdits,
     "planning_run": PlanEdits,

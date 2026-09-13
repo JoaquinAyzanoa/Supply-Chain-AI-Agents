@@ -40,9 +40,14 @@ RULE_KINDS: tuple[str, ...] = (
     "vendor_bill",
     "supplier_score",
     "autonomy_change",
+    "award",
+    "negotiation_offer",
+    "partner_create",
 )
 # Kinds no rule may ever automate: money commitments, relationships, the policy itself.
-NEVER_AUTOMATED: frozenset[str] = frozenset({"escalation", "autonomy_change"})
+NEVER_AUTOMATED: frozenset[str] = frozenset(
+    {"escalation", "autonomy_change", "award", "negotiation_offer", "partner_create"}
+)
 
 
 class ActionFacts(StrictModel):

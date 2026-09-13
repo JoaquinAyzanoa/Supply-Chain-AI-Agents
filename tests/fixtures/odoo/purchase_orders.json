@@ -378,9 +378,12 @@
       "sc_external_ref": "seed-open-20260912-1",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
+      "sc_needs_human": true,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": false
+      "sc_pending_approval_id": [
+       8,
+       "sc.approval,8"
+      ]
      },
      {
       "id": 81,
@@ -547,9 +550,12 @@
       "sc_external_ref": "seed-open-20260912-5",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
+      "sc_needs_human": true,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": false
+      "sc_pending_approval_id": [
+       14,
+       "sc.approval,14"
+      ]
      }
     ]
    }
@@ -663,9 +669,12 @@
       "sc_external_ref": "seed-open-20260912-4",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
+      "sc_needs_human": true,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": false
+      "sc_pending_approval_id": [
+       6,
+       "sc.approval,6"
+      ]
      },
      {
       "id": 77,
@@ -706,9 +715,12 @@
       "sc_external_ref": "seed-open-20260912-5",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
+      "sc_needs_human": true,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": false
+      "sc_pending_approval_id": [
+       14,
+       "sc.approval,14"
+      ]
      },
      {
       "id": 75,
@@ -750,9 +762,12 @@
       "sc_external_ref": "seed-open-20260912-3",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
+      "sc_needs_human": true,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": false
+      "sc_pending_approval_id": [
+       5,
+       "sc.approval,5"
+      ]
      },
      {
       "id": 74,
@@ -838,9 +853,12 @@
       "sc_external_ref": "seed-open-20260912-1",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
+      "sc_needs_human": true,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": false
+      "sc_pending_approval_id": [
+       8,
+       "sc.approval,8"
+      ]
      }
     ]
    }

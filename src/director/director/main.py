@@ -55,7 +55,7 @@ from director.escalation import (
     OdooEscalator,
 )
 from director.handlers.followups import FollowUpJob, MailActivity
-from director.handlers.jobs import PlaybooksJob
+from director.handlers.jobs import PlaybooksJob, SourcingJob
 from director.handlers.performance import PerformanceJob
 from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
@@ -72,6 +72,7 @@ from director.playbooks import PlaybookEngine, PlaybookStore, PostgresPlaybookSt
 from director.policies import FollowUpPolicy
 from director.realtime import BroadcastingCaseStore
 from director.routers import events
+from director.sourcing import HttpSourcingSource, SourcingDispatcher, SourcingSource
 from director.store import CaseStore, PostgresCaseStore
 from director.workflow import Deps, Orchestrator
 from sc_core.a2a.events import HmacSigner
@@ -259,6 +260,8 @@ class DirectorModule(Module):
         suggestions: SuggestionStore,  # type: ignore[type-abstract]
         runtime: RuntimeSettingsReader,
         playbooks: PlaybookEngine,
+        sourcing_source: SourcingSource,  # type: ignore[type-abstract]
+        sourcing_dispatcher: SourcingDispatcher,
     ) -> JobRunner:  # type: ignore[type-abstract]
         followups.attach_playbooks(playbooks)
         return JobDispatcher(
@@ -283,6 +286,7 @@ class DirectorModule(Module):
                     escalator=escalator,
                     conversations=PostgresConversationLookup(db),
                 ),
+                "sourcing_rounds": SourcingJob(sourcing_source, sourcing_dispatcher),
             }
         )
 
@@ -310,6 +314,27 @@ class DirectorModule(Module):
     @singleton
     def provide_performance_source(self, settings: Settings) -> PerformanceSource:  # type: ignore[type-abstract]
         return HttpPerformanceSource(settings.a2a.supplier_performance_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_sourcing_source(self, settings: Settings) -> SourcingSource:  # type: ignore[type-abstract]
+        return HttpSourcingSource(settings.a2a.sourcing_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_sourcing_dispatcher(
+        self,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+        db: Database,
+    ) -> SourcingDispatcher:
+        return SourcingDispatcher(
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            conversations=PostgresConversationLookup(db),
+        )
 
     @provider
     @singleton

@@ -36,6 +36,7 @@ from director.learning import (
 from director.playbooks import MemoryPlaybookStore, PlaybookEngine, PlaybookStore
 from director.policies import FollowUpPolicy, PoFacts
 from director.realtime import BroadcastingCaseStore
+from director.sourcing import SourcingDispatcher, SourcingSource
 from director.store import CaseStore, MemoryCaseStore
 from director.workflow import ConfirmedOrders, Deps, Orchestrator
 from sc_core.a2a.client import AgentCaller
@@ -67,6 +68,7 @@ def memory_deps(
     logistics: AgentCaller | None = None,
     invoice_match: AgentCaller | None = None,
     supplier_performance: AgentCaller | None = None,
+    sourcing: AgentCaller | None = None,
     escalator: Escalator | None = None,
     jobs: JobRunner | None = None,
     conversations: MemoryConversationLookup | None = None,
@@ -89,6 +91,8 @@ def memory_deps(
         others["supplier_performance"] = AgentProxy(
             "supplier_performance", supplier_performance, max_concurrent=max_concurrent
         )
+    if sourcing is not None:
+        others["sourcing"] = AgentProxy("sourcing", sourcing, max_concurrent=max_concurrent)
     return Deps(
         cases=cases or MemoryCaseStore(),
         agents=Agents(
@@ -116,6 +120,7 @@ class MemoryDirectorModule(Module):
         logistics: AgentCaller | None = None,
         invoice_match: AgentCaller | None = None,
         supplier_performance: AgentCaller | None = None,
+        sourcing: AgentCaller | None = None,
         cases: MemoryCaseStore | None = None,
         escalator: Escalator | None = None,
         jobs: JobRunner | None = None,
@@ -161,6 +166,7 @@ class MemoryDirectorModule(Module):
         self.board_orders = MemoryBoardOrders()
         self.mailbox = MemoryMailboxSync()
         self.performance = MemoryPerformanceSource()
+        self.sourcing_source = MemorySourcingSource()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -168,10 +174,14 @@ class MemoryDirectorModule(Module):
             logistics=logistics,
             invoice_match=invoice_match,
             supplier_performance=supplier_performance,
+            sourcing=sourcing,
             escalator=self.escalator,
             autonomy=self.autonomy,
             feedback=self.recorder,
             jobs=jobs,
+        )
+        self.sourcing = SourcingDispatcher(
+            cases=self.case_store, agents=self.deps.agents, escalator=self.escalator
         )
         self.playbooks = PlaybookEngine(
             store=self.playbook_store,
@@ -232,6 +242,8 @@ class MemoryDirectorModule(Module):
         binder.bind(FeedbackRecorder, to=self.recorder, scope=singleton)
         binder.bind(PlaybookStore, to=self.playbook_store, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(PlaybookEngine, to=self.playbooks, scope=singleton)
+        binder.bind(SourcingSource, to=self.sourcing_source, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SourcingDispatcher, to=self.sourcing, scope=singleton)
         binder.bind(RuntimeSettingsReader, to=self.runtime_reader, scope=singleton)
         binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(LoginRateLimit, to=self.login_limit, scope=singleton)
@@ -525,6 +537,36 @@ class MemoryPerformanceSource:
 
     async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
         return [await self.rank(pid) for pid in sorted(set(product_ids))]
+
+
+class MemorySourcingSource:
+    """Rounds and negotiations as the sourcing agent would list them."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+        self.due: list[dict[str, Any]] = []
+        self.negotiation_rows: dict[str, list[dict[str, Any]]] = {}
+
+    async def rounds(
+        self, *, status: str | None = None, partner_id: int | None = None
+    ) -> list[dict[str, Any]]:
+        out = list(self.rows)
+        if status:
+            out = [r for r in out if r.get("status") == status or status == "active"]
+        if partner_id is not None:
+            out = [
+                r for r in out if any(x.get("partner_id") == partner_id for x in r.get("rfqs", []))
+            ]
+        return out
+
+    async def round(self, round_id: int) -> dict[str, Any] | None:
+        return next((r for r in self.rows if r.get("id") == round_id), None)
+
+    async def due_rounds(self) -> list[dict[str, Any]]:
+        return list(self.due)
+
+    async def negotiations(self, po_name: str) -> list[dict[str, Any]]:
+        return list(self.negotiation_rows.get(po_name, []))
 
 
 class MemoryAutoActionsStore:

@@ -17,13 +17,16 @@ from sc_core.schema.events import BaseEvent, InboundMailUnlinked
 
 def handle(event: BaseEvent) -> Route:
     assert isinstance(event, InboundMailUnlinked)
-    if event.partner_id is None and not event.open_po_names:
+    if event.partner_id is None and not event.open_po_names and not event.sender_address:
         return Route(
             case_kind="unlinked",
             conversation_id=event.conversation_id,
-            escalate="message from an unknown sender with no open orders to match",
+            escalate="message without a sender and with no open orders to match",
             details=email_facts(event),
         )
+    # An unknown sender still reaches the supplier agent: a quotation for something we
+    # buy becomes a ``partner_create`` approval (phase 11); anything else is escalated
+    # by the agent as before.
     task = SupplierCommsTask(
         kind="resolve_unlinked",
         case_id=event.case_id,

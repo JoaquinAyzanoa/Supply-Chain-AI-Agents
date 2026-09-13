@@ -23,6 +23,7 @@ from director.api import (
     playbooks,
     runs,
     settings,
+    sourcing,
     stream,
 )
 
@@ -41,6 +42,7 @@ api_router.include_router(planning.router)
 api_router.include_router(playbooks.router)
 api_router.include_router(runs.router)
 api_router.include_router(settings.router)
+api_router.include_router(sourcing.router)
 api_router.include_router(stream.router)
 
 __all__ = ["api_router"]

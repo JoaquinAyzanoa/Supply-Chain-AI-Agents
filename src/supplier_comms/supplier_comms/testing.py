@@ -80,6 +80,9 @@ class FakePorts:
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
     eta_meta: list[dict[str, Any]] = field(default_factory=list)
     profiles: dict[int, SupplierProfile] = field(default_factory=dict)
+    products_by_code: dict[str, tuple[int, str]] = field(default_factory=dict)
+    created_partners: list[dict[str, Any]] = field(default_factory=list)
+    created_rfqs: list[dict[str, Any]] = field(default_factory=list)
     _seq: Any = field(default_factory=lambda: count(1))
 
     async def load_po(self, po_name: str) -> PoContext | None:
@@ -227,6 +230,33 @@ class FakePorts:
 
     async def inbound_meta(self, message_id: str) -> InboundMeta:
         return self.metas.get(message_id) or InboundMeta(graph_message_id=message_id)
+
+    async def create_supplier(self, name: str, email: str | None) -> tuple[int, str]:
+        partner_id = 500 + len(self.created_partners)
+        self.created_partners.append({"id": partner_id, "name": name, "email": email})
+        if email:
+            self.partners[email.lower()] = partner_id
+        return partner_id, name
+
+    async def product_by_code(self, code: str) -> tuple[int, str] | None:
+        return self.products_by_code.get(code.strip().upper())
+
+    async def create_rfq(
+        self, partner_id: int, lines: list[dict[str, Any]], *, external_ref: str, origin: str
+    ) -> tuple[int, str]:
+        po_id = 700 + len(self.created_rfqs)
+        po_name = f"P{po_id:05d}"
+        self.created_rfqs.append(
+            {
+                "po_id": po_id,
+                "po_name": po_name,
+                "partner_id": partner_id,
+                "lines": lines,
+                "external_ref": external_ref,
+                "origin": origin,
+            }
+        )
+        return po_id, po_name
 
     async def partner_by_email(self, address: str) -> int | None:
         return self.partners.get(address.lower())

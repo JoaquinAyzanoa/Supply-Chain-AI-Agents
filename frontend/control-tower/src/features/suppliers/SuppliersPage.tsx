@@ -9,6 +9,7 @@ import { Empty, ErrorBox, Loading } from "@/components/ui/feedback";
 import { useI18n } from "@/i18n";
 import { formatDate } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
+import { RoundsPanel } from "@/features/sourcing/RoundsPanel";
 import { SupplierScoreTable } from "./SupplierScoreTable";
 
 export function useSupplierScores() {
@@ -37,6 +38,9 @@ export function SuppliersPage() {
         {scores.error ? <ErrorBox error={scores.error} onRetry={() => scores.refetch()} /> : null}
         {scores.data && scores.data.length === 0 ? <Empty text={t("suppliers.empty")} /> : null}
         {scores.data && scores.data.length ? <SupplierScoreTable rows={scores.data} withProfile /> : null}
+        <div className="mt-6">
+          <RoundsPanel />
+        </div>
       </div>
     </div>
   );

@@ -116,12 +116,9 @@
       "sc_external_ref": "seed-open-20260912-6",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": true,
+      "sc_needs_human": false,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": [
-       1,
-       "sc.approval,1"
-      ]
+      "sc_pending_approval_id": false
      }
     ]
    }

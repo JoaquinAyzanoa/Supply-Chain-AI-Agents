@@ -21,8 +21,18 @@ if TYPE_CHECKING:
     from sc_core.infra.settings import Settings
 
 
-EmailKind = Literal["rfq", "send_po", "follow_up", "request_eta", "reply"]
-EMAIL_KINDS: tuple[EmailKind, ...] = ("rfq", "send_po", "follow_up", "request_eta", "reply")
+EmailKind = Literal[
+    "rfq", "send_po", "follow_up", "request_eta", "reply", "decline", "counter_offer"
+]
+EMAIL_KINDS: tuple[EmailKind, ...] = (
+    "rfq",
+    "send_po",
+    "follow_up",
+    "request_eta",
+    "reply",
+    "decline",
+    "counter_offer",
+)
 
 
 class RuntimeSettings(StrictModel):
@@ -52,6 +62,14 @@ class RuntimeSettings(StrictModel):
     # Invoice matching: a price variance up to this percent still matches (None: the
     # environment's SC__INVOICE_MATCH__PRICE_TOLERANCE_PCT). Calibration may suggest it.
     invoice_price_tolerance_pct: float | None = Field(default=None, ge=0, le=20)
+    # Sourcing (phase 11): how many suppliers a quote round invites, how long it waits,
+    # the freight estimate on top of a quoted price, and the negotiation limits a
+    # person never sees an offer outside of.
+    sourcing_top_n: int = Field(default=3, ge=1, le=10)
+    sourcing_deadline_days: int = Field(default=5, ge=1, le=60)
+    sourcing_freight_pct: float = Field(default=5.0, ge=0, le=100)
+    negotiation_cap_pct: float = Field(default=10.0, ge=0, le=50)
+    negotiation_max_rounds: int = Field(default=2, ge=1, le=5)
 
     @classmethod
     def from_settings(cls, settings: Settings) -> RuntimeSettings:

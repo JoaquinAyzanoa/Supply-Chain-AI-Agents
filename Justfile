@@ -274,7 +274,8 @@ sync-once:
 sync-now:
     {{UV}} run python scripts/run_job.py mail_sync
 
-# Fire any scheduler job by id (mail_sync, po_followups, inventory_planning, supplier_performance)
+# Fire any scheduler job by id (mail_sync, po_followups, inventory_planning, supplier_performance,
+# calibration, playbooks, sourcing_rounds)
 run-job job="mail_sync":
     {{UV}} run python scripts/run_job.py {{job}}
 
