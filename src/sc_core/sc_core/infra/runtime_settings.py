@@ -16,6 +16,7 @@ from typing import Any
 from loguru import logger
 
 from sc_core.infra.db import Database
+from sc_core.schema.autonomy import AutonomyPolicy
 from sc_core.schema.runtime_settings import RuntimeSettings
 
 
@@ -87,6 +88,18 @@ class MemoryRuntimeSettingsReader(RuntimeSettingsReader):
 
 def _parse(raw: Any, *, fallback: RuntimeSettings) -> RuntimeSettings:
     data = json.loads(raw) if isinstance(raw, str) else raw
+    if isinstance(data, dict) and "autonomy" not in data:
+        # a row saved before phase 11: its auto-send lists become rules, and the
+        # environment's bill cap (already a rule in the fallback) is kept
+        bill = fallback.autonomy.rule("legacy-bill-under-amount")
+        data = {
+            **data,
+            "autonomy": AutonomyPolicy.from_legacy(
+                list(data.get("auto_send_partner_ids") or []),
+                list(data.get("auto_send_kinds") or []),
+                bill.when.amount_max if bill else None,
+            ).model_dump(mode="json"),
+        }
     try:
         return RuntimeSettings.model_validate(data)
     except ValueError as exc:  # an older row shape: never break the agents over it

@@ -8,9 +8,16 @@ from typing import Any
 from injector import Module, provider, singleton
 
 from sc_core.a2a.events import EventPublisher, PostgresOutbox
-from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
+from sc_core.graph import (
+    ApprovalGateway,
+    OdooApprovalPorts,
+    PostgresAutoActions,
+    build_checkpointer,
+    policy_from,
+)
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.llm import default_budget
 from sc_core.odoo.client import OdooClient
@@ -75,6 +82,8 @@ class SupplierPerformanceModule(Module):
         ports: LivePerformancePorts,
         odoo: OdooClient,
         chats: ChatClientFactory,
+        runtime: RuntimeSettingsReader,
+        db: Database,
     ) -> Deps:
         cfg = settings.supplier_performance
         gateway = ApprovalGateway(
@@ -86,6 +95,8 @@ class SupplierPerformanceModule(Module):
             deadline_days=settings.agents.approval_deadline_days,
             language=settings.agents.language,
             control_tower_url=settings.ui.public_url,
+            policy=policy_from(runtime),
+            auto_actions=PostgresAutoActions(db),
         )
         return Deps(
             ports=ports,

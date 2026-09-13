@@ -40,7 +40,7 @@ class ApprovalRepo(Repo[Approval]):
         if (
             po_id is None
             and not (res_model and res_id)
-            and kind not in ("unlinked_mail", "escalation", "supplier_score")
+            and kind not in ("unlinked_mail", "escalation", "supplier_score", "autonomy_change")
         ):
             raise ValidationFailed("an approval needs a purchase order or a record reference")
         values: dict[str, Any] = {

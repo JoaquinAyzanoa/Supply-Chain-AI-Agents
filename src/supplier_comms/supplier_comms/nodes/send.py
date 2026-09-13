@@ -17,9 +17,9 @@ from loguru import logger
 
 from sc_core.graph import ApprovalRequest, decision_for
 from sc_core.i18n import Language, t
-from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.mail import po_token
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
+from sc_core.schema.autonomy import ActionFacts
 from supplier_comms.nodes.common import context_of, esc, finish, task_of
 from supplier_comms.ports import AgentPorts
 from supplier_comms.state import Node
@@ -74,30 +74,17 @@ def make_create_draft(ports: AgentPorts) -> Node:
 
 
 def make_send_approval(
-    auto_send_partner_ids: frozenset[int],
-    *,
-    language: Language = "en",
-    runtime: RuntimeSettingsReader | None = None,
-    auto_send_kinds: frozenset[str] = frozenset(),
+    *, language: Language = "en"
 ) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
+    """Whether this email goes out alone is the autonomy policy's call (facts: the
+    supplier, the email kind, the order value). A person who asked for the email from
+    the chat reads it first whatever the rules say."""
+
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         ctx = context_of(state)
         outbound = state["outbound"] or {}
         kind = str(outbound.get("kind", ""))
         label = kind_label(kind, language)
-        auto_ids, auto_kinds = auto_send_partner_ids, auto_send_kinds
-        if runtime is not None:  # the Control Tower's lists win over the environment's
-            current = await runtime.current()
-            auto_ids = frozenset(current.auto_send_partner_ids)
-            auto_kinds = frozenset(current.auto_send_kinds)
-        auto_reason = None
-        if task_of(state).require_approval:
-            pass  # a person asked for this one and wants to read it first
-        elif ctx.partner_id in auto_ids:
-            auto_reason = t("send.auto_reason", language)
-        elif kind in auto_kinds:
-            auto_reason = t("send.auto_reason_kind", language, label=label)
-        auto = auto_reason is not None
         return ApprovalRequest(
             kind="send_email",
             summary=t(
@@ -117,8 +104,14 @@ def make_send_approval(
                 "attachments": outbound.get("attachments") or [],
             },
             po_id=ctx.id,
-            auto_approve=auto,
-            auto_reason=auto_reason,
+            facts=ActionFacts(
+                partner_id=ctx.partner_id,
+                partner_name=ctx.partner_name,
+                amount=ctx.amount_total,
+                currency=ctx.currency,
+                email_kind=kind or None,
+            ),
+            force_approval=task_of(state).require_approval,
         )
 
     return build

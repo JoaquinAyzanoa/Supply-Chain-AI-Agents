@@ -71,6 +71,141 @@
         "title": "ActResponse",
         "type": "object"
       },
+      "ActionFacts": {
+        "additionalProperties": false,
+        "description": "What the agent knows about the action it proposes; the rules test these.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "money involved",
+            "title": "Amount"
+          },
+          "change_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "date move, in days",
+            "title": "Change Days"
+          },
+          "change_pct": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "price or quantity move",
+            "title": "Change Pct"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the agent's own",
+            "title": "Confidence"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "days_late": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Late"
+          },
+          "email_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Kind"
+          },
+          "first_time_supplier": {
+            "default": false,
+            "title": "First Time Supplier",
+            "type": "boolean"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
+          "supplier_score": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Score"
+          }
+        },
+        "title": "ActionFacts",
+        "type": "object"
+      },
       "AgentRunView": {
         "additionalProperties": false,
         "properties": {
@@ -430,6 +565,226 @@
         "title": "ApprovalView",
         "type": "object"
       },
+      "AutoActionView": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Payload",
+            "type": "object"
+          },
+          "po_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Id"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Name"
+          },
+          "revert_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revert Until"
+          },
+          "reverted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted At"
+          },
+          "reverted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted By"
+          },
+          "revertible": {
+            "title": "Revertible",
+            "type": "boolean"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "agent",
+          "kind",
+          "level",
+          "summary",
+          "revertible"
+        ],
+        "title": "AutoActionView",
+        "type": "object"
+      },
+      "AutonomyPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "rules": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AutonomyRule"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "title": "AutonomyPolicy",
+        "type": "object"
+      },
+      "AutonomyRule": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "maxLength": 60,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "*",
+            "title": "Kind",
+            "type": "string"
+          },
+          "level": {
+            "default": "approve",
+            "enum": [
+              "approve",
+              "auto_notice",
+              "auto"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Note",
+            "type": "string"
+          },
+          "revert_hours": {
+            "default": 24,
+            "maximum": 720.0,
+            "minimum": 0.0,
+            "title": "Revert Hours",
+            "type": "integer"
+          },
+          "when": {
+            "$ref": "#/components/schemas/RuleConditions"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "AutonomyRule",
+        "type": "object"
+      },
       "Board": {
         "additionalProperties": false,
         "properties": {
@@ -780,6 +1135,14 @@
       "CaseDetail": {
         "additionalProperties": false,
         "properties": {
+          "auto_actions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AutoActionView"
+            },
+            "title": "Auto Actions",
+            "type": "array"
+          },
           "case": {
             "$ref": "#/components/schemas/CaseView"
           },
@@ -1124,6 +1487,33 @@
         ],
         "title": "CheckStatus",
         "type": "string"
+      },
+      "DecideRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "facts": {
+            "$ref": "#/components/schemas/ActionFacts"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutonomyPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "DecideRequest",
+        "type": "object"
       },
       "DemandDay": {
         "additionalProperties": false,
@@ -1827,6 +2217,33 @@
         "title": "PendingApproval",
         "type": "object"
       },
+      "PendingChange": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "integer"
+          },
+          "requested_by": {
+            "title": "Requested By",
+            "type": "string"
+          },
+          "widened": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Widened",
+            "type": "array"
+          }
+        },
+        "required": [
+          "approval_id",
+          "requested_by",
+          "widened"
+        ],
+        "title": "PendingChange",
+        "type": "object"
+      },
       "PlanningLineRow": {
         "additionalProperties": false,
         "properties": {
@@ -2075,6 +2492,275 @@
           "updated_at"
         ],
         "title": "PlanningRunRow",
+        "type": "object"
+      },
+      "PolicyDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "enum": [
+              "approve",
+              "auto_notice",
+              "auto"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          }
+        },
+        "required": [
+          "level",
+          "reason"
+        ],
+        "title": "PolicyDecision",
+        "type": "object"
+      },
+      "PolicyUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
+          }
+        },
+        "required": [
+          "policy"
+        ],
+        "title": "PolicyUpdate",
+        "type": "object"
+      },
+      "PolicyUpdateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "saved": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SettingsVersion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "widened": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Widened",
+            "type": "array"
+          }
+        },
+        "title": "PolicyUpdateResponse",
+        "type": "object"
+      },
+      "PolicyView": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed At"
+          },
+          "changed_by": {
+            "title": "Changed By",
+            "type": "string"
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PendingChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "changed_by",
+          "policy"
+        ],
+        "title": "PolicyView",
+        "type": "object"
+      },
+      "PreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "default": 30,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "type": "integer"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
+          }
+        },
+        "required": [
+          "policy"
+        ],
+        "title": "PreviewRequest",
+        "type": "object"
+      },
+      "PreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "by_kind": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "By Kind",
+            "type": "object"
+          },
+          "by_rule": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "By Rule",
+            "type": "object"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "would_run_alone": {
+            "title": "Would Run Alone",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "total",
+          "would_run_alone",
+          "by_rule",
+          "by_kind",
+          "rows"
+        ],
+        "title": "PreviewResponse",
+        "type": "object"
+      },
+      "PreviewRow": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "integer"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approval_id",
+          "kind",
+          "summary",
+          "status",
+          "level"
+        ],
+        "title": "PreviewRow",
         "type": "object"
       },
       "Principal": {
@@ -2644,6 +3330,31 @@
         "title": "ResolveResponse",
         "type": "object"
       },
+      "RevertResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "reverted_at": {
+            "format": "date-time",
+            "title": "Reverted At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reverted_at",
+          "note"
+        ],
+        "title": "RevertResponse",
+        "type": "object"
+      },
       "RouteInfo": {
         "properties": {
           "methods": {
@@ -2668,6 +3379,115 @@
           "name"
         ],
         "title": "RouteInfo",
+        "type": "object"
+      },
+      "RuleConditions": {
+        "additionalProperties": false,
+        "description": "Every set condition must hold. Lists match any member; empty lists match all.",
+        "properties": {
+          "amount_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Max"
+          },
+          "change_days_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Days Max"
+          },
+          "change_pct_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct Max"
+          },
+          "confidence_min": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Min"
+          },
+          "days_late_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Late Max"
+          },
+          "email_kinds": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Email Kinds",
+            "type": "array"
+          },
+          "first_time_supplier": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Time Supplier"
+          },
+          "partner_ids": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Partner Ids",
+            "type": "array"
+          },
+          "supplier_score_min": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Score Min"
+          }
+        },
+        "title": "RuleConditions",
         "type": "object"
       },
       "RunRanking": {
@@ -2734,6 +3554,9 @@
             },
             "title": "Auto Send Partner Ids",
             "type": "array"
+          },
+          "autonomy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
           },
           "ignored_senders": {
             "default": [],
@@ -3510,6 +4333,272 @@
         "summary": "Me",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/api/autonomy": {
+      "get": {
+        "operationId": "get_policy_api_autonomy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Policy",
+        "tags": [
+          "autonomy"
+        ]
+      },
+      "put": {
+        "operationId": "put_policy_api_autonomy_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Policy",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/actions": {
+      "get": {
+        "description": "The \"done automatically\" feed, newest first.",
+        "operationId": "list_actions_api_autonomy_actions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "maximum": 90,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AutoActionView"
+                  },
+                  "title": "Response List Actions Api Autonomy Actions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Actions",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/actions/{action_id}/revert": {
+      "post": {
+        "operationId": "revert_action_api_autonomy_actions__action_id__revert_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevertResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revert Action",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/decide": {
+      "post": {
+        "description": "What the policy (current, or the draft given) says about one action.",
+        "operationId": "decide_api_autonomy_decide_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyDecision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Decide",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/preview": {
+      "post": {
+        "description": "Replay the last ``days`` of approvals against a draft policy: how many would\nhave run alone, by rule and by kind, and the list.",
+        "operationId": "preview_api_autonomy_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview",
+        "tags": [
+          "autonomy"
         ]
       }
     },

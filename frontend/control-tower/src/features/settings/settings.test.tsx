@@ -91,8 +91,6 @@ describe("settings and runs", () => {
     const days = screen.getByLabelText(/RFQ follow-ups after/);
     await userEvent.clear(days);
     await userEvent.type(days, "2, 5");
-    await userEvent.click(screen.getByLabelText("Reminders"));
-    await userEvent.click(screen.getByLabelText("Delivery date requests"));
     await userEvent.type(screen.getByLabelText("Note for the history"), "faster chasing");
     await userEvent.click(screen.getByRole("button", { name: "Save as a new version" }));
     await waitFor(() => expect(saved).toHaveLength(1));
@@ -102,7 +100,6 @@ describe("settings and runs", () => {
         ...CURRENT.settings,
         model_by_agent: { supplier_comms: "deepseek-v4-flash" },
         rfq_no_reply_days: [2, 5],
-        auto_send_kinds: ["follow_up", "request_eta"],
       },
     });
     expect(await screen.findByRole("status")).toHaveTextContent("Saved as version 1.");

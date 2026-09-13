@@ -89,6 +89,102 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/autonomy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Policy */
+        get: operations["get_policy_api_autonomy_get"];
+        /** Put Policy */
+        put: operations["put_policy_api_autonomy_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/autonomy/actions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Actions
+         * @description The "done automatically" feed, newest first.
+         */
+        get: operations["list_actions_api_autonomy_actions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/autonomy/actions/{action_id}/revert": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revert Action */
+        post: operations["revert_action_api_autonomy_actions__action_id__revert_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/autonomy/decide": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decide
+         * @description What the policy (current, or the draft given) says about one action.
+         */
+        post: operations["decide_api_autonomy_decide_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/autonomy/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Preview
+         * @description Replay the last ``days`` of approvals against a draft policy: how many would
+         *     have run alone, by rule and by kind, and the list.
+         */
+        post: operations["preview_api_autonomy_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/board": {
         parameters: {
             query?: never;
@@ -550,6 +646,49 @@ export interface components {
             /** Po Name */
             po_name: string;
         };
+        /**
+         * ActionFacts
+         * @description What the agent knows about the action it proposes; the rules test these.
+         */
+        ActionFacts: {
+            /**
+             * Amount
+             * @description money involved
+             */
+            amount?: number | null;
+            /**
+             * Change Days
+             * @description date move, in days
+             */
+            change_days?: number | null;
+            /**
+             * Change Pct
+             * @description price or quantity move
+             */
+            change_pct?: number | null;
+            /**
+             * Confidence
+             * @description the agent's own
+             */
+            confidence?: number | null;
+            /** Currency */
+            currency?: string | null;
+            /** Days Late */
+            days_late?: number | null;
+            /** Email Kind */
+            email_kind?: string | null;
+            /**
+             * First Time Supplier
+             * @default false
+             */
+            first_time_supplier: boolean;
+            /** Partner Id */
+            partner_id?: number | null;
+            /** Partner Name */
+            partner_name?: string | null;
+            /** Supplier Score */
+            supplier_score?: number | null;
+        };
         /** AgentRunView */
         AgentRunView: {
             /** Agent */
@@ -652,6 +791,91 @@ export interface components {
              * @description rule or model reasoning behind it
              */
             why?: string | null;
+        };
+        /** AutoActionView */
+        AutoActionView: {
+            /** Agent */
+            agent: string;
+            /** Case Id */
+            case_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Id */
+            id: number;
+            /** Kind */
+            kind: string;
+            /** Level */
+            level: string;
+            /** Partner Id */
+            partner_id?: number | null;
+            /**
+             * Payload
+             * @default {}
+             */
+            payload: {
+                [key: string]: unknown;
+            };
+            /** Po Id */
+            po_id?: number | null;
+            /** Po Name */
+            po_name?: string | null;
+            /** Revert Until */
+            revert_until?: string | null;
+            /** Reverted At */
+            reverted_at?: string | null;
+            /** Reverted By */
+            reverted_by?: string | null;
+            /** Revertible */
+            revertible: boolean;
+            /** Rule Id */
+            rule_id?: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Summary */
+            summary: string;
+        };
+        /** AutonomyPolicy */
+        AutonomyPolicy: {
+            /**
+             * Rules
+             * @default []
+             */
+            rules: components["schemas"]["AutonomyRule"][];
+        };
+        /** AutonomyRule */
+        AutonomyRule: {
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /** Id */
+            id: string;
+            /**
+             * Kind
+             * @default *
+             */
+            kind: string;
+            /**
+             * Level
+             * @default approve
+             * @enum {string}
+             */
+            level: "approve" | "auto_notice" | "auto";
+            /**
+             * Note
+             * @default
+             */
+            note: string;
+            /**
+             * Revert Hours
+             * @default 24
+             */
+            revert_hours: number;
+            when?: components["schemas"]["RuleConditions"];
         };
         /** Board */
         Board: {
@@ -763,6 +987,11 @@ export interface components {
         };
         /** CaseDetail */
         CaseDetail: {
+            /**
+             * Auto Actions
+             * @default []
+             */
+            auto_actions: components["schemas"]["AutoActionView"][];
             case: components["schemas"]["CaseView"];
             /** Events */
             events: components["schemas"]["CaseEventView"][];
@@ -878,6 +1107,13 @@ export interface components {
          * @enum {string}
          */
         CheckStatus: "ok" | "fail";
+        /** DecideRequest */
+        DecideRequest: {
+            facts?: components["schemas"]["ActionFacts"];
+            /** Kind */
+            kind: string;
+            policy?: components["schemas"]["AutonomyPolicy"] | null;
+        };
         /** DemandDay */
         DemandDay: {
             /**
@@ -1170,6 +1406,15 @@ export interface components {
             /** Summary */
             summary: string;
         };
+        /** PendingChange */
+        PendingChange: {
+            /** Approval Id */
+            approval_id: number;
+            /** Requested By */
+            requested_by: string;
+            /** Widened */
+            widened: string[];
+        };
         /** PlanningLineRow */
         PlanningLineRow: {
             /** Accepted */
@@ -1254,6 +1499,93 @@ export interface components {
             updated_at: string;
             /** Warehouse Id */
             warehouse_id: number;
+        };
+        /** PolicyDecision */
+        PolicyDecision: {
+            /**
+             * Level
+             * @enum {string}
+             */
+            level: "approve" | "auto_notice" | "auto";
+            /** Reason */
+            reason: string;
+            /** Rule Id */
+            rule_id?: string | null;
+        };
+        /** PolicyUpdate */
+        PolicyUpdate: {
+            /** Note */
+            note?: string | null;
+            policy: components["schemas"]["AutonomyPolicy"];
+        };
+        /** PolicyUpdateResponse */
+        PolicyUpdateResponse: {
+            /** Approval Id */
+            approval_id?: number | null;
+            saved?: components["schemas"]["SettingsVersion"] | null;
+            /**
+             * Widened
+             * @default []
+             */
+            widened: string[];
+        };
+        /** PolicyView */
+        PolicyView: {
+            /** Changed At */
+            changed_at?: string | null;
+            /** Changed By */
+            changed_by: string;
+            pending?: components["schemas"]["PendingChange"] | null;
+            policy: components["schemas"]["AutonomyPolicy"];
+            /** Version */
+            version: number;
+        };
+        /** PreviewRequest */
+        PreviewRequest: {
+            /**
+             * Days
+             * @default 30
+             */
+            days: number;
+            policy: components["schemas"]["AutonomyPolicy"];
+        };
+        /** PreviewResponse */
+        PreviewResponse: {
+            /** By Kind */
+            by_kind: {
+                [key: string]: {
+                    [key: string]: number;
+                };
+            };
+            /** By Rule */
+            by_rule: {
+                [key: string]: number;
+            };
+            /** Days */
+            days: number;
+            /** Rows */
+            rows: components["schemas"]["PreviewRow"][];
+            /** Total */
+            total: number;
+            /** Would Run Alone */
+            would_run_alone: number;
+        };
+        /** PreviewRow */
+        PreviewRow: {
+            /** Approval Id */
+            approval_id: number;
+            /** Created At */
+            created_at?: string | null;
+            /** Kind */
+            kind: string;
+            /** Level */
+            level: string;
+            /** Rule Id */
+            rule_id?: string | null;
+            /** Status */
+            status: string;
+            /** Summary */
+            summary: string;
         };
         /**
          * Principal
@@ -1463,6 +1795,18 @@ export interface components {
             /** Status */
             status: string;
         };
+        /** RevertResponse */
+        RevertResponse: {
+            /** Id */
+            id: number;
+            /** Note */
+            note: string;
+            /**
+             * Reverted At
+             * Format: date-time
+             */
+            reverted_at: string;
+        };
         /** RouteInfo */
         RouteInfo: {
             /** Methods */
@@ -1471,6 +1815,36 @@ export interface components {
             name: string;
             /** Path */
             path: string;
+        };
+        /**
+         * RuleConditions
+         * @description Every set condition must hold. Lists match any member; empty lists match all.
+         */
+        RuleConditions: {
+            /** Amount Max */
+            amount_max?: number | null;
+            /** Change Days Max */
+            change_days_max?: number | null;
+            /** Change Pct Max */
+            change_pct_max?: number | null;
+            /** Confidence Min */
+            confidence_min?: number | null;
+            /** Days Late Max */
+            days_late_max?: number | null;
+            /**
+             * Email Kinds
+             * @default []
+             */
+            email_kinds: string[];
+            /** First Time Supplier */
+            first_time_supplier?: boolean | null;
+            /**
+             * Partner Ids
+             * @default []
+             */
+            partner_ids: number[];
+            /** Supplier Score Min */
+            supplier_score_min?: number | null;
         };
         /** RunRanking */
         RunRanking: {
@@ -1509,6 +1883,7 @@ export interface components {
              * @default []
              */
             auto_send_partner_ids: number[];
+            autonomy?: components["schemas"]["AutonomyPolicy"];
             /**
              * Ignored Senders
              * @default []
@@ -1838,6 +2213,187 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Principal"];
+                };
+            };
+        };
+    };
+    get_policy_api_autonomy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyView"];
+                };
+            };
+        };
+    };
+    put_policy_api_autonomy_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_actions_api_autonomy_actions_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AutoActionView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revert_action_api_autonomy_actions__action_id__revert_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                action_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    decide_api_autonomy_decide_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DecideRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyDecision"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_api_autonomy_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

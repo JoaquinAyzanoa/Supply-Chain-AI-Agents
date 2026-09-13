@@ -58,9 +58,7 @@ class Deps:
     chat: ChatCompleter
     approvals: ApprovalGateway
     toolbox: ToolBox | None = None
-    auto_send_partner_ids: frozenset[int] = frozenset()
-    auto_send_kinds: frozenset[str] = frozenset()  # email kinds nobody needs to approve
-    runtime: RuntimeSettingsReader | None = None  # Control Tower settings (auto-send list)
+    runtime: RuntimeSettingsReader | None = None  # Control Tower settings
     language: Language = "en"  # for what people read; emails follow the supplier's language
     max_tool_rounds: int = 6
     max_attachment_chars: int = 12_000
@@ -131,12 +129,7 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     deps.approvals.add_approval(
         g,
         step=SEND_STEP,
-        build=make_send_approval(
-            deps.auto_send_partner_ids,
-            language=deps.language,
-            runtime=deps.runtime,
-            auto_send_kinds=deps.auto_send_kinds,
-        ),
+        build=make_send_approval(language=deps.language),
         after="create_draft",
         approved="send",
         rejected="rejected",

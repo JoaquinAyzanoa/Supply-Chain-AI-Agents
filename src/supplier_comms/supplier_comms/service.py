@@ -13,7 +13,13 @@ from typing import Any
 from injector import Module, provider, singleton
 
 from sc_core.a2a.events import EventPublisher, PostgresOutbox
-from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
+from sc_core.graph import (
+    ApprovalGateway,
+    OdooApprovalPorts,
+    PostgresAutoActions,
+    build_checkpointer,
+    policy_from,
+)
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
@@ -92,6 +98,7 @@ class SupplierCommsModule(Module):
         odoo: OdooClient,
         chats: ChatClientFactory,
         runtime: RuntimeSettingsReader,
+        db: Database,
     ) -> Deps:
         gateway = ApprovalGateway(
             OdooApprovalPorts(ApprovalRepo(odoo), ActivityRepo(odoo)),
@@ -102,13 +109,13 @@ class SupplierCommsModule(Module):
             deadline_days=settings.agents.approval_deadline_days,
             language=settings.agents.language,
             control_tower_url=settings.ui.public_url,
+            policy=policy_from(runtime),
+            auto_actions=PostgresAutoActions(db),
         )
         return Deps(
             ports=ports,
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,
-            auto_send_partner_ids=frozenset(settings.supplier_comms.auto_send_partner_ids),
-            auto_send_kinds=frozenset(settings.supplier_comms.auto_send_kinds),
             runtime=runtime,
             language=settings.agents.language,
             max_tool_rounds=settings.agents.max_tool_rounds,

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from injector import Binder, Module, singleton
@@ -19,6 +19,7 @@ from director.api.performance import PerformanceSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
+from director.autonomy import AutoAction, AutoActionsStore, AutonomyChanges, Reverter
 from director.concurrency import PoLocks
 from director.conversations import MemoryConversationLookup, MemoryMailActivity
 from director.escalation import Escalator, MemoryEscalator
@@ -33,11 +34,13 @@ from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app.realtime import MemoryRealtime, Realtime
 from sc_core.infra.locks import MemoryLock
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, PurchaseOrder, Ref
-from sc_core.shared.errors import ScError
+from sc_core.schema.runtime_settings import RuntimeSettings
+from sc_core.shared.errors import ScError, ValidationFailed
 
 
 def memory_deps(
@@ -52,6 +55,7 @@ def memory_deps(
     jobs: JobRunner | None = None,
     conversations: MemoryConversationLookup | None = None,
     max_concurrent: int = 4,
+    autonomy: AutonomyChanges | None = None,
 ) -> Deps:
     others = {}
     if inventory_planning is not None:
@@ -79,6 +83,7 @@ def memory_deps(
         escalator=escalator or MemoryEscalator(),
         jobs=jobs or NoJobs(),
         conversations=conversations or MemoryConversationLookup(),
+        autonomy=autonomy,
     )
 
 
@@ -111,6 +116,15 @@ class MemoryDirectorModule(Module):
         self.users = MemoryUserStore()
         self.approvals = MemoryApprovalsGateway()
         self.runtime_settings = MemoryRuntimeSettingsStore()
+        self.runtime_reader = RuntimeSettingsReader(None, defaults=RuntimeSettings())
+        self.auto_actions = MemoryAutoActionsStore()
+        self.reverter = MemoryReverter()
+        self.autonomy = AutonomyChanges(
+            approvals=self.approvals,
+            settings_store=self.runtime_settings,
+            reader=self.runtime_reader,
+            realtime=self.realtime,
+        )
         self.login_limit = LoginRateLimit(per_minute=5)
         self.runs = MemoryRunsGateway()
         self.scheduler_runs = MemorySchedulerRuns()
@@ -132,6 +146,7 @@ class MemoryDirectorModule(Module):
             invoice_match=invoice_match,
             supplier_performance=supplier_performance,
             escalator=self.escalator,
+            autonomy=self.autonomy,
             jobs=jobs,
         )
         self.orchestrator = Orchestrator(
@@ -176,6 +191,10 @@ class MemoryDirectorModule(Module):
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(ApprovalsGateway, to=self.approvals, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(AutoActionsStore, to=self.auto_actions, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(Reverter, to=self.reverter, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(AutonomyChanges, to=self.autonomy, scope=singleton)
+        binder.bind(RuntimeSettingsReader, to=self.runtime_reader, scope=singleton)
         binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(LoginRateLimit, to=self.login_limit, scope=singleton)
 
@@ -218,6 +237,27 @@ class MemoryApprovalsGateway:
                 thread_id=thread_id,
                 callback_status="none",
             )
+        )
+
+    async def create(
+        self,
+        *,
+        kind: str,
+        summary: str,
+        payload: dict[str, Any],
+        requested_by: str,
+        case_id: str,
+        po_id: int | None = None,
+    ) -> Approval:
+        approval_id = max(self.rows, default=100) + 1
+        return self.seed(
+            approval_id,
+            kind=kind,
+            summary=summary,
+            payload=payload,
+            po=None if po_id is None else (po_id, f"P{po_id:05d}"),
+            thread_id=case_id,
+            requested_by=requested_by,
         )
 
     async def list(self, *, status: str, kind: str | None, po_name: str | None) -> list[Approval]:
@@ -440,3 +480,46 @@ class MemoryPerformanceSource:
 
     async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
         return [await self.rank(pid) for pid in sorted(set(product_ids))]
+
+
+class MemoryAutoActionsStore:
+    """The automatic-actions feed as the agents would have written it."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, AutoAction] = {}
+
+    def add(self, action: AutoAction) -> AutoAction:
+        self.rows[action.id] = action
+        return action
+
+    async def recent(self, *, since: datetime, limit: int = 200) -> list[AutoAction]:
+        rows = [a for a in self.rows.values() if a.created_at >= since]
+        return sorted(rows, key=lambda a: a.created_at, reverse=True)[:limit]
+
+    async def for_case(self, case_id: str) -> list[AutoAction]:
+        return sorted(
+            (a for a in self.rows.values() if a.case_id == case_id), key=lambda a: a.created_at
+        )
+
+    async def get(self, action_id: int) -> AutoAction | None:
+        return self.rows.get(action_id)
+
+    async def mark_reverted(self, action_id: int, *, by: str) -> AutoAction:
+        if action_id not in self.rows:
+            raise ScError(f"automatic action {action_id} not found")
+        updated = self.rows[action_id].model_copy(
+            update={"reverted_at": datetime.now(UTC), "reverted_by": by}
+        )
+        self.rows[action_id] = updated
+        return updated
+
+
+class MemoryReverter:
+    def __init__(self) -> None:
+        self.reverted: list[tuple[int, str]] = []
+
+    async def revert(self, action: AutoAction, *, by: str) -> str:
+        if action.kind != "po_change" or not action.revert:
+            raise ValidationFailed(f"an automatic {action.kind} cannot be reverted")
+        self.reverted.append((action.id, by))
+        return f"Automatic change #{action.id} reverted by {by}"

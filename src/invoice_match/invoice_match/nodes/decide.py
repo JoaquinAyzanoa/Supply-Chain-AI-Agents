@@ -21,22 +21,23 @@ from invoice_match.state import Node
 from sc_core.graph import ApprovalRequest, decision_for
 from sc_core.i18n import Language, t
 from sc_core.schema.a2a import BillMatch
+from sc_core.schema.autonomy import ActionFacts
 
 BILL_STEP = "vendor_bill"
 
 
 def make_bill_approval(
-    *, auto_approve_amount: float = 0.0, language: Language = "en"
+    *, language: Language = "en"
 ) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
+    """Recording a bill is the autonomy policy's call: the facts are the amount and
+    the verdict (confidence 1 when every line matches, 0 when held)."""
+
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         ctx = context_of(state)
         invoice = invoice_of(state)
         match = BillMatch.model_validate(state["match"])
         bill = bill_of(state)
         amount = invoice.total if invoice.total is not None else invoice.subtotal or 0.0
-        auto = (
-            match.verdict == "clean" and auto_approve_amount > 0 and amount <= auto_approve_amount
-        )
         key = "bill.approval_clean" if match.verdict == "clean" else "bill.approval_hold"
         return ApprovalRequest(
             kind="vendor_bill",
@@ -62,10 +63,13 @@ def make_bill_approval(
             # A bill that exists hangs the approval on itself, so the invoice form lists it.
             res_model="account.move" if bill else "purchase.order",
             res_id=bill.move_id if bill else None,
-            auto_approve=auto,
-            auto_reason=t("bill.auto_reason", language, amount=auto_approve_amount)
-            if auto
-            else None,
+            facts=ActionFacts(
+                partner_id=ctx.partner_id,
+                partner_name=ctx.partner_name,
+                amount=amount,
+                currency=invoice.currency or ctx.currency,
+                confidence=1.0 if match.verdict == "clean" else 0.0,
+            ),
         )
 
     return build

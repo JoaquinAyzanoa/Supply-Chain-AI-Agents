@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { Schemas } from "@/api/client";
 
 export type Approval = Schemas["ApprovalView"];
-export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation" | "vendor_bill" | "supplier_score";
+export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation" | "vendor_bill" | "supplier_score" | "autonomy_change";
 
 export const emailPayload = z
   .object({
@@ -167,7 +167,30 @@ export const scoresPayload = z
   .loose();
 export type ScoresPayload = z.infer<typeof scoresPayload>;
 
-const KNOWN: ReadonlySet<string> = new Set(["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score"]);
+export const autonomyRule = z
+  .object({
+    id: z.string(),
+    kind: z.string().default("*"),
+    level: z.string().default("approve"),
+    revert_hours: z.number().default(24),
+    note: z.string().default(""),
+    enabled: z.boolean().default(true),
+    when: z.record(z.string(), z.unknown()).default({}),
+  })
+  .loose();
+
+export const autonomyChangePayload = z
+  .object({
+    policy: z.object({ rules: z.array(autonomyRule).default([]) }).loose().default({ rules: [] }),
+    widened: z.array(z.string()).default([]),
+    requested_by: z.string().nullish(),
+    requested_by_name: z.string().nullish(),
+    note: z.string().nullish(),
+  })
+  .loose();
+export type AutonomyChangePayload = z.infer<typeof autonomyChangePayload>;
+
+const KNOWN: ReadonlySet<string> = new Set(["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score", "autonomy_change"]);
 
 export function kindOf(approval: Approval): ApprovalKind | "other" {
   return KNOWN.has(approval.kind) ? (approval.kind as ApprovalKind) : "other";

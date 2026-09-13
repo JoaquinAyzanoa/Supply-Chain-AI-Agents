@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
+from sc_core.schema.autonomy import AutonomyPolicy
 from sc_core.schema.base import StrictModel
 
 if TYPE_CHECKING:
@@ -45,6 +46,9 @@ class RuntimeSettings(StrictModel):
     planning_service_level: float | None = Field(default=None, gt=0.5, lt=1.0)
     planning_review_period_days: int | None = Field(default=None, ge=1)
     planning_max_coverage_days: int | None = Field(default=None, ge=1)
+    # Which proposed actions run alone (phase 11). The legacy auto-send lists and the
+    # bill amount cap above are kept for older rows and folded into rules on read.
+    autonomy: AutonomyPolicy = Field(default_factory=AutonomyPolicy)
 
     @classmethod
     def from_settings(cls, settings: Settings) -> RuntimeSettings:
@@ -62,6 +66,11 @@ class RuntimeSettings(StrictModel):
                 k for k in settings.supplier_comms.auto_send_kinds if k in EMAIL_KINDS
             ],  # type: ignore[misc]
             ignored_senders=list(settings.mail_sync.ignored_senders),
+            autonomy=AutonomyPolicy.from_legacy(
+                list(settings.supplier_comms.auto_send_partner_ids),
+                list(settings.supplier_comms.auto_send_kinds),
+                settings.invoice_match.bill_auto_approve_amount,
+            ),
         )
 
     def model_for(self, agent_name: str) -> str | None:

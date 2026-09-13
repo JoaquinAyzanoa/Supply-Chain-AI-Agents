@@ -70,6 +70,8 @@ def make_agent(ports: FakeInvoicePorts, chat: ScriptedChatClient, approval_ports
             callback_secret="s",
             approver_user_id=2,
             deadline_days=2,
+            policy=overrides.pop("policy", None),
+            auto_actions=overrides.pop("auto_actions", None),
         )
         kwargs: dict[str, Any] = {
             "ports": ports,

@@ -121,8 +121,11 @@ async def test_price_variance_is_held_and_approving_creates_the_bill_anyway(
 async def test_clean_invoice_under_the_limit_needs_nobody(
     make_agent: Any, ports: FakeInvoicePorts, chat: ScriptedChatClient, approval_ports: Any
 ) -> None:
+    from sc_core.schema.autonomy import AutonomyPolicy
+
     chat.responses.append(READ)
-    done = await make_agent(auto_approve_amount=2000.0).run(
+    cap = AutonomyPolicy.from_legacy(bill_auto_approve_amount=2000.0).provider()
+    done = await make_agent(policy=cap).run(
         InvoiceMatchTask(
             kind="match_bill", case_id="c_inv3", po_name="P00015", graph_message_id="inv1"
         )

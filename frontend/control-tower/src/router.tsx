@@ -12,6 +12,7 @@ import { atLeast, authStore } from "@/auth/store";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/routes/login";
 import { ApprovalsInbox, type ApprovalsSearch } from "@/features/approvals/ApprovalsInbox";
+import { AutonomyPage } from "@/features/autonomy/AutonomyPage";
 import { BoardPage, type BoardSearch } from "@/features/board/BoardPage";
 import { CaseTimelinePage } from "@/features/cases/CaseTimeline";
 import { CasesPage } from "@/features/cases/CasesPage";
@@ -100,6 +101,7 @@ export const casesRoute = createRoute({
 export const caseRoute = child("/cases/$caseId", CaseTimelinePage);
 export const exceptionsRoute = child("/exceptions", ExceptionsBoardPage);
 export const suppliersRoute = child("/suppliers", SuppliersPage);
+export const autonomyRoute = child("/autonomy", AutonomyPage);
 export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
 const runsSearch = z.object({
@@ -133,6 +135,7 @@ const routeTree = rootRoute.addChildren([
     caseRoute,
     exceptionsRoute,
     suppliersRoute,
+    autonomyRoute,
     planningRoute,
     planningRunRoute,
     runsRoute,

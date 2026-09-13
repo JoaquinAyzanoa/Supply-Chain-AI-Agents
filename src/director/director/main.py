@@ -38,6 +38,13 @@ from director.api.planning import (
 )
 from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
+from director.autonomy import (
+    AutoActionsStore,
+    AutonomyChanges,
+    OdooReverter,
+    PostgresAutoActionsStore,
+    Reverter,
+)
 from director.concurrency import PoLocks
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
 from director.escalation import (
@@ -308,6 +315,29 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_auto_actions(self, db: Database) -> AutoActionsStore:  # type: ignore[type-abstract]
+        return PostgresAutoActionsStore(db)
+
+    @provider
+    @singleton
+    def provide_reverter(self, orders: PurchaseOrderRepo) -> Reverter:  # type: ignore[type-abstract]
+        return OdooReverter(orders)
+
+    @provider
+    @singleton
+    def provide_autonomy_changes(
+        self,
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        store: RuntimeSettingsStore,  # type: ignore[type-abstract]
+        reader: RuntimeSettingsReader,
+        realtime: Realtime,  # type: ignore[type-abstract]
+    ) -> AutonomyChanges:
+        return AutonomyChanges(
+            approvals=approvals, settings_store=store, reader=reader, realtime=realtime
+        )
+
+    @provider
+    @singleton
     def provide_login_limit(self, settings: Settings) -> LoginRateLimit:
         return LoginRateLimit(settings.ui.login_rate_per_minute)
 
@@ -320,6 +350,7 @@ class DirectorModule(Module):
         escalator: Escalator,  # type: ignore[type-abstract]
         jobs: JobRunner,  # type: ignore[type-abstract]
         db: Database,
+        autonomy: AutonomyChanges,
     ) -> Deps:
         return Deps(
             cases=cases,
@@ -327,6 +358,7 @@ class DirectorModule(Module):
             escalator=escalator,
             jobs=jobs,
             conversations=PostgresConversationLookup(db),
+            autonomy=autonomy,
         )
 
     @provider

@@ -145,6 +145,11 @@ class Deps:
     escalator: Escalator
     jobs: JobRunner
     conversations: ConversationLookup
+    autonomy: AutonomyApplier | None = None  # applies an approved autonomy change
+
+
+class AutonomyApplier(Protocol):
+    async def apply_approval(self, approval_id: int, *, by: str) -> Any: ...
 
 
 # --- status mapping -----------------------------------------------------------------
@@ -453,6 +458,17 @@ class ConsolidateExecutor(Executor):
         agent's business (its own completion event follows), except an expiry, which
         nobody answered and therefore needs a person."""
         cases = self._deps.cases
+        if event.kind == "autonomy_change":
+            # resolved from the Control Tower: the approvals API applied it already
+            if (
+                event.status == "approved"
+                and event.resolved_via != "api"
+                and self._deps.autonomy is not None
+            ):
+                await self._deps.autonomy.apply_approval(
+                    event.approval_id, by=event.resolved_by_name or event.resolved_by or "odoo"
+                )
+            return (await cases.update(case.case_id, status="done", summary=note)).status
         if event.kind == "escalation":
             if event.status == "approved":
                 return (await cases.update(case.case_id, status="done", summary=note)).status

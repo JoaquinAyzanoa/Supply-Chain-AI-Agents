@@ -43,7 +43,9 @@ def real_or_replayed_chat() -> Any:
 async def test_rfq_is_drafted_with_the_order_lines(
     make_agent: Any, ports: FakePorts, real_or_replayed_chat: Any
 ) -> None:
-    agent = make_agent(chat=real_or_replayed_chat, auto_send_partner_ids=frozenset({42}))
+    from .test_graph_outbound import trusted
+
+    agent = make_agent(chat=real_or_replayed_chat, policy=trusted(42))
     result = await agent.run(
         SupplierCommsTask(kind="send_rfq", case_id="cas_rfq", po_name="P00015")
     )

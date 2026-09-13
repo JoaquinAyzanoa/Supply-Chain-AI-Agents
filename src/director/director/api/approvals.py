@@ -25,6 +25,7 @@ from loguru import logger
 from pydantic import Field, ValidationError
 
 from director.api.auth import Approver, Principal, Viewer
+from director.autonomy import AutonomyChanges
 from director.store import Case, CaseStore
 from sc_core.infra import tracing
 from sc_core.infra.settings import Settings
@@ -119,6 +120,17 @@ class ApprovalsGateway(Protocol):
 
     async def get(self, approval_id: int) -> Approval: ...
 
+    async def create(
+        self,
+        *,
+        kind: str,
+        summary: str,
+        payload: dict[str, Any],
+        requested_by: str,
+        case_id: str,
+        po_id: int | None = None,
+    ) -> Approval: ...
+
     async def resolve(
         self,
         approval_id: int,
@@ -148,6 +160,25 @@ class OdooApprovalsGateway:
 
     async def get(self, approval_id: int) -> Approval:
         return await self._approvals.get(approval_id)
+
+    async def create(
+        self,
+        *,
+        kind: str,
+        summary: str,
+        payload: dict[str, Any],
+        requested_by: str,
+        case_id: str,
+        po_id: int | None = None,
+    ) -> Approval:
+        return await self._approvals.create(
+            kind=kind,  # type: ignore[arg-type]
+            summary=summary,
+            payload=payload,
+            requested_by=requested_by,
+            case_id=case_id,
+            po_id=po_id,
+        )
 
     async def resolve(
         self,
@@ -279,6 +310,7 @@ async def resolve_approval(
     principal: Principal = Approver,
     gateway: ApprovalsGateway = Injected(ApprovalsGateway),  # type: ignore[type-abstract]
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
+    autonomy: AutonomyChanges = Injected(AutonomyChanges),
 ) -> ResolveResponse:
     try:
         approval = await gateway.get(approval_id)
@@ -291,12 +323,20 @@ async def resolve_approval(
     details = (
         validate_edits(approval.kind, body.edited_payload) if body.status == "approved" else None
     )
+    if approval.kind == "autonomy_change" and body.status == "approved":
+        # widening autonomy is a two-person decision: the requester cannot confirm it
+        if AutonomyChanges.second_person_required(approval, principal.email):
+            raise HTTPException(
+                status_code=403, detail="a second person must approve an autonomy change"
+            )
     try:
         resolved = await gateway.resolve(
             approval_id, body.status, by_name=principal.name, reason=body.reason, details=details
         )
     except ScError as exc:
         raise HTTPException(status_code=502, detail=f"Odoo refused: {exc.message}") from exc
+    if approval.kind == "autonomy_change" and body.status == "approved":
+        await autonomy.apply(approval, by=principal.email)
     case = await case_for(cases, approval)
     if case is not None:
         await cases.add_event(

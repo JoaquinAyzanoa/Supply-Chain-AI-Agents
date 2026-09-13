@@ -12,9 +12,16 @@ from invoice_match.agent import InvoiceMatchAgent
 from invoice_match.graph import Deps, build_graph
 from invoice_match.ports import LiveInvoicePorts
 from sc_core.a2a.events import EventPublisher, PostgresOutbox
-from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
+from sc_core.graph import (
+    ApprovalGateway,
+    OdooApprovalPorts,
+    PostgresAutoActions,
+    build_checkpointer,
+    policy_from,
+)
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.llm import default_budget
 from sc_core.mail.outbound import PostgresOutboundMailStore
@@ -90,6 +97,8 @@ class InvoiceMatchModule(Module):
         ports: LiveInvoicePorts,
         odoo: OdooClient,
         chats: ChatClientFactory,
+        runtime: RuntimeSettingsReader,
+        db: Database,
     ) -> Deps:
         cfg = settings.invoice_match
         gateway = ApprovalGateway(
@@ -101,6 +110,8 @@ class InvoiceMatchModule(Module):
             deadline_days=settings.agents.approval_deadline_days,
             language=settings.agents.language,
             control_tower_url=settings.ui.public_url,
+            policy=policy_from(runtime),
+            auto_actions=PostgresAutoActions(db),
         )
         return Deps(
             ports=ports,
@@ -110,7 +121,6 @@ class InvoiceMatchModule(Module):
             price_tolerance_pct=cfg.price_tolerance_pct,
             qty_tolerance_pct=cfg.qty_tolerance_pct,
             fuzzy_threshold=cfg.fuzzy_threshold,
-            auto_approve_amount=cfg.bill_auto_approve_amount,
             max_attachment_chars=cfg.max_attachment_chars,
             langfuse=settings.langfuse,
         )

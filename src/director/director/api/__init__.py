@@ -11,6 +11,7 @@ from fastapi import APIRouter
 from director.api import (
     approvals,
     auth,
+    autonomy,
     board,
     cases,
     chat,
@@ -26,6 +27,7 @@ from director.api import (
 api_router = APIRouter(prefix="/api")
 api_router.include_router(auth.router)
 api_router.include_router(approvals.router)
+api_router.include_router(autonomy.router)
 api_router.include_router(board.router)
 api_router.include_router(mailbox.router)
 api_router.include_router(performance.router)

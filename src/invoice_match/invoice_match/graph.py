@@ -37,7 +37,6 @@ class Deps:
     price_tolerance_pct: float = 1.0
     qty_tolerance_pct: float = 0.0
     fuzzy_threshold: float = 0.6
-    auto_approve_amount: float = 0.0
     max_attachment_chars: int = 12_000
     langfuse: LangfuseCfg | None = None
     today: Callable[[], date] = field(default=local_today)
@@ -74,9 +73,7 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     deps.approvals.add_approval(
         g,
         step=BILL_STEP,
-        build=make_bill_approval(
-            auto_approve_amount=deps.auto_approve_amount, language=deps.language
-        ),
+        build=make_bill_approval(language=deps.language),
         after=None,
         approved="apply",
         rejected="rejected",

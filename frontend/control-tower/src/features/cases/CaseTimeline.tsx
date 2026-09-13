@@ -26,6 +26,7 @@ export function CaseTimelinePage() {
   if (detail.isPending) return <Loading />;
   if (detail.error) return <ErrorBox error={detail.error} onRetry={() => detail.refetch()} />;
   const { case: item, events, runs } = detail.data;
+  const autoActions = detail.data.auto_actions ?? [];
   return (
     <div>
       <PageTitle title={caseTitle(item, t, locale)}>
@@ -48,6 +49,23 @@ export function CaseTimelinePage() {
             <span title={item.case_id}>{t("cases.id", { id: shortCaseId(item.case_id, item.code) })}</span>
           </p>
           <CaseEvents events={events} />
+          {autoActions.length ? (
+            <div className="mt-4" data-testid="case-auto-actions">
+              <h2 className="mb-2 text-sm font-semibold">{t("autonomy.feed.title")}</h2>
+              <ul className="flex flex-col gap-1 text-sm">
+                {autoActions.map((action) => (
+                  <li key={action.id} className="flex flex-wrap items-center gap-2">
+                    <Badge variant={action.level === "auto_notice" ? "warning" : "secondary"}>{t(`autonomy.level.${action.level}`)}</Badge>
+                    <span>{action.summary}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {t("autonomy.feed.by_rule", { rule: action.rule_id ?? "-" })}
+                      {action.reverted_at ? ` · ${t("autonomy.feed.reverted", { by: action.reverted_by ?? "-" })}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </section>
         <aside className="flex flex-col gap-4">
           <CaseChat caseRef={item.code} compact />
