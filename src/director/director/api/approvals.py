@@ -26,6 +26,7 @@ from pydantic import Field, ValidationError
 
 from director.api.auth import Approver, Principal, Viewer
 from director.autonomy import AutonomyChanges
+from director.learning import FeedbackRecorder
 from director.store import Case, CaseStore
 from sc_core.infra import tracing
 from sc_core.infra.settings import Settings
@@ -85,6 +86,9 @@ class ChangeEdits(StrictModel):
 class PlanEdits(StrictModel):
     accepted_line_ids: list[str]
     edits: dict[str, dict[str, float]] = {}
+    params: dict[
+        str, dict[str, float]
+    ] = {}  # per line: service_level, review_period_days, max_coverage_days
 
 
 EDITS_BY_KIND: dict[str, type[StrictModel]] = {
@@ -266,9 +270,12 @@ def validate_edits(kind: str, edited: dict[str, Any] | None) -> dict[str, Any] |
     if schema is None:
         raise HTTPException(status_code=422, detail=f"{kind} approvals take no edits")
     try:
-        return schema.model_validate(edited).model_dump(exclude_none=True)
+        data = schema.model_validate(edited).model_dump(exclude_none=True)
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    if data.get("params") == {}:
+        data.pop("params")  # only planning reviews that keep parameters carry them
+    return data
 
 
 # --- routes --------------------------------------------------------------------------------------
@@ -311,6 +318,7 @@ async def resolve_approval(
     gateway: ApprovalsGateway = Injected(ApprovalsGateway),  # type: ignore[type-abstract]
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
     autonomy: AutonomyChanges = Injected(AutonomyChanges),
+    feedback: FeedbackRecorder = Injected(FeedbackRecorder),
 ) -> ResolveResponse:
     try:
         approval = await gateway.get(approval_id)
@@ -335,6 +343,14 @@ async def resolve_approval(
         )
     except ScError as exc:
         raise HTTPException(status_code=502, detail=f"Odoo refused: {exc.message}") from exc
+    await feedback.record_resolution(
+        approval,
+        status=body.status,
+        by=principal.email,
+        via="api",
+        reason=body.reason,
+        details=details,
+    )
     if approval.kind == "autonomy_change" and body.status == "approved":
         await autonomy.apply(approval, by=principal.email)
     case = await case_for(cases, approval)

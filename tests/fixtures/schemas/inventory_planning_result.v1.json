@@ -184,6 +184,19 @@
           "title": "Forecast Method",
           "type": "string"
         },
+        "held_until": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Held Until"
+        },
         "history_periods": {
           "minimum": 0,
           "title": "History Periods",

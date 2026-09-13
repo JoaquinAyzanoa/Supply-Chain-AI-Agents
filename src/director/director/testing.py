@@ -26,6 +26,13 @@ from director.escalation import Escalator, MemoryEscalator
 from director.handlers.followups import MailActivity
 from director.inbox import EventInbox, EventResults, MemoryEventInbox, MemoryEventResults
 from director.jobs import JobRunner, NoJobs
+from director.learning import (
+    FeedbackRecorder,
+    FeedbackStore,
+    MemoryFeedbackStore,
+    MemorySuggestionStore,
+    SuggestionStore,
+)
 from director.policies import FollowUpPolicy, PoFacts
 from director.realtime import BroadcastingCaseStore
 from director.store import CaseStore, MemoryCaseStore
@@ -34,6 +41,7 @@ from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app.realtime import MemoryRealtime, Realtime
 from sc_core.infra.locks import MemoryLock
+from sc_core.infra.profiles import MemoryProfileStore, ProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter
@@ -63,6 +71,7 @@ def memory_deps(
     conversations: MemoryConversationLookup | None = None,
     max_concurrent: int = 4,
     autonomy: AutonomyChanges | None = None,
+    feedback: FeedbackRecorder | None = None,
 ) -> Deps:
     others = {}
     if inventory_planning is not None:
@@ -91,6 +100,7 @@ def memory_deps(
         jobs=jobs or NoJobs(),
         conversations=conversations or MemoryConversationLookup(),
         autonomy=autonomy,
+        feedback=feedback,
     )
 
 
@@ -126,6 +136,10 @@ class MemoryDirectorModule(Module):
         self.runtime_reader = RuntimeSettingsReader(None, defaults=RuntimeSettings())
         self.auto_actions = MemoryAutoActionsStore()
         self.reverter = MemoryReverter()
+        self.feedback = MemoryFeedbackStore()
+        self.suggestions = MemorySuggestionStore()
+        self.profiles = MemoryProfileStore()
+        self.recorder = FeedbackRecorder(self.approvals, self.feedback)
         self.autonomy = AutonomyChanges(
             approvals=self.approvals,
             settings_store=self.runtime_settings,
@@ -154,6 +168,7 @@ class MemoryDirectorModule(Module):
             supplier_performance=supplier_performance,
             escalator=self.escalator,
             autonomy=self.autonomy,
+            feedback=self.recorder,
             jobs=jobs,
         )
         self.orchestrator = Orchestrator(
@@ -201,6 +216,10 @@ class MemoryDirectorModule(Module):
         binder.bind(AutoActionsStore, to=self.auto_actions, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(Reverter, to=self.reverter, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(AutonomyChanges, to=self.autonomy, scope=singleton)
+        binder.bind(FeedbackStore, to=self.feedback, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SuggestionStore, to=self.suggestions, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(ProfileStore, to=self.profiles, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(FeedbackRecorder, to=self.recorder, scope=singleton)
         binder.bind(RuntimeSettingsReader, to=self.runtime_reader, scope=singleton)
         binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(LoginRateLimit, to=self.login_limit, scope=singleton)

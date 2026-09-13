@@ -70,6 +70,7 @@ class ReplenishmentLine(StrictModel):
     exception: ExceptionKind | None = None
     explanation: str | None = None
     action: LineAction = "none"
+    held_until: date | None = None  # a rule change the planner rejected twice: not proposed
 
     @property
     def order_value(self) -> float:

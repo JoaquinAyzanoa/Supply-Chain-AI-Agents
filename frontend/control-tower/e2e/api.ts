@@ -267,6 +267,9 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path === "/api/settings/models") return json(route, 200, []);
     if (path === "/api/autonomy" && request.method() === "GET") return json(route, 200, { version: 0, changed_by: "environment", changed_at: null, policy: { rules: [] }, pending: null });
     if (path === "/api/autonomy/actions") return json(route, 200, []);
+    if (path === "/api/learning/suggestions") return json(route, 200, []);
+    if (path === "/api/learning/stats") return json(route, 200, { days: 90, total: 0, unchanged: 0, edited: 0, rejected: 0, expired: 0, by_kind: [], by_supplier: [] });
+    if (path.startsWith("/api/learning/profiles/")) return json(route, 200, { partner_id: 45, language: null, formality: null, greeting: null, sign_off: null, contacts: [], notes: "", facts: {}, updated_at: null, updated_by: null });
     if (path === "/api/settings/history") return json(route, 200, []);
     return json(route, 404, { detail: `unhandled ${request.method()} ${path}` });
   });

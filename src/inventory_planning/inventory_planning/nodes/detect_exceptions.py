@@ -78,7 +78,7 @@ def _exception(
 def _action(line: ReplenishmentLine, exception: ExceptionKind | None) -> LineAction:
     if exception in ("no_supplier", "no_history"):
         return "manual_review"
-    rule = rule_changes(line)
+    rule = rule_changes(line) and line.held_until is None  # held: keep the current rule
     order = line.order_qty > 0 and exception != "overstock"
     if order and rule:
         return "update_rule_and_rfq"

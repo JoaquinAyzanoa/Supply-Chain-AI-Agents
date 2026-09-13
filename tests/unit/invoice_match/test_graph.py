@@ -254,3 +254,31 @@ async def test_checking_an_existing_bill_ignores_its_own_quantities(
     assert [m.status for m in paused.match.lines] == ["ok"]
     [created] = approval_ports.created
     assert created["summary"].endswith("it matches")
+
+
+async def test_the_control_tower_tolerance_wins_over_the_environment(
+    make_agent: Any, ports: FakeInvoicePorts, chat: ScriptedChatClient, approval_ports: Any
+) -> None:
+    """A 3 % dearer line is held at the default 1 %, matched once a person raised it to 5 %."""
+    from sc_core.infra.runtime_settings import MemoryRuntimeSettingsReader
+    from sc_core.schema.runtime_settings import RuntimeSettings
+
+    dearer = READ.model_copy(
+        update={
+            "lines": [
+                InvoiceLine(
+                    description="Bomba hidraulica 2HP", qty=2, unit_price=515.0, total=1030.0
+                ),
+                InvoiceLine(description='Manguera 1/2"', qty=20, unit_price=12.5, total=250.0),
+            ],
+            "subtotal": 1280.0,
+            "total": 1510.4,
+        }
+    )
+    chat.responses.append(dearer)
+    runtime = MemoryRuntimeSettingsReader(RuntimeSettings(invoice_price_tolerance_pct=5.0))
+    paused = await make_agent(runtime=runtime).run(
+        InvoiceMatchTask(kind="match_bill", case_id="c_tol", graph_message_id="inv1")
+    )
+    assert paused.match is not None and paused.match.verdict == "clean"
+    assert approval_ports.created[-1]["summary"].endswith("it matches")

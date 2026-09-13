@@ -258,3 +258,30 @@ def test_style_tables_gives_bare_tables_borders() -> None:
     assert styled.startswith("<p>Hola</p><table style=")
     assert style_tables('<td style="color:red">x</td>') == '<td style="color:red">x</td>'
     assert style_tables("<p>no table</p>") == "<p>no table</p>"
+
+
+async def test_the_supplier_profile_shapes_the_draft(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    """What the buyers wrote about the supplier is in the prompt; agent facts are not."""
+    from sc_core.schema.profiles import SupplierProfile
+
+    ports.profiles[42] = SupplierProfile(
+        partner_id=42,
+        formality="formal",
+        greeting="Estimados señores de Hidraulica",
+        sign_off="Atentamente",
+        contacts=["Carla Reyes"],
+        notes="Copy Carla on urgent orders.",
+        facts={"reply_hours_median": 2.8},
+    )
+    _script_draft(chat)
+    result = await make_agent().run(
+        SupplierCommsTask(kind="send_rfq", case_id="profile_1", po_name="P00015")
+    )
+    assert result.status == "awaiting_approval"
+    context = chat.calls[0].messages[1]["contents"][0]["text"]
+    assert "Supplier profile (follow it):" in context
+    assert "Greeting to use: Estimados señores de Hidraulica" in context
+    assert "Contacts: Carla Reyes" in context and "Copy Carla on urgent orders." in context
+    assert "reply_hours_median" not in context  # facts are for the Control Tower, not the prompt

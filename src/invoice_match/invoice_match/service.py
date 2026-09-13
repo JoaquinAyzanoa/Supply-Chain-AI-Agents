@@ -121,6 +121,7 @@ class InvoiceMatchModule(Module):
             price_tolerance_pct=cfg.price_tolerance_pct,
             qty_tolerance_pct=cfg.qty_tolerance_pct,
             fuzzy_threshold=cfg.fuzzy_threshold,
+            runtime=runtime,
             max_attachment_chars=cfg.max_attachment_chars,
             langfuse=settings.langfuse,
         )

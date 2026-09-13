@@ -15,7 +15,7 @@ from injector import Module, provider, singleton
 from inventory_planning import AGENT_NAME
 from inventory_planning.agent import InventoryPlanningAgent
 from inventory_planning.graph import Deps, build_graph
-from inventory_planning.policy import PostgresParamsStore
+from inventory_planning.policy import PostgresHoldStore, PostgresParamsStore
 from inventory_planning.ports import LiveDataPorts, LiveWritePorts
 from inventory_planning.runs import PostgresRunStore
 from sc_core.a2a.events import EventPublisher, PostgresOutbox
@@ -92,6 +92,7 @@ class InventoryPlanningModule(Module):
             data=LiveDataPorts(odoo),
             writes=LiveWritePorts(odoo),
             params=PostgresParamsStore(db),
+            holds=PostgresHoldStore(db),
             runs=PostgresRunStore(db),
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,

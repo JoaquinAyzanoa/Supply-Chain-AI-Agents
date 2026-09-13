@@ -9,6 +9,7 @@ from itertools import count
 from typing import Any
 
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
+from sc_core.schema.profiles import SupplierProfile
 from supplier_comms.models import InboundMeta, LineView, PoContext
 
 SUPPLIER_EMAIL = "ventas.hidraulica.sc@gmail.com"
@@ -78,6 +79,7 @@ class FakePorts:
     date_changes: list[dict[str, Any]] = field(default_factory=list)
     price_upserts: list[dict[str, Any]] = field(default_factory=list)
     eta_meta: list[dict[str, Any]] = field(default_factory=list)
+    profiles: dict[int, SupplierProfile] = field(default_factory=dict)
     _seq: Any = field(default_factory=lambda: count(1))
 
     async def load_po(self, po_name: str) -> PoContext | None:
@@ -172,6 +174,9 @@ class FakePorts:
 
     async def post_note(self, po_id: int, html: str) -> None:
         self.notes.append((po_id, html))
+
+    async def supplier_profile(self, partner_id: int) -> SupplierProfile | None:
+        return self.profiles.get(partner_id)
 
     async def inbound_text(self, message_id: str) -> str:
         return self.inbound.get(message_id, "")

@@ -22,6 +22,7 @@ from loguru import logger
 
 from inventory_planning import AGENT_NAME
 from inventory_planning.nodes.propose import dataset_of, lines_of, task_of
+from inventory_planning.policy import HoldStore, ParamsStore, ProductParams
 from inventory_planning.ports import WritePorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node
@@ -121,6 +122,47 @@ def accepted_lines(
     return out
 
 
+async def remember_decision(
+    proposed: list[ReplenishmentLine],
+    decision: Any,
+    *,
+    params_store: ParamsStore | None,
+    holds: HoldStore | None,
+    today: date,
+) -> None:
+    """What the person taught: rule changes left out are counted (two make a hold);
+    parameters kept from a what-if become the product's own."""
+    details = (decision.details if decision else None) or {}
+    accepted = details.get("accepted_line_ids")
+    if holds is not None and accepted is not None:
+        wanted = {str(i) for i in accepted}
+        for line in proposed:
+            if line.action in ("update_rule", "update_rule_and_rfq") and line.line_id not in wanted:
+                await holds.note_rejection(
+                    line.product_id,
+                    approval_id=decision.approval_id if decision else None,
+                    today=today,
+                )
+    kept: dict[str, dict[str, Any]] = details.get("params") or {}
+    if params_store is not None and kept:
+        by_line = {line.line_id: line for line in proposed}
+        for line_id, values in kept.items():
+            target = by_line.get(line_id)
+            if target is None:
+                continue
+            allowed = {
+                k: v
+                for k, v in values.items()
+                if k in ("service_level", "review_period_days", "max_coverage_days")
+                and v is not None
+            }
+            if not allowed:
+                continue
+            current = (await params_store.for_products([target.product_id])).get(target.product_id)
+            base = current or ProductParams.default_for(target.product_id, target.abc_class)  # type: ignore[arg-type]
+            await params_store.save(base.model_copy(update={**allowed, "source": "planner"}))
+
+
 def make_apply(
     ports: WritePorts,
     runs: RunStore,
@@ -128,6 +170,8 @@ def make_apply(
     publish: Callable[[RfqDrafted], Awaitable[Any]],
     today: Callable[[], date],
     language: Language = "en",
+    params_store: ParamsStore | None = None,
+    holds: HoldStore | None = None,
 ) -> Node:
     async def apply(state: Any) -> dict[str, Any]:
         if task_of(state).kind == "what_if":  # never reached by the graph; belt and braces
@@ -137,6 +181,9 @@ def make_apply(
         dataset = dataset_of(state)
         decision = decision_for(state, PLAN_STEP)
         lines = accepted_lines(lines_of(state), decision.model_dump() if decision else None)
+        await remember_decision(
+            lines_of(state), decision, params_store=params_store, holds=holds, today=today()
+        )
         applied: dict[str, dict[str, Any]] = {}
         rules_written = 0
         for line in lines:

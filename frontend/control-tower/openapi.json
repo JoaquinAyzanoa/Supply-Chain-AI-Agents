@@ -1772,6 +1772,133 @@
         "title": "ExceptionsBoard",
         "type": "object"
       },
+      "FeedbackStats": {
+        "additionalProperties": false,
+        "properties": {
+          "edited": {
+            "title": "Edited",
+            "type": "integer"
+          },
+          "expired": {
+            "title": "Expired",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "median_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Minutes"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "n",
+          "unchanged",
+          "edited",
+          "rejected",
+          "expired"
+        ],
+        "title": "FeedbackStats",
+        "type": "object"
+      },
+      "FeedbackSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "by_kind": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackStats"
+            },
+            "title": "By Kind",
+            "type": "array"
+          },
+          "by_supplier": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackStats"
+            },
+            "title": "By Supplier",
+            "type": "array"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "edited": {
+            "title": "Edited",
+            "type": "integer"
+          },
+          "expired": {
+            "title": "Expired",
+            "type": "integer"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "total",
+          "unchanged",
+          "edited",
+          "rejected",
+          "expired",
+          "by_kind",
+          "by_supplier"
+        ],
+        "title": "FeedbackSummary",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -2958,6 +3085,70 @@
         "title": "Principal",
         "type": "object"
       },
+      "ProfileUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "formality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formality"
+          },
+          "greeting": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Greeting"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "sign_off": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sign Off"
+          }
+        },
+        "title": "ProfileUpdate",
+        "type": "object"
+      },
       "ProposedAction": {
         "additionalProperties": false,
         "properties": {
@@ -3229,6 +3420,18 @@
           "forecast_method": {
             "title": "Forecast Method",
             "type": "string"
+          },
+          "held_until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held Until"
           },
           "history_periods": {
             "minimum": 0.0,
@@ -3731,6 +3934,19 @@
             "title": "Ignored Senders",
             "type": "array"
           },
+          "invoice_price_tolerance_pct": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Price Tolerance Pct"
+          },
           "max_actions_per_run": {
             "default": 20,
             "minimum": 1.0,
@@ -3959,6 +4175,132 @@
         "title": "SettingsVersion",
         "type": "object"
       },
+      "Suggestion": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "id": {
+            "default": 0,
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "autonomy_rule",
+              "setting",
+              "attention"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "proposal": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Proposal",
+            "type": "object"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "status": {
+            "default": "open",
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "title",
+          "detail"
+        ],
+        "title": "Suggestion",
+        "type": "object"
+      },
+      "SuggestionAction": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "saved_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved Version"
+          },
+          "suggestion": {
+            "$ref": "#/components/schemas/Suggestion"
+          }
+        },
+        "required": [
+          "suggestion"
+        ],
+        "title": "SuggestionAction",
+        "type": "object"
+      },
       "SupplierConfirmedRequest": {
         "additionalProperties": false,
         "properties": {
@@ -3971,6 +4313,114 @@
           "value"
         ],
         "title": "SupplierConfirmedRequest",
+        "type": "object"
+      },
+      "SupplierProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "facts": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Facts",
+            "type": "object"
+          },
+          "formality": {
+            "anyOf": [
+              {
+                "enum": [
+                  "formal",
+                  "neutral",
+                  "informal"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formality"
+          },
+          "greeting": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Greeting"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Notes",
+            "type": "string"
+          },
+          "partner_id": {
+            "title": "Partner Id",
+            "type": "integer"
+          },
+          "sign_off": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sign Off"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "partner_id"
+        ],
+        "title": "SupplierProfile",
         "type": "object"
       },
       "SupplierRanking": {
@@ -5469,6 +5919,283 @@
         "summary": "Act Now",
         "tags": [
           "exceptions"
+        ]
+      }
+    },
+    "/api/learning/profiles/{partner_id}": {
+      "get": {
+        "operationId": "get_profile_api_learning_profiles__partner_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "partner_id",
+            "required": true,
+            "schema": {
+              "title": "Partner Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Profile",
+        "tags": [
+          "learning"
+        ]
+      },
+      "put": {
+        "operationId": "put_profile_api_learning_profiles__partner_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "partner_id",
+            "required": true,
+            "schema": {
+              "title": "Partner Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Profile",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/stats": {
+      "get": {
+        "operationId": "feedback_stats_api_learning_stats_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Feedback Stats",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/suggestions": {
+      "get": {
+        "operationId": "list_suggestions_api_learning_suggestions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Suggestion"
+                  },
+                  "title": "Response List Suggestions Api Learning Suggestions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Suggestions",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/suggestions/{suggestion_id}/accept": {
+      "post": {
+        "description": "Apply what the suggestion proposes: a rule goes through the autonomy change (a\nsecond person confirms), a setting is saved at once.",
+        "operationId": "accept_suggestion_api_learning_suggestions__suggestion_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionAction"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Accept Suggestion",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/suggestions/{suggestion_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_suggestion_api_learning_suggestions__suggestion_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Suggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dismiss Suggestion",
+        "tags": [
+          "learning"
         ]
       }
     },

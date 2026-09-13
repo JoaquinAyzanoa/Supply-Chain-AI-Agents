@@ -22,6 +22,7 @@ let me = { email: "adm@x.com", name: "Adm", role: "admin" };
 let saved: Record<string, unknown>[];
 let previews: Record<string, unknown>[];
 let reverted: number[];
+let accepted: number[];
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), { status, headers: { "content-type": "application/json" } });
@@ -33,6 +34,16 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   if (url.pathname === "/api/auth/me") return jsonResponse(200, me);
   if (url.pathname === "/api/approvals") return jsonResponse(200, []);
   if (url.pathname === "/api/settings/history") return jsonResponse(200, []);
+  if (url.pathname === "/api/learning/suggestions" && request.method === "GET")
+    return jsonResponse(200, [
+      { id: 5, key: "autonomy:send_email:8", kind: "autonomy_rule", title: "Let send email for Proveedor Hidraulica run alone", detail: "You approved 12 of 12 unchanged.", evidence: {}, proposal: { rule: { id: "suggested-send-email-8" } }, status: "open", created_at: "2026-09-14T07:30:00Z", resolved_at: null, resolved_by: null },
+    ]);
+  if (url.pathname === "/api/learning/suggestions/5/accept" && request.method === "POST") {
+    accepted.push(5);
+    return jsonResponse(200, { suggestion: { id: 5, key: "autonomy:send_email:8", kind: "autonomy_rule", title: "x", detail: "y", evidence: {}, proposal: {}, status: "accepted" }, saved_version: null, approval_id: 41 });
+  }
+  if (url.pathname === "/api/learning/stats")
+    return jsonResponse(200, { days: 90, total: 20, unchanged: 14, edited: 3, rejected: 3, expired: 0, by_kind: [{ kind: "send_email", partner_id: null, partner_name: null, n: 12, unchanged: 12, edited: 0, rejected: 0, expired: 0, median_minutes: 8.5 }], by_supplier: [] });
   if (url.pathname === "/api/autonomy" && request.method === "GET")
     return jsonResponse(200, { version: 1, changed_by: "adm@x.com", changed_at: "2026-09-14T08:00:00Z", policy: { rules: [RULE] }, pending: null });
   if (url.pathname === "/api/autonomy" && request.method === "PUT") {
@@ -97,6 +108,7 @@ describe("autonomy page", () => {
     saved = [];
     previews = [];
     reverted = [];
+    accepted = [];
     me = { email: "adm@x.com", name: "Adm", role: "admin" };
     vi.spyOn(globalThis, "fetch").mockImplementation(fakeFetch);
     authStore.set({ token: "jwt", user: { email: "adm@x.com", name: "Adm", role: "admin" } });
@@ -143,6 +155,19 @@ describe("autonomy page", () => {
     await userEvent.click(within(feed).getByRole("button", { name: "Revert" }));
     await waitFor(() => expect(reverted).toEqual([1]));
     expect(await within(feed).findByRole("status")).toHaveTextContent("reverted by Adm");
+  });
+
+  it("shows suggestions from the decisions and accepts one through a second person", async () => {
+    renderAt("/autonomy");
+    const box = await screen.findByTestId("suggestions");
+    expect(box).toHaveTextContent("Let send email for Proveedor Hidraulica run alone");
+    expect(box).toHaveTextContent("You approved 12 of 12 unchanged.");
+    await userEvent.click(within(box).getByRole("button", { name: "Accept" }));
+    await waitFor(() => expect(accepted).toEqual([5]));
+    expect(await within(box).findByRole("status")).toHaveTextContent("Approval #41 created");
+    const stats = screen.getByTestId("decision-stats");
+    expect(stats).toHaveTextContent("20 decisions in the last 90 days");
+    expect(stats).toHaveTextContent("70% approved unchanged");
   });
 
   it("is read-only for a viewer", async () => {

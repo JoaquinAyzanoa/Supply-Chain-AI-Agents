@@ -22,6 +22,7 @@ from sc_core.graph import (
 )
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.profiles import PostgresProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.llm import default_budget
@@ -87,6 +88,7 @@ class SupplierCommsModule(Module):
             outbound=PostgresOutboundMailStore(db),
             pdf_max_pages=settings.mail.pdf_max_pages,
             pdf_max_bytes=settings.mail.pdf_max_bytes,
+            profiles=PostgresProfileStore(db),
         )
 
     @provider

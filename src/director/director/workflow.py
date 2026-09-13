@@ -147,10 +147,15 @@ class Deps:
     jobs: JobRunner
     conversations: ConversationLookup
     autonomy: AutonomyApplier | None = None  # applies an approved autonomy change
+    feedback: FeedbackHook | None = None  # records decisions made in Odoo
 
 
 class AutonomyApplier(Protocol):
     async def apply_approval(self, approval_id: int, *, by: str) -> Any: ...
+
+
+class FeedbackHook(Protocol):
+    async def record_from_odoo(self, approval_id: int, *, status: str, by: str | None) -> None: ...
 
 
 # --- status mapping -----------------------------------------------------------------
@@ -464,6 +469,12 @@ class ConsolidateExecutor(Executor):
         agent's business (its own completion event follows), except an expiry, which
         nobody answered and therefore needs a person."""
         cases = self._deps.cases
+        if event.resolved_via != "api" and self._deps.feedback is not None:
+            await self._deps.feedback.record_from_odoo(
+                event.approval_id,
+                status=event.status,
+                by=event.resolved_by_name or event.resolved_by,
+            )
         if event.kind == "autonomy_change":
             # resolved from the Control Tower: the approvals API applied it already
             if (

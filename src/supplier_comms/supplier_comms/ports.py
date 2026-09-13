@@ -12,6 +12,7 @@ from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from typing import Any, Protocol, cast
 
+from sc_core.infra.profiles import ProfileReader
 from sc_core.mail import normalize, pdf, po_token
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from sc_core.mail.outbound import OutboundMailStore
@@ -25,6 +26,7 @@ from sc_core.odoo.repositories import (
     PurchaseOrderRepo,
     SupplierInfoRepo,
 )
+from sc_core.schema.profiles import SupplierProfile
 from sc_core.shared.time import utc_now
 from supplier_comms import AGENT_NAME
 from supplier_comms.models import InboundMeta, LineView, PoContext
@@ -79,6 +81,8 @@ class AgentPorts(Protocol):
     # --- writes to Odoo (after approval only) -------------------------------------
     async def post_note(self, po_id: int, html: str) -> None: ...
 
+    async def supplier_profile(self, partner_id: int) -> SupplierProfile | None: ...
+
     async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None: ...
 
     async def upsert_price(
@@ -125,7 +129,9 @@ class LivePorts:
         outbound: OutboundMailStore,
         pdf_max_pages: int = 20,
         pdf_max_bytes: int = 10_000_000,
+        profiles: ProfileReader | None = None,
     ) -> None:
+        self._profiles = profiles
         self._odoo = odoo
         self._runs = agent_runs
         self._pos = purchase_orders
@@ -299,6 +305,11 @@ class LivePorts:
 
     async def post_note(self, po_id: int, html: str) -> None:
         await self._pos.post_note(po_id, html)
+
+    async def supplier_profile(self, partner_id: int) -> SupplierProfile | None:
+        if self._profiles is None:
+            return None
+        return await self._profiles.get(partner_id)
 
     async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None:
         when = datetime(new_date.year, new_date.month, new_date.day, 12, 0, tzinfo=UTC)

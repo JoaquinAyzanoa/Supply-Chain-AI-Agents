@@ -34,6 +34,7 @@ import { Sparkline } from "./Sparkline";
 
 type Editable = "order_qty" | "proposed_min" | "proposed_max";
 type Edits = Record<string, Partial<Record<Editable, number>>>;
+type KeptParams = Record<string, { service_level?: number; review_period_days?: number; max_coverage_days?: number }>;
 
 export function PlanningRunPage() {
   const { runId } = useParams({ strict: false }) as { runId: string };
@@ -44,6 +45,7 @@ export function PlanningRunPage() {
   const resolve = useResolveApproval();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [edits, setEdits] = useState<Edits>({});
+  const [kept, setKept] = useState<KeptParams>({});
   const [openLine, setOpenLine] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -96,11 +98,12 @@ export function PlanningRunPage() {
     setMessage(null);
     const accepted = [...selected];
     const lineEdits = Object.fromEntries(Object.entries(edits).filter(([id]) => selected.has(id)));
+    const params = Object.fromEntries(Object.entries(kept).filter(([id]) => selected.has(id)));
     try {
       await resolve.mutateAsync({
         id: run.approval_id,
         status: "approved",
-        edited_payload: { accepted_line_ids: accepted, edits: lineEdits },
+        edited_payload: { accepted_line_ids: accepted, edits: lineEdits, ...(Object.keys(params).length ? { params } : {}) },
       });
       setMessage(t("planning.approved", { n: accepted.length }));
     } catch (exc) {
@@ -175,6 +178,7 @@ export function PlanningRunPage() {
                           </button>
                           {line.product_name ? <div className="max-w-[16rem] truncate text-xs text-muted-foreground">{line.product_name}</div> : null}
                           {line.exception ? <Badge variant="warning">{line.exception}</Badge> : null}
+                          {line.held_until ? <Badge variant="secondary" title={t("planning.held_hint")}>{t("planning.held", { date: formatDate(line.held_until, locale) })}</Badge> : null}
                           {rankByLine.get(line.line_id)?.better ? (
                             <Badge variant="warning" className="ml-1 gap-1">
                               <Trophy className="h-3 w-3" />
@@ -217,6 +221,8 @@ export function PlanningRunPage() {
             runId={runId}
             row={rows.find((r) => r.line.line_id === openLine)!}
             ranking={rankByLine.get(openLine)}
+            kept={kept[openLine]}
+            onKeep={(params) => setKept((prev) => (params ? { ...prev, [openLine]: params } : Object.fromEntries(Object.entries(prev).filter(([id]) => id !== openLine))))}
             onClose={() => setOpenLine(null)}
           />
         ) : null}
@@ -302,7 +308,21 @@ function NumberCell({ label, editable, value, onChange }: { label: string; edita
   );
 }
 
-function LineDrawer({ runId, row, ranking, onClose }: { runId: string; row: PlanningLineRow; ranking?: LineRanking; onClose: () => void }) {
+function LineDrawer({
+  runId,
+  row,
+  ranking,
+  kept,
+  onKeep,
+  onClose,
+}: {
+  runId: string;
+  row: PlanningLineRow;
+  ranking?: LineRanking;
+  kept?: KeptParams[string];
+  onKeep: (params: KeptParams[string] | null) => void;
+  onClose: () => void;
+}) {
   const { t, locale } = useI18n();
   const line = row.line;
   const demand = useLineDemand(runId, line.line_id);
@@ -406,6 +426,22 @@ function LineDrawer({ runId, row, ranking, onClose }: { runId: string; row: Plan
         </Button>
         {whatIf.error ? <p className="text-xs text-destructive">{whatIf.error.message}</p> : null}
         {simulated?.explanation ? <p className="text-xs text-muted-foreground">{simulated.explanation}</p> : null}
+        {simulated ? (
+          <label className="flex items-center gap-2 text-xs">
+            <input
+              type="checkbox"
+              checked={Boolean(kept)}
+              onChange={(e) =>
+                onKeep(
+                  e.target.checked
+                    ? { service_level: overrides.service_level ?? undefined, review_period_days: overrides.review_period_days ?? undefined, max_coverage_days: overrides.max_coverage_days ?? undefined }
+                    : null,
+                )
+              }
+            />
+            {t("planning.keep_params")}
+          </label>
+        ) : null}
       </form>
     </aside>
   );

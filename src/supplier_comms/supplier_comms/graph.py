@@ -85,6 +85,7 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
         make_draft_outbound(
             deps.chat,
             deps.toolbox,
+            deps.ports,
             max_tool_rounds=deps.max_tool_rounds,
             langfuse=deps.langfuse,
             today=deps.today,

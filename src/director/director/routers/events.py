@@ -29,7 +29,7 @@ from sc_core.schema.events import ScheduledTick, parse_event
 
 router = APIRouter(tags=["events"])
 
-JOB_NAMES = {"po-followups", "inventory-planning", "supplier-performance"}
+JOB_NAMES = {"po-followups", "inventory-planning", "supplier-performance", "calibration"}
 
 
 class Accepted(StrictModel):

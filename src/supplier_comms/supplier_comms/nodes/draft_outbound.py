@@ -23,8 +23,10 @@ from sc_core.llm.tool_loop import run_tool_loop, tool_exchange_summary
 from sc_core.mail import po_token
 from sc_core.prompts import get_prompt
 from sc_core.schema.a2a import DraftKind, OutboundDraft
+from sc_core.schema.profiles import profile_lines
 from supplier_comms.models import DraftOutput
 from supplier_comms.nodes.common import context_of, fail, style_tables, task_of
+from supplier_comms.ports import AgentPorts
 from supplier_comms.render import outbound_context, reply_context
 from supplier_comms.state import Node
 
@@ -46,6 +48,7 @@ FINAL_INSTRUCTION = (
 def make_draft_outbound(
     chat: ChatCompleter,
     toolbox: ToolBox,
+    ports: AgentPorts,
     *,
     max_tool_rounds: int,
     langfuse: LangfuseCfg | None,
@@ -80,6 +83,10 @@ def make_draft_outbound(
             context_text = reply_context(task, ctx, today(), state.get("inbound_text") or "")
         else:
             context_text = outbound_context(task, ctx, today())
+        # how the buyers want this supplier addressed (people edit it in the Control Tower)
+        profile = profile_lines(await ports.supplier_profile(ctx.partner_id))
+        if profile:
+            context_text = context_text + "\n" + "\n".join(profile)
         loop = await run_tool_loop(
             chat,
             [system(system_text), user(context_text)],

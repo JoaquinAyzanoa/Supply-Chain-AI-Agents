@@ -49,6 +49,9 @@ class RuntimeSettings(StrictModel):
     # Which proposed actions run alone (phase 11). The legacy auto-send lists and the
     # bill amount cap above are kept for older rows and folded into rules on read.
     autonomy: AutonomyPolicy = Field(default_factory=AutonomyPolicy)
+    # Invoice matching: a price variance up to this percent still matches (None: the
+    # environment's SC__INVOICE_MATCH__PRICE_TOLERANCE_PCT). Calibration may suggest it.
+    invoice_price_tolerance_pct: float | None = Field(default=None, ge=0, le=20)
 
     @classmethod
     def from_settings(cls, settings: Settings) -> RuntimeSettings:

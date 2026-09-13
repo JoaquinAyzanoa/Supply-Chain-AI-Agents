@@ -379,6 +379,96 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/learning/profiles/{partner_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Profile */
+        get: operations["get_profile_api_learning_profiles__partner_id__get"];
+        /** Put Profile */
+        put: operations["put_profile_api_learning_profiles__partner_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Feedback Stats */
+        get: operations["feedback_stats_api_learning_stats_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Suggestions */
+        get: operations["list_suggestions_api_learning_suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning/suggestions/{suggestion_id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept Suggestion
+         * @description Apply what the suggestion proposes: a rule goes through the autonomy change (a
+         *     second person confirms), a setting is saved at once.
+         */
+        post: operations["accept_suggestion_api_learning_suggestions__suggestion_id__accept_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/learning/suggestions/{suggestion_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Suggestion */
+        post: operations["dismiss_suggestion_api_learning_suggestions__suggestion_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/mailbox/sync": {
         parameters: {
             query?: never;
@@ -1232,6 +1322,46 @@ export interface components {
              */
             unlinked_mails: components["schemas"]["ExceptionItem"][];
         };
+        /** FeedbackStats */
+        FeedbackStats: {
+            /** Edited */
+            edited: number;
+            /** Expired */
+            expired: number;
+            /** Kind */
+            kind: string;
+            /** Median Minutes */
+            median_minutes?: number | null;
+            /** N */
+            n: number;
+            /** Partner Id */
+            partner_id?: number | null;
+            /** Partner Name */
+            partner_name?: string | null;
+            /** Rejected */
+            rejected: number;
+            /** Unchanged */
+            unchanged: number;
+        };
+        /** FeedbackSummary */
+        FeedbackSummary: {
+            /** By Kind */
+            by_kind: components["schemas"]["FeedbackStats"][];
+            /** By Supplier */
+            by_supplier: components["schemas"]["FeedbackStats"][];
+            /** Days */
+            days: number;
+            /** Edited */
+            edited: number;
+            /** Expired */
+            expired: number;
+            /** Rejected */
+            rejected: number;
+            /** Total */
+            total: number;
+            /** Unchanged */
+            unchanged: number;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1675,6 +1805,27 @@ export interface components {
              */
             role: "viewer" | "approver" | "admin";
         };
+        /** ProfileUpdate */
+        ProfileUpdate: {
+            /**
+             * Contacts
+             * @default []
+             */
+            contacts: string[];
+            /** Formality */
+            formality?: string | null;
+            /** Greeting */
+            greeting?: string | null;
+            /** Language */
+            language?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Sign Off */
+            sign_off?: string | null;
+        };
         /** ProposedAction */
         ProposedAction: {
             /**
@@ -1770,6 +1921,8 @@ export interface components {
             forecast_daily: number;
             /** Forecast Method */
             forecast_method: string;
+            /** Held Until */
+            held_until?: string | null;
             /** History Periods */
             history_periods: number;
             /** Incoming */
@@ -1962,6 +2115,8 @@ export interface components {
              * @default []
              */
             ignored_senders: string[];
+            /** Invoice Price Tolerance Pct */
+            invoice_price_tolerance_pct?: number | null;
             /**
              * Max Actions Per Run
              * @default 20
@@ -2047,10 +2202,96 @@ export interface components {
             /** Version */
             version: number;
         };
+        /** Suggestion */
+        Suggestion: {
+            /** Created At */
+            created_at?: string | null;
+            /** Detail */
+            detail: string;
+            /**
+             * Evidence
+             * @default {}
+             */
+            evidence: {
+                [key: string]: unknown;
+            };
+            /**
+             * Id
+             * @default 0
+             */
+            id: number;
+            /** Key */
+            key: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "autonomy_rule" | "setting" | "attention";
+            /**
+             * Proposal
+             * @default {}
+             */
+            proposal: {
+                [key: string]: unknown;
+            };
+            /** Resolved At */
+            resolved_at?: string | null;
+            /** Resolved By */
+            resolved_by?: string | null;
+            /**
+             * Status
+             * @default open
+             */
+            status: string;
+            /** Title */
+            title: string;
+        };
+        /** SuggestionAction */
+        SuggestionAction: {
+            /** Approval Id */
+            approval_id?: number | null;
+            /** Saved Version */
+            saved_version?: number | null;
+            suggestion: components["schemas"]["Suggestion"];
+        };
         /** SupplierConfirmedRequest */
         SupplierConfirmedRequest: {
             /** Value */
             value: boolean;
+        };
+        /** SupplierProfile */
+        SupplierProfile: {
+            /**
+             * Contacts
+             * @default []
+             */
+            contacts: string[];
+            /**
+             * Facts
+             * @default {}
+             */
+            facts: {
+                [key: string]: unknown;
+            };
+            /** Formality */
+            formality?: ("formal" | "neutral" | "informal") | null;
+            /** Greeting */
+            greeting?: string | null;
+            /** Language */
+            language?: string | null;
+            /**
+             * Notes
+             * @default
+             */
+            notes: string;
+            /** Partner Id */
+            partner_id: number;
+            /** Sign Off */
+            sign_off?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+            /** Updated By */
+            updated_by?: string | null;
         };
         /** SupplierRanking */
         SupplierRanking: {
@@ -2839,6 +3080,185 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_profile_api_learning_profiles__partner_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    put_profile_api_learning_profiles__partner_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProfileUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierProfile"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    feedback_stats_api_learning_stats_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FeedbackSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_suggestions_api_learning_suggestions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestion"][];
+                };
+            };
+        };
+    };
+    accept_suggestion_api_learning_suggestions__suggestion_id__accept_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                suggestion_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionAction"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_suggestion_api_learning_suggestions__suggestion_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                suggestion_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Suggestion"];
                 };
             };
             /** @description Validation Error */

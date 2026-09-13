@@ -59,6 +59,14 @@ from director.handlers.performance import PerformanceJob
 from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
 from director.jobs import JobRunner
+from director.learning import (
+    CalibrationJob,
+    FeedbackRecorder,
+    FeedbackStore,
+    PostgresFeedbackStore,
+    PostgresSuggestionStore,
+    SuggestionStore,
+)
 from director.policies import FollowUpPolicy
 from director.realtime import BroadcastingCaseStore
 from director.routers import events
@@ -68,6 +76,7 @@ from sc_core.a2a.events import HmacSigner
 from sc_core.app import create_application
 from sc_core.app.realtime import Realtime, RedisRealtime
 from sc_core.app.static import mount_spa
+from sc_core.graph import policy_from
 from sc_core.infra.db import Database
 from sc_core.infra.locks import RedisLock
 from sc_core.infra.module import (
@@ -79,6 +88,7 @@ from sc_core.infra.module import (
     OdooModule,
     RedisModule,
 )
+from sc_core.infra.profiles import PostgresProfileStore, ProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.mail.protocol import MailClient
@@ -242,9 +252,19 @@ class DirectorModule(Module):
         agents: Agents,
         escalator: Escalator,  # type: ignore[type-abstract]
         followups: FollowUpJob,
+        recorder: FeedbackRecorder,
+        feedback: FeedbackStore,  # type: ignore[type-abstract]
+        suggestions: SuggestionStore,  # type: ignore[type-abstract]
+        runtime: RuntimeSettingsReader,
     ) -> JobRunner:  # type: ignore[type-abstract]
         return JobDispatcher(
             {
+                "calibration": CalibrationJob(
+                    recorder=recorder,
+                    feedback=feedback,
+                    suggestions=suggestions,
+                    policy=policy_from(runtime),
+                ),
                 "po_followups": followups,
                 "inventory_planning": PlanningJob(
                     cases=cases,
@@ -338,6 +358,30 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_feedback_store(self, db: Database) -> FeedbackStore:  # type: ignore[type-abstract]
+        return PostgresFeedbackStore(db)
+
+    @provider
+    @singleton
+    def provide_suggestions(self, db: Database) -> SuggestionStore:  # type: ignore[type-abstract]
+        return PostgresSuggestionStore(db)
+
+    @provider
+    @singleton
+    def provide_profiles(self, db: Database) -> ProfileStore:  # type: ignore[type-abstract]
+        return PostgresProfileStore(db)
+
+    @provider
+    @singleton
+    def provide_feedback_recorder(
+        self,
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        store: FeedbackStore,  # type: ignore[type-abstract]
+    ) -> FeedbackRecorder:
+        return FeedbackRecorder(approvals, store)
+
+    @provider
+    @singleton
     def provide_login_limit(self, settings: Settings) -> LoginRateLimit:
         return LoginRateLimit(settings.ui.login_rate_per_minute)
 
@@ -351,6 +395,7 @@ class DirectorModule(Module):
         jobs: JobRunner,  # type: ignore[type-abstract]
         db: Database,
         autonomy: AutonomyChanges,
+        feedback: FeedbackRecorder,
     ) -> Deps:
         return Deps(
             cases=cases,
@@ -359,6 +404,7 @@ class DirectorModule(Module):
             jobs=jobs,
             conversations=PostgresConversationLookup(db),
             autonomy=autonomy,
+            feedback=feedback,
         )
 
     @provider

@@ -20,7 +20,7 @@ from inventory_planning.nodes.detect_exceptions import detect_all
 from inventory_planning.nodes.explain import explain_lines, explain_run
 from inventory_planning.nodes.forecast import forecast_all
 from inventory_planning.nodes.load_data import load_dataset
-from inventory_planning.policy import ParamsStore, ProductParams, abc_classes
+from inventory_planning.policy import HoldStore, ParamsStore, ProductParams, abc_classes
 from inventory_planning.policy.params import resolve_params
 from inventory_planning.ports import DataPorts
 from inventory_planning.runs import RunStore
@@ -32,6 +32,7 @@ from sc_core.llm import ChatCompleter
 from sc_core.schema.a2a import InventoryPlanningTask
 from sc_core.schema.planning import ReplenishmentLine, ReplenishmentProposal
 from sc_core.schema.runtime_settings import RuntimeSettings
+from sc_core.shared.time import local_today
 
 
 def task_of(state: dict[str, Any]) -> InventoryPlanningTask:
@@ -83,7 +84,12 @@ def make_forecast() -> Node:
 
 
 def make_compute(
-    params_store: ParamsStore, cfg: PlanningCfg, *, runtime: RuntimeSettingsReader | None = None
+    params_store: ParamsStore,
+    cfg: PlanningCfg,
+    *,
+    runtime: RuntimeSettingsReader | None = None,
+    holds: HoldStore | None = None,
+    today: Callable[[], date] = local_today,
 ) -> Node:
     async def compute(state: Any) -> dict[str, Any]:
         task = task_of(state)
@@ -107,6 +113,9 @@ def make_compute(
             run_id=state["run_id"],
             lead_time_sigma_ratio=cfg.lead_time_sigma_ratio,
         )
+        if holds is not None:
+            held = await holds.held(ids, today=today())
+            lines = [apply_hold(ln, held.get(ln.product_id)) for ln in lines]
         return {
             "params": {str(pid): p.model_dump(mode="json") for pid, p in params.items()},
             "lines": [ln.model_dump(mode="json") for ln in lines],
@@ -127,6 +136,13 @@ def _runtime_defaults(params: ProductParams, defaults: RuntimeSettings) -> Produ
     if defaults.planning_max_coverage_days is not None:
         changes["max_coverage_days"] = defaults.planning_max_coverage_days
     return params.model_copy(update=changes) if changes else params
+
+
+def apply_hold(line: ReplenishmentLine, held_until: date | None) -> ReplenishmentLine:
+    """A held product keeps its current rule: the change is shown, not proposed."""
+    if held_until is None:
+        return line
+    return line.model_copy(update={"held_until": held_until})
 
 
 def make_detect() -> Node:

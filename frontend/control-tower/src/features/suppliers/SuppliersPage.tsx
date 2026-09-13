@@ -36,7 +36,7 @@ export function SuppliersPage() {
         {scores.isPending ? <Loading /> : null}
         {scores.error ? <ErrorBox error={scores.error} onRetry={() => scores.refetch()} /> : null}
         {scores.data && scores.data.length === 0 ? <Empty text={t("suppliers.empty")} /> : null}
-        {scores.data && scores.data.length ? <SupplierScoreTable rows={scores.data} /> : null}
+        {scores.data && scores.data.length ? <SupplierScoreTable rows={scores.data} withProfile /> : null}
       </div>
     </div>
   );

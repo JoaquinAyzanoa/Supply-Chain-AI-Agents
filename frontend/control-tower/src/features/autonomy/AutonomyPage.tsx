@@ -19,6 +19,7 @@ import { useSettingsHistory } from "@/features/settings/SettingsPage";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
+import { DecisionStats, Suggestions } from "@/features/learning/Suggestions";
 import { AutoActionsFeed } from "./AutoActionsFeed";
 import { EMAIL_KINDS, LEVELS, RULE_KINDS, usePolicy, usePreview, useSavePolicy, type AutonomyPolicy, type AutonomyRule, type PreviewResponse, type RuleConditions } from "./api";
 
@@ -162,6 +163,12 @@ export function AutonomyPage() {
           </div>
         ) : null}
 
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">{t("learning.suggestions")}</h2>
+          <p className="text-xs text-muted-foreground">{t("learning.suggestions_hint")}</p>
+          <Suggestions />
+        </section>
+
         <section className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-sm font-semibold">{t("autonomy.rules")}</h2>
@@ -226,6 +233,11 @@ export function AutonomyPage() {
           </div>
           <p className="text-xs text-muted-foreground">{t("autonomy.feed.hint")}</p>
           <AutoActionsFeed days={feedDays} />
+        </section>
+
+        <section className="flex flex-col gap-2">
+          <h2 className="text-sm font-semibold">{t("learning.stats")}</h2>
+          <DecisionStats />
         </section>
 
         <section>

@@ -40,7 +40,7 @@ from inventory_planning.nodes.propose import (
     make_propose,
 )
 from inventory_planning.nodes.review import make_review
-from inventory_planning.policy import ParamsStore
+from inventory_planning.policy import HoldStore, ParamsStore
 from inventory_planning.ports import DataPorts, WritePorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node, PlanningState
@@ -69,6 +69,7 @@ class Deps:
     approvals: ApprovalGateway
     cfg: PlanningCfg = field(default_factory=PlanningCfg)
     runtime: RuntimeSettingsReader | None = None  # Control Tower planning defaults
+    holds: HoldStore | None = None  # rule changes a person rejected twice
     language: Language = "en"  # for what people read; internals stay English
     publish: Publish = _no_publish
     langfuse: LangfuseCfg | None = None
@@ -79,7 +80,13 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     g: StateGraph = StateGraph(PlanningState)
     _add(g, "load", make_load(deps.data, deps.cfg, today=deps.today))
     _add(g, "forecast", make_forecast())
-    _add(g, "compute", make_compute(deps.params, deps.cfg, runtime=deps.runtime))
+    _add(
+        g,
+        "compute",
+        make_compute(
+            deps.params, deps.cfg, runtime=deps.runtime, holds=deps.holds, today=deps.today
+        ),
+    )
     _add(g, "detect", make_detect())
     lang = deps.language
     _add(g, "review", make_review(deps.chat, deps.cfg, langfuse=deps.langfuse, language=lang))
@@ -89,7 +96,15 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     _add(
         g,
         "apply",
-        make_apply(deps.writes, deps.runs, publish=deps.publish, today=deps.today, language=lang),
+        make_apply(
+            deps.writes,
+            deps.runs,
+            params_store=deps.params,
+            holds=deps.holds,
+            publish=deps.publish,
+            today=deps.today,
+            language=lang,
+        ),
     )
     _add(g, "rejected", make_rejected(deps.runs, language=lang))
 

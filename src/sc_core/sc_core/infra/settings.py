@@ -197,6 +197,7 @@ class SchedulerCfg(_Section):
     po_followups_cron: str = "0 9 * * 1-5"
     inventory_planning_cron: str = "0 6 * * *"
     supplier_performance_cron: str = "0 7 * * 1"
+    calibration_cron: str = "30 7 * * 1"  # what people decided last week, as suggestions
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 

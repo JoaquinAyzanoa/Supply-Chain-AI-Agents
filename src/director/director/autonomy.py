@@ -234,6 +234,17 @@ class AutonomyChanges:
         logger.bind(version=saved.version, by=changed_by).info("autonomy policy saved")
         return saved
 
+    async def save_settings(
+        self, settings: RuntimeSettings, *, changed_by: str, note: str | None
+    ) -> SettingsVersion:
+        """Any runtime setting change that needs no second person (a tolerance, a default)."""
+        saved = await self._store.save(settings, changed_by=changed_by, note=note)
+        self._reader.invalidate()
+        await self._realtime.publish(
+            "settings_changed", {"version": saved.version, "changed_by": changed_by}
+        )
+        return saved
+
     async def apply(self, approval: Approval, *, by: str) -> SettingsVersion:
         """An approved ``autonomy_change``: the policy it carries becomes the current one."""
         if approval.kind != "autonomy_change":
