@@ -113,7 +113,11 @@ class ScorecardText(BaseModel):
 
 
 def make_scorecards(
-    chat: ChatCompleter, *, langfuse: LangfuseCfg | None, language: Language = "en"
+    chat: ChatCompleter,
+    ports: PerformancePorts,
+    *,
+    langfuse: LangfuseCfg | None,
+    language: Language = "en",
 ) -> Node:
     async def scorecards(state: Any) -> dict[str, Any]:
         prompt = get_prompt("scorecard", local_dir=PROMPTS_DIR, cfg=langfuse)
@@ -138,11 +142,12 @@ def make_scorecards(
                     mode="json"
                 )
             )
-        await ports_save(state, written)
+        # the run row carries the text from now on, so the Suppliers page shows it while
+        # the approval waits
+        await ports.save_run(
+            state.get("run_id") or "run_unknown", [SupplierScore.model_validate(w) for w in written]
+        )
         return {"scores": written}
-
-    async def ports_save(state: Any, written: list[dict[str, Any]]) -> None:
-        return None  # the approval builder reads the state; the run row is refreshed on apply
 
     return scorecards
 

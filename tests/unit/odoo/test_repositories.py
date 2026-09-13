@@ -371,3 +371,29 @@ async def test_draft_bill_is_created_once_and_never_posted(
     again = await repo.create_draft_bill(16, ref="F001-000123", invoice_date=date(2024, 9, 2))
     assert again.id == 9
     assert [odoo.execute_kw_args(i)[1] for i in range(5, 6)] == ["search_read"]
+
+
+async def test_supplier_scorecards_need_no_record_to_hang_on(
+    odoo: ScriptedOdoo, client_factory: Factory
+) -> None:
+    from sc_core.odoo.repositories import ApprovalRepo
+
+    row = {
+        **samples.APPROVAL_ROW,
+        "id": 41,
+        "kind": "supplier_score",
+        "po_id": False,
+        "res_model": False,
+        "res_id": 0,
+    }
+    odoo.script += [LOGIN_OK, rpc_ok(41), rpc_ok([row])]
+    approval = await ApprovalRepo(client_factory()).create(
+        kind="supplier_score",
+        summary="Weekly supplier scorecards",
+        payload={"scores": []},
+        requested_by="supplier_performance",
+        case_id="scores_1",
+    )
+    assert approval.id == 41 and approval.kind == "supplier_score"
+    _, method, args, _ = odoo.execute_kw_args(0)
+    assert method == "create" and "po_id" not in args[0] and "res_model" not in args[0]

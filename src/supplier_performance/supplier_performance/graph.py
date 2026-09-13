@@ -56,7 +56,9 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     )
     _add(g, "compute", make_compute(deps.ports, weights=deps.weights))
     _add(
-        g, "scorecards", make_scorecards(deps.chat, langfuse=deps.langfuse, language=deps.language)
+        g,
+        "scorecards",
+        make_scorecards(deps.chat, deps.ports, langfuse=deps.langfuse, language=deps.language),
     )
     _add(g, "apply", make_apply(deps.ports, language=deps.language))
     _add(g, "rejected", make_rejected(language=deps.language))
