@@ -542,8 +542,12 @@ class MemoryAutoActionsStore:
         return sorted(rows, key=lambda a: a.created_at, reverse=True)[:limit]
 
     async def for_case(self, case_id: str) -> list[AutoAction]:
+        return await self.for_threads([case_id])
+
+    async def for_threads(self, ids: Sequence[str]) -> list[AutoAction]:
+        wanted = set(ids)
         return sorted(
-            (a for a in self.rows.values() if a.case_id == case_id), key=lambda a: a.created_at
+            (a for a in self.rows.values() if a.case_id in wanted), key=lambda a: a.created_at
         )
 
     async def get(self, action_id: int) -> AutoAction | None:

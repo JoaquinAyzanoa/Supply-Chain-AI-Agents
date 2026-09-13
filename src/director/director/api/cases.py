@@ -114,5 +114,5 @@ async def get_case(
         case=case_view(case),
         events=[_event_view(e) for e in events],
         runs=[run_view(r) for r in agent_runs],
-        auto_actions=[action_view(a) for a in await auto_actions.for_case(case_id)],
+        auto_actions=[action_view(a) for a in await auto_actions.for_threads(sorted(thread_ids))],
     )

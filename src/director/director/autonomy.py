@@ -12,6 +12,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
@@ -68,6 +69,10 @@ class AutoActionsStore(Protocol):
 
     async def for_case(self, case_id: str) -> list[AutoAction]: ...
 
+    async def for_threads(self, ids: Sequence[str]) -> list[AutoAction]:
+        """The agents record actions under the thread ids the director sent tasks on."""
+        ...
+
     async def get(self, action_id: int) -> AutoAction | None: ...
 
     async def mark_reverted(self, action_id: int, *, by: str) -> AutoAction: ...
@@ -87,6 +92,15 @@ class PostgresAutoActionsStore:
     async def for_case(self, case_id: str) -> list[AutoAction]:
         rows = await self._db.fetch_all(
             "SELECT * FROM auto_actions WHERE case_id = %s ORDER BY created_at ASC", (case_id,)
+        )
+        return [_row(r) for r in rows]
+
+    async def for_threads(self, ids: Sequence[str]) -> list[AutoAction]:
+        if not ids:
+            return []
+        rows = await self._db.fetch_all(
+            "SELECT * FROM auto_actions WHERE case_id = ANY(%s) ORDER BY created_at ASC",
+            (list(ids),),
         )
         return [_row(r) for r in rows]
 

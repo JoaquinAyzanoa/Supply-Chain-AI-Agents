@@ -133,6 +133,10 @@ async def test_a_late_order_goes_from_eta_request_to_alternate_sourcing_over_day
     assert position.next_steps[0] == "Chase once more, firmly"
     case = list(cases.cases.values())[0]
     assert case.po_name == "P00077" and case.kind == "eta"
+    # the case is open while the plan waits, and says where it is
+    parked = await cases.get(case.case_id)
+    assert parked is not None and parked.status == "open"
+    assert parked.summary == "Late order: Wait two days for a reply until 16 Sep 09:00"
     assert [e.kind for e in cases.case_events][:3] == ["playbook", "task_sent", "result"]
 
     # day 1: nothing is due; the hourly tick moves nothing
@@ -191,6 +195,7 @@ async def test_a_reply_ends_the_wait_early_and_a_receipt_closes_the_case() -> No
     run = (await store.get(1)) or run
     # every remaining step is guarded by no_reply: the reply flow takes it from here
     assert run.status == "done" and escalator.calls == []
+    assert (await cases.get(run.case_id)).status == "done"  # type: ignore[union-attr]
     assert [(s.step_id, s.status) for s in await store.steps(1)][-3:] == [
         ("chase", "skipped"),
         ("wait_again", "skipped"),

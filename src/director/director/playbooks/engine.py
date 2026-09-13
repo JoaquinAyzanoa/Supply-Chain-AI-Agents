@@ -185,7 +185,13 @@ class PlaybookEngine:
                     )
                     await self._record(run, step, "waiting", {"due_at": due.isoformat()})
                 early = step.until is not None and holds(step.until, facts, today)
-                if early or (run.due_at is not None and run.due_at <= self._now()):
+                if not (early or (run.due_at is not None and run.due_at <= self._now())):
+                    # parked: the case is open with the plan's position as its summary
+                    await self._cases.update(
+                        case.case_id, status="open", summary=self._summary(playbook, step, run)
+                    )
+                    return run
+                if True:
                     await self._record(run, step, "done", {"early": early})
                     run = await self._store.update(
                         run.id,
@@ -195,7 +201,6 @@ class PlaybookEngine:
                         waiting_for=None,
                     )
                     continue
-                return run
             if step.kind == "agent":
                 outcome_status = await self._run_agent(run, step, case, facts, today)
                 if outcome_status == "awaiting_approval":
@@ -320,6 +325,11 @@ class PlaybookEngine:
             run.id, StepRecord(step_id=step.id, status=status, at=self._now(), detail=detail)
         )
 
+    @staticmethod
+    def _summary(playbook: Playbook, step: Step, run: PlaybookRun) -> str:
+        due = f" until {run.due_at:%d %b %H:%M}" if run.due_at else ""
+        return f"{playbook.title}: {step.describe()}{due}"
+
     async def _finish(self, run: PlaybookRun, status: str, summary: str) -> PlaybookRun:
         finished = await self._store.update(
             run.id,
@@ -334,6 +344,9 @@ class PlaybookEngine:
             "playbook",
             {"playbook": run.playbook, "run_id": run.id, "event": status, "summary": summary},
         )
+        case = await self._cases.get(run.case_id)
+        if status == "done" and case is not None and case.status == "open":
+            await self._cases.update(run.case_id, status="done", summary=summary)
         logger.bind(playbook=run.playbook, run_id=run.id, status=status).info("playbook {}", status)
         return finished
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import date
+from datetime import UTC, date, datetime
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,6 +13,7 @@ from pydantic import SecretStr
 from director import __version__
 from director.api import api_router
 from director.api.auth import hash_password
+from director.autonomy import AutoAction
 from director.policies import PoFacts
 from director.testing import MemoryDirectorModule
 from sc_core.a2a.testing import FakeAgentCaller
@@ -142,6 +143,25 @@ async def test_playbooks_are_listed_started_by_hand_and_visible_on_approvals_and
     assert approval["playbook"]["if_rejected"] is not None
     run = client.get("/api/playbooks/runs/1", headers=viewer).json()
     assert run["run"]["case_id"] == case_id
+    # an action that ran alone inside the plan is keyed by the step thread id; the case shows it
+    module.auto_actions.add(
+        AutoAction(
+            id=1,
+            created_at=datetime.now(UTC),
+            case_id="pb_1_ask_eta",
+            agent="supplier_comms",
+            kind="send_email",
+            level="auto_notice",
+            rule_id="hidraulica-date-requests",
+            summary="Send delivery date request to Proveedor Hidraulica for P00077",
+            po_id=77,
+            po_name="P00077",
+            partner_id=8,
+        )
+    )
+    detail = client.get(f"/api/cases/{case_id}", headers=viewer).json()
+    assert [a["rule_id"] for a in detail["auto_actions"]] == ["hidraulica-date-requests"]
+    assert detail["case"]["status"] == "awaiting_approval"
     runs = client.get("/api/playbooks/runs?active=true", headers=viewer).json()
     assert [r["run"]["id"] for r in runs] == [1]
     counts = client.get("/api/playbooks", headers=viewer).json()
