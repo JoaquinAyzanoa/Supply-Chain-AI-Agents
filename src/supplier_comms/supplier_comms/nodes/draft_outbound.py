@@ -23,8 +23,10 @@ from sc_core.llm.tool_loop import run_tool_loop, tool_exchange_summary
 from sc_core.mail import po_token
 from sc_core.prompts import get_prompt
 from sc_core.schema.a2a import DraftKind, OutboundDraft
+from sc_core.schema.profiles import profile_lines
 from supplier_comms.models import DraftOutput
 from supplier_comms.nodes.common import context_of, fail, style_tables, task_of
+from supplier_comms.ports import AgentPorts
 from supplier_comms.render import outbound_context, reply_context
 from supplier_comms.state import Node
 
@@ -35,6 +37,8 @@ KIND_TO_DRAFT: dict[str, DraftKind] = {
     "request_eta": "request_eta",
     "follow_up": "follow_up",
     "send_po": "send_po",
+    "decline_quote": "decline",
+    "counter_offer": "counter_offer",
 }
 
 FINAL_INSTRUCTION = (
@@ -46,6 +50,7 @@ FINAL_INSTRUCTION = (
 def make_draft_outbound(
     chat: ChatCompleter,
     toolbox: ToolBox,
+    ports: AgentPorts,
     *,
     max_tool_rounds: int,
     langfuse: LangfuseCfg | None,
@@ -61,8 +66,12 @@ def make_draft_outbound(
         if kind == "send_po" and ctx.state not in ("purchase", "done"):
             return fail(f"{ctx.name} is not a confirmed order (state {ctx.state}); nothing to send")
 
-        # The email is written in the supplier's language; the instance language is the fallback.
-        email_lang = normalize(ctx.partner_lang, default=language)
+        # The email is written in the supplier's language: the profile people keep wins,
+        # then the Odoo partner, then the instance language.
+        profile_obj = await ports.supplier_profile(ctx.partner_id)
+        email_lang = normalize(
+            (profile_obj.language if profile_obj else None) or ctx.partner_lang, default=language
+        )
         tone = get_prompt("supplier_tone", cfg=langfuse).compile(
             language=language_name(email_lang), signature=t("signature", email_lang)
         )
@@ -80,6 +89,10 @@ def make_draft_outbound(
             context_text = reply_context(task, ctx, today(), state.get("inbound_text") or "")
         else:
             context_text = outbound_context(task, ctx, today())
+        # how the buyers want this supplier addressed (people edit it in the Control Tower)
+        profile = profile_lines(profile_obj)
+        if profile:
+            context_text = context_text + "\n" + "\n".join(profile)
         loop = await run_tool_loop(
             chat,
             [system(system_text), user(context_text)],
@@ -95,12 +108,17 @@ def make_draft_outbound(
             name=f"supplier_comms.draft_{kind}.final",
             metadata=metadata,
         )
+        # Thread discipline: a reply answers the message; every other email but a fresh
+        # RFQ continues the order's Outlook conversation when there is one.
+        anchor = task.graph_message_id if kind == "reply" else None
+        if anchor is None and kind != "rfq":
+            anchor = await ports.thread_anchor(ctx.id)
         outbound = OutboundDraft(
             kind=kind,
             to=ctx.supplier_emails,
             subject=po_token.tag_subject(draft.subject, ctx.name),
             html_body=style_tables(draft.html_body),
-            reply_to_message_id=task.graph_message_id if kind == "reply" else None,
+            reply_to_message_id=anchor,
         )
         logger.bind(po_name=ctx.name, kind=kind, tool_calls=loop.tool_calls).info("draft ready")
         attachments = [f"{ctx.name}.pdf"] if kind == "send_po" else []

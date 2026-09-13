@@ -6,17 +6,25 @@ the simpler one on ties (``select``). No model is involved anywhere here.
 """
 
 from inventory_planning.forecasting.methods import (
+    INTERMITTENT_METHODS,
     METHODS,
     Forecast,
     croston,
+    detect_season,
     holt,
+    holt_winters,
     moving_average,
     ses,
+    tsb,
 )
 from inventory_planning.forecasting.select import ForecastResult, select_forecast
 
 __all__ = [
+    "INTERMITTENT_METHODS",
     "METHODS",
+    "detect_season",
+    "holt_winters",
+    "tsb",
     "Forecast",
     "ForecastResult",
     "croston",

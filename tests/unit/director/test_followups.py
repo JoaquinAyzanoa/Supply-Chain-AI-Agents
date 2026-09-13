@@ -615,3 +615,70 @@ async def test_runtime_settings_replace_the_policy_per_run(
     # the 3-day-silent RFQ is not chased under the 10-day runtime threshold
     sent = [json.loads(t.task_json)["po_name"] for t in agent.sent]
     assert sent == ["P00011", "P00013"] and summary["tasks_sent"] == 2
+
+
+async def test_with_playbooks_attached_the_job_starts_plans_instead_of_single_tasks(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    from director.playbooks import MemoryPlaybookStore, PlaybookEngine
+
+    cases, agent, escalator = MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator()
+    job = _job(seeded, cases, agent, escalator)
+    engine = PlaybookEngine(
+        store=MemoryPlaybookStore(),
+        cases=cases,
+        agents=Agents(supplier_comms=AgentProxy("supplier_comms", agent)),
+        escalator=escalator,
+        facts=job,
+        today=lambda: TODAY,
+    )
+    job.attach_playbooks(engine)
+    agent.replies.extend(
+        [
+            agent_reply("follow_up", "pb_1_remind", "sent", "reminded", po_name="P00010"),
+            agent_reply("request_eta", "pb_2_ask_eta", "sent", "asked", po_name="P00011"),
+            agent_reply("request_eta", "pb_3_ask_eta", "sent", "asked", po_name="P00013"),
+        ]
+    )
+    summary = await job.run("po_followups", tick("po_followups", "run_1"))
+    assert summary["status"] == "ok" and summary["tasks_sent"] == 3 and summary["escalated"] == 1
+    assert [(p["po_name"], p["playbook"]) for p in summary["playbooks"]] == [
+        ("P00010", "silent_rfq"),
+        ("P00011", "late_order"),
+        ("P00013", "late_order"),
+    ]
+    sent = [
+        (json.loads(t.task_json)["po_name"], json.loads(t.task_json)["case_id"]) for t in agent.sent
+    ]
+    assert sent == [
+        ("P00010", "pb_1_remind"),
+        ("P00011", "pb_2_ask_eta"),
+        ("P00013", "pb_3_ask_eta"),
+    ]
+    assert [c["reason"] for c in escalator.calls] == [
+        "5 days past the planned date without a receipt or a new ETA"
+    ]
+    positions = {r.po_name: engine.position(r) for r in await engine._store.active()}
+    assert (
+        positions["P00010"].step_id == "wait_reply" and positions["P00011"].step_id == "wait_reply"
+    )
+    assert positions["P00011"].next_steps == [
+        "Chase once more, firmly",
+        "Wait two more days",
+        "Propose an alternative source",
+    ]
+    # the same day again: the running plans are found, nothing new goes out
+    again = await job.run("po_followups", tick("po_followups", "run_2"))
+    assert again["tasks_sent"] == 3 and len(agent.sent) == 3
+    assert len(await engine._store.active()) == 3
+
+
+async def test_facts_for_reads_an_order_the_daily_gather_does_not_chase(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    job = _job(seeded, MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator())
+    gathered = {f.po_name for f in await job.gather(TODAY)}
+    assert "P00014" not in gathered  # due far away: nothing to chase today
+    facts = await job.facts_for("P00014", TODAY)
+    assert facts is not None and facts.state == "purchase" and facts.po_name == "P00014"
+    assert await job.facts_for("P09999", TODAY) is None

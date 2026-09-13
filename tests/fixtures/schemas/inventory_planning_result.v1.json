@@ -8,6 +8,11 @@
           "title": "Lines Applied",
           "type": "integer"
         },
+        "needs_sent": {
+          "default": 0,
+          "title": "Needs Sent",
+          "type": "integer"
+        },
         "orderpoints_written": {
           "default": 0,
           "title": "Orderpoints Written",
@@ -31,6 +36,50 @@
         }
       },
       "title": "AppliedSummary",
+      "type": "object"
+    },
+    "ConsolidationNote": {
+      "additionalProperties": false,
+      "description": "Why a line is bought early: the freight it saves against the stock it costs.",
+      "properties": {
+        "days_early": {
+          "minimum": 0,
+          "title": "Days Early",
+          "type": "number"
+        },
+        "freight_saved": {
+          "minimum": 0,
+          "title": "Freight Saved",
+          "type": "number"
+        },
+        "stock_cost": {
+          "minimum": 0,
+          "title": "Stock Cost",
+          "type": "number"
+        },
+        "supplier_id": {
+          "title": "Supplier Id",
+          "type": "integer"
+        },
+        "supplier_name": {
+          "default": "",
+          "title": "Supplier Name",
+          "type": "string"
+        },
+        "threshold": {
+          "minimum": 0,
+          "title": "Threshold",
+          "type": "number"
+        }
+      },
+      "required": [
+        "supplier_id",
+        "freight_saved",
+        "stock_cost",
+        "days_early",
+        "threshold"
+      ],
+      "title": "ConsolidationNote",
       "type": "object"
     },
     "Outcome": {
@@ -90,10 +139,22 @@
             "update_rule_and_rfq",
             "hold",
             "manual_review",
+            "consolidate",
             "none"
           ],
           "title": "Action",
           "type": "string"
+        },
+        "consolidation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ConsolidationNote"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "coverage_days": {
           "anyOf": [
@@ -183,6 +244,19 @@
         "forecast_method": {
           "title": "Forecast Method",
           "type": "string"
+        },
+        "held_until": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Held Until"
         },
         "history_periods": {
           "minimum": 0,

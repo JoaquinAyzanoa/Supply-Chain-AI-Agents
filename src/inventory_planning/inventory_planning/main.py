@@ -13,7 +13,7 @@ from loguru import logger
 
 from inventory_planning import __version__
 from inventory_planning.handler import InventoryPlanningHandler, agent_spec
-from inventory_planning.routers import approvals, demand
+from inventory_planning.routers import approvals, demand, risk
 from inventory_planning.service import AgentProvider, module_list
 from sc_core.a2a import mount
 from sc_core.app import create_application
@@ -28,7 +28,7 @@ def build_app() -> FastAPI:
     application = create_application(
         settings,
         version=__version__,
-        routers=[approvals.router, demand.router],
+        routers=[approvals.router, demand.router, risk.router],
         modules=module_list(),
         startup=[_startup],
         shutdown=[_shutdown],

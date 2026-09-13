@@ -1,0 +1,268 @@
+{
+  "$defs": {
+    "Need": {
+      "additionalProperties": false,
+      "description": "What the planner wants bought: a product, a quantity, and what it expects to pay\nand when it needs it. No supplier: the sourcing agent asks the market.",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "expected_price": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Price"
+        },
+        "need_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Need Date"
+        },
+        "product": {
+          "default": "",
+          "title": "Product",
+          "type": "string"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "integer"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        },
+        "source_line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the planning line",
+          "title": "Source Line Id"
+        }
+      },
+      "required": [
+        "product_id",
+        "qty"
+      ],
+      "title": "Need",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "What the director asks the sourcing agent to do.\n\nA round is described either by ``product_id`` + ``qty`` or by ``po_name``\n(the lines of an existing order or RFQ, its partner being the incumbent).",
+  "properties": {
+    "case_id": {
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "deadline_days": {
+      "anyOf": [
+        {
+          "maximum": 60,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deadline Days"
+    },
+    "exclude_partner_ids": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Exclude Partner Ids",
+      "type": "array"
+    },
+    "kind": {
+      "enum": [
+        "quote_round",
+        "compare_quotes",
+        "counter_offer",
+        "alternate_source"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "max_suppliers": {
+      "anyOf": [
+        {
+          "maximum": 10,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Suppliers"
+    },
+    "needs": {
+      "description": "a basket of needs to quote",
+      "items": {
+        "$ref": "#/$defs/Need"
+      },
+      "title": "Needs",
+      "type": "array"
+    },
+    "notes": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Notes"
+    },
+    "partner_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the incumbent supplier, if any",
+      "title": "Partner Id"
+    },
+    "partner_ids": {
+      "description": "invite these as well",
+      "items": {
+        "type": "integer"
+      },
+      "title": "Partner Ids",
+      "type": "array"
+    },
+    "po_name": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "the order the task is about",
+      "title": "Po Name"
+    },
+    "product_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Product Id"
+    },
+    "qty": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Qty"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "why the task was raised",
+      "title": "Reason"
+    },
+    "round_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "compare_quotes: the round",
+      "title": "Round Id"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "target_price": {
+      "anyOf": [
+        {
+          "exclusiveMinimum": 0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "counter_offer: a buyer's target",
+      "title": "Target Price"
+    }
+  },
+  "required": [
+    "kind",
+    "case_id"
+  ],
+  "title": "SourcingTask",
+  "type": "object"
+}

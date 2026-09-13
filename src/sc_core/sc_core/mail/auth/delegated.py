@@ -62,11 +62,22 @@ class DelegatedTokenProvider:
     # --- synchronous core -----------------------------------------------------
 
     def account_username(self) -> str | None:
-        accounts = self._app.get_accounts()
+        accounts = self._accounts()
         return accounts[0].get("username") if accounts else None
 
-    def _acquire_silent(self, force_refresh: bool) -> str:
+    def _accounts(self) -> list[dict[str, Any]]:
+        """The signed-in accounts; with none in memory, the store is read again so a
+        ``just mail-login`` made after this process started is seen without a restart."""
         accounts = self._app.get_accounts()
+        if not accounts:
+            blob = self._store.load()
+            if blob:
+                self._cache.deserialize(blob)
+                accounts = self._app.get_accounts()
+        return list(accounts)
+
+    def _acquire_silent(self, force_refresh: bool) -> str:
+        accounts = self._accounts()
         if not accounts:
             raise MailAuthRequired("no cached mail session; run `just mail-login`")
         result = self._app.acquire_token_silent(

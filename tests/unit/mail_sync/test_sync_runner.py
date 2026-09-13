@@ -207,3 +207,24 @@ async def test_system_senders_are_ignored_without_events(world: dict[str, Any]) 
     report = await world["runner"].run()
     assert report.ignored == 1 and report.linked == 1
     assert len(world["director"].events) == 1
+
+
+async def test_a_colleagues_email_is_flagged_as_an_internal_request(world: dict[str, Any]) -> None:
+    runner = SyncRunner(
+        graph=world["graph"],
+        state=world["state"],
+        ports=world["ports"],
+        publisher=world["runner"]._publisher,  # noqa: SLF001 - the same publisher, other config
+        lock=world["lock"],
+        cfg=MailSyncCfg(internal_senders=["empresa.com"]),
+        mailbox="me",
+    )
+    world["graph"].receive(subject="necesitamos 20 filtros", sender="ana.torres@empresa.com")
+    world["graph"].receive(subject="consulta general", sender=SUPPLIER)
+    world["graph"].receive(subject="otra consulta", sender="ventas@otro-proveedor.com")
+    report = await runner.run()
+    assert report.unlinked == 2 and report.linked == 1  # the supplier's mail found its order
+    unlinked = [e for e in world["director"].events if e.type == "inbound_mail.unlinked"]
+    by_sender = {e.sender_address: e for e in unlinked}
+    assert by_sender["ana.torres@empresa.com"].internal is True
+    assert by_sender["ventas@otro-proveedor.com"].internal is False

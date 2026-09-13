@@ -143,7 +143,8 @@ describe("approvals inbox", () => {
   it("approves only the ticked order lines", async () => {
     window.history.replaceState(null, "", "/approvals?id=2");
     renderInbox();
-    const boxes = await screen.findAllByRole("checkbox");
+    // the line checkboxes of the change, not the inbox's bulk selection
+    const boxes = (await screen.findAllByRole("checkbox")).filter((box) => !(box.getAttribute("aria-label") ?? "").startsWith("Select"));
     expect(boxes).toHaveLength(3);
     expect(boxes[2]).toBeDisabled(); // needs a person's review
     expect(screen.getByText("currency mismatch")).toBeInTheDocument();

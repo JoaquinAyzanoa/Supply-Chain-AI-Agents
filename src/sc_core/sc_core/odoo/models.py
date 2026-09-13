@@ -381,6 +381,12 @@ ApprovalKind = Literal[
     "escalation",
     "vendor_bill",
     "supplier_score",
+    "autonomy_change",  # raising an autonomy level needs a second person
+    "award",  # a quote round: who gets the order
+    "negotiation_offer",  # a counter-offer to a supplier
+    "partner_create",  # a new supplier from an unknown sender's quotation
+    "internal_request",  # an employee's request becomes RFQs
+    "price_list_update",  # a supplier's price list attachment updates our prices
 ]
 ApprovalStatus = Literal["pending", "approved", "rejected", "expired"]
 RunStatus = Literal[

@@ -17,7 +17,9 @@ from fastapi_injector import Injected
 from pydantic import Field
 
 from director.api.auth import Principal, Viewer
+from director.api.autonomy import AutoActionView, action_view
 from director.api.runs import AgentRunView, RunsGateway, run_view
+from director.autonomy import AutoActionsStore
 from director.store import Case, CaseEvent, CaseKind, CaseStatus, CaseStore, parse_case_code
 from sc_core.infra import tracing
 from sc_core.schema.base import StrictModel
@@ -52,6 +54,7 @@ class CaseDetail(StrictModel):
     case: CaseView
     events: list[CaseEventView]
     runs: list[AgentRunView]
+    auto_actions: list[AutoActionView] = []  # what ran alone on this case, by policy
 
 
 def case_view(case: Case) -> CaseView:
@@ -96,6 +99,7 @@ async def get_case(
     _: Principal = Viewer,
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
     runs: RunsGateway = Injected(RunsGateway),  # type: ignore[type-abstract]
+    auto_actions: AutoActionsStore = Injected(AutoActionsStore),  # type: ignore[type-abstract]
 ) -> CaseDetail:
     case = await load_case(cases, case_id)
     case_id = case.case_id
@@ -110,4 +114,5 @@ async def get_case(
         case=case_view(case),
         events=[_event_view(e) for e in events],
         runs=[run_view(r) for r in agent_runs],
+        auto_actions=[action_view(a) for a in await auto_actions.for_threads(sorted(thread_ids))],
     )

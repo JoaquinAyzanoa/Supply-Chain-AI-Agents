@@ -109,24 +109,26 @@ async def test_approval_applies_accepted_lines_once(
     )
     assert applied.status == "applied" and applied.applied is not None
     assert applied.applied.orderpoints_written == 2  # CBEA (rule moved) and the kit (overstock)
-    assert applied.applied.rfqs_created == ["P00070"] and applied.applied.lines_applied == 2
+    # the planner names no supplier: the buys go to the sourcing agent as needs
+    assert applied.applied.rfqs_created == [] and applied.applied.lines_applied == 2
+    assert applied.applied.needs_sent == 1
     rules = {r["product_id"]: r for r in writes.orderpoints}
     assert rules[1]["id"] == 1 and rules[1]["created"] is False  # existing rule updated
     assert rules[4]["max"] == lines["990-011-007"].proposed_max
-    [rfq] = writes.rfqs.values()
-    assert rfq["partner_id"] == 20 and rfq["lines"][0]["product_qty"] == 30.0  # the edit
-    assert rfq["lines"][0]["price_unit"] == 104.0
-    assert list(writes.rfqs) == [f"plan:{paused.run_id}:20:1"]
-    [event] = publisher.events
-    assert event.type == "rfq.drafted" and event.po_name == "P00070" and event.partner_id == 20
+    assert writes.rfqs == {}
+    needs = [e for e in publisher.events if e.type == "sourcing.needs"]
+    assert len(needs) == 1 and needs[0].run_id == applied.run_id
+    [need] = needs[0].needs
+    assert need.product == "CBEA-LHN" and need.qty == 30.0  # the edit
+    assert need.expected_price == 104.0 and need.need_date is not None
     assert runs.runs[paused.run_id]["status"] == "applied"
     assert runs.lines[lines["CXDA-XCN"].line_id]["accepted"] is False
-    assert runs.lines[lines["CBEA-LHN"].line_id]["applied"]["po_name"] == "P00070"
+    assert runs.lines[lines["CBEA-LHN"].line_id]["applied"]["need"] is True
 
     # a second resume with the same decision changes nothing
     again = await agent.resume("plan_2", {"approval_id": 101, "status": "approved"})
     assert again.status == "applied" and len(writes.orderpoints) == 2
-    assert len(writes.rfqs) == 1 and len(publisher.events) == 1
+    assert writes.rfqs == {} and len(publisher.events) == 1  # the needs went out once
 
 
 async def test_plain_approval_accepts_every_actionable_line(

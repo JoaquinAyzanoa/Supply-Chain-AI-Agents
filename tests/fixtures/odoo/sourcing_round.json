@@ -1,0 +1,615 @@
+{
+ "entries": [
+  {
+   "key": "ff88b77eae5ba91c3186b7cd",
+   "request": {
+    "service": "common",
+    "method": "login",
+    "args": [
+     "scai",
+     "<login>",
+     "<api_key>"
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": 6
+   }
+  },
+  {
+   "key": "ff5069530f433f5af1b5835f",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "email_normalized",
+        "=",
+        "ventas.hidraulica.sc@gmail.com"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+     {
+      "id": 8,
+      "name": "Proveedor Hidraulica",
+      "email": "ventas.hidraulica.sc@gmail.com",
+      "email_normalized": "ventas.hidraulica.sc@gmail.com",
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "adb97658a5fa1ad35998a573",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "read",
+     [
+      [
+       8
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": [
+     {
+      "id": 8,
+      "name": "Proveedor Hidraulica",
+      "email": "ventas.hidraulica.sc@gmail.com",
+      "email_normalized": "ventas.hidraulica.sc@gmail.com",
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "ee1045ca2b5d3b95e704008d",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "parent_id",
+        "=",
+        8
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "order": "name asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": []
+   }
+  },
+  {
+   "key": "53a001225591db0476c11f1c",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "product.product",
+     "search_read",
+     [
+      [
+       [
+        "default_code",
+        "=",
+        "CBEA-LHN"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "id"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": [
+     {
+      "id": 1
+     }
+    ]
+   }
+  },
+  {
+   "key": "3d6441d9c253da9428a7a328",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "product.product",
+     "read",
+     [
+      [
+       1
+      ]
+     ],
+     {
+      "fields": [
+       "product_tmpl_id"
+      ],
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": [
+     {
+      "id": 1,
+      "product_tmpl_id": [
+       1,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "96cbd32e568597a1f8d81c53",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "product.supplierinfo",
+     "search_read",
+     [
+      [
+       [
+        "product_tmpl_id",
+        "=",
+        1
+       ],
+       "|",
+       [
+        "product_id",
+        "=",
+        false
+       ],
+       [
+        "product_id",
+        "=",
+        1
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "partner_id",
+       "product_tmpl_id",
+       "product_id",
+       "product_name",
+       "product_code",
+       "min_qty",
+       "price",
+       "currency_id",
+       "delay",
+       "date_start",
+       "date_end",
+       "sequence"
+      ],
+      "offset": 0,
+      "order": "sequence asc, min_qty asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 7,
+    "result": [
+     {
+      "id": 2,
+      "partner_id": [
+       9,
+       "Hidráulica Alterna SAC"
+      ],
+      "product_tmpl_id": [
+       1,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A",
+      "product_code": "CBEA-LHN",
+      "min_qty": 1.0,
+      "price": 114.24,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 18,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 1,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       1,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A",
+      "product_code": "CBEA-LHN",
+      "min_qty": 1.0,
+      "price": 104.16,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 30,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 3,
+      "partner_id": [
+       10,
+       "Importadora del Sur SAC"
+      ],
+      "product_tmpl_id": [
+       1,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A",
+      "product_code": "CBEA-LHN",
+      "min_qty": 20.0,
+      "price": 90.72,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 60,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     }
+    ]
+   }
+  },
+  {
+   "key": "e317502b66edaac53c6a7026",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "read",
+     [
+      [
+       9
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 8,
+    "result": [
+     {
+      "id": 9,
+      "name": "Hidráulica Alterna SAC",
+      "email": false,
+      "email_normalized": false,
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       9,
+       "Hidráulica Alterna SAC"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "a69a1e5f4940833429a033d7",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "parent_id",
+        "=",
+        9
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "order": "name asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 9,
+    "result": []
+   }
+  },
+  {
+   "key": "22d7025371a351ea88df62e3",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "read",
+     [
+      [
+       10
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 10,
+    "result": [
+     {
+      "id": 10,
+      "name": "Importadora del Sur SAC",
+      "email": false,
+      "email_normalized": false,
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       10,
+       "Importadora del Sur SAC"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "1f110e7736b20aecff22d064",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "parent_id",
+        "=",
+        10
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "order": "name asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 11,
+    "result": []
+   }
+  }
+ ]
+}

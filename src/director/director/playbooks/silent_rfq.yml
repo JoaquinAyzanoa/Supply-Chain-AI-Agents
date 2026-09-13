@@ -1,0 +1,36 @@
+# A request for quotation nobody answered: remind, remind again, then hand it over.
+name: silent_rfq
+title: Silent RFQ
+description: >
+  Remind the supplier, wait three days, remind once more, wait four days,
+  then escalate so a buyer decides whether to call or to quote elsewhere.
+trigger: rfq_silent
+case_kind: rfq
+done_when: confirmed
+done_reason: The order was confirmed; the RFQ is no longer silent.
+steps:
+  - id: remind
+    label: Remind the supplier about the quotation
+    when: still_rfq
+    agent: supplier_comms
+    task: follow_up
+  - id: wait_reply
+    label: Wait three days for the quote
+    wait_days: 3
+    until: reply_received
+  - id: remind_again
+    label: Remind once more
+    when: no_reply
+    agent: supplier_comms
+    task: follow_up
+    notes: "Second reminder: we still need the quotation to place the order."
+  - id: wait_again
+    label: Wait four more days
+    when: no_reply
+    wait_days: 4
+    until: reply_received
+  - id: hand_over
+    label: Hand over to a buyer
+    when: no_reply
+    action: escalate
+    reason: Two reminders and no quotation; a buyer decides whether to call or quote elsewhere.

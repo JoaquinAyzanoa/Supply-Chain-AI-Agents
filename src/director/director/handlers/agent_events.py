@@ -8,8 +8,8 @@ case leaves ``awaiting_approval``.
 from __future__ import annotations
 
 from director.router import Dispatch, Route
-from sc_core.schema.a2a import SupplierCommsTask
-from sc_core.schema.events import AgentRunFinished, BaseEvent, RfqDrafted
+from sc_core.schema.a2a import SourcingTask, SupplierCommsTask
+from sc_core.schema.events import AgentRunFinished, BaseEvent, NeedsProposed, RfqDrafted
 
 
 def on_run_finished(event: BaseEvent) -> Route:
@@ -18,6 +18,23 @@ def on_run_finished(event: BaseEvent) -> Route:
         case_kind="inbound",
         po_name=event.po_name,
         note=f"{event.agent} finished {event.task_kind} run {event.run_id}: {event.status}",
+    )
+
+
+def on_needs_proposed(event: BaseEvent) -> Route:
+    """The plan's buys become one quote round: the sourcing agent asks the suppliers who
+    list each product and a person awards. No supplier is chosen by the planner."""
+    assert isinstance(event, NeedsProposed)
+    task = SourcingTask(
+        kind="quote_round",
+        case_id=f"round_plan_{event.run_id}",
+        needs=list(event.needs),
+        reason=f"daily plan {event.run_id}",
+    )
+    return Route(
+        case_kind="sourcing",
+        dispatches=[Dispatch(agent="sourcing", task=task)],
+        snapshot={"planning_run_id": event.run_id, "needs": len(event.needs)},
     )
 
 

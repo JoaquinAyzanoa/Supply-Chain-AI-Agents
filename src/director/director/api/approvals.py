@@ -22,15 +22,19 @@ from typing import Any, Literal, Protocol, runtime_checkable
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_injector import Injected
 from loguru import logger
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, model_validator
 
 from director.api.auth import Approver, Principal, Viewer
+from director.autonomy import AutonomyChanges
+from director.learning import FeedbackRecorder
+from director.playbooks import PlaybookEngine, PlaybookPosition
 from director.store import Case, CaseStore
 from sc_core.infra import tracing
 from sc_core.infra.settings import Settings
 from sc_core.odoo.links import record_url
 from sc_core.odoo.models import Approval, ApprovalStatus
 from sc_core.odoo.repositories import ApprovalRepo
+from sc_core.schema.autonomy import Reasoning
 from sc_core.schema.base import StrictModel
 from sc_core.shared.errors import NotFound, ScError
 
@@ -40,6 +44,10 @@ ListStatus = Literal["pending", "approved", "rejected", "expired", "all"]
 
 
 # --- what the inbox shows ---------------------------------------------------------------------
+
+
+class PlaybookLookup(Protocol):
+    async def position_for_case(self, case_id: str) -> PlaybookPosition | None: ...
 
 
 class ApprovalLinks(StrictModel):
@@ -66,7 +74,11 @@ class ApprovalView(StrictModel):
     reason: str | None = None
     payload: dict[str, Any] = {}
     why: str | None = Field(default=None, description="rule or model reasoning behind it")
+    reasoning: Reasoning | None = Field(
+        default=None, description="facts, rule or step, confidence, alternatives, counterfactual"
+    )
     links: ApprovalLinks = ApprovalLinks()
+    playbook: PlaybookPosition | None = None  # the plan this approval sits in, and what follows
 
 
 # --- the decision ----------------------------------------------------------------------------
@@ -84,9 +96,48 @@ class ChangeEdits(StrictModel):
 class PlanEdits(StrictModel):
     accepted_line_ids: list[str]
     edits: dict[str, dict[str, float]] = {}
+    params: dict[
+        str, dict[str, float]
+    ] = {}  # per line: service_level, review_period_days, max_coverage_days
+
+
+class AwardEdits(StrictModel):
+    partner_id: int | None = Field(default=None, description="one supplier for every line")
+    lines: dict[str, int] = Field(
+        default_factory=dict, description="product id -> supplier id, when the award is split"
+    )
+
+    @model_validator(mode="after")
+    def _one_or_the_other(self) -> AwardEdits:
+        if self.partner_id is None and not self.lines:
+            raise ValueError("choose a supplier, or one per line")
+        return self
+
+
+class OfferEdits(StrictModel):
+    offered_price: float = Field(gt=0, description="the unit price we ask; within the cap")
+
+
+class PartnerEdits(StrictModel):
+    name: str | None = Field(default=None, max_length=200)
+    email: str | None = Field(default=None, max_length=200)
+
+
+class RequestEdits(StrictModel):
+    accepted_items: list[int] = Field(description="indexes of the items to order")
+    partner_id: int | None = Field(default=None, description="one supplier for every item")
+
+
+class PriceListEdits(StrictModel):
+    accepted_codes: list[str] = Field(description="the rows to write, by their code")
 
 
 EDITS_BY_KIND: dict[str, type[StrictModel]] = {
+    "award": AwardEdits,
+    "negotiation_offer": OfferEdits,
+    "partner_create": PartnerEdits,
+    "internal_request": RequestEdits,
+    "price_list_update": PriceListEdits,
     "send_email": EmailEdits,
     "po_change": ChangeEdits,
     "planning_run": PlanEdits,
@@ -108,6 +159,23 @@ class ResolveResponse(StrictModel):
     callback_status: str | None = None
 
 
+class BulkRequest(StrictModel):
+    ids: list[int] = Field(min_length=1, max_length=100)
+    status: Literal["approved", "rejected"]
+    reason: str | None = Field(default=None, max_length=1000)
+
+
+class BulkResult(StrictModel):
+    id: int
+    status: str | None = None
+    error: str | None = None
+
+
+class BulkResponse(StrictModel):
+    resolved: int
+    results: list[BulkResult]
+
+
 # --- gateway to Odoo ---------------------------------------------------------------------------
 
 
@@ -118,6 +186,17 @@ class ApprovalsGateway(Protocol):
     ) -> list[Approval]: ...
 
     async def get(self, approval_id: int) -> Approval: ...
+
+    async def create(
+        self,
+        *,
+        kind: str,
+        summary: str,
+        payload: dict[str, Any],
+        requested_by: str,
+        case_id: str,
+        po_id: int | None = None,
+    ) -> Approval: ...
 
     async def resolve(
         self,
@@ -149,6 +228,25 @@ class OdooApprovalsGateway:
     async def get(self, approval_id: int) -> Approval:
         return await self._approvals.get(approval_id)
 
+    async def create(
+        self,
+        *,
+        kind: str,
+        summary: str,
+        payload: dict[str, Any],
+        requested_by: str,
+        case_id: str,
+        po_id: int | None = None,
+    ) -> Approval:
+        return await self._approvals.create(
+            kind=kind,  # type: ignore[arg-type]
+            summary=summary,
+            payload=payload,
+            requested_by=requested_by,
+            case_id=case_id,
+            po_id=po_id,
+        )
+
     async def resolve(
         self,
         approval_id: int,
@@ -166,10 +264,18 @@ class OdooApprovalsGateway:
 # --- helpers -----------------------------------------------------------------------------------
 
 
-async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore) -> ApprovalView:
+async def build_view(
+    approval: Approval,
+    *,
+    settings: Settings,
+    cases: CaseStore,
+    playbooks: PlaybookLookup | None = None,
+) -> ApprovalView:
     payload = ApprovalRepo.payload_of(approval)
     case = await case_for(cases, approval)
+    position = await playbooks.position_for_case(case.case_id) if playbooks and case else None
     why = await _why(cases, case.case_id) if case else None
+    reasoning = reasoning_of(payload, position, why)
     trace_id = case.trace_id if case else None
     links = ApprovalLinks(
         odoo=record_url(settings.odoo.browser_url, "sc.approval", approval.id),
@@ -195,10 +301,35 @@ async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore
         resolved_by=approval.resolved_by_name
         or (approval.resolved_by_id.name if approval.resolved_by_id else None),
         reason=approval.reason,
+        playbook=position,
         payload=payload,
         why=why,
+        reasoning=reasoning,
         links=links,
     )
+
+
+def reasoning_of(
+    payload: dict[str, Any], position: PlaybookPosition | None, why: str | None
+) -> Reasoning | None:
+    """The reasoning the agent stored, completed with the playbook step and the case's
+    last rule when the request itself did not name one."""
+    raw = payload.get("reasoning")
+    try:
+        reasoning = Reasoning.model_validate(raw) if isinstance(raw, dict) else None
+    except ValidationError:
+        reasoning = None
+    if position is not None:
+        step = f"playbook {position.title}, step {position.step_label or position.step_id}"
+        if reasoning is None:
+            reasoning = Reasoning(rule=step)
+        elif not reasoning.rule or reasoning.rule.startswith("no autonomy"):
+            reasoning = reasoning.model_copy(update={"rule": step})
+        else:
+            reasoning = reasoning.model_copy(update={"rule": f"{reasoning.rule} · {step}"})
+    if reasoning is None and why:
+        reasoning = Reasoning(rule=why)
+    return reasoning
 
 
 async def case_for(cases: CaseStore, approval: Approval) -> Case | None:
@@ -235,9 +366,12 @@ def validate_edits(kind: str, edited: dict[str, Any] | None) -> dict[str, Any] |
     if schema is None:
         raise HTTPException(status_code=422, detail=f"{kind} approvals take no edits")
     try:
-        return schema.model_validate(edited).model_dump(exclude_none=True)
+        data = schema.model_validate(edited).model_dump(exclude_none=True)
     except ValidationError as exc:
         raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    if data.get("params") == {}:
+        data.pop("params")  # only planning reviews that keep parameters carry them
+    return data
 
 
 # --- routes --------------------------------------------------------------------------------------
@@ -264,12 +398,55 @@ async def get_approval(
     gateway: ApprovalsGateway = Injected(ApprovalsGateway),  # type: ignore[type-abstract]
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
     settings: Settings = Injected(Settings),
+    playbooks: PlaybookEngine = Injected(PlaybookEngine),
 ) -> ApprovalView:
     try:
         approval = await gateway.get(approval_id)
     except NotFound as exc:
         raise HTTPException(status_code=404, detail=f"approval {approval_id} not found") from exc
-    return await build_view(approval, settings=settings, cases=cases)
+    return await build_view(approval, settings=settings, cases=cases, playbooks=playbooks)
+
+
+@router.post("/bulk", response_model=BulkResponse)
+async def resolve_many(
+    body: BulkRequest,
+    principal: Principal = Approver,
+    gateway: ApprovalsGateway = Injected(ApprovalsGateway),  # type: ignore[type-abstract]
+    cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
+    autonomy: AutonomyChanges = Injected(AutonomyChanges),
+    feedback: FeedbackRecorder = Injected(FeedbackRecorder),
+) -> BulkResponse:
+    """Decide many at once (S8): each one goes through the same path as a single
+    decision; the ones that cannot be decided are reported, not skipped silently."""
+    results: list[BulkResult] = []
+    for approval_id in dict.fromkeys(body.ids):
+        try:
+            done = await resolve_approval(
+                approval_id,
+                ResolveRequest(status=body.status, reason=body.reason, edited_payload=None),
+                principal=principal,
+                gateway=gateway,
+                cases=cases,
+                autonomy=autonomy,
+                feedback=feedback,
+            )
+        except HTTPException as exc:
+            detail = str(exc.detail)
+            error = (
+                "not found"
+                if exc.status_code == 404
+                else detail.replace(f"approval {approval_id} is ", "")
+                if exc.status_code == 409
+                else detail
+            )
+            results.append(BulkResult(id=approval_id, error=error))
+            continue
+        results.append(BulkResult(id=approval_id, status=done.status))
+    resolved = sum(1 for r in results if r.error is None)
+    logger.bind(by=principal.email, resolved=resolved, asked=len(body.ids)).info(
+        "approvals decided in bulk"
+    )
+    return BulkResponse(resolved=resolved, results=results)
 
 
 @router.post("/{approval_id}/resolve", response_model=ResolveResponse)
@@ -279,7 +456,26 @@ async def resolve_approval(
     principal: Principal = Approver,
     gateway: ApprovalsGateway = Injected(ApprovalsGateway),  # type: ignore[type-abstract]
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
+    autonomy: AutonomyChanges = Injected(AutonomyChanges),
+    feedback: FeedbackRecorder = Injected(FeedbackRecorder),
 ) -> ResolveResponse:
+    return await resolve_now(approval_id, body, principal, gateway, cases, autonomy, feedback)
+
+
+async def resolve_now(
+    approval_id: int,
+    body: ResolveRequest,
+    principal: Principal,
+    gateway: ApprovalsGateway,
+    cases: CaseStore,
+    autonomy: AutonomyChanges,
+    feedback: FeedbackRecorder,
+) -> ResolveResponse:
+    """One decision, the way the inbox makes it: Odoo, feedback, the case, autonomy.
+
+    Shared by the single, the bulk and the demo's decisions; raises ``HTTPException``
+    with the status the caller would answer.
+    """
     try:
         approval = await gateway.get(approval_id)
     except NotFound as exc:
@@ -291,12 +487,28 @@ async def resolve_approval(
     details = (
         validate_edits(approval.kind, body.edited_payload) if body.status == "approved" else None
     )
+    if approval.kind == "autonomy_change" and body.status == "approved":
+        # widening autonomy is a two-person decision: the requester cannot confirm it
+        if AutonomyChanges.second_person_required(approval, principal.email):
+            raise HTTPException(
+                status_code=403, detail="a second person must approve an autonomy change"
+            )
     try:
         resolved = await gateway.resolve(
             approval_id, body.status, by_name=principal.name, reason=body.reason, details=details
         )
     except ScError as exc:
         raise HTTPException(status_code=502, detail=f"Odoo refused: {exc.message}") from exc
+    await feedback.record_resolution(
+        approval,
+        status=body.status,
+        by=principal.email,
+        via="api",
+        reason=body.reason,
+        details=details,
+    )
+    if approval.kind == "autonomy_change" and body.status == "approved":
+        await autonomy.apply(approval, by=principal.email)
     case = await case_for(cases, approval)
     if case is not None:
         await cases.add_event(

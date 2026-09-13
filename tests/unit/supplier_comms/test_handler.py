@@ -58,7 +58,7 @@ async def test_invalid_task_fails_without_a_graph_call(
     assert provider.calls == 0 and chat.calls == []
 
 
-def test_agent_card_lists_the_five_skills() -> None:
+def test_agent_card_lists_the_skills() -> None:
     spec = agent_spec("http://supplier_comms:8000/")
     assert spec.url == "http://supplier_comms:8000/a2a" and spec.name == "supplier_comms"
     assert [s.id for s in spec.skills] == [
@@ -66,7 +66,9 @@ def test_agent_card_lists_the_five_skills() -> None:
         "request_eta",
         "follow_up",
         "send_po",
+        "decline_quote",
+        "counter_offer",
         "handle_inbound",
         "resolve_unlinked",
     ]
-    assert len(SKILLS) == 6
+    assert len(SKILLS) == 8

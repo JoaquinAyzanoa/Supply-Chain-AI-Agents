@@ -2,9 +2,11 @@
 
 Short series (fewer than ``min_periods``) get a moving average with no
 error estimate: there is nothing to validate against. Intermittent series
-(at least half the periods without demand) go to Croston, the method made
-for them: on such series every method scores badly on WAPE and the metric
-cannot tell them apart. Otherwise every candidate is backtested and the
+(at least half the periods without demand) go to Croston or TSB, the methods
+made for them, and the backtest picks between the two. Seasonal methods
+(Holt-Winters) enter the race like any other; without a detected season
+they forecast like the moving average and lose the tie to it. Otherwise every
+candidate is backtested and the
 lowest WAPE wins; a candidate within ``TIE_TOLERANCE`` of the best loses to
 the simpler one (the order of ``METHODS``). The residual standard deviation
 of the chosen method's one-step fits is what the policy uses as demand
@@ -18,7 +20,12 @@ from dataclasses import dataclass
 from statistics import pstdev
 
 from inventory_planning.forecasting.backtest import Backtest, backtest
-from inventory_planning.forecasting.methods import METHODS, Forecast, moving_average
+from inventory_planning.forecasting.methods import (
+    INTERMITTENT_METHODS,
+    METHODS,
+    Forecast,
+    moving_average,
+)
 
 MIN_PERIODS = 8
 HORIZON = 4
@@ -41,7 +48,12 @@ class ForecastResult:
 
     @property
     def intermittent(self) -> bool:
-        return self.method == "croston"
+        return self.method in INTERMITTENT_METHODS
+
+    @property
+    def season_length(self) -> int | None:
+        length = int(self.params.get("season_length", 0) or 0)
+        return length or None
 
 
 def select_forecast(
@@ -58,7 +70,7 @@ def select_forecast(
         return _result(forecast, values, None, None, {})
     names = list(candidates or METHODS)
     if candidates is None and is_intermittent(values):
-        names = ["croston"]
+        names = list(INTERMITTENT_METHODS)
     tests = {
         name: backtest(values, METHODS[name], name, horizon=horizon, folds=folds) for name in names
     }

@@ -29,7 +29,8 @@ class StockPicking(models.Model):
                     "po_id": order.id or None,
                     "po_name": order.name or None,
                     "partner_id": picking.partner_id.id or None,
-                    "date_done": iso_utc(picking.date_done),
+                    # the state rule can fire before date_done is written
+                    "date_done": iso_utc(picking.date_done) if picking.date_done else None,
                 },
                 picking.id,
                 "done",

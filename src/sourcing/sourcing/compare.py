@@ -1,0 +1,251 @@
+"""Compare the offers of a round, in code.
+
+An offer is a supplier's price per basket line (from the reply written on
+the RFQ, or from the price list when they did not answer), its lead time and
+its score. The landed unit cost adds the freight estimate; the composite
+weighs the landed total (lower is better), the longest lead time and the
+supplier score, each normalised against the best offer, and takes a penalty
+when the basket is not fully quoted. The recommendation is the best composite;
+the reasons say why in words a buyer can check.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Literal
+
+from sc_core.schema.a2a import ComparedQuote, LineAward, QuoteComparison, QuoteLine
+from sourcing.models import BasketLine
+
+
+@dataclass(frozen=True)
+class Weights:
+    price: float = 0.6
+    lead_time: float = 0.2
+    score: float = 0.2
+    incomplete_penalty: float = 0.25
+
+    def as_dict(self) -> dict[str, float]:
+        return {
+            "price": self.price,
+            "lead_time": self.lead_time,
+            "score": self.score,
+            "incomplete_penalty": self.incomplete_penalty,
+        }
+
+
+@dataclass
+class Offer:
+    partner_id: int
+    partner_name: str
+    lines: list[QuoteLine]  # price_unit None: not quoted
+    source: Literal["reply", "price_list", "none"] = "none"
+    po_name: str | None = None
+    currency: str | None = None
+    lead_days: int | None = None
+    score: float | None = None
+    first_time: bool = False
+
+
+def landed(price: float, freight_pct: float) -> float:
+    return round(price * (1.0 + freight_pct / 100.0), 4)
+
+
+def compare(
+    *,
+    round_id: int,
+    basket: list[BasketLine],
+    offers: list[Offer],
+    freight_pct: float = 0.0,
+    weights: Weights | None = None,
+    invited: int = 0,
+    source_po_name: str | None = None,
+) -> QuoteComparison:
+    weights = weights or Weights()
+    wanted = {line.product_id: line for line in basket}
+    quotes: list[ComparedQuote] = []
+    for offer in offers:
+        lines: list[QuoteLine] = []
+        total = 0.0
+        quoted_products: set[int] = set()
+        for line in offer.lines:
+            want = wanted.get(line.product_id)
+            if want is None:
+                continue
+            unit = landed(line.price_unit, freight_pct) if line.price_unit is not None else None
+            lines.append(
+                line.model_copy(
+                    update={"qty": want.qty, "product": want.product, "landed_unit": unit}
+                )
+            )
+            if unit is not None:
+                total += unit * want.qty
+                quoted_products.add(line.product_id)
+        complete = quoted_products == set(wanted)
+        quotes.append(
+            ComparedQuote(
+                partner_id=offer.partner_id,
+                partner_name=offer.partner_name,
+                po_name=offer.po_name,
+                source=offer.source if quoted_products else "none",
+                currency=offer.currency,
+                lines=lines,
+                total=round(total, 2) if quoted_products else None,
+                lead_days=offer.lead_days,
+                score=offer.score,
+                complete=complete,
+                first_time_supplier=offer.first_time,
+            )
+        )
+    priced = [q for q in quotes if q.total is not None]
+    if priced:
+        best_total = min(q.total for q in priced if q.total is not None)
+        leads = [q.lead_days for q in priced if q.lead_days is not None]
+        best_lead = min(leads) if leads else None
+        scored: list[ComparedQuote] = []
+        for quote in quotes:
+            if quote.total is None:
+                scored.append(quote)
+                continue
+            price_norm = best_total / quote.total if quote.total > 0 else 1.0
+            if best_lead is not None and quote.lead_days:
+                lead_norm = best_lead / quote.lead_days
+            elif best_lead is not None and quote.lead_days == 0:
+                lead_norm = 1.0
+            else:
+                lead_norm = 0.5
+            score_norm = (quote.score / 100.0) if quote.score is not None else 0.5
+            composite = (
+                weights.price * price_norm
+                + weights.lead_time * lead_norm
+                + weights.score * score_norm
+                - (0.0 if quote.complete else weights.incomplete_penalty)
+            )
+            scored.append(
+                quote.model_copy(
+                    update={
+                        "composite": round(composite, 4),
+                        "reasons": _reasons(quote, best_total, best_lead, wanted),
+                    }
+                )
+            )
+        quotes = scored
+    ranked = sorted(
+        quotes,
+        key=lambda q: (
+            -(q.composite if q.composite is not None else -1.0),
+            q.total if q.total is not None else float("inf"),
+        ),
+    )
+    recommended_id = next((q.partner_id for q in ranked if q.composite is not None), None)
+    ranked = [
+        quote.model_copy(
+            update={"rank": position, "recommended": quote.partner_id == recommended_id}
+        )
+        for position, quote in enumerate(ranked, start=1)
+    ]
+    recommended = next((q for q in ranked if q.recommended), None)
+    line_awards = _line_awards(basket, ranked)
+    return QuoteComparison(
+        round_id=round_id,
+        source_po_name=source_po_name,
+        basket=[
+            QuoteLine(product_id=line.product_id, product=line.product, qty=line.qty)
+            for line in basket
+        ],
+        quotes=ranked,
+        recommended_partner_id=recommended.partner_id if recommended else None,
+        line_awards=line_awards,
+        recommendation=_recommendation(recommended, ranked) if recommended else "",
+        freight_pct=freight_pct,
+        weights=weights.as_dict(),
+        last_paid={
+            str(line.product_id): line.last_paid for line in basket if line.last_paid is not None
+        },
+        invited=invited,
+        replied=sum(1 for q in quotes if q.source == "reply"),
+    )
+
+
+def _line_awards(basket: list[BasketLine], ranked: list[ComparedQuote]) -> list[LineAward]:
+    """Per product: the cheapest landed unit among the priced quotes; a tie goes to the
+    better composite (lead time and score). The person may still award otherwise."""
+    awards: list[LineAward] = []
+    for want in basket:
+        candidates: list[tuple[float, float, ComparedQuote, QuoteLine]] = []
+        for quote in ranked:
+            for line in quote.lines:
+                if line.product_id == want.product_id and line.landed_unit is not None:
+                    candidates.append((line.landed_unit, -(quote.composite or 0.0), quote, line))
+        if not candidates:
+            continue
+        candidates.sort(key=lambda c: (c[0], c[1]))
+        _, _, best, line = candidates[0]
+        reasons = [f"cheapest landed unit {line.landed_unit:.2f}"]
+        if len(candidates) > 1:
+            runner = candidates[1][3]
+            reasons.append(f"next {candidates[1][2].partner_name} at {runner.landed_unit:.2f}")
+        if best.lead_days is not None:
+            reasons.append(f"{best.lead_days} day(s)")
+        awards.append(
+            LineAward(
+                product_id=want.product_id,
+                product=want.product,
+                partner_id=best.partner_id,
+                partner_name=best.partner_name,
+                po_name=best.po_name,
+                landed_unit=line.landed_unit,
+                reasons=reasons,
+            )
+        )
+    return awards
+
+
+def _reasons(
+    quote: ComparedQuote,
+    best_total: float,
+    best_lead: int | None,
+    wanted: dict[int, BasketLine],
+) -> list[str]:
+    reasons: list[str] = []
+    assert quote.total is not None
+    if quote.total <= best_total + 1e-9:
+        reasons.append("lowest landed total")
+    elif best_total > 0:
+        reasons.append(f"{100 * (quote.total / best_total - 1):.1f}% above the lowest")
+    if quote.lead_days is not None:
+        if best_lead is not None and quote.lead_days <= best_lead:
+            reasons.append(f"fastest: {quote.lead_days} day(s)")
+        else:
+            reasons.append(f"{quote.lead_days} day(s) lead time")
+    if quote.score is not None:
+        reasons.append(f"score {quote.score:.0f}/100")
+    else:
+        reasons.append("no score yet")
+    if not quote.complete:
+        missing = [
+            wanted[pid].product
+            for pid in wanted
+            if pid not in {line.product_id for line in quote.lines if line.landed_unit is not None}
+        ]
+        reasons.append("not quoted: " + ", ".join(missing))
+    if quote.source == "price_list":
+        reasons.append("list price, no reply yet")
+    if quote.first_time_supplier:
+        reasons.append("first order with this supplier")
+    return reasons
+
+
+def _recommendation(best: ComparedQuote, ranked: list[ComparedQuote]) -> str:
+    others = [q for q in ranked if q is not best and q.total is not None]
+    text = f"{best.partner_name}: " + "; ".join(best.reasons)
+    if others:
+        runner = others[0]
+        text += f". Next: {runner.partner_name} ({'; '.join(runner.reasons)})"
+    unpriced = [q.partner_name for q in ranked if q.total is None]
+    if unpriced:
+        text += ". No price from: " + ", ".join(unpriced)
+    return text
+
+
+__all__ = ["Offer", "Weights", "compare", "landed"]

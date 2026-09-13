@@ -35,6 +35,9 @@ def test_get_chat_client_without_key_is_configuration_error(
 
 def test_module_registers_health_and_caches_clients(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEEPSEEK_API_KEY", "sk-test")
+    # ``just test`` loads .env: a developer's Langfuse keys must not change the outcome
+    for name in ("SC__LANGFUSE__HOST", "SC__LANGFUSE__PUBLIC_KEY", "SC__LANGFUSE__SECRET_KEY"):
+        monkeypatch.delenv(name, raising=False)
     settings = _settings()
     health = HealthRegistry()
     injector = Injector([CoreModule(settings, health), LlmModule()])

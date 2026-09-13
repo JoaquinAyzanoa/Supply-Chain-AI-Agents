@@ -24,9 +24,17 @@ const CURRENT: Schemas["SettingsVersion"] = {
     auto_send_partner_ids: [],
     auto_send_kinds: [],
     ignored_senders: ["accountprotection.microsoft.com"],
+    internal_senders: [],
+    briefing_recipients: [],
     planning_service_level: null,
     planning_review_period_days: null,
     planning_max_coverage_days: null,
+    holding_cost_pct_year: 20,
+    sourcing_top_n: 3,
+    sourcing_deadline_days: 5,
+    sourcing_freight_pct: 5,
+    negotiation_cap_pct: 10,
+    negotiation_max_rounds: 2,
   },
 };
 
@@ -91,8 +99,6 @@ describe("settings and runs", () => {
     const days = screen.getByLabelText(/RFQ follow-ups after/);
     await userEvent.clear(days);
     await userEvent.type(days, "2, 5");
-    await userEvent.click(screen.getByLabelText("Reminders"));
-    await userEvent.click(screen.getByLabelText("Delivery date requests"));
     await userEvent.type(screen.getByLabelText("Note for the history"), "faster chasing");
     await userEvent.click(screen.getByRole("button", { name: "Save as a new version" }));
     await waitFor(() => expect(saved).toHaveLength(1));
@@ -102,7 +108,6 @@ describe("settings and runs", () => {
         ...CURRENT.settings,
         model_by_agent: { supplier_comms: "deepseek-v4-flash" },
         rfq_no_reply_days: [2, 5],
-        auto_send_kinds: ["follow_up", "request_eta"],
       },
     });
     expect(await screen.findByRole("status")).toHaveTextContent("Saved as version 1.");

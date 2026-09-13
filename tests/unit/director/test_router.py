@@ -53,6 +53,21 @@ def test_linked_mail_becomes_handle_inbound() -> None:
     assert dispatch.task.po_name == "P00015"
 
 
+def test_a_colleagues_mail_becomes_an_internal_request() -> None:
+    event = ev.InboundMailUnlinked(
+        source="mail_sync",
+        case_id="case_msg9",
+        graph_message_id="AAMk9",
+        sender_address="ana.torres@empresa.com",
+        internal=True,
+    )
+    decided = route(event)
+    assert decided.case_kind == "inbound" and decided.escalate is None
+    [dispatch] = decided.dispatches
+    assert dispatch.agent == "supplier_comms" and dispatch.task.kind == "internal_request"
+    assert dispatch.task.graph_message_id == "AAMk9" and dispatch.task.po_name is None
+
+
 def test_unlinked_mail_with_candidates_becomes_resolve_task() -> None:
     event = ev.InboundMailUnlinked(
         source="mail_sync",
@@ -72,13 +87,40 @@ def test_unlinked_mail_with_candidates_becomes_resolve_task() -> None:
     assert dispatch.task.case_id == "case_msg2"
 
 
-def test_unlinked_mail_from_unknown_sender_escalates_without_agent() -> None:
+def test_unlinked_mail_from_unknown_sender_goes_to_the_supplier_agent() -> None:
+    # phase 11: the agent reads it; a quotation becomes a partner_create approval
     event = ev.InboundMailUnlinked(
         source="mail_sync", case_id="case_msg3", graph_message_id="AAMk3", sender_address="a@b.c"
     )
     decided = route(event)
+    assert decided.escalate is None and len(decided.dispatches) == 1
+    assert decided.dispatches[0].task.kind == "resolve_unlinked"
+
+
+def test_planner_needs_become_one_quote_round() -> None:
+    from sc_core.schema.a2a import Need
+
+    event = ev.NeedsProposed(
+        source="inventory_planning",
+        case_id="plan_needs_run_1",
+        run_id="run_1",
+        warehouse_id=1,
+        needs=[Need(product_id=1, product="CBEA-LHN", qty=30, expected_price=104.0)],
+    )
+    decided = route(event)
+    assert decided.case_kind == "sourcing" and len(decided.dispatches) == 1
+    task = decided.dispatches[0].task
+    assert decided.dispatches[0].agent == "sourcing" and task.kind == "quote_round"
+    assert task.case_id == "round_plan_run_1" and task.needs[0].qty == 30  # type: ignore[union-attr]
+
+
+def test_unlinked_mail_without_a_sender_escalates_without_agent() -> None:
+    event = ev.InboundMailUnlinked(
+        source="mail_sync", case_id="case_msg4", graph_message_id="AAMk4"
+    )
+    decided = route(event)
     assert decided.dispatches == [] and decided.escalate is not None
-    assert "unknown sender" in decided.escalate
+    assert "without a sender" in decided.escalate
 
 
 def test_po_confirmed_sends_the_order() -> None:
@@ -200,6 +242,7 @@ def test_agent_run_finished_is_recorded() -> None:
         ("po_followups", Route(case_kind="eta", job="po_followups")),
         ("inventory_planning", Route(case_kind="planning", job="inventory_planning")),
         ("supplier_performance", Route(case_kind="receipt", job="supplier_performance")),
+        ("calibration", Route(case_kind="planning", job="calibration")),
     ],
 )
 def test_scheduler_tick_names_the_job(job_id: str, expected: Route) -> None:

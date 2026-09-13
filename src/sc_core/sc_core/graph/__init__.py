@@ -17,6 +17,13 @@ from sc_core.graph.approval import (
     ApprovalRequest,
     OdooApprovalPorts,
     decision_for,
+    policy_from,
+)
+from sc_core.graph.auto_actions import (
+    AutoActionPorts,
+    AutoActionRecord,
+    MemoryAutoActions,
+    PostgresAutoActions,
 )
 from sc_core.graph.checkpointer import build_checkpointer, memory_checkpointer
 from sc_core.graph.sensitive import SENSITIVE_KEYS, clear_sensitive, cleared
@@ -28,7 +35,11 @@ __all__ = [
     "ApprovalDecision",
     "ApprovalGateway",
     "ApprovalRequest",
+    "AutoActionPorts",
+    "AutoActionRecord",
     "BaseAgentState",
+    "MemoryAutoActions",
+    "PostgresAutoActions",
     "OdooApprovalPorts",
     "Tool",
     "ToolBox",
@@ -39,6 +50,7 @@ __all__ = [
     "decision_for",
     "cleared",
     "memory_checkpointer",
+    "policy_from",
     "run_config",
     "tool",
 ]

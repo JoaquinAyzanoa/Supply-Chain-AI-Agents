@@ -65,3 +65,31 @@ class DraftOutput(BaseModel):
 
     subject: str = Field(min_length=3, max_length=200, description="asunto sin el token de orden")
     html_body: str = Field(min_length=20, description="cuerpo completo en HTML sencillo")
+
+
+class AnswerOutput(BaseModel):
+    """A supplier's question answered from records (phase 11 S6)."""
+
+    subject: str = Field(min_length=3, max_length=200)
+    html_body: str = Field(min_length=20, description="simple HTML")
+    factual: bool = Field(description="every part of the question is answered by a record")
+    sources: list[str] = Field(default_factory=list, description="record references used")
+    reason: str | None = Field(default=None, description="what a person must decide, if any")
+
+
+class RequestedLine(BaseModel):
+    description: str = Field(min_length=1, max_length=300)
+    product_ref: str | None = None
+    qty: float = Field(gt=0)
+    uom: str | None = None
+
+
+class RequestExtraction(BaseModel):
+    """What the model reads in an employee's email to purchasing (phase 11 S6)."""
+
+    items: list[RequestedLine] = Field(default_factory=list)
+    need_date_raw: str | None = None
+    need_date: date | None = None
+    requester_name: str | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+    confidence: float = Field(default=1.0, ge=0, le=1)

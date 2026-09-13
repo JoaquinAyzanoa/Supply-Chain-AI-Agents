@@ -14,14 +14,15 @@ two nodes:
    the decision is appended to ``approvals``.
 
 ``add_approval`` wires both nodes and a conditional edge on the decision.
-Auto-approval (trusted suppliers) records the decision in step 1, so step 2
-finds it and never pauses.
+The autonomy policy (``RuntimeSettings.autonomy``) is consulted in step 1 with
+the request's facts: an automatic level records the decision there, writes an
+``auto_actions`` row, and step 2 finds the decision and never pauses.
 """
 
 from __future__ import annotations
 
 from collections.abc import Awaitable, Callable, Hashable
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, Protocol
 
 from langgraph.graph import StateGraph
@@ -29,9 +30,13 @@ from langgraph.types import interrupt
 from loguru import logger
 from pydantic import Field
 
+from sc_core.graph.auto_actions import AutoActionPorts, AutoActionRecord
+from sc_core.graph.reasoning import build_reasoning
 from sc_core.i18n import Language, t
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.odoo.models import ApprovalKind
 from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo
+from sc_core.schema.autonomy import ActionFacts, AutonomyPolicy, PolicyDecision, Reasoning
 from sc_core.schema.base import StrictModel
 from sc_core.shared.time import local_today
 
@@ -49,6 +54,14 @@ class ApprovalRequest(StrictModel):
     auto_reason: str | None = None
     review_on_approval: bool = False
     """Schedule the approver's To-Do on the approval itself (records without an activity mixin)."""
+    facts: ActionFacts | None = None
+    """What the autonomy policy may test; stored in the payload for the preview."""
+    force_approval: bool = False
+    """A person asked to read this one first: no rule applies."""
+    revert: dict[str, Any] | None = None
+    """The inverse write when the action runs alone (per kind), or None: not revertible."""
+    reasoning: Reasoning | None = None
+    """The node's own reasons (facts in words, alternatives); the gateway completes them."""
 
 
 class ApprovalDecision(StrictModel):
@@ -59,6 +72,8 @@ class ApprovalDecision(StrictModel):
     resolved_by: str | None = None
     reason: str | None = None
     details: dict[str, Any] | None = None  # per-line acceptance and edits (planning runs)
+    rule_id: str | None = None  # the autonomy rule that decided, when no person did
+    level: str | None = None  # auto | auto_notice
 
     @property
     def approved(self) -> bool:
@@ -124,8 +139,12 @@ class ApprovalGateway:
         deadline_days: int,
         language: Language = "en",
         control_tower_url: str | None = None,
+        policy: Callable[[], Awaitable[AutonomyPolicy]] | None = None,
+        auto_actions: AutoActionPorts | None = None,
     ) -> None:
         self._ports = ports
+        self._policy = policy
+        self._auto_actions = auto_actions
         self._agent = agent_name
         self._callback_url = callback_url
         self._callback_secret = callback_secret
@@ -142,21 +161,19 @@ class ApprovalGateway:
         """Create the approval (or record an automatic decision). Idempotent per step."""
         if decision_for(state, step) is not None or pending_for(state, step) is not None:
             return {}
-        if req.auto_approve:
-            decision = ApprovalDecision(
-                approval_id=0,
-                status="approved",
-                step=step,
-                resolved_by="auto",
-                reason=req.auto_reason,
-            )
-            logger.bind(step=step).info("approval skipped: {}", req.auto_reason or "auto")
-            return {"approvals": [decision.model_dump()]}
+        verdict = await self._verdict(req)
+        automatic = await self._automatic(state, step, req, verdict)
+        if automatic is not None:
+            return {"approvals": [automatic.model_dump()]}
         res_id = req.res_id if req.res_id is not None else req.po_id
+        payload = {**req.payload, "step": step}
+        if req.facts is not None:
+            payload["facts"] = req.facts.model_dump(mode="json")  # replayed by the preview
+        payload["reasoning"] = self._reasoning(req, verdict, "approve").model_dump(mode="json")
         approval_id = await self._ports.create_approval(
             kind=req.kind,
             summary=req.summary,
-            payload={**req.payload, "step": step},
+            payload=payload,
             requested_by=self._agent,
             case_id=state["case_id"],
             run_id=state.get("run_id"),
@@ -183,6 +200,81 @@ class ApprovalGateway:
             )
         logger.bind(approval_id=approval_id, kind=req.kind, step=step).info("approval requested")
         return {"pending_approvals": [{"approval_id": approval_id, "step": step, "kind": req.kind}]}
+
+    async def _verdict(self, req: ApprovalRequest) -> PolicyDecision | None:
+        """What the autonomy policy says about the request; None when none is in force."""
+        if self._policy is None or req.force_approval:
+            return None
+        return (await self._policy()).decide(req.kind, req.facts)
+
+    @staticmethod
+    def _reasoning(req: ApprovalRequest, verdict: PolicyDecision | None, level: str) -> Reasoning:
+        return build_reasoning(
+            kind=req.kind,
+            facts=req.facts,
+            given=req.reasoning,
+            verdict=verdict,
+            level=level,
+            forced=req.force_approval,
+        )
+
+    async def _automatic(
+        self,
+        state: dict[str, Any],
+        step: str,
+        req: ApprovalRequest,
+        verdict: PolicyDecision | None = None,
+    ) -> ApprovalDecision | None:
+        """The decision when no person is needed: the request says so (legacy
+        ``auto_approve``) or the autonomy policy lets it through."""
+        level, rule_id, reason = "approve", None, req.auto_reason
+        if req.auto_approve:
+            level = "auto_notice"
+        elif verdict is not None:
+            level, rule_id, reason = verdict.level, verdict.rule_id, verdict.reason
+        if level == "approve":
+            return None
+        who = f"policy:{rule_id}" if rule_id else "auto"
+        decision = ApprovalDecision(
+            approval_id=0,
+            status="approved",
+            step=step,
+            kind=req.kind,
+            resolved_by=who,
+            reason=reason,
+            rule_id=rule_id,
+            level=level,
+        )
+        if self._auto_actions is not None:
+            hours = 24
+            if rule_id and self._policy is not None:
+                rule = (await self._policy()).rule(rule_id)
+                hours = rule.revert_hours if rule else hours
+            revertible = level == "auto_notice" and req.revert is not None
+            await self._auto_actions.record(
+                AutoActionRecord(
+                    case_id=state.get("case_id"),
+                    run_id=state.get("run_id"),
+                    agent=self._agent,
+                    kind=req.kind,
+                    level=level,
+                    rule_id=rule_id,
+                    summary=req.summary,
+                    po_id=req.po_id,
+                    po_name=str(req.payload.get("po_name") or "") or None,
+                    partner_id=req.facts.partner_id if req.facts else None,
+                    payload={
+                        **{k: v for k, v in req.payload.items() if k != "html_body"},
+                        "reasoning": self._reasoning(req, verdict, level).model_dump(mode="json"),
+                    },
+                    revert=req.revert if revertible else None,
+                    revert_until=datetime.now(UTC) + timedelta(hours=hours) if revertible else None,
+                )
+            )
+        logger.bind(step=step, kind=req.kind, level=level, rule=rule_id).info(
+            "approval not needed: {}", reason or "auto"
+        )
+        return decision
 
     # --- node 2 -------------------------------------------------------------------
 
@@ -234,6 +326,16 @@ class ApprovalGateway:
             await_node, decided(step), {"approved": approved, "rejected": rejected}
         )
         return await_node
+
+
+def policy_from(reader: RuntimeSettingsReader) -> Callable[[], Awaitable[AutonomyPolicy]]:
+    """The current autonomy policy from a ``RuntimeSettingsReader`` (a minute of cache)."""
+
+    async def current() -> AutonomyPolicy:
+        settings = await reader.current()
+        return settings.autonomy
+
+    return current
 
 
 def decided(step: str) -> Callable[[dict[str, Any]], Hashable]:

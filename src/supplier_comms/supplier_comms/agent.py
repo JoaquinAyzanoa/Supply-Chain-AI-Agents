@@ -17,10 +17,13 @@ from sc_core.infra import tracing
 from sc_core.llm import RunBudget, current_budget
 from sc_core.llm.budget import fresh_budget
 from sc_core.schema.a2a import (
+    AnswerSummary,
     ChangeProposal,
     Classification,
+    InternalRequestData,
     OutboundSummary,
     Outcome,
+    PriceListDiff,
     QuotationData,
     SupplierCommsResult,
     SupplierCommsTask,
@@ -174,6 +177,10 @@ def result_from(state: dict[str, Any], *, language: Language = "en") -> Supplier
             if outbound
             else None,
             trace_id=state.get("trace_id"),
+            po_names=list(state.get("po_names") or []),
+            answer=_model(AnswerSummary, state.get("answer")),
+            internal_request=_model(InternalRequestData, state.get("internal_request")),
+            price_list=_model(PriceListDiff, state.get("price_list")),
         )
 
 

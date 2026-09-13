@@ -8,6 +8,8 @@ serves the built frontend under ``/`` when the bundle exists.
 
 from __future__ import annotations
 
+import asyncio
+from contextlib import suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -27,6 +29,7 @@ from director.api.chat import (
     GraphEmailReader,
     NoEmailReader,
 )
+from director.api.demo import DirectorApprovalResolver
 from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import HttpMailboxSync, MailboxSync
 from director.api.performance import HttpPerformanceSource, PerformanceSource
@@ -36,10 +39,34 @@ from director.api.planning import (
     PlanningReadStore,
     PostgresPlanningReadStore,
 )
+from director.api.risk import HttpRiskSource, RiskSource
 from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
+from director.api.suppliers import MailLinks, SupplierPrices
+from director.assistant import (
+    AssistantStore,
+    DepartmentAssistant,
+    PlanRunner,
+    PostgresAssistantStore,
+)
+from director.autonomy import (
+    AutoActionsStore,
+    AutonomyChanges,
+    OdooReverter,
+    PostgresAutoActionsStore,
+    Reverter,
+)
+from director.briefing import BriefingBuilder, BriefingJob, BriefingStore, PostgresBriefingStore
 from director.concurrency import PoLocks
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
+from director.demo import (
+    DemoDirector,
+    DemoStore,
+    OdooDemoWorld,
+    PostgresDemoStore,
+    SmtpSupplierMailbox,
+    SupplierMailbox,
+)
 from director.escalation import (
     Escalator,
     LoggingEscalator,
@@ -48,19 +75,34 @@ from director.escalation import (
     OdooEscalator,
 )
 from director.handlers.followups import FollowUpJob, MailActivity
+from director.handlers.jobs import PlaybooksJob, SourcingJob
 from director.handlers.performance import PerformanceJob
 from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
 from director.jobs import JobRunner
+from director.learning import (
+    CalibrationJob,
+    FeedbackRecorder,
+    FeedbackStore,
+    PostgresFeedbackStore,
+    PostgresSuggestionStore,
+    SuggestionStore,
+)
+from director.playbooks import PlaybookEngine, PlaybookStore, PostgresPlaybookStore
 from director.policies import FollowUpPolicy
+from director.push import PostgresPushStore, PushRelay, PushStore, WebPushSender
 from director.realtime import BroadcastingCaseStore
 from director.routers import events
+from director.sourcing import HttpSourcingSource, SourcingDispatcher, SourcingSource
 from director.store import CaseStore, PostgresCaseStore
+from director.teams import TeamsNotifier
 from director.workflow import Deps, Orchestrator
 from sc_core.a2a.events import HmacSigner
 from sc_core.app import create_application
 from sc_core.app.realtime import Realtime, RedisRealtime
 from sc_core.app.static import mount_spa
+from sc_core.graph import policy_from
+from sc_core.infra.calendar import CalendarStore, PostgresCalendarStore
 from sc_core.infra.db import Database
 from sc_core.infra.locks import RedisLock
 from sc_core.infra.module import (
@@ -72,6 +114,7 @@ from sc_core.infra.module import (
     OdooModule,
     RedisModule,
 )
+from sc_core.infra.profiles import PostgresProfileStore, ProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.mail.protocol import MailClient
@@ -80,7 +123,9 @@ from sc_core.odoo.repositories import (
     ActivityRepo,
     AgentRunRepo,
     ApprovalRepo,
+    MailLinkRepo,
     PurchaseOrderRepo,
+    SupplierInfoRepo,
 )
 
 settings = Settings(service_name="director")
@@ -228,6 +273,186 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_supplier_prices(self, odoo: OdooClient) -> SupplierPrices:  # type: ignore[type-abstract]
+        return SupplierInfoRepo(odoo)
+
+    @provider
+    @singleton
+    def provide_mail_links(self, odoo: OdooClient) -> MailLinks:  # type: ignore[type-abstract]
+        return MailLinkRepo(odoo)
+
+    @provider
+    @singleton
+    def provide_push_store(self, db: Database) -> PushStore:  # type: ignore[type-abstract]
+        return PostgresPushStore(db)
+
+    @provider
+    @singleton
+    def provide_push_relay(
+        self,
+        settings: Settings,
+        realtime: Realtime,  # type: ignore[type-abstract]
+        store: PushStore,  # type: ignore[type-abstract]
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+    ) -> PushRelay:
+        return PushRelay(
+            realtime=realtime,
+            store=store,
+            sender=WebPushSender(
+                private_key=settings.ui.vapid_private_key.get_secret_value(),
+                subject=settings.ui.vapid_subject,
+            ),
+            approvals=approvals,
+            control_tower_url=settings.ui.public_url,
+        )
+
+    @provider
+    @singleton
+    def provide_briefing_store(self, db: Database) -> BriefingStore:  # type: ignore[type-abstract]
+        return PostgresBriefingStore(db)
+
+    @provider
+    @singleton
+    def provide_demo_store(self, db: Database) -> DemoStore:  # type: ignore[type-abstract]
+        return PostgresDemoStore(db)
+
+    @provider
+    @singleton
+    def provide_demo_director(
+        self,
+        settings: Settings,
+        store: DemoStore,  # type: ignore[type-abstract]
+        odoo: OdooClient,
+        deps: Deps,
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        cases: CaseStore,  # type: ignore[type-abstract]
+        mailbox_sync: MailboxSync,  # type: ignore[type-abstract]
+        risk: RiskSource,  # type: ignore[type-abstract]
+        sourcing: SourcingDispatcher,
+        sourcing_source: SourcingSource,  # type: ignore[type-abstract]
+        briefing: BriefingJob,
+        autonomy: AutonomyChanges,
+        feedback: FeedbackRecorder,
+    ) -> DemoDirector:
+        """Demo mode: the world side needs a second Odoo login (stock and accounting rights)
+        and the supplier's mailbox needs SMTP credentials; both local only, both optional."""
+        cfg = settings.demo
+        admin: OdooClient | None = None
+        if cfg.world_configured:
+            admin = OdooClient(
+                settings.odoo.model_copy(
+                    update={"login": cfg.odoo_login, "api_key": cfg.odoo_api_key}
+                )
+            )
+            _demo_clients.append(admin)
+        mailbox: SupplierMailbox | None = (
+            SmtpSupplierMailbox(cfg) if cfg.mailbox_configured else None
+        )
+        return DemoDirector(
+            cfg=cfg,
+            store=store,
+            world=OdooDemoWorld(odoo, admin),
+            mailbox=mailbox,
+            deps=deps,
+            approvals=approvals,
+            cases=cases,
+            mailbox_sync=mailbox_sync,
+            risk=risk,
+            sourcing=sourcing,
+            sourcing_source=sourcing_source,
+            briefing=briefing,
+            resolver=DirectorApprovalResolver(approvals, cases, autonomy, feedback),
+        )
+
+    @provider
+    @singleton
+    def provide_briefing_job(
+        self,
+        settings: Settings,
+        chats: ChatClientFactory,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        auto_actions: AutoActionsStore,  # type: ignore[type-abstract]
+        followups: FollowUpJob,
+        store: BriefingStore,  # type: ignore[type-abstract]
+        risk: RiskSource,  # type: ignore[type-abstract]
+        playbooks: PlaybookEngine,
+        runtime: RuntimeSettingsReader,
+        injector: Injector,
+    ) -> BriefingJob:
+        builder = BriefingBuilder(
+            cases=cases,
+            approvals=approvals,
+            auto_actions=auto_actions,
+            exceptions=followups,
+            settings=settings,
+            store=store,
+            risk=risk,
+            playbooks=playbooks,
+            chat=chats.for_agent("director"),
+            language=settings.agents.language,
+            langfuse=settings.langfuse,
+        )
+        mail = injector.get(MailClient) if settings.mail.configured else None  # type: ignore[type-abstract]
+        return BriefingJob(
+            builder,
+            store,
+            runtime=runtime,
+            mail=mail,
+            control_tower_url=settings.ui.public_url,
+        )
+
+    @provider
+    @singleton
+    def provide_assistant_store(self, db: Database) -> AssistantStore:  # type: ignore[type-abstract]
+        return PostgresAssistantStore(db)
+
+    @provider
+    @singleton
+    def provide_department_assistant(
+        self,
+        settings: Settings,
+        chats: ChatClientFactory,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        followups: FollowUpJob,
+        auto_actions: AutoActionsStore,  # type: ignore[type-abstract]
+        risk: RiskSource,  # type: ignore[type-abstract]
+        playbooks: PlaybookEngine,
+        orders: BoardOrders,  # type: ignore[type-abstract]
+        performance: PerformanceSource,  # type: ignore[type-abstract]
+        planning: PlanningReadStore,  # type: ignore[type-abstract]
+        runtime: RuntimeSettingsReader,
+    ) -> DepartmentAssistant:
+        return DepartmentAssistant(
+            chats.for_agent("director"),
+            cases=cases,
+            approvals=approvals,
+            exceptions=followups,
+            auto_actions=auto_actions,
+            risk=risk,
+            playbooks=playbooks,
+            orders=orders,
+            performance=performance,
+            planning=planning,
+            runtime=runtime,
+            language=settings.agents.language,
+            langfuse=settings.langfuse,
+        )
+
+    @provider
+    @singleton
+    def provide_plan_runner(
+        self,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        actions: ChatActions,
+        sourcing: SourcingDispatcher,
+        playbooks: PlaybookEngine,
+    ) -> PlanRunner:
+        return PlanRunner(cases=cases, actions=actions, sourcing=sourcing, playbooks=playbooks)
+
+    @provider
+    @singleton
     def provide_jobs(
         self,
         db: Database,
@@ -235,9 +460,26 @@ class DirectorModule(Module):
         agents: Agents,
         escalator: Escalator,  # type: ignore[type-abstract]
         followups: FollowUpJob,
+        recorder: FeedbackRecorder,
+        feedback: FeedbackStore,  # type: ignore[type-abstract]
+        suggestions: SuggestionStore,  # type: ignore[type-abstract]
+        runtime: RuntimeSettingsReader,
+        playbooks: PlaybookEngine,
+        sourcing_source: SourcingSource,  # type: ignore[type-abstract]
+        sourcing_dispatcher: SourcingDispatcher,
+        briefing: BriefingJob,
     ) -> JobRunner:  # type: ignore[type-abstract]
+        followups.attach_playbooks(playbooks)
         return JobDispatcher(
             {
+                "briefing": briefing,
+                "playbooks": PlaybooksJob(playbooks),
+                "calibration": CalibrationJob(
+                    recorder=recorder,
+                    feedback=feedback,
+                    suggestions=suggestions,
+                    policy=policy_from(runtime),
+                ),
                 "po_followups": followups,
                 "inventory_planning": PlanningJob(
                     cases=cases,
@@ -251,6 +493,7 @@ class DirectorModule(Module):
                     escalator=escalator,
                     conversations=PostgresConversationLookup(db),
                 ),
+                "sourcing_rounds": SourcingJob(sourcing_source, sourcing_dispatcher),
             }
         )
 
@@ -281,6 +524,37 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_risk_source(self, settings: Settings) -> RiskSource:  # type: ignore[type-abstract]
+        return HttpRiskSource(settings.a2a.inventory_planning_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_calendar(self, db: Database) -> CalendarStore:  # type: ignore[type-abstract]
+        return PostgresCalendarStore(db)
+
+    @provider
+    @singleton
+    def provide_sourcing_source(self, settings: Settings) -> SourcingSource:  # type: ignore[type-abstract]
+        return HttpSourcingSource(settings.a2a.sourcing_url, settings.a2a_token)
+
+    @provider
+    @singleton
+    def provide_sourcing_dispatcher(
+        self,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+        db: Database,
+    ) -> SourcingDispatcher:
+        return SourcingDispatcher(
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            conversations=PostgresConversationLookup(db),
+        )
+
+    @provider
+    @singleton
     def provide_mailbox_sync(self, settings: Settings) -> MailboxSync:  # type: ignore[type-abstract]
         return HttpMailboxSync(
             settings.mail_sync.url, HmacSigner(settings.events.signing_secret.get_secret_value())
@@ -308,6 +582,78 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_auto_actions(self, db: Database) -> AutoActionsStore:  # type: ignore[type-abstract]
+        return PostgresAutoActionsStore(db)
+
+    @provider
+    @singleton
+    def provide_reverter(self, orders: PurchaseOrderRepo) -> Reverter:  # type: ignore[type-abstract]
+        return OdooReverter(orders)
+
+    @provider
+    @singleton
+    def provide_autonomy_changes(
+        self,
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        store: RuntimeSettingsStore,  # type: ignore[type-abstract]
+        reader: RuntimeSettingsReader,
+        realtime: Realtime,  # type: ignore[type-abstract]
+    ) -> AutonomyChanges:
+        return AutonomyChanges(
+            approvals=approvals, settings_store=store, reader=reader, realtime=realtime
+        )
+
+    @provider
+    @singleton
+    def provide_feedback_store(self, db: Database) -> FeedbackStore:  # type: ignore[type-abstract]
+        return PostgresFeedbackStore(db)
+
+    @provider
+    @singleton
+    def provide_suggestions(self, db: Database) -> SuggestionStore:  # type: ignore[type-abstract]
+        return PostgresSuggestionStore(db)
+
+    @provider
+    @singleton
+    def provide_profiles(self, db: Database) -> ProfileStore:  # type: ignore[type-abstract]
+        return PostgresProfileStore(db)
+
+    @provider
+    @singleton
+    def provide_feedback_recorder(
+        self,
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        store: FeedbackStore,  # type: ignore[type-abstract]
+    ) -> FeedbackRecorder:
+        return FeedbackRecorder(approvals, store)
+
+    @provider
+    @singleton
+    def provide_playbook_store(self, db: Database) -> PlaybookStore:  # type: ignore[type-abstract]
+        return PostgresPlaybookStore(db)
+
+    @provider
+    @singleton
+    def provide_playbooks(
+        self,
+        store: PlaybookStore,  # type: ignore[type-abstract]
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+        followups: FollowUpJob,
+        db: Database,
+    ) -> PlaybookEngine:
+        return PlaybookEngine(
+            store=store,
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            facts=followups,
+            conversations=PostgresConversationLookup(db),
+        )
+
+    @provider
+    @singleton
     def provide_login_limit(self, settings: Settings) -> LoginRateLimit:
         return LoginRateLimit(settings.ui.login_rate_per_minute)
 
@@ -320,13 +666,22 @@ class DirectorModule(Module):
         escalator: Escalator,  # type: ignore[type-abstract]
         jobs: JobRunner,  # type: ignore[type-abstract]
         db: Database,
+        autonomy: AutonomyChanges,
+        feedback: FeedbackRecorder,
+        settings: Settings,
     ) -> Deps:
+        webhook = settings.director.teams_webhook_url.get_secret_value()
         return Deps(
             cases=cases,
             agents=agents,
             escalator=escalator,
             jobs=jobs,
             conversations=PostgresConversationLookup(db),
+            autonomy=autonomy,
+            feedback=feedback,
+            notifier=TeamsNotifier(webhook, control_tower_url=settings.ui.public_url)
+            if webhook
+            else None,
         )
 
     @provider
@@ -339,6 +694,7 @@ class DirectorModule(Module):
         inbox: EventInbox,  # type: ignore[type-abstract]
         redis: AsyncRedis,
         orders: PurchaseOrderRepo,
+        playbooks: PlaybookEngine,
     ) -> Orchestrator:
         locks = PoLocks(
             RedisLock(redis),
@@ -348,6 +704,7 @@ class DirectorModule(Module):
         return Orchestrator(
             deps,
             results,
+            playbooks=playbooks,
             inbox=inbox,
             locks=locks,
             orders=orders,
@@ -368,8 +725,8 @@ def build_app() -> FastAPI:
             LlmModule(),
             DirectorModule(),
         ],
-        startup=[_open_db, _connect_odoo],
-        shutdown=[_close_odoo, _close_agents, _close_db],
+        startup=[_open_db, _connect_odoo, _start_push_relay],
+        shutdown=[_stop_push_relay, _close_odoo, _close_agents, _close_db],
     )
     # The Control Tower bundle, when built (docker/director.Dockerfile or `just ui-build`).
     mount_spa(application, Path(settings.ui.static_dir))
@@ -388,6 +745,27 @@ async def _close_agents() -> None:
     await app.state.injector.get(Agents).aclose()
 
 
+_push_task: asyncio.Task[None] | None = None
+
+
+async def _start_push_relay() -> None:
+    """Approvals reach the phones that subscribed, when a VAPID key pair is configured."""
+    global _push_task  # noqa: PLW0603 - one background task per process
+    if not (settings.ui.vapid_public_key and settings.ui.vapid_private_key.get_secret_value()):
+        logger.info("web push off: SC__UI__VAPID_PUBLIC_KEY / PRIVATE_KEY not set")
+        return
+    relay = app.state.injector.get(PushRelay)
+    _push_task = asyncio.create_task(relay.run(), name="push-relay")
+    logger.info("web push on: approvals are relayed to subscribed browsers")
+
+
+async def _stop_push_relay() -> None:
+    if _push_task is not None:
+        _push_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await _push_task
+
+
 async def _connect_odoo() -> None:
     """Instantiate the Odoo client at startup so its readiness check is registered.
 
@@ -403,6 +781,11 @@ async def _connect_odoo() -> None:
 async def _close_odoo() -> None:
     if settings.odoo.configured:
         await app.state.injector.get(OdooClient).aclose()
+    for client in _demo_clients:
+        await client.aclose()
+
+
+_demo_clients: list[OdooClient] = []  # the demo's second Odoo login, closed with the app
 
 
 if not settings.events.configured:

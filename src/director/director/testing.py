@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 from injector import Binder, Module, singleton
@@ -13,31 +13,74 @@ from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
 from director.api.board import BoardMoves, BoardOrders
 from director.api.chat import CaseAssistant, ChatActions, EmailSnapshot
+from director.api.demo import DirectorApprovalResolver
 from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import MailboxSync
 from director.api.performance import PerformanceSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
+from director.api.risk import RiskSource
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
+from director.api.suppliers import MailLinks, SupplierPrices
+from director.assistant import (
+    AssistantStore,
+    DepartmentAssistant,
+    MemoryAssistantStore,
+    PlanRunner,
+)
+from director.autonomy import AutoAction, AutoActionsStore, AutonomyChanges, Reverter
+from director.briefing import BriefingBuilder, BriefingJob, BriefingStore, MemoryBriefingStore
 from director.concurrency import PoLocks
 from director.conversations import MemoryConversationLookup, MemoryMailActivity
+from director.demo import (
+    DemoDirector,
+    DemoStore,
+    DemoWorld,
+    MemoryDemoStore,
+    MemoryDemoWorld,
+    MemorySupplierMailbox,
+    SupplierMailbox,
+)
 from director.escalation import Escalator, MemoryEscalator
 from director.handlers.followups import MailActivity
 from director.inbox import EventInbox, EventResults, MemoryEventInbox, MemoryEventResults
 from director.jobs import JobRunner, NoJobs
+from director.learning import (
+    FeedbackRecorder,
+    FeedbackStore,
+    MemoryFeedbackStore,
+    MemorySuggestionStore,
+    SuggestionStore,
+)
+from director.playbooks import MemoryPlaybookStore, PlaybookEngine, PlaybookStore
 from director.policies import FollowUpPolicy, PoFacts
+from director.push import MemoryPushStore, PushStore
 from director.realtime import BroadcastingCaseStore
+from director.sourcing import SourcingDispatcher, SourcingSource
 from director.store import CaseStore, MemoryCaseStore
 from director.workflow import ConfirmedOrders, Deps, Orchestrator
 from sc_core.a2a.client import AgentCaller
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app.realtime import MemoryRealtime, Realtime
+from sc_core.infra.calendar import CalendarStore, MemoryCalendarStore
 from sc_core.infra.locks import MemoryLock
-from sc_core.infra.settings import LangfuseCfg
+from sc_core.infra.profiles import MemoryProfileStore, ProfileStore
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
+from sc_core.infra.settings import LangfuseCfg, Settings
 from sc_core.llm.client import ChatCompleter
 from sc_core.llm.testing import ScriptedChatClient
-from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, PurchaseOrder, Ref
-from sc_core.shared.errors import ScError
+from sc_core.odoo.models import (
+    AgentRun,
+    Approval,
+    ApprovalStatus,
+    MailLink,
+    PurchaseOrder,
+    PurchaseOrderLine,
+    Ref,
+    SupplierInfo,
+)
+from sc_core.schema.runtime_settings import RuntimeSettings
+from sc_core.shared.errors import ScError, ValidationFailed
 
 
 def memory_deps(
@@ -48,10 +91,13 @@ def memory_deps(
     logistics: AgentCaller | None = None,
     invoice_match: AgentCaller | None = None,
     supplier_performance: AgentCaller | None = None,
+    sourcing: AgentCaller | None = None,
     escalator: Escalator | None = None,
     jobs: JobRunner | None = None,
     conversations: MemoryConversationLookup | None = None,
     max_concurrent: int = 4,
+    autonomy: AutonomyChanges | None = None,
+    feedback: FeedbackRecorder | None = None,
 ) -> Deps:
     others = {}
     if inventory_planning is not None:
@@ -68,6 +114,8 @@ def memory_deps(
         others["supplier_performance"] = AgentProxy(
             "supplier_performance", supplier_performance, max_concurrent=max_concurrent
         )
+    if sourcing is not None:
+        others["sourcing"] = AgentProxy("sourcing", sourcing, max_concurrent=max_concurrent)
     return Deps(
         cases=cases or MemoryCaseStore(),
         agents=Agents(
@@ -79,6 +127,8 @@ def memory_deps(
         escalator=escalator or MemoryEscalator(),
         jobs=jobs or NoJobs(),
         conversations=conversations or MemoryConversationLookup(),
+        autonomy=autonomy,
+        feedback=feedback,
     )
 
 
@@ -93,6 +143,7 @@ class MemoryDirectorModule(Module):
         logistics: AgentCaller | None = None,
         invoice_match: AgentCaller | None = None,
         supplier_performance: AgentCaller | None = None,
+        sourcing: AgentCaller | None = None,
         cases: MemoryCaseStore | None = None,
         escalator: Escalator | None = None,
         jobs: JobRunner | None = None,
@@ -111,6 +162,20 @@ class MemoryDirectorModule(Module):
         self.users = MemoryUserStore()
         self.approvals = MemoryApprovalsGateway()
         self.runtime_settings = MemoryRuntimeSettingsStore()
+        self.runtime_reader = RuntimeSettingsReader(None, defaults=RuntimeSettings())
+        self.auto_actions = MemoryAutoActionsStore()
+        self.reverter = MemoryReverter()
+        self.feedback = MemoryFeedbackStore()
+        self.suggestions = MemorySuggestionStore()
+        self.profiles = MemoryProfileStore()
+        self.recorder = FeedbackRecorder(self.approvals, self.feedback)
+        self.playbook_store = MemoryPlaybookStore()
+        self.autonomy = AutonomyChanges(
+            approvals=self.approvals,
+            settings_store=self.runtime_settings,
+            reader=self.runtime_reader,
+            realtime=self.realtime,
+        )
         self.login_limit = LoginRateLimit(per_minute=5)
         self.runs = MemoryRunsGateway()
         self.scheduler_runs = MemorySchedulerRuns()
@@ -124,6 +189,25 @@ class MemoryDirectorModule(Module):
         self.board_orders = MemoryBoardOrders()
         self.mailbox = MemoryMailboxSync()
         self.performance = MemoryPerformanceSource()
+        self.sourcing_source = MemorySourcingSource()
+        self.risk_source = MemoryRiskSource()
+        self.calendar = MemoryCalendarStore()
+        # the briefing links records to Odoo; the test settings name a fake Odoo
+        self.settings = Settings(
+            _env_file=None,
+            service_name="director",
+            environment="test",
+            odoo={"url": "http://odoo.test:8069"},
+        )
+        self.briefings = MemoryBriefingStore()
+        self.push_store = MemoryPushStore()
+        self.prices = MemorySupplierPrices()
+        self.mail_links = MemoryMailLinks()
+        self.assistant_store = MemoryAssistantStore()
+        self.demo_store = MemoryDemoStore()
+        self.demo_world = MemoryDemoWorld()
+        self.supplier_mailbox = MemorySupplierMailbox()
+        self.sent_mail: list[Any] = []
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -131,15 +215,79 @@ class MemoryDirectorModule(Module):
             logistics=logistics,
             invoice_match=invoice_match,
             supplier_performance=supplier_performance,
+            sourcing=sourcing,
             escalator=self.escalator,
+            autonomy=self.autonomy,
+            feedback=self.recorder,
             jobs=jobs,
+        )
+        self.sourcing = SourcingDispatcher(
+            cases=self.case_store, agents=self.deps.agents, escalator=self.escalator
+        )
+        self.playbooks = PlaybookEngine(
+            store=self.playbook_store,
+            cases=self.case_store,
+            agents=self.deps.agents,
+            escalator=self.escalator,
+            facts=self.exceptions,
         )
         self.orchestrator = Orchestrator(
             self.deps,
             self.results,
             inbox=self.inbox,
+            playbooks=self.playbooks,
             locks=PoLocks(self.lock, wait_seconds=lock_wait_seconds, poll_seconds=0.01),
             orders=orders,
+        )
+
+    def _briefing_job(self) -> BriefingJob:
+        if getattr(self, "_briefing", None) is None:
+            self._briefing = BriefingJob(
+                BriefingBuilder(
+                    cases=self.case_store,
+                    approvals=self.approvals,
+                    auto_actions=self.auto_actions,
+                    exceptions=self.exceptions,
+                    settings=self.settings,
+                    store=self.briefings,
+                    risk=self.risk_source,
+                    playbooks=self.playbooks,
+                    chat=self.chat,
+                    langfuse=LangfuseCfg(enabled=False),
+                ),
+                self.briefings,
+                runtime=self.runtime_reader,
+                mail=_RecordingMail(self.sent_mail),
+                control_tower_url="https://tower.test",
+            )
+        return self._briefing
+
+    def demo_director(self, *, briefing: BriefingJob | None = None) -> DemoDirector:
+        """The scripted scenario on the memory doubles: no waiting, three looks per step."""
+
+        async def no_sleep(_: float) -> None:
+            return None
+
+        return DemoDirector(
+            cfg=self.settings.demo,
+            store=self.demo_store,
+            world=self.demo_world,
+            mailbox=self.supplier_mailbox,
+            deps=self.deps,
+            approvals=self.approvals,
+            cases=self.case_store,
+            mailbox_sync=self.mailbox,
+            risk=self.risk_source,
+            sourcing=self.sourcing,
+            sourcing_source=self.sourcing_source,
+            briefing=briefing or self._briefing_job(),
+            resolver=DirectorApprovalResolver(
+                self.approvals, self.case_store, self.autonomy, self.recorder
+            ),
+            sleep=no_sleep,
+            wait_seconds=3,
+            poll_seconds=1.0,
+            chain_wait_seconds=1,
         )
 
     def configure(self, binder: Binder) -> None:
@@ -167,7 +315,46 @@ class MemoryDirectorModule(Module):
             ),
             scope=singleton,
         )
-        binder.bind(ChatActions, to=ChatActions(self.deps, self.approvals), scope=singleton)
+        actions = ChatActions(self.deps, self.approvals)
+        binder.bind(ChatActions, to=actions, scope=singleton)
+        binder.bind(BriefingStore, to=self.briefings, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(PushStore, to=self.push_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SupplierPrices, to=self.prices, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(MailLinks, to=self.mail_links, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(BriefingJob, to=self._briefing_job(), scope=singleton)
+        binder.bind(AssistantStore, to=self.assistant_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(DemoStore, to=self.demo_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(DemoWorld, to=self.demo_world, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SupplierMailbox, to=self.supplier_mailbox, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(DemoDirector, to=self.demo_director(), scope=singleton)
+        binder.bind(
+            DepartmentAssistant,
+            to=DepartmentAssistant(
+                self.chat,
+                cases=self.case_store,
+                approvals=self.approvals,
+                exceptions=self.exceptions,
+                auto_actions=self.auto_actions,
+                risk=self.risk_source,
+                playbooks=self.playbooks,
+                orders=self.board_orders,
+                performance=self.performance,
+                planning=self.planning,
+                runtime=self.runtime_reader,
+                langfuse=LangfuseCfg(enabled=False),
+            ),
+            scope=singleton,
+        )
+        binder.bind(
+            PlanRunner,
+            to=PlanRunner(
+                cases=self.case_store,
+                actions=actions,
+                sourcing=self.sourcing,
+                playbooks=self.playbooks,
+            ),
+            scope=singleton,
+        )
         binder.bind(MailActivity, to=self.mail_activity, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardOrders, to=self.board_orders, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(MailboxSync, to=self.mailbox, scope=singleton)  # type: ignore[type-abstract]
@@ -176,6 +363,20 @@ class MemoryDirectorModule(Module):
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(ApprovalsGateway, to=self.approvals, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(AutoActionsStore, to=self.auto_actions, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(Reverter, to=self.reverter, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(AutonomyChanges, to=self.autonomy, scope=singleton)
+        binder.bind(FeedbackStore, to=self.feedback, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SuggestionStore, to=self.suggestions, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(ProfileStore, to=self.profiles, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(FeedbackRecorder, to=self.recorder, scope=singleton)
+        binder.bind(PlaybookStore, to=self.playbook_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(PlaybookEngine, to=self.playbooks, scope=singleton)
+        binder.bind(SourcingSource, to=self.sourcing_source, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(RiskSource, to=self.risk_source, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(CalendarStore, to=self.calendar, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SourcingDispatcher, to=self.sourcing, scope=singleton)
+        binder.bind(RuntimeSettingsReader, to=self.runtime_reader, scope=singleton)
         binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(LoginRateLimit, to=self.login_limit, scope=singleton)
 
@@ -218,6 +419,27 @@ class MemoryApprovalsGateway:
                 thread_id=thread_id,
                 callback_status="none",
             )
+        )
+
+    async def create(
+        self,
+        *,
+        kind: str,
+        summary: str,
+        payload: dict[str, Any],
+        requested_by: str,
+        case_id: str,
+        po_id: int | None = None,
+    ) -> Approval:
+        approval_id = max(self.rows, default=100) + 1
+        return self.seed(
+            approval_id,
+            kind=kind,
+            summary=summary,
+            payload=payload,
+            po=None if po_id is None else (po_id, f"P{po_id:05d}"),
+            thread_id=case_id,
+            requested_by=requested_by,
         )
 
     async def list(self, *, status: str, kind: str | None, po_name: str | None) -> list[Approval]:
@@ -332,6 +554,9 @@ class MemoryExceptionsSource:
     async def gather(self, today: date) -> list[PoFacts]:
         return list(self.facts)
 
+    async def facts_for(self, po_name: str, today: date) -> PoFacts | None:
+        return next((f for f in self.facts if f.po_name == po_name), None)
+
     async def act_now(
         self, po_name: str, *, requested_by: str, today: date | None = None
     ) -> dict[str, Any]:
@@ -375,6 +600,7 @@ class MemoryBoardOrders:
     def __init__(self) -> None:
         self.orders: dict[int, PurchaseOrder] = {}
         self.off_board: set[int] = set()  # too old for the board's window
+        self.lines_by_po: dict[int, list[PurchaseOrderLine]] = {}
         self.actions: list[tuple[str, int, Any]] = []
         self.notes: list[tuple[int, str]] = []
 
@@ -387,6 +613,9 @@ class MemoryBoardOrders:
 
     async def by_names(self, names: list[str]) -> list[PurchaseOrder]:
         return [po for po in self.orders.values() if po.name in names]
+
+    async def lines(self, po_id: int) -> list[PurchaseOrderLine]:
+        return list(self.lines_by_po.get(po_id, []))
 
     async def confirm(self, po_id: int) -> PurchaseOrder:
         self.actions.append(("confirm", po_id, None))
@@ -440,3 +669,134 @@ class MemoryPerformanceSource:
 
     async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
         return [await self.rank(pid) for pid in sorted(set(product_ids))]
+
+
+class MemorySupplierPrices:
+    """Price list rows per supplier, as Odoo's ``product.supplierinfo`` would list them."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, list[SupplierInfo]] = {}
+        self.variants: dict[int, int] = {}  # template id -> first variant id
+
+    async def for_partner(self, partner_id: int) -> list[SupplierInfo]:
+        return list(self.rows.get(partner_id, []))
+
+    async def variant_ids(self, template_ids: list[int]) -> dict[int, int]:
+        return {tid: self.variants[tid] for tid in template_ids if tid in self.variants}
+
+
+class MemoryMailLinks:
+    """Mail links per order id (metadata only)."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, list[MailLink]] = {}
+
+    async def for_po(self, po_id: int) -> list[MailLink]:
+        return list(self.rows.get(po_id, []))
+
+
+class _RecordingMail:
+    """Only ``send`` is used by the briefing; everything else is never called in tests."""
+
+    def __init__(self, sent: list[Any]) -> None:
+        self._sent = sent
+
+    async def send(self, message: Any) -> None:
+        self._sent.append(message)
+
+    def __getattr__(self, name: str) -> Any:
+        raise AttributeError(name)
+
+
+class MemoryRiskSource:
+    """The risk radar as the planner would answer it."""
+
+    def __init__(self) -> None:
+        self.report_data: dict[str, Any] = {
+            "as_of": "2026-09-14",
+            "warehouse_code": "WH",
+            "products": [],
+            "suppliers": [],
+            "cash_exposure": 0.0,
+            "at_risk_30": 0,
+        }
+
+    async def report(self, *, warehouse_code: str | None = None) -> dict[str, Any]:
+        return dict(self.report_data)
+
+
+class MemorySourcingSource:
+    """Rounds and negotiations as the sourcing agent would list them."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+        self.due: list[dict[str, Any]] = []
+        self.negotiation_rows: dict[str, list[dict[str, Any]]] = {}
+
+    async def rounds(
+        self, *, status: str | None = None, partner_id: int | None = None
+    ) -> list[dict[str, Any]]:
+        out = list(self.rows)
+        if status:
+            out = [r for r in out if r.get("status") == status or status == "active"]
+        if partner_id is not None:
+            out = [
+                r for r in out if any(x.get("partner_id") == partner_id for x in r.get("rfqs", []))
+            ]
+        return out
+
+    async def round(self, round_id: int) -> dict[str, Any] | None:
+        return next((r for r in self.rows if r.get("id") == round_id), None)
+
+    async def due_rounds(self) -> list[dict[str, Any]]:
+        return list(self.due)
+
+    async def negotiations(self, po_name: str) -> list[dict[str, Any]]:
+        return list(self.negotiation_rows.get(po_name, []))
+
+
+class MemoryAutoActionsStore:
+    """The automatic-actions feed as the agents would have written it."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, AutoAction] = {}
+
+    def add(self, action: AutoAction) -> AutoAction:
+        self.rows[action.id] = action
+        return action
+
+    async def recent(self, *, since: datetime, limit: int = 200) -> list[AutoAction]:
+        rows = [a for a in self.rows.values() if a.created_at >= since]
+        return sorted(rows, key=lambda a: a.created_at, reverse=True)[:limit]
+
+    async def for_case(self, case_id: str) -> list[AutoAction]:
+        return await self.for_threads([case_id])
+
+    async def for_threads(self, ids: Sequence[str]) -> list[AutoAction]:
+        wanted = set(ids)
+        return sorted(
+            (a for a in self.rows.values() if a.case_id in wanted), key=lambda a: a.created_at
+        )
+
+    async def get(self, action_id: int) -> AutoAction | None:
+        return self.rows.get(action_id)
+
+    async def mark_reverted(self, action_id: int, *, by: str) -> AutoAction:
+        if action_id not in self.rows:
+            raise ScError(f"automatic action {action_id} not found")
+        updated = self.rows[action_id].model_copy(
+            update={"reverted_at": datetime.now(UTC), "reverted_by": by}
+        )
+        self.rows[action_id] = updated
+        return updated
+
+
+class MemoryReverter:
+    def __init__(self) -> None:
+        self.reverted: list[tuple[int, str]] = []
+
+    async def revert(self, action: AutoAction, *, by: str) -> str:
+        if action.kind != "po_change" or not action.revert:
+            raise ValidationFailed(f"an automatic {action.kind} cannot be reverted")
+        self.reverted.append((action.id, by))
+        return f"Automatic change #{action.id} reverted by {by}"

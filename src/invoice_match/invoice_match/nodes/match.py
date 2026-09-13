@@ -17,6 +17,7 @@ from invoice_match.nodes.common import bill_of, finish, invoice_of, task_of
 from invoice_match.ports import InvoicePorts
 from invoice_match.state import Node
 from sc_core.i18n import Language, t
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from supplier_comms.models import PoContext
 
 
@@ -48,8 +49,16 @@ def make_match(
     qty_tolerance_pct: float,
     fuzzy_threshold: float,
     language: Language = "en",
+    runtime: RuntimeSettingsReader | None = None,
 ) -> Node:
+    tolerance = price_tolerance_pct
+
     async def match(state: Any) -> dict[str, Any]:
+        price_tolerance_pct = tolerance
+        if runtime is not None:
+            override = (await runtime.current()).invoice_price_tolerance_pct
+            if override is not None:
+                price_tolerance_pct = override
         task = task_of(state)
         invoice = invoice_of(state)
         bill = bill_of(state)

@@ -21,8 +21,10 @@ from sc_core.graph import ApprovalGateway, ApprovalRequest
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter, complete_structured, system, user
 from sc_core.prompts import get_prompt
+from sc_core.schema.a2a import QuotationData
 from supplier_comms.models import InboundMeta, PoContext, UnlinkedResolution
 from supplier_comms.nodes.common import fail, finish, task_of
+from supplier_comms.nodes.partner import candidate_from
 from supplier_comms.ports import AgentPorts
 from supplier_comms.render import lines_table
 from supplier_comms.state import Node
@@ -91,6 +93,15 @@ def make_resolve_unlinked(
         partner_id = (
             await ports.partner_by_email(meta.sender_address) if meta.sender_address else None
         )
+        if partner_id is None and meta.sender_address and text.strip():
+            # phase 11: an unknown sender quoting something we buy is a new supplier to
+            # confirm, not an email to file
+            candidate = await _quotation_candidate(chat, meta, text, langfuse=langfuse)
+            if candidate is not None:
+                logger.bind(sender=meta.sender_address).info(
+                    "unknown sender quoted; asking to create the supplier"
+                )
+                return {"partner_candidate": candidate}
         update = await approvals.prepare(
             state,
             ESCALATION_STEP,
@@ -124,6 +135,28 @@ def make_resolve_unlinked(
         }
 
     return resolve_unlinked
+
+
+async def _quotation_candidate(
+    chat: ChatCompleter, meta: InboundMeta, text: str, *, langfuse: LangfuseCfg | None
+) -> dict[str, Any] | None:
+    """Read the message as a quotation; a priced line makes the sender a candidate."""
+    prompt = get_prompt("extract_quotation", local_dir=PROMPTS_DIR, cfg=langfuse)
+    data = await complete_structured(
+        chat,
+        [
+            system(prompt.text),
+            user(
+                f"Sender: {meta.sender_address}\nThere is no order of ours for this message; "
+                "list what the sender quotes (product reference, description, quantity, "
+                f"unit price, currency, lead time).\n\nSupplier's email:\n{text.strip()}"
+            ),
+        ],
+        QuotationData,
+        name="supplier_comms.extract_unknown_sender",
+        metadata={"prompt": prompt.name, "prompt_version": prompt.version},
+    )
+    return candidate_from(meta, data)
 
 
 async def _candidates(ports: AgentPorts, names: list[str], meta: InboundMeta) -> list[PoContext]:

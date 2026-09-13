@@ -17,7 +17,13 @@ from pydantic import Field
 from sc_core.schema.base import StrictModel
 
 LineAction = Literal[
-    "update_rule", "create_rfq", "update_rule_and_rfq", "hold", "manual_review", "none"
+    "update_rule",
+    "create_rfq",
+    "update_rule_and_rfq",
+    "hold",
+    "manual_review",
+    "consolidate",  # pulled forward to reach a supplier's free-freight threshold
+    "none",
 ]
 ExceptionKind = Literal[
     "stockout_risk",
@@ -27,6 +33,17 @@ ExceptionKind = Literal[
     "negative_position",
     "no_history",
 ]
+
+
+class ConsolidationNote(StrictModel):
+    """Why a line is bought early: the freight it saves against the stock it costs."""
+
+    supplier_id: int
+    supplier_name: str = ""
+    freight_saved: float = Field(ge=0)
+    stock_cost: float = Field(ge=0)
+    days_early: float = Field(ge=0)
+    threshold: float = Field(ge=0)
 
 
 class ReplenishmentLine(StrictModel):
@@ -70,6 +87,8 @@ class ReplenishmentLine(StrictModel):
     exception: ExceptionKind | None = None
     explanation: str | None = None
     action: LineAction = "none"
+    held_until: date | None = None  # a rule change the planner rejected twice: not proposed
+    consolidation: ConsolidationNote | None = None
 
     @property
     def order_value(self) -> float:
@@ -89,7 +108,11 @@ class ReplenishmentProposal(StrictModel):
     totals: dict[str, float] = {}
 
     def compute_totals(self) -> dict[str, float]:
-        rfq_lines = [ln for ln in self.lines if ln.action in ("create_rfq", "update_rule_and_rfq")]
+        rfq_lines = [
+            ln
+            for ln in self.lines
+            if ln.action in ("create_rfq", "update_rule_and_rfq", "consolidate")
+        ]
         rules = [ln for ln in self.lines if ln.action in ("update_rule", "update_rule_and_rfq")]
         value: dict[str, float] = {}
         for line in rfq_lines:
@@ -101,5 +124,6 @@ class ReplenishmentProposal(StrictModel):
             "rules_changed": float(len(rules)),
             "exceptions": float(sum(1 for ln in self.lines if ln.exception)),
             "manual_review": float(sum(1 for ln in self.lines if ln.action == "manual_review")),
+            "consolidated": float(sum(1 for ln in self.lines if ln.action == "consolidate")),
             **value,
         }

@@ -13,6 +13,8 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:4173",
     trace: "retain-on-failure",
+    // The PWA's service worker would sit between the page and the mocked API.
+    serviceWorkers: "block",
   },
   webServer: {
     command: "npm run preview -- --port 4173 --strictPort",

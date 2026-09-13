@@ -62,7 +62,7 @@ def order_quantity(
     """Order when the position (on hand + incoming - committed) is below the ROP.
 
     The raw quantity brings the position back to the order-up-to level; it
-    is raised to the supplier's minimum and rounded up to the pack multiple.
+    is raised to the supplier's minimum, rounded up to the pack multiple and to whole units.
     """
     if projected_position >= rop:
         return 0.0
@@ -70,7 +70,8 @@ def order_quantity(
     qty = max(raw, moq)
     if multiple and multiple > 0:
         qty = ceil(qty / multiple - 1e-9) * multiple
-    return float(qty)
+    # nobody sells 3.79 valves: whole units, always rounded up
+    return float(ceil(qty - 1e-9))
 
 
 def coverage_days(projected_position: float, avg_daily_demand: float) -> float | None:

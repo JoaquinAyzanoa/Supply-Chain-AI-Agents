@@ -13,6 +13,7 @@ from typing import Any
 
 from loguru import logger
 
+from inventory_planning.consolidation import FreightTerms, consolidate
 from inventory_planning.forecasting import ForecastResult
 from inventory_planning.models import PlanningDataset
 from inventory_planning.nodes.compute_policy import compute_lines
@@ -20,18 +21,21 @@ from inventory_planning.nodes.detect_exceptions import detect_all
 from inventory_planning.nodes.explain import explain_lines, explain_run
 from inventory_planning.nodes.forecast import forecast_all
 from inventory_planning.nodes.load_data import load_dataset
-from inventory_planning.policy import ParamsStore, ProductParams, abc_classes
+from inventory_planning.policy import HoldStore, ParamsStore, ProductParams, abc_classes
 from inventory_planning.policy.params import resolve_params
 from inventory_planning.ports import DataPorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node
 from sc_core.i18n import Language, t
+from sc_core.infra.calendar import CalendarStore
+from sc_core.infra.profiles import ProfileReader
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
 from sc_core.schema.a2a import InventoryPlanningTask
 from sc_core.schema.planning import ReplenishmentLine, ReplenishmentProposal
 from sc_core.schema.runtime_settings import RuntimeSettings
+from sc_core.shared.time import local_today
 
 
 def task_of(state: dict[str, Any]) -> InventoryPlanningTask:
@@ -73,17 +77,23 @@ def make_load(ports: DataPorts, cfg: PlanningCfg, *, today: Callable[[], date]) 
     return load
 
 
-def make_forecast() -> Node:
+def make_forecast(calendar: CalendarStore | None = None) -> Node:
     async def forecast(state: Any) -> dict[str, Any]:
         dataset = dataset_of(state)
-        results = forecast_all(dataset)
+        events = await calendar.events(since=dataset.history_start) if calendar else []
+        results = forecast_all(dataset, events)
         return {"forecasts": {str(pid): _forecast_dict(r) for pid, r in results.items()}}
 
     return forecast
 
 
 def make_compute(
-    params_store: ParamsStore, cfg: PlanningCfg, *, runtime: RuntimeSettingsReader | None = None
+    params_store: ParamsStore,
+    cfg: PlanningCfg,
+    *,
+    runtime: RuntimeSettingsReader | None = None,
+    holds: HoldStore | None = None,
+    today: Callable[[], date] = local_today,
 ) -> Node:
     async def compute(state: Any) -> dict[str, Any]:
         task = task_of(state)
@@ -107,6 +117,9 @@ def make_compute(
             run_id=state["run_id"],
             lead_time_sigma_ratio=cfg.lead_time_sigma_ratio,
         )
+        if holds is not None:
+            held = await holds.held(ids, today=today())
+            lines = [apply_hold(ln, held.get(ln.product_id)) for ln in lines]
         return {
             "params": {str(pid): p.model_dump(mode="json") for pid, p in params.items()},
             "lines": [ln.model_dump(mode="json") for ln in lines],
@@ -127,6 +140,42 @@ def _runtime_defaults(params: ProductParams, defaults: RuntimeSettings) -> Produ
     if defaults.planning_max_coverage_days is not None:
         changes["max_coverage_days"] = defaults.planning_max_coverage_days
     return params.model_copy(update=changes) if changes else params
+
+
+def apply_hold(line: ReplenishmentLine, held_until: date | None) -> ReplenishmentLine:
+    """A held product keeps its current rule: the change is shown, not proposed."""
+    if held_until is None:
+        return line
+    return line.model_copy(update={"held_until": held_until})
+
+
+def make_consolidate(profiles: ProfileReader | None, runtime: RuntimeSettingsReader | None) -> Node:
+    """Pull forward what reaches a supplier's free-freight threshold, when it pays."""
+
+    async def consolidate_node(state: Any) -> dict[str, Any]:
+        lines = lines_of(state)
+        if profiles is None or task_of(state).kind != "daily_plan":
+            return {}
+        holding = (await runtime.current()).holding_cost_pct_year if runtime else 20.0
+        terms: dict[int, FreightTerms] = {}
+        for pid in sorted({ln.supplier_id for ln in lines if ln.supplier_id is not None}):
+            profile = await profiles.get(pid)
+            facts = profile.facts if profile else {}
+            terms[pid] = FreightTerms(
+                partner_id=pid,
+                partner_name=next(
+                    (ln.supplier_name or "" for ln in lines if ln.supplier_id == pid), ""
+                ),
+                free_freight_over=float(facts.get("free_freight_over") or 0.0),
+                freight_cost=float(facts.get("freight_cost") or 0.0),
+            )
+        merged = consolidate(lines, terms, holding_pct_year=holding)
+        added = sum(1 for ln in merged if ln.action == "consolidate")
+        if added:
+            logger.bind(run_id=state["run_id"], consolidated=added).info("orders consolidated")
+        return {"lines": [ln.model_dump(mode="json") for ln in merged]}
+
+    return consolidate_node
 
 
 def make_detect() -> Node:

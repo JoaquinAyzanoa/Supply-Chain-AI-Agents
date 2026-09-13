@@ -23,6 +23,7 @@ from invoice_match.ports import InvoicePorts
 from invoice_match.state import InvoiceMatchState, Node
 from sc_core.graph import ApprovalGateway
 from sc_core.i18n import Language
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter
 from sc_core.shared.time import local_today
@@ -37,7 +38,7 @@ class Deps:
     price_tolerance_pct: float = 1.0
     qty_tolerance_pct: float = 0.0
     fuzzy_threshold: float = 0.6
-    auto_approve_amount: float = 0.0
+    runtime: RuntimeSettingsReader | None = None  # Control Tower tolerance wins over cfg
     max_attachment_chars: int = 12_000
     langfuse: LangfuseCfg | None = None
     today: Callable[[], date] = field(default=local_today)
@@ -57,6 +58,7 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
         make_match(
             deps.ports,
             price_tolerance_pct=deps.price_tolerance_pct,
+            runtime=deps.runtime,
             qty_tolerance_pct=deps.qty_tolerance_pct,
             fuzzy_threshold=deps.fuzzy_threshold,
             language=deps.language,
@@ -74,9 +76,7 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     deps.approvals.add_approval(
         g,
         step=BILL_STEP,
-        build=make_bill_approval(
-            auto_approve_amount=deps.auto_approve_amount, language=deps.language
-        ),
+        build=make_bill_approval(language=deps.language),
         after=None,
         approved="apply",
         rejected="rejected",

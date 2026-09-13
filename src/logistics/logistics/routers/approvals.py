@@ -99,4 +99,5 @@ def run_finished(result: LogisticsResult, approval_id: int) -> AgentRunFinished:
         po_name=result.po_name,
         approval_id=approval_id,
         sent_message_id=result.outbound.sent_message_id if result.outbound else None,
+        web_link=result.outbound.web_link if result.outbound else None,
     )

@@ -37,6 +37,7 @@ const card = (over: Partial<Card> & Pick<Card, "po_id" | "po_name" | "column" | 
   summary: null,
   act_kind: null,
   can_act: false,
+  age_days: 3,
   invoice_status: null,
   discrepancy: false,
   odoo_url: `http://odoo/purchase.order/${over.po_id}`,
@@ -86,6 +87,13 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   const url = new URL(request.url);
   if (url.pathname === "/api/auth/me") return jsonResponse(200, { email: "ana@x.com", name: "Ana", role: "approver" });
   if (url.pathname === "/api/board") return jsonResponse(200, BOARD);
+  if (url.pathname === "/api/board/P00006/detail")
+    return jsonResponse(200, {
+      po_name: "P00006",
+      lines: [{ line_id: 1, product: "[CBEA-LHN] Válvula de contrabalance", qty: 12, qty_received: 0, qty_invoiced: 0, price_unit: 104.16, subtotal: 1249.92, date_planned: "2026-09-10T12:00:00Z" }],
+      origin: { kind: "planning", run_id: "run_1", as_of: "2026-09-13", summary: "17 RFQs, 30 rules", explanations: ["CBEA-LHN: Below the reorder point with 11 on hand."], created_by: null, origin: null },
+    });
+  if (url.pathname.endsWith("/detail")) return jsonResponse(200, { po_name: "x", lines: [], origin: { kind: "odoo", run_id: null, as_of: null, summary: null, explanations: [], created_by: "Administrator", origin: "SEED/RFQ" } });
   const move = url.pathname.match(/^\/api\/board\/(\w+)\/move$/);
   if (move && request.method === "POST") {
     const body = (await request.json()) as Record<string, unknown>;
@@ -130,7 +138,7 @@ describe("orders board", () => {
     acted = [];
     vi.spyOn(globalThis, "fetch").mockImplementation(fakeFetch);
     authStore.set({ token: "jwt", user: { email: "ana@x.com", name: "Ana", role: "approver" } });
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/board");
   });
   afterEach(() => vi.restoreAllMocks());
 
@@ -172,6 +180,11 @@ describe("orders board", () => {
     expect(within(drawer).getByRole("link", { name: "Open in Odoo" })).toHaveAttribute("href", "http://odoo/purchase.order/6");
     expect(within(drawer).getByRole("link", { name: "Case C00007" })).toHaveAttribute("href", "/cases/C00007");
     expect(await within(drawer).findByText("Supplier silent for 4 days")).toBeInTheDocument();
+    const lines = await within(drawer).findByTestId("order-lines");
+    expect(lines).toHaveTextContent("[CBEA-LHN] Válvula de contrabalance");
+    expect(lines).toHaveTextContent("Proposed by the daily plan of");
+    expect(lines).toHaveTextContent("CBEA-LHN: Below the reorder point with 11 on hand.");
+    expect(within(lines).getByRole("link", { name: "Open the plan" })).toHaveAttribute("href", "/planning/run_1");
     expect(within(drawer).getByRole("button", { name: "Unmark supplier confirmation" })).toBeInTheDocument();
     await userEvent.click(within(drawer).getByRole("button", { name: "Act now" }));
     await waitFor(() => expect(acted).toEqual(["late_po:P00006"]));

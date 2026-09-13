@@ -17,6 +17,7 @@ from loguru import logger
 from sc_core.graph import ApprovalRequest, decision_for
 from sc_core.i18n import Language, t
 from sc_core.schema.a2a import ChangeProposal
+from sc_core.schema.autonomy import ActionFacts
 from supplier_comms.nodes.common import context_of, esc, finish
 from supplier_comms.ports import AgentPorts
 from supplier_comms.render import changes_html
@@ -32,6 +33,7 @@ def make_change_approval(
         ctx = context_of(state)
         proposal = ChangeProposal.model_validate(state["proposal"])
         review = sum(1 for c in proposal.changes if c.needs_review)
+        facts, revert = change_facts(ctx, proposal)
         return ApprovalRequest(
             kind="po_change",
             summary=t("changes.approval_summary", language, po=ctx.name, summary=proposal.summary),
@@ -43,9 +45,54 @@ def make_change_approval(
                 "classification": state.get("classification"),
             },
             po_id=ctx.id,
+            facts=facts,
+            revert=revert,
         )
 
     return build
+
+
+def change_facts(ctx: Any, proposal: ChangeProposal) -> tuple[ActionFacts, dict[str, Any] | None]:
+    """What the autonomy policy may test on an order change, and how to undo it.
+
+    The date move is the largest shift in days, the price move the largest
+    relative change; confidence is the lowest of the applicable changes. The
+    revert plan lists the previous planned date per line (prices are not
+    reverted: a supplier's new price stays on record).
+    """
+    days: list[int] = []
+    pct: list[float] = []
+    confidences: list[float] = []
+    previous: list[dict[str, Any]] = []
+    for change in proposal.applicable:
+        confidences.append(change.confidence)
+        if change.field == "date_planned" and change.before:
+            try:
+                shift = (date.fromisoformat(change.after) - date.fromisoformat(change.before)).days
+            except ValueError:
+                continue
+            days.append(abs(shift))
+            previous.append(
+                {"line_id": change.po_line_id, "field": "date_planned", "before": change.before}
+            )
+        elif change.field == "price" and change.before:
+            try:
+                old, new = float(change.before.split()[0]), float(change.after.split()[0])
+            except (ValueError, IndexError):
+                continue
+            if old > 0:
+                pct.append(abs(new - old) / old * 100)
+    facts = ActionFacts(
+        partner_id=ctx.partner_id,
+        partner_name=ctx.partner_name,
+        amount=ctx.amount_total,
+        currency=ctx.currency,
+        confidence=min(confidences) if confidences else None,
+        change_days=max(days) if days else None,
+        change_pct=round(max(pct), 2) if pct else None,
+    )
+    revert = {"po_id": ctx.id, "lines": previous} if previous else None
+    return facts, revert
 
 
 def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
@@ -64,19 +111,33 @@ def make_apply_changes(ports: AgentPorts, *, language: Language = "en") -> Node:
             line = lines.get(change.po_line_id)
             if line is None or (wanted is not None and line.id not in wanted):
                 continue
-            if change.field == "date_planned":
+            if change.field == "date_planned" and len(change.schedule) >= 2:
+                # a split delivery: the line becomes one line per part, each with its date
+                await ports.split_line(
+                    line.id,
+                    [(p.qty, p.date) for p in change.schedule if p.date is not None],
+                    run_id=run_id,
+                )
+                confidences.append(change.confidence)
+            elif change.field == "date_planned":
                 await ports.set_line_date(line.id, date.fromisoformat(change.after), run_id=run_id)
                 confidences.append(change.confidence)
             elif change.field == "price" and line.product_tmpl_id and ctx.currency_id:
+                quoted = float(change.after.split()[0])
                 await ports.upsert_price(
                     partner_id=ctx.partner_id,
                     product_tmpl_id=line.product_tmpl_id,
                     product_id=line.product_id,
-                    price=float(change.after.split()[0]),
+                    price=quoted,
                     currency_id=ctx.currency_id,
                     min_qty=0.0,
                     lead_days=_lead_for(proposal, line.id),
                 )
+                if ctx.state in ("draft", "sent"):
+                    # On an RFQ the quote is the price we would pay: the line carries it, so
+                    # the sourcing agent's comparison and counter-offers see the quote, not
+                    # the list price. A confirmed order keeps its agreed price.
+                    await ports.set_line_price(line.id, quoted, run_id=run_id)
             elif change.field == "lead_days":
                 if not any(
                     c.field == "price" and c.po_line_id == line.id for c in proposal.applicable

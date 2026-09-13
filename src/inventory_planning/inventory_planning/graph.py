@@ -33,6 +33,7 @@ from inventory_planning.nodes.apply import (
 )
 from inventory_planning.nodes.propose import (
     make_compute,
+    make_consolidate,
     make_detect,
     make_explain,
     make_forecast,
@@ -40,22 +41,24 @@ from inventory_planning.nodes.propose import (
     make_propose,
 )
 from inventory_planning.nodes.review import make_review
-from inventory_planning.policy import ParamsStore
+from inventory_planning.policy import HoldStore, ParamsStore
 from inventory_planning.ports import DataPorts, WritePorts
 from inventory_planning.runs import RunStore
 from inventory_planning.state import Node, PlanningState
 from sc_core.graph import ApprovalGateway
 from sc_core.i18n import Language, t
+from sc_core.infra.calendar import CalendarStore
+from sc_core.infra.profiles import ProfileReader
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
-from sc_core.schema.events import RfqDrafted
+from sc_core.schema.events import BaseEvent
 from sc_core.shared.time import local_today
 
-Publish = Callable[[RfqDrafted], Awaitable[Any]]
+Publish = Callable[[BaseEvent], Awaitable[Any]]
 
 
-async def _no_publish(_: RfqDrafted) -> None:
+async def _no_publish(_: BaseEvent) -> None:
     return None
 
 
@@ -69,8 +72,11 @@ class Deps:
     approvals: ApprovalGateway
     cfg: PlanningCfg = field(default_factory=PlanningCfg)
     runtime: RuntimeSettingsReader | None = None  # Control Tower planning defaults
+    holds: HoldStore | None = None  # rule changes a person rejected twice
     language: Language = "en"  # for what people read; internals stay English
     publish: Publish = _no_publish
+    calendar: CalendarStore | None = None  # promotions, holidays, projects
+    profiles: ProfileReader | None = None  # supplier freight terms for consolidation
     langfuse: LangfuseCfg | None = None
     today: Callable[[], date] = field(default=local_today)
 
@@ -78,8 +84,15 @@ class Deps:
 def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     g: StateGraph = StateGraph(PlanningState)
     _add(g, "load", make_load(deps.data, deps.cfg, today=deps.today))
-    _add(g, "forecast", make_forecast())
-    _add(g, "compute", make_compute(deps.params, deps.cfg, runtime=deps.runtime))
+    _add(g, "forecast", make_forecast(deps.calendar))
+    _add(g, "consolidate", make_consolidate(deps.profiles, deps.runtime))
+    _add(
+        g,
+        "compute",
+        make_compute(
+            deps.params, deps.cfg, runtime=deps.runtime, holds=deps.holds, today=deps.today
+        ),
+    )
     _add(g, "detect", make_detect())
     lang = deps.language
     _add(g, "review", make_review(deps.chat, deps.cfg, langfuse=deps.langfuse, language=lang))
@@ -89,7 +102,15 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     _add(
         g,
         "apply",
-        make_apply(deps.writes, deps.runs, publish=deps.publish, today=deps.today, language=lang),
+        make_apply(
+            deps.writes,
+            deps.runs,
+            params_store=deps.params,
+            holds=deps.holds,
+            publish=deps.publish,
+            today=deps.today,
+            language=lang,
+        ),
     )
     _add(g, "rejected", make_rejected(deps.runs, language=lang))
 
@@ -97,7 +118,8 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     g.add_conditional_edges("load", _continue_or_end, {"go": "forecast", "end": END})
     g.add_edge("forecast", "compute")
     g.add_edge("compute", "detect")
-    g.add_edge("detect", "review")
+    g.add_edge("detect", "consolidate")
+    g.add_edge("consolidate", "review")
     g.add_edge("review", "explain")
     g.add_edge("explain", "propose")
     g.add_conditional_edges(

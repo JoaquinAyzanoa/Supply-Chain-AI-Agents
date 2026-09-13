@@ -17,9 +17,9 @@ from loguru import logger
 
 from sc_core.graph import ApprovalRequest, decision_for
 from sc_core.i18n import Language, t
-from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.mail import po_token
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
+from sc_core.schema.autonomy import ActionFacts
 from supplier_comms.nodes.common import context_of, esc, finish, task_of
 from supplier_comms.ports import AgentPorts
 from supplier_comms.state import Node
@@ -29,12 +29,22 @@ Sleep = Callable[[float], Awaitable[None]]
 SEND_STEP = "send_email"
 
 
+KNOWN_KINDS = (
+    "rfq",
+    "request_eta",
+    "follow_up",
+    "send_po",
+    "reply",
+    "decline",
+    "counter_offer",
+    "answer",
+    "ack",
+    "status",
+)
+
+
 def kind_label(kind: str, language: Language) -> str:
-    key = (
-        f"kind.{kind}"
-        if kind in ("rfq", "request_eta", "follow_up", "send_po", "reply")
-        else "kind.email"
-    )
+    key = f"kind.{kind}" if kind in KNOWN_KINDS else "kind.email"
     return t(key, language)
 
 
@@ -74,30 +84,17 @@ def make_create_draft(ports: AgentPorts) -> Node:
 
 
 def make_send_approval(
-    auto_send_partner_ids: frozenset[int],
-    *,
-    language: Language = "en",
-    runtime: RuntimeSettingsReader | None = None,
-    auto_send_kinds: frozenset[str] = frozenset(),
+    *, language: Language = "en"
 ) -> Callable[[dict[str, Any]], Awaitable[ApprovalRequest]]:
+    """Whether this email goes out alone is the autonomy policy's call (facts: the
+    supplier, the email kind, the order value). A person who asked for the email from
+    the chat reads it first whatever the rules say."""
+
     async def build(state: dict[str, Any]) -> ApprovalRequest:
         ctx = context_of(state)
         outbound = state["outbound"] or {}
         kind = str(outbound.get("kind", ""))
         label = kind_label(kind, language)
-        auto_ids, auto_kinds = auto_send_partner_ids, auto_send_kinds
-        if runtime is not None:  # the Control Tower's lists win over the environment's
-            current = await runtime.current()
-            auto_ids = frozenset(current.auto_send_partner_ids)
-            auto_kinds = frozenset(current.auto_send_kinds)
-        auto_reason = None
-        if task_of(state).require_approval:
-            pass  # a person asked for this one and wants to read it first
-        elif ctx.partner_id in auto_ids:
-            auto_reason = t("send.auto_reason", language)
-        elif kind in auto_kinds:
-            auto_reason = t("send.auto_reason_kind", language, label=label)
-        auto = auto_reason is not None
         return ApprovalRequest(
             kind="send_email",
             summary=t(
@@ -115,10 +112,20 @@ def make_send_approval(
                 "draft_id": outbound.get("draft_id"),
                 "web_link": outbound.get("web_link"),
                 "attachments": outbound.get("attachments") or [],
+                "answer": state.get("answer"),
             },
             po_id=ctx.id,
-            auto_approve=auto,
-            auto_reason=auto_reason,
+            facts=ActionFacts(
+                partner_id=ctx.partner_id,
+                partner_name=ctx.partner_name,
+                amount=ctx.amount_total,
+                currency=ctx.currency,
+                email_kind=kind or None,
+                confidence=1.0 if kind == "answer" else None,
+            ),
+            force_approval=task_of(state).require_approval or bool(state.get("force_approval")),
+            auto_approve=bool(task_of(state).pre_approved),
+            auto_reason=task_of(state).pre_approved,
         )
 
     return build
@@ -173,6 +180,8 @@ def make_send(
                 link=link,
             ),
         )
+        if outbound.get("kind") == "rfq":
+            await ports.mark_rfq_sent(ctx.id)  # the board moves it to Quotation requested
         logger.bind(po_name=ctx.name, kind=task.kind, message_id=ids.id).info("email sent")
         return finish(
             "sent",
@@ -211,6 +220,13 @@ async def _attachments(ports: AgentPorts, po_id: int, names: list[str]) -> list[
                 Attachment(name=name, content_type="application/pdf", size=len(data), data=data)
             )
     return out
+
+
+async def resolve_sent_ids(
+    ports: AgentPorts, draft: MessageIds, sleep: Sleep, attempts: int = 5
+) -> MessageIds:
+    """Public face of ``_sent_ids`` for nodes that send without the approval step."""
+    return await _sent_ids(ports, draft, sleep, attempts)
 
 
 async def _sent_ids(

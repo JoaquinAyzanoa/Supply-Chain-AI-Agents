@@ -19,7 +19,12 @@ async def test_interrupts_after_creating_the_approval_once() -> None:
     assert "__interrupt__" in out and out.get("sent") is None
     assert len(ports.created) == 1 and ports.created[0]["case_id"] == "case_1"
     assert ports.created[0]["callback_url"] == "http://toy/approvals/callback"
-    assert ports.created[0]["payload"] == {"body": "Hola, re: q", "step": "send"}
+    payload = ports.created[0]["payload"]
+    assert {k: v for k, v in payload.items() if k != "reasoning"} == {
+        "body": "Hola, re: q",
+        "step": "send",
+    }
+    assert payload["reasoning"]["rule"] == "no autonomy policy in force; a person decides"
     assert ports.reviews[0]["res_id"] == 7 and ports.reviews[0]["user_id"] == 2
     snapshot = await graph.aget_state(cfg)
     assert snapshot.next == ("send.await",)

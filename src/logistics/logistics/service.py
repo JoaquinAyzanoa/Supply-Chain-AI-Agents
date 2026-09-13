@@ -17,9 +17,17 @@ from logistics.agent import LogisticsAgent
 from logistics.graph import Deps, build_graph
 from logistics.ports import LiveLogisticsPorts
 from sc_core.a2a.events import EventPublisher, PostgresOutbox
-from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
+from sc_core.graph import (
+    ApprovalGateway,
+    OdooApprovalPorts,
+    PostgresAutoActions,
+    build_checkpointer,
+    policy_from,
+)
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.profiles import PostgresProfileStore
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.llm import default_budget
 from sc_core.mail.outbound import PostgresOutboundMailStore
@@ -83,6 +91,7 @@ class LogisticsModule(Module):
             outbound=PostgresOutboundMailStore(db),
             pdf_max_pages=settings.mail.pdf_max_pages,
             pdf_max_bytes=settings.mail.pdf_max_bytes,
+            profiles=PostgresProfileStore(db),
         )
         return LiveLogisticsPorts(
             base,
@@ -100,6 +109,8 @@ class LogisticsModule(Module):
         ports: LiveLogisticsPorts,
         odoo: OdooClient,
         chats: ChatClientFactory,
+        runtime: RuntimeSettingsReader,
+        db: Database,
     ) -> Deps:
         gateway = ApprovalGateway(
             OdooApprovalPorts(ApprovalRepo(odoo), ActivityRepo(odoo)),
@@ -110,6 +121,8 @@ class LogisticsModule(Module):
             deadline_days=settings.agents.approval_deadline_days,
             language=settings.agents.language,
             control_tower_url=settings.ui.public_url,
+            policy=policy_from(runtime),
+            auto_actions=PostgresAutoActions(db),
         )
         return Deps(
             ports=ports,

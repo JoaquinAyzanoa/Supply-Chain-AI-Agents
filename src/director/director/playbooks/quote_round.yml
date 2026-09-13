@@ -1,0 +1,25 @@
+# Several suppliers quoting the same need: run the round, compare, award.
+name: quote_round
+title: Quote round
+description: >
+  The sourcing agent sends the same request to the best-ranked suppliers,
+  collects the quotes and proposes an award. Until the sourcing agent is
+  deployed (phase 11 S4) the step escalates so a buyer runs the round.
+trigger: manual
+case_kind: rfq
+done_when: confirmed
+steps:
+  - id: run_round
+    label: Send the request to the best-ranked suppliers
+    agent: sourcing
+    task: quote_round
+    fallback: escalate
+  - id: wait_quotes
+    label: Wait five days for the quotes
+    wait_days: 5
+    until: reply_received
+  - id: compare
+    label: Compare the quotes and propose an award
+    agent: sourcing
+    task: compare_quotes
+    fallback: escalate

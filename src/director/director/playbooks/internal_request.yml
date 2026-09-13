@@ -1,0 +1,38 @@
+# An employee's request became an RFQ: keep the requester informed until the goods arrive.
+name: internal_request
+title: Internal request
+description: >
+  The requester was acknowledged when the request was approved. Send the
+  quotation request to the supplier, tell the requester when the order is
+  confirmed and when the goods are received; stop quietly when neither
+  happens within the waits.
+trigger: internal_request
+case_kind: rfq
+steps:
+  - id: send_rfq
+    label: Send the request for quotation to the supplier
+    when: unsent_rfq
+    agent: supplier_comms
+    task: send_rfq
+  - id: wait_confirmed
+    label: Wait for the order to be confirmed
+    when: still_rfq
+    wait_days: 30
+    until: confirmed
+  - id: tell_confirmed
+    label: Tell the requester the order is confirmed
+    when: confirmed
+    agent: supplier_comms
+    task: status_reply
+    notes: confirmed
+  - id: wait_received
+    label: Wait for the goods
+    when: not_received
+    wait_days: 60
+    until: received
+  - id: tell_received
+    label: Tell the requester the goods arrived
+    when: received
+    agent: supplier_comms
+    task: status_reply
+    notes: received

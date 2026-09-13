@@ -51,6 +51,7 @@ const DETAIL: CaseDetail = {
       },
     },
   ],
+  auto_actions: [],
   runs: [
     {
       run_id: "run_1",

@@ -70,7 +70,7 @@ def test_backtest_pools_errors_over_folds() -> None:
     [
         ("stable", {"moving_average", "ses"}, 0.35),
         ("trending", {"holt", "ses", "moving_average"}, 0.35),
-        ("intermittent", {"croston"}, None),
+        ("intermittent", {"croston", "tsb"}, None),
         ("seasonal", {"moving_average", "ses", "holt"}, 0.45),
     ],
 )

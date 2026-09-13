@@ -14,14 +14,26 @@ from typing import TYPE_CHECKING, Literal
 
 from pydantic import Field
 
+from sc_core.schema.autonomy import AutonomyPolicy
 from sc_core.schema.base import StrictModel
 
 if TYPE_CHECKING:
     from sc_core.infra.settings import Settings
 
 
-EmailKind = Literal["rfq", "send_po", "follow_up", "request_eta", "reply"]
-EMAIL_KINDS: tuple[EmailKind, ...] = ("rfq", "send_po", "follow_up", "request_eta", "reply")
+EmailKind = Literal[
+    "rfq", "send_po", "follow_up", "request_eta", "reply", "decline", "counter_offer", "answer"
+]
+EMAIL_KINDS: tuple[EmailKind, ...] = (
+    "rfq",
+    "send_po",
+    "follow_up",
+    "request_eta",
+    "reply",
+    "decline",
+    "counter_offer",
+    "answer",
+)
 
 
 class RuntimeSettings(StrictModel):
@@ -40,11 +52,32 @@ class RuntimeSettings(StrictModel):
     auto_send_kinds: list[EmailKind] = []
     # Senders (addresses or domains) the inbox poller ignores: security notices, digests.
     ignored_senders: list[str] = []
+    # Senders (addresses or domains) whose emails are internal purchase requests, not
+    # supplier mail: colleagues writing to the purchasing mailbox (phase 11 S6).
+    internal_senders: list[str] = []
     # Planning defaults: None keeps the ABC class defaults; a value replaces them for
     # products a planner has not tuned (params with source "default").
     planning_service_level: float | None = Field(default=None, gt=0.5, lt=1.0)
     planning_review_period_days: int | None = Field(default=None, ge=1)
     planning_max_coverage_days: int | None = Field(default=None, ge=1)
+    # Which proposed actions run alone (phase 11). The legacy auto-send lists and the
+    # bill amount cap above are kept for older rows and folded into rules on read.
+    autonomy: AutonomyPolicy = Field(default_factory=AutonomyPolicy)
+    # Invoice matching: a price variance up to this percent still matches (None: the
+    # environment's SC__INVOICE_MATCH__PRICE_TOLERANCE_PCT). Calibration may suggest it.
+    invoice_price_tolerance_pct: float | None = Field(default=None, ge=0, le=20)
+    # Sourcing (phase 11): how many suppliers a quote round invites, how long it waits,
+    # the freight estimate on top of a quoted price, and the negotiation limits a
+    # person never sees an offer outside of.
+    sourcing_top_n: int = Field(default=3, ge=1, le=10)
+    sourcing_deadline_days: int = Field(default=5, ge=1, le=60)
+    sourcing_freight_pct: float = Field(default=5.0, ge=0, le=100)
+    negotiation_cap_pct: float = Field(default=10.0, ge=0, le=50)
+    negotiation_max_rounds: int = Field(default=2, ge=1, le=5)
+    # Order consolidation: what a year of holding stock costs, as a share of its value.
+    holding_cost_pct_year: float = Field(default=20.0, ge=0, le=100)
+    # The morning briefing goes to these addresses from the bot mailbox (phase 11 S7).
+    briefing_recipients: list[str] = []
 
     @classmethod
     def from_settings(cls, settings: Settings) -> RuntimeSettings:
@@ -62,6 +95,11 @@ class RuntimeSettings(StrictModel):
                 k for k in settings.supplier_comms.auto_send_kinds if k in EMAIL_KINDS
             ],  # type: ignore[misc]
             ignored_senders=list(settings.mail_sync.ignored_senders),
+            autonomy=AutonomyPolicy.from_legacy(
+                list(settings.supplier_comms.auto_send_partner_ids),
+                list(settings.supplier_comms.auto_send_kinds),
+                settings.invoice_match.bill_auto_approve_amount,
+            ),
         )
 
     def model_for(self, agent_name: str) -> str | None:
