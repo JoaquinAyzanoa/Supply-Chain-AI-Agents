@@ -15,6 +15,7 @@ JOB_KINDS: dict[str, CaseKind] = {
     "po_followups": "eta",
     "inventory_planning": "planning",
     "supplier_performance": "receipt",
+    "calibration": "planning",  # no case of its own; the suggestions land on the Autonomy page
 }
 
 

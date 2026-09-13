@@ -200,6 +200,7 @@ def test_agent_run_finished_is_recorded() -> None:
         ("po_followups", Route(case_kind="eta", job="po_followups")),
         ("inventory_planning", Route(case_kind="planning", job="inventory_planning")),
         ("supplier_performance", Route(case_kind="receipt", job="supplier_performance")),
+        ("calibration", Route(case_kind="planning", job="calibration")),
     ],
 )
 def test_scheduler_tick_names_the_job(job_id: str, expected: Route) -> None:
