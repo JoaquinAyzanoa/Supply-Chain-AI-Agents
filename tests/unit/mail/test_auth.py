@@ -88,6 +88,17 @@ async def test_login_persists_cache_and_survives_restart() -> None:
     ]
 
 
+async def test_a_login_made_after_start_is_seen_without_a_restart() -> None:
+    """The services start before the person logs in; the next call finds the session."""
+    store = MemoryTokenCacheStore()
+    running = DelegatedTokenProvider(_cfg(), store)  # a service, started with an empty store
+    with pytest.raises(MailAuthRequired):
+        await running.access_token()
+    DelegatedTokenProvider(_cfg(), store).login_interactive(lambda _: None)  # `just mail-login`
+    assert await running.identity() == "scai.compras@outlook.com"
+    assert (await running.access_token()).startswith("tok-")
+
+
 async def test_refresh_updates_store_and_force_refresh_is_passed() -> None:
     store = MemoryTokenCacheStore()
     provider = DelegatedTokenProvider(_cfg(), store)
