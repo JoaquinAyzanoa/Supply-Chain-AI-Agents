@@ -70,6 +70,72 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "en": "arrival date from the shipping notice applied on {n} line(s) of {po}",
         "es": "fecha de llegada del aviso de despacho aplicada en {n} línea(s) de {po}",
     },
+    # --- invoice matching ---------------------------------------------------------------
+    "bill.already": {
+        "en": "invoice {number} is already recorded as {bill}",
+        "es": "la factura {number} ya está registrada como {bill}",
+    },
+    "bill.no_order": {
+        "en": "the invoice could not be matched to an order: {why}",
+        "es": "la factura no pudo asociarse a una orden: {why}",
+    },
+    "bill.no_supplier": {
+        "en": "the invoice names no order and its sender is not a known supplier",
+        "es": "la factura no indica orden y su remitente no es un proveedor conocido",
+    },
+    "bill.approval_clean": {
+        "en": "Record invoice {number} from {partner} for {po} ({amount}): it matches",
+        "es": "Registrar la factura {number} de {partner} por {po} ({amount}): coincide",
+    },
+    "bill.approval_hold": {
+        "en": "Invoice {number} from {partner} for {po} ({amount}) does not match: decide",
+        "es": "La factura {number} de {partner} por {po} ({amount}) no coincide: decidir",
+    },
+    "bill.auto_reason": {
+        "en": "clean invoice under the automatic limit of {amount}",
+        "es": "factura sin diferencias bajo el límite automático de {amount}",
+    },
+    "bill.col.product": {"en": "Product", "es": "Producto"},
+    "bill.col.billed": {"en": "Billed", "es": "Facturado"},
+    "bill.col.price": {"en": "Unit price", "es": "Precio unitario"},
+    "bill.col.ordered": {"en": "Ordered @ price", "es": "Pedido @ precio"},
+    "bill.col.received": {"en": "Received", "es": "Recibido"},
+    "bill.col.status": {"en": "Check", "es": "Verificación"},
+    "bill.status.ok": {"en": "ok", "es": "ok"},
+    "bill.status.price_variance": {"en": "price differs", "es": "precio distinto"},
+    "bill.status.qty_variance": {"en": "more than ordered", "es": "más de lo pedido"},
+    "bill.status.not_received": {"en": "not received", "es": "no recibido"},
+    "bill.status.unmatched": {"en": "not on the order", "es": "no está en la orden"},
+    "bill.verdict.clean": {"en": "matches", "es": "coincide"},
+    "bill.verdict.hold": {"en": "does not match", "es": "no coincide"},
+    "bill.checked_note": {
+        "en": "<p>Vendor bill {bill} checked against the order: {verdict}. Decided by {who}.</p>",
+        "es": "<p>Factura {bill} verificada contra la orden: {verdict}. Decidido por {who}.</p>",
+    },
+    "bill.checked_summary": {
+        "en": "bill {bill} checked against {po}",
+        "es": "factura {bill} verificada contra {po}",
+    },
+    "bill.created_note": {
+        "en": "<p>Invoice {number} recorded as draft bill {bill} ({verdict}), approved by {who}. "
+        "Nothing is posted: accounting posts it.</p>",
+        "es": (
+            "<p>Factura {number} registrada como borrador {bill} ({verdict}), aprobada por {who}. "
+            "No se contabiliza: contabilidad la valida.</p>"
+        ),
+    },
+    "bill.created_summary": {
+        "en": "invoice {number} recorded as draft bill {bill} on {po}",
+        "es": "factura {number} registrada como borrador {bill} en {po}",
+    },
+    "bill.rejected_note": {
+        "en": "<p>Invoice {number} not recorded: rejected by {who}. Reason: {reason}</p>",
+        "es": "<p>Factura {number} no registrada: rechazada por {who}. Motivo: {reason}</p>",
+    },
+    "bill.rejected_summary": {
+        "en": "invoice {number} not recorded: rejected by {who} ({reason})",
+        "es": "factura {number} no registrada: rechazada por {who} ({reason})",
+    },
     # --- logistics: receipts ------------------------------------------------------------
     "receipt.match_note": {
         "en": "<p>Receipt {picking} checked: {n} line(s) received as ordered.</p>",

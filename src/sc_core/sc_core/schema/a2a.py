@@ -71,7 +71,9 @@ class SupplierCommsTask(StrictModel):
 
 # --- what the agent produces along the way ------------------------------------------
 
-ClassificationKind = Literal["quotation", "eta_update", "question", "shipping_notice", "other"]
+ClassificationKind = Literal[
+    "quotation", "eta_update", "question", "shipping_notice", "invoice", "other"
+]
 
 
 class Classification(StrictModel):
@@ -356,7 +358,112 @@ class LogisticsResult(StrictModel):
         return self.outcome.status
 
 
+# --- invoice matching (phase 9) ----------------------------------------------------
+
+InvoiceTaskKind = Literal["match_bill"]
+
+
+class InvoiceMatchTask(StrictModel):
+    """What the director asks the invoice matching agent to do."""
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: InvoiceTaskKind
+    case_id: str = Field(min_length=1)
+    po_name: str | None = Field(default=None, description="the order, when already known")
+    graph_message_id: str | None = Field(
+        default=None, description="the supplier's email with the invoice attached"
+    )
+    move_id: int | None = Field(default=None, description="a vendor bill typed in Odoo")
+    notes: str | None = Field(default=None, max_length=2000)
+    require_approval: bool = Field(default=False, description="a person asked; show it first")
+
+    @model_validator(mode="after")
+    def _required_by_kind(self) -> InvoiceMatchTask:
+        if not (self.graph_message_id or self.move_id):
+            raise ValueError("match_bill needs graph_message_id or move_id")
+        return self
+
+
+class InvoiceLine(StrictModel):
+    description: str = Field(min_length=1, max_length=300)
+    product_ref: str | None = Field(default=None, max_length=100)
+    qty: float | None = Field(default=None, ge=0)
+    unit_price: float | None = Field(default=None, ge=0)
+    total: float | None = Field(default=None)
+
+
+class InvoiceData(StrictModel):
+    """What the invoice says, as printed (from the PDF, the email or the Odoo bill)."""
+
+    supplier_name: str | None = Field(default=None, max_length=200)
+    invoice_number: str | None = Field(default=None, max_length=100)
+    invoice_date: date | None = None
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+    po_reference: str | None = Field(default=None, max_length=50)
+    lines: list[InvoiceLine] = Field(default_factory=list)
+    subtotal: float | None = None
+    tax: float | None = None
+    total: float | None = None
+    confidence: float = Field(default=1.0, ge=0, le=1)
+
+
+MatchStatus = Literal["ok", "price_variance", "qty_variance", "not_received", "unmatched"]
+
+
+class MatchLine(StrictModel):
+    po_line_id: int | None = None
+    product: str | None = None
+    invoice_description: str = Field(min_length=1)
+    invoice_qty: float | None = None
+    invoice_price: float | None = None
+    po_qty: float | None = None
+    po_price: float | None = None
+    received_qty: float | None = None
+    invoiced_qty: float | None = None
+    status: MatchStatus
+    note: str | None = None
+    similarity: float = Field(default=0.0, ge=0, le=1)
+
+
+BillVerdict = Literal["clean", "hold"]
+
+
+class BillMatch(StrictModel):
+    po_name: str | None = None
+    verdict: BillVerdict
+    lines: list[MatchLine] = Field(default_factory=list)
+    invoice_total: float | None = None
+    invoice_subtotal: float | None = None
+    expected_subtotal: float | None = None
+    price_tolerance_pct: float = 0.0
+    reasons: list[str] = Field(default_factory=list)
+
+
+class InvoiceMatchResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: InvoiceTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    po_name: str | None = None
+    invoice: InvoiceData | None = None
+    match: BillMatch | None = None
+    bill_id: int | None = None
+    bill_name: str | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
 CONTRACTS: dict[str, type[StrictModel]] = {
+    "invoice_match_task": InvoiceMatchTask,
+    "invoice_match_result": InvoiceMatchResult,
     "logistics_task": LogisticsTask,
     "logistics_result": LogisticsResult,
     "supplier_comms_task": SupplierCommsTask,

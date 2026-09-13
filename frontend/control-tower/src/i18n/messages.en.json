@@ -429,5 +429,11 @@
   "task.track_shipment": "Shipping notice",
   "task.reconcile_receipt": "Receipt check",
   "task.report_discrepancy": "Receipt discrepancy report",
-  "event.shipping_notice": "Shipping notice"
+  "event.shipping_notice": "Shipping notice",
+  "agent.invoice_match": "the invoice agent",
+  "agent.name.invoice_match": "Invoice agent",
+  "task.match_bill": "Invoice check",
+  "event.invoice": "Invoice",
+  "approvals.kind.vendor_bill": "Invoice",
+  "event.odoo.bill_created": "Vendor bill created in Odoo"
 }

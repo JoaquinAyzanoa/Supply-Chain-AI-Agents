@@ -366,7 +366,13 @@ class Activity(OdooModel):
 # --- sc_agents addon ----------------------------------------------------------
 
 ApprovalKind = Literal[
-    "send_email", "po_change", "orderpoint_change", "planning_run", "unlinked_mail", "escalation"
+    "send_email",
+    "po_change",
+    "orderpoint_change",
+    "planning_run",
+    "unlinked_mail",
+    "escalation",
+    "vendor_bill",
 ]
 ApprovalStatus = Literal["pending", "approved", "rejected", "expired"]
 RunStatus = Literal[

@@ -429,5 +429,11 @@
   "task.track_shipment": "Aviso de despacho",
   "task.reconcile_receipt": "Verificación de recepción",
   "task.report_discrepancy": "Reporte de diferencias de recepción",
-  "event.shipping_notice": "Aviso de despacho"
+  "event.shipping_notice": "Aviso de despacho",
+  "agent.invoice_match": "el agente de facturas",
+  "agent.name.invoice_match": "Agente de facturas",
+  "task.match_bill": "Verificación de factura",
+  "event.invoice": "Factura",
+  "approvals.kind.vendor_bill": "Factura",
+  "event.odoo.bill_created": "Factura de proveedor creada en Odoo"
 }

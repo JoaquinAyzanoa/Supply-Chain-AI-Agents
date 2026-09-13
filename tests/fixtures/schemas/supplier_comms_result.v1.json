@@ -39,6 +39,7 @@
             "eta_update",
             "question",
             "shipping_notice",
+            "invoice",
             "other"
           ],
           "title": "Kind",

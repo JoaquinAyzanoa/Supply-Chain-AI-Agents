@@ -57,9 +57,10 @@ just run director      # exactly what the container runs
 The director container publishes on host port 8010 by default (8000 is often
 taken on developer machines), mail_sync on 8011, the scheduler on 8012, the
 supplier_comms agent on 8013, the inventory_planning agent on 8014 and the
-logistics agent on 8015; override with `SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`,
-`SC_SCHEDULER_PORT`, `SC_SUPPLIER_COMMS_PORT`, `SC_INVENTORY_PLANNING_PORT`,
-`SC_LOGISTICS_PORT`.
+logistics agent on 8015 and the invoice_match agent on 8016; override with
+`SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`,
+`SC_SUPPLIER_COMMS_PORT`, `SC_INVENTORY_PLANNING_PORT`, `SC_LOGISTICS_PORT`,
+`SC_INVOICE_MATCH_PORT`.
 Odoo publishes on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
@@ -292,6 +293,32 @@ email from Graph and send a draft) and has its own graph, task and result.
 - Bills and receipts are read through `AccountMoveRepo` and
   `StockMoveLineRepo`; the accounting module is installed with
   `just odoo-install account` on an existing database.
+
+## Invoice matching agent
+
+`invoice_match` checks a supplier's invoice against the order and what was
+received, and never posts an accounting entry.
+
+- **Inputs**: an email the supplier agent classifies as `invoice` (the PDF
+  text and the body go to the model, `prompts/extract_invoice.md`, which
+  copies the numbers as printed; a structured XML e-invoice would skip the
+  model through the `parse_xml` hook), or a vendor bill a person typed in
+  Odoo (`odoo.bill_created`, already structured, no model call).
+- **Matching** (`matching.py`, no model): the order comes from the task, the
+  invoice's reference, the email text, or the supplier's open orders by
+  total (one match, or the case is escalated). Lines map by the product
+  code in Odoo's product name, then by description similarity; each line is
+  `ok`, `price_variance` (beyond `SC__INVOICE_MATCH__PRICE_TOLERANCE_PCT`,
+  default 1%), `not_received` (billed more than received and not yet
+  billed), `qty_variance` or `unmatched`. An invoice number already recorded
+  is left alone.
+- **Decision**: one `vendor_bill` approval carries the verdict and the
+  table. Clean: approving creates the draft bill from the order (Odoo's own
+  action, idempotent); `SC__INVOICE_MATCH__BILL_AUTO_APPROVE_AMOUNT` lets
+  clean invoices up to that total through without a person (default 0:
+  always ask). Held: approving means "record it anyway", rejecting leaves
+  the invoice with the supplier; asking for a credit note is a chat
+  instruction on the case. A bill typed in Odoo only gets its match note.
 
 ## Orchestrator
 

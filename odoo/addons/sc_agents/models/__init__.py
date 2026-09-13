@@ -1,1 +1,9 @@
-from . import purchase_order, sc_agent_run, sc_approval, sc_event, sc_mail_link, stock_picking
+from . import (
+    account_move,
+    purchase_order,
+    sc_agent_run,
+    sc_approval,
+    sc_event,
+    sc_mail_link,
+    stock_picking,
+)

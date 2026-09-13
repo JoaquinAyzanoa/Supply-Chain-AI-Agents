@@ -42,6 +42,8 @@ from sc_core.infra import tracing
 from sc_core.odoo.models import PurchaseOrder
 from sc_core.schema.a2a import (
     InventoryPlanningResult,
+    InvoiceMatchResult,
+    InvoiceMatchTask,
     LogisticsResult,
     LogisticsTask,
     OutcomeStatus,
@@ -220,22 +222,37 @@ class AgentProxyExecutor(Executor):
 
 
 def follow_on_for(task: Any, outcome: AgentOutcome) -> AgentOutcome:
-    """A shipping notice read by the supplier agent goes on to the logistics agent."""
-    if (
+    """What the supplier agent read decides who works next: a shipping notice goes to
+    the logistics agent, an invoice to the invoice matching agent."""
+    if not (
         isinstance(task, SupplierCommsTask)
         and task.kind == "handle_inbound"
-        and outcome.classification == "shipping_notice"
         and task.po_name
         and task.graph_message_id
     ):
-        follow = LogisticsTask(
-            kind="track_shipment",
-            case_id=f"{task.case_id}_ship",
-            po_name=task.po_name,
-            graph_message_id=task.graph_message_id,
+        return outcome
+    follow: Dispatch | None = None
+    if outcome.classification == "shipping_notice":
+        follow = Dispatch(
+            agent="logistics",
+            task=LogisticsTask(
+                kind="track_shipment",
+                case_id=f"{task.case_id}_ship",
+                po_name=task.po_name,
+                graph_message_id=task.graph_message_id,
+            ),
         )
-        return outcome.model_copy(update={"follow_on": Dispatch(agent="logistics", task=follow)})
-    return outcome
+    elif outcome.classification == "invoice":
+        follow = Dispatch(
+            agent="invoice_match",
+            task=InvoiceMatchTask(
+                kind="match_bill",
+                case_id=f"{task.case_id}_bill",
+                po_name=task.po_name,
+                graph_message_id=task.graph_message_id,
+            ),
+        )
+    return outcome.model_copy(update={"follow_on": follow}) if follow else outcome
 
 
 def _error_payload(text: str | None) -> dict[str, Any] | None:
@@ -299,7 +316,7 @@ def outcome_from_reply(
             run_id=result.run_id,
             approval_id=result.outcome.approval_id,
         )
-    outbound = result.outbound
+    outbound = getattr(result, "outbound", None)
     classification = (
         result.classification.kind
         if isinstance(result, SupplierCommsResult) and result.classification
@@ -319,11 +336,22 @@ def outcome_from_reply(
     )
 
 
-AgentResult = SupplierCommsResult | InventoryPlanningResult | LogisticsResult
+AgentResult = SupplierCommsResult | InventoryPlanningResult | LogisticsResult | InvoiceMatchResult
+_ALL_RESULTS: tuple[type[AgentResult], ...] = (
+    SupplierCommsResult,
+    InventoryPlanningResult,
+    LogisticsResult,
+    InvoiceMatchResult,
+)
+_FIRST_CONTRACT: dict[str, type[AgentResult]] = {
+    "supplier_comms": SupplierCommsResult,
+    "inventory_planning": InventoryPlanningResult,
+    "logistics": LogisticsResult,
+    "invoice_match": InvoiceMatchResult,
+}
 _CONTRACTS: dict[str, tuple[type[AgentResult], ...]] = {
-    "supplier_comms": (SupplierCommsResult, LogisticsResult, InventoryPlanningResult),
-    "inventory_planning": (InventoryPlanningResult, SupplierCommsResult, LogisticsResult),
-    "logistics": (LogisticsResult, SupplierCommsResult, InventoryPlanningResult),
+    name: (first, *[c for c in _ALL_RESULTS if c is not first])
+    for name, first in _FIRST_CONTRACT.items()
 }
 
 
@@ -552,7 +580,7 @@ async def consolidate_outcome(
 
 # --- building and running -----------------------------------------------------------
 
-AGENT_NAMES = ("supplier_comms", "inventory_planning", "logistics")
+AGENT_NAMES = ("supplier_comms", "inventory_planning", "logistics", "invoice_match")
 
 
 def build_workflow(deps: Deps) -> Workflow:

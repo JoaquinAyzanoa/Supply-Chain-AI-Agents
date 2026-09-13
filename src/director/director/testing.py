@@ -45,6 +45,7 @@ def memory_deps(
     supplier_comms: AgentCaller | None = None,
     inventory_planning: AgentCaller | None = None,
     logistics: AgentCaller | None = None,
+    invoice_match: AgentCaller | None = None,
     escalator: Escalator | None = None,
     jobs: JobRunner | None = None,
     conversations: MemoryConversationLookup | None = None,
@@ -57,6 +58,10 @@ def memory_deps(
         )
     if logistics is not None:
         others["logistics"] = AgentProxy("logistics", logistics, max_concurrent=max_concurrent)
+    if invoice_match is not None:
+        others["invoice_match"] = AgentProxy(
+            "invoice_match", invoice_match, max_concurrent=max_concurrent
+        )
     return Deps(
         cases=cases or MemoryCaseStore(),
         agents=Agents(
@@ -80,6 +85,7 @@ class MemoryDirectorModule(Module):
         *,
         inventory_planning: AgentCaller | None = None,
         logistics: AgentCaller | None = None,
+        invoice_match: AgentCaller | None = None,
         cases: MemoryCaseStore | None = None,
         escalator: Escalator | None = None,
         jobs: JobRunner | None = None,
@@ -115,6 +121,7 @@ class MemoryDirectorModule(Module):
             supplier_comms=supplier_comms,
             inventory_planning=inventory_planning,
             logistics=logistics,
+            invoice_match=invoice_match,
             escalator=self.escalator,
             jobs=jobs,
         )

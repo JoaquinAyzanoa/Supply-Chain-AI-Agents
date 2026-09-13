@@ -113,6 +113,18 @@ class OdooReceiptValidated(BaseEvent):
     date_done: AwareDatetime | None = None
 
 
+class OdooBillCreated(BaseEvent):
+    """A person created a vendor bill in Odoo (phase 9: the invoice matching agent checks it)."""
+
+    type: Literal["odoo.bill_created"] = "odoo.bill_created"
+    move_id: int
+    move_name: str | None = None
+    partner_id: int | None = None
+    ref: str | None = Field(default=None, description="the supplier's invoice number")
+    amount_total: float | None = None
+    po_name: str | None = None
+
+
 class OdooOrderpointTriggered(BaseEvent):
     """A reorder rule's forecast fell below its minimum (phase 7 planning input)."""
 
@@ -172,6 +184,7 @@ AnyEvent = Annotated[
     | ScheduledTick
     | OdooPurchaseConfirmed
     | OdooReceiptValidated
+    | OdooBillCreated
     | OdooOrderpointTriggered
     | OdooApprovalResolved
     | AgentRunFinished
@@ -185,6 +198,7 @@ EVENT_TYPES: tuple[type[BaseEvent], ...] = (
     ScheduledTick,
     OdooPurchaseConfirmed,
     OdooReceiptValidated,
+    OdooBillCreated,
     OdooOrderpointTriggered,
     OdooApprovalResolved,
     AgentRunFinished,

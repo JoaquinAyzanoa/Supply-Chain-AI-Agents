@@ -14,10 +14,16 @@ from __future__ import annotations
 
 from director.router import Dispatch, Route
 from director.store import CaseKind
-from sc_core.schema.a2a import InventoryPlanningTask, LogisticsTask, SupplierCommsTask
+from sc_core.schema.a2a import (
+    InventoryPlanningTask,
+    InvoiceMatchTask,
+    LogisticsTask,
+    SupplierCommsTask,
+)
 from sc_core.schema.events import (
     BaseEvent,
     OdooApprovalResolved,
+    OdooBillCreated,
     OdooOrderpointTriggered,
     OdooPurchaseConfirmed,
     OdooReceiptValidated,
@@ -69,6 +75,21 @@ def on_receipt(event: BaseEvent) -> Route:
     )
 
 
+def on_bill_created(event: BaseEvent) -> Route:
+    """A vendor bill a person typed in Odoo is checked against its order and receipts."""
+    assert isinstance(event, OdooBillCreated)
+    task = InvoiceMatchTask(
+        kind="match_bill", case_id=event.case_id, po_name=event.po_name, move_id=event.move_id
+    )
+    return Route(
+        case_kind="invoice",
+        po_name=event.po_name,
+        partner_id=event.partner_id,
+        dispatches=[Dispatch(agent="invoice_match", task=task)],
+        snapshot={"move_id": event.move_id, "move_name": event.move_name, "ref": event.ref},
+    )
+
+
 def on_orderpoint(event: BaseEvent) -> Route:
     assert isinstance(event, OdooOrderpointTriggered)
     task = InventoryPlanningTask(
@@ -99,6 +120,7 @@ _APPROVAL_LABELS: dict[str, str] = {
     "escalation": "escalation",
     "unlinked_mail": "unlinked email",
     "orderpoint_change": "reorder rule change",
+    "vendor_bill": "vendor bill",
 }
 
 
@@ -119,6 +141,7 @@ _APPROVAL_CASE_KINDS: dict[str, CaseKind] = {
     "unlinked_mail": "unlinked",
     "orderpoint_change": "planning",
     "planning_run": "planning",
+    "vendor_bill": "invoice",
 }
 
 

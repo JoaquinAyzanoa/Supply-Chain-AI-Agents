@@ -121,6 +121,20 @@ def test_receipt_is_recorded_and_orderpoint_goes_to_the_planner() -> None:
         )
     )
     assert orphan.dispatches == [] and orphan.note and "without a purchase order" in orphan.note
+    bill = route(
+        ev.OdooBillCreated(
+            source="odoo",
+            case_id="odoo_bill_9",
+            move_id=9,
+            ref="F001-000123",
+            po_name="P00066",
+            partner_id=45,
+        )
+    )
+    assert bill.case_kind == "invoice" and bill.po_name == "P00066"
+    [to_invoices] = bill.dispatches
+    assert to_invoices.agent == "invoice_match" and to_invoices.task.kind == "match_bill"
+    assert getattr(to_invoices.task, "move_id", None) == 9
     orderpoint = route(
         ev.OdooOrderpointTriggered(
             source="odoo",

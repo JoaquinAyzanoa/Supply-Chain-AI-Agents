@@ -224,6 +224,18 @@ class LogisticsCfg(_Section):
     max_attachment_chars: int = Field(default=12_000, ge=0)
 
 
+class InvoiceMatchCfg(_Section):
+    """The invoice matching agent: tolerances and the automatic-approval limit."""
+
+    public_url: str = "http://localhost:8016"
+    price_tolerance_pct: float = Field(default=1.0, ge=0, le=100)  # unit price vs the order
+    qty_tolerance_pct: float = Field(default=0.0, ge=0, le=100)  # billed vs received
+    fuzzy_threshold: float = Field(default=0.6, ge=0, le=1)  # description similarity to map a line
+    # Clean invoices at or under this total become draft bills without a person; 0 = always ask.
+    bill_auto_approve_amount: float = Field(default=0.0, ge=0)
+    max_attachment_chars: int = Field(default=12_000, ge=0)
+
+
 class A2aCfg(_Section):
     """Agent-to-agent calls (director -> agents). Bearer token on every call.
 
@@ -238,6 +250,7 @@ class A2aCfg(_Section):
     supplier_comms_url: str = "http://localhost:8013"
     inventory_planning_url: str = "http://localhost:8014"
     logistics_url: str = "http://localhost:8015"
+    invoice_match_url: str = "http://localhost:8016"
 
 
 class DirectorCfg(_Section):
@@ -346,6 +359,7 @@ class Settings(BaseSettings):
     ui: UiCfg = Field(default_factory=UiCfg)
     supplier_comms: SupplierCommsCfg = Field(default_factory=SupplierCommsCfg)
     logistics: LogisticsCfg = Field(default_factory=LogisticsCfg)
+    invoice_match: InvoiceMatchCfg = Field(default_factory=InvoiceMatchCfg)
 
     @property
     def a2a_token(self) -> str:

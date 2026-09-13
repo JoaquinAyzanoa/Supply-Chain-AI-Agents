@@ -11,6 +11,7 @@ from sc_core.schema.events import (
     InboundMailLinked,
     InboundMailUnlinked,
     OdooApprovalResolved,
+    OdooBillCreated,
     OdooOrderpointTriggered,
     OdooPurchaseConfirmed,
     OdooReceiptValidated,
@@ -48,6 +49,9 @@ def test_parse_each_type_roundtrip() -> None:
     receipt = OdooReceiptValidated(
         source="odoo", case_id="odoo_pick_1", picking_id=1, picking_name="WH/IN/00001"
     )
+    bill = OdooBillCreated(
+        source="odoo", case_id="odoo_bill_9", move_id=9, ref="F001-000123", po_name="P00016"
+    )
     orderpoint = OdooOrderpointTriggered(
         source="odoo", case_id="odoo_op_1", orderpoint_id=1, product_id=2, qty_to_order=5
     )
@@ -72,7 +76,18 @@ def test_parse_each_type_roundtrip() -> None:
         partner_id=20,
         run_id="run_1",
     )
-    events = (linked, unlinked, tick, confirmed, receipt, orderpoint, resolved, finished, drafted)
+    events = (
+        linked,
+        unlinked,
+        tick,
+        confirmed,
+        receipt,
+        bill,
+        orderpoint,
+        resolved,
+        finished,
+        drafted,
+    )
     assert {type(e) for e in events} == set(EVENT_TYPES)
     for event in events:
         parsed = parse_event(event.model_dump_json())
