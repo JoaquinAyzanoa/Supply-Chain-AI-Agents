@@ -119,10 +119,21 @@ class PartnerEdits(StrictModel):
     email: str | None = Field(default=None, max_length=200)
 
 
+class RequestEdits(StrictModel):
+    accepted_items: list[int] = Field(description="indexes of the items to order")
+    partner_id: int | None = Field(default=None, description="one supplier for every item")
+
+
+class PriceListEdits(StrictModel):
+    accepted_codes: list[str] = Field(description="the rows to write, by their code")
+
+
 EDITS_BY_KIND: dict[str, type[StrictModel]] = {
     "award": AwardEdits,
     "negotiation_offer": OfferEdits,
     "partner_create": PartnerEdits,
+    "internal_request": RequestEdits,
+    "price_list_update": PriceListEdits,
     "send_email": EmailEdits,
     "po_change": ChangeEdits,
     "planning_run": PlanEdits,

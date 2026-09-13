@@ -141,6 +141,18 @@ class PlaybookEngine:
                 moved.append(run.id)
         return {"active": len(await self._store.active()), "moved": moved}
 
+    async def on_request(self, po_names: list[str]) -> list[int]:
+        """An internal request became these RFQs: keep the requester informed (S6)."""
+        if "internal_request" not in self._playbooks:
+            return []
+        started = []
+        for po_name in po_names:
+            run = await self.start(
+                "internal_request", po_name=po_name, partner_id=None, started_by="director"
+            )
+            started.append(run.id)
+        return started
+
     async def on_po_event(self, po_name: str) -> list[int]:
         """Something happened on the order (a reply, a receipt, a decision): try to move."""
         moved = []

@@ -66,8 +66,12 @@ def make_draft_outbound(
         if kind == "send_po" and ctx.state not in ("purchase", "done"):
             return fail(f"{ctx.name} is not a confirmed order (state {ctx.state}); nothing to send")
 
-        # The email is written in the supplier's language; the instance language is the fallback.
-        email_lang = normalize(ctx.partner_lang, default=language)
+        # The email is written in the supplier's language: the profile people keep wins,
+        # then the Odoo partner, then the instance language.
+        profile_obj = await ports.supplier_profile(ctx.partner_id)
+        email_lang = normalize(
+            (profile_obj.language if profile_obj else None) or ctx.partner_lang, default=language
+        )
         tone = get_prompt("supplier_tone", cfg=langfuse).compile(
             language=language_name(email_lang), signature=t("signature", email_lang)
         )
@@ -86,7 +90,7 @@ def make_draft_outbound(
         else:
             context_text = outbound_context(task, ctx, today())
         # how the buyers want this supplier addressed (people edit it in the Control Tower)
-        profile = profile_lines(await ports.supplier_profile(ctx.partner_id))
+        profile = profile_lines(profile_obj)
         if profile:
             context_text = context_text + "\n" + "\n".join(profile)
         loop = await run_tool_loop(
@@ -104,12 +108,17 @@ def make_draft_outbound(
             name=f"supplier_comms.draft_{kind}.final",
             metadata=metadata,
         )
+        # Thread discipline: a reply answers the message; every other email but a fresh
+        # RFQ continues the order's Outlook conversation when there is one.
+        anchor = task.graph_message_id if kind == "reply" else None
+        if anchor is None and kind != "rfq":
+            anchor = await ports.thread_anchor(ctx.id)
         outbound = OutboundDraft(
             kind=kind,
             to=ctx.supplier_emails,
             subject=po_token.tag_subject(draft.subject, ctx.name),
             html_body=style_tables(draft.html_body),
-            reply_to_message_id=task.graph_message_id if kind == "reply" else None,
+            reply_to_message_id=anchor,
         )
         logger.bind(po_name=ctx.name, kind=kind, tool_calls=loop.tool_calls).info("draft ready")
         attachments = [f"{ctx.name}.pdf"] if kind == "send_po" else []

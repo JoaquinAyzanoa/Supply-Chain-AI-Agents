@@ -18,6 +18,7 @@ import { useResolveApproval } from "./api";
 import { ChangesCard, EmailCard, EscalationCard, PlanCard, type EmailEdits } from "./ApprovalCards";
 import { AutonomyChangeCard } from "./AutonomyChangeCard";
 import { BillCard } from "./BillCard";
+import { InternalRequestCard, PriceListCard } from "./RequestCards";
 import { ScoreCard } from "./ScoreCard";
 import { AwardCard, OfferCard, PartnerCard, recommendedChoice, type LineChoice } from "./SourcingCards";
 import {
@@ -34,6 +35,8 @@ import {
   awardPayload,
   offerPayload,
   partnerPayload,
+  priceListPayload,
+  requestPayload,
 } from "./types";
 
 export function ApprovalDetail({ approval, onBack, withChat = true }: { approval: Approval; onBack: () => void; withChat?: boolean }) {
@@ -58,9 +61,13 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
   const award = useMemo(() => (kind === "award" ? awardPayload.parse(approval.payload) : null), [kind, approval]);
   const offer = useMemo(() => (kind === "negotiation_offer" ? offerPayload.parse(approval.payload) : null), [kind, approval]);
   const partner = useMemo(() => (kind === "partner_create" ? partnerPayload.parse(approval.payload) : null), [kind, approval]);
+  const request = useMemo(() => (kind === "internal_request" ? requestPayload.parse(approval.payload) : null), [kind, approval]);
+  const priceList = useMemo(() => (kind === "price_list_update" ? priceListPayload.parse(approval.payload) : null), [kind, approval]);
   const [lineChoice, setLineChoice] = useState<LineChoice>({});
   const [offeredPrice, setOfferedPrice] = useState("");
   const [partnerName, setPartnerName] = useState("");
+  const [acceptedItems, setAcceptedItems] = useState<Set<number>>(new Set());
+  const [acceptedCodes, setAcceptedCodes] = useState<Set<string>>(new Set());
   const [editing, setEditing] = useState(false);
   const [emailEdits, setEmailEdits] = useState<EmailEdits>({ subject: "", html_body: "" });
   const [accepted, setAccepted] = useState<Set<number>>(new Set());
@@ -78,7 +85,10 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
     setLineChoice(award ? recommendedChoice(award) : {});
     setOfferedPrice(offer ? String(offer.offered_price) : "");
     setPartnerName(partner?.suggested_name ?? "");
-  }, [approval.id, email, changes, award, offer, partner]);
+    // every orderable item and every matched price row start ticked
+    setAcceptedItems(new Set((request?.items ?? []).map((item, index) => (item.product_id && item.supplier_id ? index : -1)).filter((i) => i >= 0)));
+    setAcceptedCodes(new Set((priceList?.rows ?? []).filter((row) => row.matched).map((row) => row.code)));
+  }, [approval.id, email, changes, award, offer, partner, request, priceList]);
 
   const editedPayload = (): Record<string, unknown> | undefined => {
     if (email) {
@@ -96,6 +106,8 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
     }
     if (offer) return { offered_price: Number(offeredPrice) };
     if (partner && partnerName.trim()) return { name: partnerName.trim() };
+    if (request) return { accepted_items: [...acceptedItems].sort((a, b) => a - b) };
+    if (priceList) return { accepted_codes: [...acceptedCodes] };
     return undefined;
   };
 
@@ -157,6 +169,36 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
         {award ? <AwardCard payload={award} choice={lineChoice} onChoice={setLineChoice} canAct={canAct} /> : null}
         {offer ? <OfferCard payload={offer} offered={offeredPrice} onOffered={setOfferedPrice} canAct={canAct} /> : null}
         {partner ? <PartnerCard payload={partner} name={partnerName} onName={setPartnerName} canAct={canAct} /> : null}
+        {request ? (
+          <InternalRequestCard
+            payload={request}
+            accepted={acceptedItems}
+            canAct={canAct}
+            onToggle={(index, on) =>
+              setAcceptedItems((prev) => {
+                const next = new Set(prev);
+                if (on) next.add(index);
+                else next.delete(index);
+                return next;
+              })
+            }
+          />
+        ) : null}
+        {priceList ? (
+          <PriceListCard
+            payload={priceList}
+            accepted={acceptedCodes}
+            canAct={canAct}
+            onToggle={(code, on) =>
+              setAcceptedCodes((prev) => {
+                const next = new Set(prev);
+                if (on) next.add(code);
+                else next.delete(code);
+                return next;
+              })
+            }
+          />
+        ) : null}
         {kind === "other" ? (
           <pre className="overflow-x-auto rounded-md bg-muted p-2 text-xs">{JSON.stringify(approval.payload, null, 2)}</pre>
         ) : null}
@@ -178,12 +220,18 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
               resolve.isPending ||
               (changes !== null && acceptedCount === 0) ||
               (award !== null && Object.keys(lineChoice).length === 0) ||
+              (request !== null && acceptedItems.size === 0) ||
+              (priceList !== null && acceptedCodes.size === 0) ||
               (offer !== null && !(Number(offeredPrice) >= offer.floor_price && Number(offeredPrice) < offer.current_price))
             }
           >
             <Check className="h-4 w-4" />
             {changes
               ? t("approvals.approve_lines", { n: acceptedCount })
+              : request
+                ? t("approvals.request.approve", { n: acceptedItems.size })
+                : priceList
+                  ? t("approvals.pricelist.approve", { n: acceptedCodes.size })
               : award
                 ? t("approvals.award.approve")
                 : offer

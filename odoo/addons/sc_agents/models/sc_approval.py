@@ -35,6 +35,8 @@ APPROVAL_KINDS = [
     ("award", "Quote round award"),
     ("negotiation_offer", "Counter-offer"),
     ("partner_create", "New supplier"),
+    ("internal_request", "Internal request"),
+    ("price_list_update", "Price list update"),
 ]
 APPROVAL_STATUSES = [
     ("pending", "Pending"),

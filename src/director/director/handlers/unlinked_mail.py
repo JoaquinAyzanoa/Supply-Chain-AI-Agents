@@ -24,6 +24,16 @@ def handle(event: BaseEvent) -> Route:
             escalate="message without a sender and with no open orders to match",
             details=email_facts(event),
         )
+    if event.internal:
+        # a colleague wrote to the purchasing mailbox: read it as a purchase request
+        request = SupplierCommsTask(
+            kind="internal_request", case_id=event.case_id, graph_message_id=event.graph_message_id
+        )
+        return Route(
+            case_kind="inbound",
+            conversation_id=event.conversation_id,
+            dispatches=[Dispatch(agent="supplier_comms", task=request)],
+        )
     # An unknown sender still reaches the supplier agent: a quotation for something we
     # buy becomes a ``partner_create`` approval (phase 11); anything else is escalated
     # by the agent as before.

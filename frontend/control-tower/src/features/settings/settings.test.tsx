@@ -24,6 +24,7 @@ const CURRENT: Schemas["SettingsVersion"] = {
     auto_send_partner_ids: [],
     auto_send_kinds: [],
     ignored_senders: ["accountprotection.microsoft.com"],
+    internal_senders: [],
     planning_service_level: null,
     planning_review_period_days: null,
     planning_max_coverage_days: null,

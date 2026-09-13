@@ -75,6 +75,7 @@ from director.realtime import BroadcastingCaseStore
 from director.routers import events
 from director.sourcing import HttpSourcingSource, SourcingDispatcher, SourcingSource
 from director.store import CaseStore, PostgresCaseStore
+from director.teams import TeamsNotifier
 from director.workflow import Deps, Orchestrator
 from sc_core.a2a.events import HmacSigner
 from sc_core.app import create_application
@@ -463,7 +464,9 @@ class DirectorModule(Module):
         db: Database,
         autonomy: AutonomyChanges,
         feedback: FeedbackRecorder,
+        settings: Settings,
     ) -> Deps:
+        webhook = settings.director.teams_webhook_url.get_secret_value()
         return Deps(
             cases=cases,
             agents=agents,
@@ -472,6 +475,9 @@ class DirectorModule(Module):
             conversations=PostgresConversationLookup(db),
             autonomy=autonomy,
             feedback=feedback,
+            notifier=TeamsNotifier(webhook, control_tower_url=settings.ui.public_url)
+            if webhook
+            else None,
         )
 
     @provider

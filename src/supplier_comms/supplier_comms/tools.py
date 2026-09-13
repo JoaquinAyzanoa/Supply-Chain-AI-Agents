@@ -23,6 +23,10 @@ class OpenPosArgs(BaseModel):
     partner_id: int = Field(description="Supplier id in Odoo")
 
 
+class PoTermsArgs(BaseModel):
+    po_name: str = Field(description="Order name, for example P00015")
+
+
 def build_toolbox(ports: AgentPorts) -> ToolBox:
     async def get_po_lines(po_name: str) -> list[dict[str, Any]]:
         ctx = await ports.load_po(po_name)
@@ -37,6 +41,12 @@ def build_toolbox(ports: AgentPorts) -> ToolBox:
 
     async def get_open_pos_for_supplier(partner_id: int) -> list[dict[str, Any]]:
         return await ports.open_pos(partner_id)
+
+    async def get_order_terms(po_name: str) -> dict[str, Any]:
+        ctx = await ports.load_po(po_name)
+        if ctx is None:
+            return {}
+        return {"po_name": ctx.name, "currency": ctx.currency, **(await ports.po_terms(ctx.id))}
 
     return ToolBox(
         [
@@ -57,6 +67,12 @@ def build_toolbox(ports: AgentPorts) -> ToolBox:
                 "Open orders with the supplier: name, state, planned date, amount.",
                 OpenPosArgs,
                 get_open_pos_for_supplier,
+            ),
+            Tool(
+                "get_order_terms",
+                "Terms of an order: payment terms, incoterm, buyer, delivery address, currency.",
+                PoTermsArgs,
+                get_order_terms,
             ),
         ]
     )

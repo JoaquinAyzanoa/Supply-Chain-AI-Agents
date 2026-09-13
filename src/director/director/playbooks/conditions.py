@@ -49,6 +49,11 @@ def still_rfq(facts: PoFacts, _: date) -> bool:
     return facts.is_rfq
 
 
+def unsent_rfq(facts: PoFacts, _: date) -> bool:
+    """A quotation request nobody has emailed yet (Odoo keeps it in draft)."""
+    return facts.state == "draft"
+
+
 def awaiting_human(facts: PoFacts, _: date) -> bool:
     return facts.awaiting_human
 
@@ -62,6 +67,7 @@ CONDITIONS: dict[str, Condition] = {
     "late": late,
     "confirmed": confirmed,
     "still_rfq": still_rfq,
+    "unsent_rfq": unsent_rfq,
     "awaiting_human": awaiting_human,
 }
 

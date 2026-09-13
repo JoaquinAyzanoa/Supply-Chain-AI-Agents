@@ -14,7 +14,7 @@ import { cn, formatNumber } from "@/lib/utils";
 import type { AwardPayload, ComparedQuote, OfferPayload, PartnerPayload } from "./types";
 
 /** Money with two decimals always, so 110 reads as 110.00. */
-const fixed2 = (value: number, locale: string) => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+export const fixed2 = (value: number, locale: string) => new Intl.NumberFormat(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
 
 // --- award ------------------------------------------------------------------------------
 

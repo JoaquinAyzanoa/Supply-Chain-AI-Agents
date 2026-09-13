@@ -21,6 +21,8 @@ NO_RECORD_KINDS = (
     "autonomy_change",
     "award",
     "partner_create",
+    "internal_request",
+    "price_list_update",
 )
 
 

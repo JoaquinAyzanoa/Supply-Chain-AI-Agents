@@ -4643,7 +4643,8 @@
                 "request_eta",
                 "reply",
                 "decline",
-                "counter_offer"
+                "counter_offer",
+                "answer"
               ],
               "type": "string"
             },
@@ -4674,6 +4675,14 @@
               "type": "string"
             },
             "title": "Ignored Senders",
+            "type": "array"
+          },
+          "internal_senders": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Internal Senders",
             "type": "array"
           },
           "invoice_price_tolerance_pct": {
@@ -8118,7 +8127,7 @@
     },
     "/api/risk/{product_id}/act": {
       "post": {
-        "description": "One click: an alternative source for the late order behind the risk, or a quote round.",
+        "description": "One click: an alternative source for the order behind the risk, or a quote round.",
         "operationId": "act_on_risk_api_risk__product_id__act_post",
         "parameters": [
           {

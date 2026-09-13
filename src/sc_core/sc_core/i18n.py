@@ -234,6 +234,129 @@ MESSAGES: dict[str, dict[Language, str]] = {
     "kind.reply": {"en": "reply", "es": "respuesta"},
     "kind.email": {"en": "email", "es": "correo"},
     "kind.decline": {"en": "decline", "es": "declinación"},
+    "kind.answer": {"en": "answer", "es": "respuesta con datos"},
+    "kind.ack": {"en": "acknowledgement", "es": "acuse de recibo"},
+    "kind.status": {"en": "status update", "es": "aviso de estado"},
+    # --- disputes, internal requests and price lists (phase 11 S6) ---------------------
+    "dispute.summary": {
+        "en": "{partner} raises a dispute on {po}: {reason}",
+        "es": "{partner} plantea un reclamo sobre {po}: {reason}",
+    },
+    "dispute.escalated": {
+        "en": "dispute on {po} handed to a person: {reason}",
+        "es": "reclamo sobre {po} pasado a una persona: {reason}",
+    },
+    "request.approval_summary": {
+        "en": "Internal request from {sender}: {n} item(s){date}",
+        "es": "Pedido interno de {sender}: {n} ítem(s){date}",
+    },
+    "request.by_date": {"en": ", needed by {date}", "es": ", para el {date}"},
+    "request.unreadable": {
+        "en": "the email from {sender} asks for nothing purchasing can order; a person reads it",
+        "es": "el correo de {sender} no pide nada que compras pueda pedir; lo lee una persona",
+    },
+    "request.nothing_to_order": {
+        "en": "no accepted item has a product and a supplier; nothing to order",
+        "es": "ningún ítem aceptado tiene producto y proveedor; nada que pedir",
+    },
+    "request.rfq_origin": {
+        "en": "internal request from {sender}",
+        "es": "pedido interno de {sender}",
+    },
+    "request.rfq_note": {
+        "en": (
+            "<p>RFQ created from the internal request of {sender}: {n} line(s); "
+            "approved by {who}.</p>"
+        ),
+        "es": (
+            "<p>RFQ creada desde el pedido interno de {sender}: {n} línea(s); "
+            "aprobado por {who}.</p>"
+        ),
+    },
+    "request.ack_intro": {
+        "en": "We received your request and asked our suppliers for:",
+        "es": "Recibimos tu pedido y solicitamos a nuestros proveedores:",
+    },
+    "request.ack_rfqs": {
+        "en": (
+            "Requests for quotation: {rfqs}. We will write again when the order is confirmed "
+            "and when the goods arrive."
+        ),
+        "es": (
+            "Solicitudes de cotización: {rfqs}. Te escribiremos cuando la orden esté "
+            "confirmada y cuando llegue la mercadería."
+        ),
+    },
+    "request.ack_date": {"en": "Requested for: {date}.", "es": "Pedido para: {date}."},
+    "request.ack_unmatched": {
+        "en": "Not in our catalogue, a buyer will check: {items}.",
+        "es": "No están en nuestro catálogo, un comprador lo revisará: {items}.",
+    },
+    "request.no_supplier": {
+        "en": "; no supplier lists: {items}",
+        "es": "; ningún proveedor ofrece: {items}",
+    },
+    "request.applied_summary": {
+        "en": "internal request from {sender}: {n} RFQ(s) created ({rfqs}) and the requester told",
+        "es": "pedido interno de {sender}: {n} RFQ(s) creada(s) ({rfqs}) y el solicitante avisado",
+    },
+    "request.rejected_html": {
+        "en": "Your purchase request was not approved by {who}: {reason}",
+        "es": "Tu pedido de compra no fue aprobado por {who}: {reason}",
+    },
+    "request.rejected_summary": {
+        "en": "internal request rejected by {who} ({reason}); the requester was told",
+        "es": "pedido interno rechazado por {who} ({reason}); se avisó al solicitante",
+    },
+    "request.not_found": {
+        "en": "no internal request behind {po}",
+        "es": "no hay pedido interno detrás de {po}",
+    },
+    "request.status_confirmed": {
+        "en": (
+            "Your request is on its way: order {po} with {partner} is confirmed, "
+            "expected on {date}."
+        ),
+        "es": (
+            "Tu pedido está en camino: la orden {po} con {partner} está confirmada, "
+            "prevista para el {date}."
+        ),
+    },
+    "request.status_received": {
+        "en": "The goods of order {po} ({partner}) have arrived at the warehouse.",
+        "es": "La mercadería de la orden {po} ({partner}) llegó al almacén.",
+    },
+    "request.status_cancelled": {
+        "en": "Order {po} with {partner} was cancelled; purchasing will contact you.",
+        "es": "La orden {po} con {partner} fue cancelada; compras te contactará.",
+    },
+    "request.status_open": {
+        "en": "Order {po} is still a request for quotation with {partner}.",
+        "es": "La orden {po} sigue siendo una solicitud de cotización con {partner}.",
+    },
+    "request.status_summary": {
+        "en": "status update ({milestone}) sent to the requester of {po}",
+        "es": "aviso de estado ({milestone}) enviado al solicitante de {po}",
+    },
+    "pricelist.approval_summary": {
+        "en": "Price list from {partner}: {n} price(s) change, {unmatched} not in the catalogue",
+        "es": (
+            "Lista de precios de {partner}: {n} precio(s) cambian, {unmatched} fuera del catálogo"
+        ),
+    },
+    "pricelist.applied_summary": {
+        "en": "{n} price(s) from {partner}'s list recorded",
+        "es": "{n} precio(s) de la lista de {partner} registrados",
+    },
+    "pricelist.skipped": {"en": " ({n} left out)", "es": " ({n} dejados fuera)"},
+    "pricelist.rejected_summary": {
+        "en": "price list not applied: rejected by {who} ({reason})",
+        "es": "lista de precios no aplicada: rechazada por {who} ({reason})",
+    },
+    "pricelist.note": {
+        "en": "<p>Price list {source} from {partner}: {n} price(s) recorded by {who}.</p>",
+        "es": "<p>Lista de precios {source} de {partner}: {n} precio(s) registrados por {who}.</p>",
+    },
     "partner.approval_summary": {
         "en": "New supplier? {sender} quoted {n} line(s) without an order of ours",
         "es": "¿Proveedor nuevo? {sender} cotizó {n} línea(s) sin una orden nuestra",

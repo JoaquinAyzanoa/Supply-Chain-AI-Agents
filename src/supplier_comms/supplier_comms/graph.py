@@ -3,8 +3,11 @@
 Outbound: load_context -> draft_outbound -> create_draft -> [send_email
 approval] -> send | rejected. Inbound: load_context -> classify ->
 extract -> propose_changes -> [po_change approval] -> apply_changes |
-change_rejected; a question is answered in the thread through the outbound
-path; anything else ends as no_action. ``resolve_unlinked`` arrives in story 6.
+change_rejected; a question is answered from records (``answer``) and sent
+through the outbound path; a dispute goes to a person; anything else ends as
+no_action. Phase 11 S6 adds internal requests (extract_request -> approval ->
+create_request), price-list attachments (approval -> apply_price_list) and the
+status replies a playbook sends to an internal requester.
 """
 
 from __future__ import annotations
@@ -24,6 +27,7 @@ from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm import ChatCompleter
 from sc_core.shared.time import local_today
+from supplier_comms.nodes.answer import make_answer
 from supplier_comms.nodes.apply import (
     CHANGE_STEP,
     make_apply_changes,
@@ -33,14 +37,29 @@ from supplier_comms.nodes.apply import (
 )
 from supplier_comms.nodes.classify import make_classify
 from supplier_comms.nodes.common import fail
+from supplier_comms.nodes.dispute import make_dispute
 from supplier_comms.nodes.draft_outbound import KIND_TO_DRAFT, make_draft_outbound
 from supplier_comms.nodes.extract import make_extract
+from supplier_comms.nodes.internal_request import (
+    REQUEST_STEP,
+    make_create_request,
+    make_extract_request,
+    make_request_approval,
+    make_request_rejected,
+    make_status_reply,
+)
 from supplier_comms.nodes.load_context import make_load_context
 from supplier_comms.nodes.partner import (
     PARTNER_STEP,
     make_create_partner,
     make_partner_approval,
     make_partner_rejected,
+)
+from supplier_comms.nodes.price_list import (
+    PRICE_STEP,
+    make_apply_price_list,
+    make_price_list_approval,
+    make_price_list_rejected,
 )
 from supplier_comms.nodes.propose import make_propose_changes
 from supplier_comms.nodes.resolve import make_resolve_unlinked
@@ -64,6 +83,12 @@ TERMINAL = (
     "unsupported",
     "create_partner",
     "partner_rejected",
+    "dispute",
+    "create_request",
+    "request_rejected",
+    "status_reply",
+    "apply_price_list",
+    "price_list_rejected",
 )
 
 
@@ -126,6 +151,46 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     _add(g, "unsupported", _unsupported)
     _add(g, "create_partner", make_create_partner(deps.ports, language=deps.language))
     _add(g, "partner_rejected", make_partner_rejected(language=deps.language))
+    # phase 11 S6: answers from records, disputes, internal requests, price lists
+    _add(
+        g,
+        "answer",
+        make_answer(
+            deps.chat,
+            deps.toolbox,
+            deps.ports,
+            max_tool_rounds=deps.max_tool_rounds,
+            langfuse=deps.langfuse,
+            today=deps.today,
+            language=deps.language,
+        ),
+    )
+    _add(g, "dispute", make_dispute(deps.approvals, language=deps.language))
+    _add(
+        g,
+        "extract_request",
+        make_extract_request(
+            deps.ports,
+            deps.chat,
+            deps.approvals,
+            langfuse=deps.langfuse,
+            today=deps.today,
+            language=deps.language,
+        ),
+    )
+    _add(
+        g,
+        "create_request",
+        make_create_request(deps.ports, sleep=deps.sleep, language=deps.language),
+    )
+    _add(
+        g,
+        "request_rejected",
+        make_request_rejected(deps.ports, sleep=deps.sleep, language=deps.language),
+    )
+    _add(g, "status_reply", make_status_reply(deps.ports, sleep=deps.sleep, language=deps.language))
+    _add(g, "apply_price_list", make_apply_price_list(deps.ports, language=deps.language))
+    _add(g, "price_list_rejected", make_price_list_rejected(language=deps.language))
 
     g.add_edge(START, "load_context")
     g.add_conditional_edges(
@@ -135,9 +200,31 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
             "outbound": "draft_outbound",
             "inbound": "classify",
             "resolve": "resolve_unlinked",
+            "price_list": f"{PRICE_STEP}.request",
+            "request": "extract_request",
+            "status": "status_reply",
             "unsupported": "unsupported",
             "end": END,
         },
+    )
+    deps.approvals.add_approval(
+        g,
+        step=PRICE_STEP,
+        build=make_price_list_approval(language=deps.language),
+        after=None,
+        approved="apply_price_list",
+        rejected="price_list_rejected",
+    )
+    g.add_conditional_edges(
+        "extract_request", _continue_or_end, {"go": f"{REQUEST_STEP}.request", "end": END}
+    )
+    deps.approvals.add_approval(
+        g,
+        step=REQUEST_STEP,
+        build=make_request_approval(language=deps.language),
+        after=None,
+        approved="create_request",
+        rejected="request_rejected",
     )
     # A resolved message goes back through load_context with the chosen order; an
     # unknown sender's quotation pauses on the partner_create approval.
@@ -166,8 +253,14 @@ def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
     g.add_conditional_edges(
         "classify",
         _after_classify,
-        {"extract": "extract", "reply": "draft_outbound", "no_action": "no_action"},
+        {
+            "extract": "extract",
+            "answer": "answer",
+            "dispute": "dispute",
+            "no_action": "no_action",
+        },
     )
+    g.add_conditional_edges("answer", _continue_or_end, {"go": "create_draft", "end": END})
     g.add_edge("extract", "propose_changes")
     # propose_changes ends the run itself when there is nothing to change; the
     # approval nodes are only reached with a proposal in the state.
@@ -199,9 +292,15 @@ def _after_load(state: dict[str, Any]) -> Hashable:
     if kind in KIND_TO_DRAFT:
         return "outbound"
     if kind == "handle_inbound":
-        return "inbound"
+        return "price_list" if state.get("price_list") else "inbound"
     if kind == "resolve_unlinked":
-        return "inbound" if state.get("chosen_po_name") else "resolve"
+        if state.get("chosen_po_name"):
+            return "inbound"
+        return "price_list" if state.get("price_list") else "resolve"
+    if kind == "internal_request":
+        return "request"
+    if kind == "status_reply":
+        return "status"
     return "unsupported"
 
 
@@ -210,7 +309,9 @@ def _after_classify(state: dict[str, Any]) -> Hashable:
     if kind in ("quotation", "eta_update"):
         return "extract"
     if kind == "question":
-        return "reply"
+        return "answer"
+    if kind == "dispute":
+        return "dispute"
     return "no_action"
 
 

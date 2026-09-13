@@ -8,7 +8,9 @@ from datetime import date
 from itertools import count
 from typing import Any
 
+from sc_core.infra.internal_requests import InternalRequest
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
+from sc_core.mail.tables import TableData
 from sc_core.schema.profiles import SupplierProfile
 from supplier_comms.models import InboundMeta, LineView, PoContext
 
@@ -85,6 +87,15 @@ class FakePorts:
     products_by_code: dict[str, tuple[int, str]] = field(default_factory=dict)
     created_partners: list[dict[str, Any]] = field(default_factory=list)
     created_rfqs: list[dict[str, Any]] = field(default_factory=list)
+    # phase 11 S6
+    tables: dict[str, list[TableData]] = field(default_factory=dict)
+    anchors: dict[int, str] = field(default_factory=dict)
+    terms: dict[int, dict[str, Any]] = field(default_factory=dict)
+    catalogue: list[dict[str, Any]] = field(default_factory=list)  # id, code, name
+    reference_suppliers: dict[int, dict[str, Any]] = field(default_factory=dict)
+    template_ids: dict[int, int] = field(default_factory=dict)
+    currency_ids: dict[str, int] = field(default_factory=lambda: {"USD": 2, "PEN": 1})
+    internal_requests: list[InternalRequest] = field(default_factory=list)
     _seq: Any = field(default_factory=lambda: count(1))
 
     async def load_po(self, po_name: str) -> PoContext | None:
@@ -277,6 +288,48 @@ class FakePorts:
 
     async def partner_by_email(self, address: str) -> int | None:
         return self.partners.get(address.lower())
+
+    async def attachment_tables(self, message_id: str) -> list[TableData]:
+        return list(self.tables.get(message_id, []))
+
+    async def thread_anchor(self, po_id: int) -> str | None:
+        return self.anchors.get(po_id)
+
+    async def po_terms(self, po_id: int) -> dict[str, Any]:
+        return dict(self.terms.get(po_id, {}))
+
+    async def search_products(self, query: str, *, limit: int = 8) -> list[dict[str, Any]]:
+        words = [w.lower() for w in query.split() if len(w) > 2]
+        hits = [
+            p for p in self.catalogue if any(w in str(p.get("name", "")).lower() for w in words)
+        ]
+        return hits[:limit]
+
+    async def reference_supplier(self, product_id: int) -> dict[str, Any] | None:
+        return self.reference_suppliers.get(product_id)
+
+    async def product_template_id(self, product_id: int) -> int | None:
+        return self.template_ids.get(product_id, product_id * 10)
+
+    async def currency_id_for(self, code: str) -> int | None:
+        return self.currency_ids.get(code.upper())
+
+    async def save_internal_request(self, request: InternalRequest) -> InternalRequest:
+        saved = request.model_copy(update={"id": len(self.internal_requests) + 1})
+        self.internal_requests.append(saved)
+        return saved
+
+    async def internal_request_for(self, po_name: str) -> InternalRequest | None:
+        for request in reversed(self.internal_requests):
+            if po_name in request.po_names:
+                return request
+        return None
+
+    async def finish_internal_request(self, request_id: int, status: str) -> None:
+        self.internal_requests = [
+            r.model_copy(update={"status": status}) if r.id == request_id else r
+            for r in self.internal_requests
+        ]
 
     async def link_inbound(self, po_id: int, meta: InboundMeta, *, case_id: str) -> None:
         self.links.append(

@@ -142,6 +142,12 @@ class SyncRunner:
             return (await self._runtime.current()).ignored_senders
         return list(self._cfg.ignored_senders)
 
+    async def _internal_senders(self) -> list[str]:
+        """Colleagues whose emails are purchase requests, not supplier mail (phase 11 S6)."""
+        if self._runtime is not None:
+            return (await self._runtime.current()).internal_senders
+        return list(self._cfg.internal_senders)
+
     async def _link_and_emit(
         self, message: InboundMessage, case_id: str, report: SyncReport
     ) -> str:
@@ -191,6 +197,10 @@ class SyncRunner:
                 open_po_names=outcome.hint.open_po_names,
                 has_attachments=message.has_attachments,
                 web_link=message.web_link,
+                internal=is_ignored(
+                    message.sender.normalized if message.sender else None,
+                    await self._internal_senders(),
+                ),
             )
         )
         await self._state.mark_processed(message.id, outcome="unlinked", case_id=case_id)

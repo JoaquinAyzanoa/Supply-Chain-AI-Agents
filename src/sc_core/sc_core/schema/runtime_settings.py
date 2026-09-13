@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 
 
 EmailKind = Literal[
-    "rfq", "send_po", "follow_up", "request_eta", "reply", "decline", "counter_offer"
+    "rfq", "send_po", "follow_up", "request_eta", "reply", "decline", "counter_offer", "answer"
 ]
 EMAIL_KINDS: tuple[EmailKind, ...] = (
     "rfq",
@@ -32,6 +32,7 @@ EMAIL_KINDS: tuple[EmailKind, ...] = (
     "reply",
     "decline",
     "counter_offer",
+    "answer",
 )
 
 
@@ -51,6 +52,9 @@ class RuntimeSettings(StrictModel):
     auto_send_kinds: list[EmailKind] = []
     # Senders (addresses or domains) the inbox poller ignores: security notices, digests.
     ignored_senders: list[str] = []
+    # Senders (addresses or domains) whose emails are internal purchase requests, not
+    # supplier mail: colleagues writing to the purchasing mailbox (phase 11 S6).
+    internal_senders: list[str] = []
     # Planning defaults: None keeps the ABC class defaults; a value replaces them for
     # products a planner has not tuned (params with source "default").
     planning_service_level: float | None = Field(default=None, gt=0.5, lt=1.0)

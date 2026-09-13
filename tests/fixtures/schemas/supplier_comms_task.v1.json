@@ -64,7 +64,9 @@
         "handle_inbound",
         "resolve_unlinked",
         "decline_quote",
-        "counter_offer"
+        "counter_offer",
+        "internal_request",
+        "status_reply"
       ],
       "title": "Kind",
       "type": "string"

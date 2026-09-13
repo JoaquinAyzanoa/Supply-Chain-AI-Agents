@@ -98,7 +98,10 @@
             "reply",
             "discrepancy",
             "decline",
-            "counter_offer"
+            "counter_offer",
+            "answer",
+            "ack",
+            "status"
           ],
           "title": "Kind",
           "type": "string"

@@ -32,6 +32,8 @@ TaskKind = Literal[
     "resolve_unlinked",
     "decline_quote",  # phase 11: the round went elsewhere
     "counter_offer",  # phase 11: the sourcing agent negotiates through this agent
+    "internal_request",  # phase 11: an employee asks purchasing for something
+    "status_reply",  # phase 11: tell the requester how the order is going
 ]
 
 
@@ -76,7 +78,9 @@ class SupplierCommsTask(StrictModel):
             "decline_quote",
             "counter_offer",
         )
-        needs_message = self.kind in ("handle_inbound", "resolve_unlinked")
+        needs_message = self.kind in ("handle_inbound", "resolve_unlinked", "internal_request")
+        if self.kind == "status_reply" and not self.po_name:
+            raise ValueError("status_reply needs po_name")
         if needs_po and not self.po_name:
             raise ValueError(f"{self.kind} needs po_name")
         if needs_message and not self.graph_message_id:
@@ -87,7 +91,7 @@ class SupplierCommsTask(StrictModel):
 # --- what the agent produces along the way ------------------------------------------
 
 ClassificationKind = Literal[
-    "quotation", "eta_update", "question", "shipping_notice", "invoice", "other"
+    "quotation", "eta_update", "question", "dispute", "shipping_notice", "invoice", "other"
 ]
 
 
@@ -168,8 +172,75 @@ class ChangeProposal(StrictModel):
 
 
 DraftKind = Literal[
-    "rfq", "request_eta", "follow_up", "send_po", "reply", "discrepancy", "decline", "counter_offer"
+    "rfq",
+    "request_eta",
+    "follow_up",
+    "send_po",
+    "reply",
+    "discrepancy",
+    "decline",
+    "counter_offer",
+    "answer",  # phase 11: a factual answer from our records, sources cited
+    "ack",  # phase 11: an internal requester acknowledged
+    "status",  # phase 11: an internal requester told the order's status
 ]
+
+
+class AnswerSummary(StrictModel):
+    """How a supplier's question was answered: from records (cited) or not at all."""
+
+    factual: bool
+    sources: list[str] = Field(default_factory=list, description="record references used")
+    reason: str | None = Field(default=None, description="why a person must decide")
+
+
+class RequestedItem(StrictModel):
+    """One thing an employee asked for, and what the catalogue made of it."""
+
+    description: str = Field(min_length=1, max_length=300)
+    product_ref: str | None = None
+    qty: float = Field(gt=0)
+    uom: str | None = None
+    product_id: int | None = None
+    product: str | None = None
+    match_confidence: float = Field(default=0.0, ge=0, le=1)
+    supplier_id: int | None = None
+    supplier_name: str | None = None
+    unit_price: float | None = None
+    currency: str | None = None
+
+
+class InternalRequestData(StrictModel):
+    items: list[RequestedItem] = Field(default_factory=list)
+    need_date_raw: str | None = None
+    need_date: date | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+    confidence: float = Field(default=1.0, ge=0, le=1)
+
+
+class PriceListRow(StrictModel):
+    """One row of a supplier's price list against what Odoo holds."""
+
+    code: str = Field(min_length=1)
+    description: str = ""
+    product_id: int | None = None
+    product: str | None = None
+    current_price: float | None = None
+    new_price: float = Field(gt=0)
+    currency: str | None = None
+    min_qty: float = Field(default=0.0, ge=0)
+    lead_days: int | None = Field(default=None, ge=0)
+    change_pct: float | None = None
+    matched: bool = False
+
+
+class PriceListDiff(StrictModel):
+    partner_id: int
+    partner_name: str = ""
+    source: str = Field(description="the attachment (and sheet) the rows came from")
+    currency: str | None = None
+    rows: list[PriceListRow] = Field(default_factory=list)
+    unmatched: int = 0
 
 
 class OutboundDraft(StrictModel):
@@ -225,6 +296,11 @@ class SupplierCommsResult(StrictModel):
     proposal: ChangeProposal | None = None
     outbound: OutboundSummary | None = None
     trace_id: str | None = None
+    # phase 11 S6
+    po_names: list[str] = Field(default_factory=list, description="RFQs an internal request became")
+    answer: AnswerSummary | None = None
+    internal_request: InternalRequestData | None = None
+    price_list: PriceListDiff | None = None
 
     @property
     def status(self) -> OutcomeStatus:

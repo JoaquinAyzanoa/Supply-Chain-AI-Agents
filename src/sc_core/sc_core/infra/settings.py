@@ -188,6 +188,8 @@ class MailSyncCfg(_Section):
         "microsoftonline.com",
         "email.microsoft.com",
     ]
+    # Colleagues whose emails to the mailbox are internal purchase requests (phase 11 S6).
+    internal_senders: list[str] = []
 
 
 class SchedulerCfg(_Section):
@@ -285,6 +287,9 @@ class A2aCfg(_Section):
 
 class DirectorCfg(_Section):
     """Orchestrator policy: follow-up cadence, escalation thresholds, per-order locking."""
+
+    # Optional: approvals posted to a Teams channel through an incoming webhook (phase 11).
+    teams_webhook_url: SecretStr = SecretStr("")
 
     rfq_no_reply_days: list[int] = [3, 7]  # follow_up after these days of silence, then escalate
     po_eta_request_before_days: int = Field(default=5, ge=0)  # ask to confirm the date this early

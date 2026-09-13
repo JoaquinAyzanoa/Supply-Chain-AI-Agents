@@ -43,10 +43,19 @@ RULE_KINDS: tuple[str, ...] = (
     "award",
     "negotiation_offer",
     "partner_create",
+    "internal_request",
+    "price_list_update",
 )
 # Kinds no rule may ever automate: money commitments, relationships, the policy itself.
 NEVER_AUTOMATED: frozenset[str] = frozenset(
-    {"escalation", "autonomy_change", "award", "negotiation_offer", "partner_create"}
+    {
+        "escalation",
+        "autonomy_change",
+        "award",
+        "negotiation_offer",
+        "partner_create",
+        "internal_request",  # an RFQ from an employee's email is a person's call
+    }
 )
 
 

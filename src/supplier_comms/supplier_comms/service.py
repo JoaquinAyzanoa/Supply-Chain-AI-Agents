@@ -21,6 +21,7 @@ from sc_core.graph import (
     policy_from,
 )
 from sc_core.infra.db import Database
+from sc_core.infra.internal_requests import PostgresInternalRequestStore
 from sc_core.infra.module import ChatClientFactory
 from sc_core.infra.profiles import PostgresProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
@@ -89,6 +90,7 @@ class SupplierCommsModule(Module):
             pdf_max_pages=settings.mail.pdf_max_pages,
             pdf_max_bytes=settings.mail.pdf_max_bytes,
             profiles=PostgresProfileStore(db),
+            requests=PostgresInternalRequestStore(db),
         )
 
     @provider

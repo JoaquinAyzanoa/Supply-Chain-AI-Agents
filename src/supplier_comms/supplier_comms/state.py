@@ -32,6 +32,11 @@ class SupplierCommsState(BaseAgentState, total=False):
     chosen_po_name: str | None
     escalation_approval_id: int | None
     partner_candidate: dict[str, Any] | None  # an unknown sender who quoted: sender, lines
+    answer: dict[str, Any] | None  # phase 11 S6: factual or not, the sources cited
+    force_approval: bool  # a person reads this email whatever the rules say
+    internal_request: dict[str, Any] | None  # what an employee asked for, matched
+    price_list: dict[str, Any] | None  # a price list attachment diffed against Odoo
+    po_names: list[str] | None  # the RFQs an internal request became
 
 
 # A graph node: takes the state, returns a partial update.

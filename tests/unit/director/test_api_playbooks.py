@@ -85,6 +85,7 @@ async def test_playbooks_are_listed_started_by_hand_and_visible_on_approvals_and
     module.exceptions.facts.append(_late())
     listed = client.get("/api/playbooks", headers=viewer).json()
     assert [p["name"] for p in listed] == [
+        "internal_request",
         "late_order",
         "new_supplier_onboarding",
         "quote_round",

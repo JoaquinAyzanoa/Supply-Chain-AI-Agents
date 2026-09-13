@@ -93,6 +93,7 @@ def test_every_shipped_playbook_loads_and_names_known_conditions() -> None:
         "receipt_variance",
         "quote_round",
         "new_supplier_onboarding",
+        "internal_request",
     }
     late = playbooks["late_order"]
     assert [s.id for s in late.steps] == [
@@ -260,3 +261,42 @@ async def test_with_the_sourcing_agent_deployed_the_alternate_step_runs_it() -> 
     assert escalator.calls == []
     last = (await store.steps(1))[-1]
     assert (last.step_id, last.status, last.detail["outcome"]) == ("alternate", "done", "no_action")
+
+
+async def test_an_internal_request_keeps_the_requester_informed_until_the_goods_arrive() -> None:
+    clock, agent = Clock(), FakeAgentCaller()
+    rfq = late_po("P00700").model_copy(
+        update={"po_id": 700, "state": "draft", "date_planned": START + timedelta(days=7)}
+    )
+    facts = Facts(rfq)
+    engine, cases, escalator, store = build(facts, clock, agent)
+    # first the RFQ leaves to the supplier (its own send_email approval or rule)
+    agent.replies.append(agent_reply("send_rfq", "pb_1_send_rfq", "sent", po_name="P00700"))
+    [run_id] = await engine.on_request(["P00700"])
+    run = await store.get(run_id)
+    assert run is not None and run.playbook == "internal_request" and run.status == "waiting"
+    assert json.loads(agent.sent[0].task_json)["kind"] == "send_rfq"
+    assert run.waiting_for == "confirmed" and len(agent.sent) == 1
+    # an order that already runs a playbook is not started twice
+    assert await engine.on_request(["P00700"]) == [run_id]
+    # the order is confirmed: the wait ends early and the requester is told
+    agent.replies.append(
+        agent_reply("status_reply", "pb_1_tell_confirmed", "sent", po_name="P00700")
+    )
+    facts.set("P00700", state="purchase")
+    [moved] = await engine.on_po_event("P00700")
+    assert moved == run_id
+    sent = json.loads(agent.sent[1].task_json)
+    assert sent["kind"] == "status_reply" and sent["notes"] == "confirmed"
+    assert sent["po_name"] == "P00700" and sent["case_id"] == "pb_1_tell_confirmed"
+    run = await store.get(run_id)
+    assert run is not None and run.status == "waiting" and run.waiting_for == "received"
+    # the goods arrive: the last step runs and the plan is done
+    agent.replies.append(
+        agent_reply("status_reply", "pb_1_tell_received", "sent", po_name="P00700")
+    )
+    facts.set("P00700", receipt_status="full")
+    await engine.on_po_event("P00700")
+    assert json.loads(agent.sent[2].task_json)["notes"] == "received"
+    run = await store.get(run_id)
+    assert run is not None and run.status == "done" and escalator.calls == []

@@ -53,6 +53,21 @@ def test_linked_mail_becomes_handle_inbound() -> None:
     assert dispatch.task.po_name == "P00015"
 
 
+def test_a_colleagues_mail_becomes_an_internal_request() -> None:
+    event = ev.InboundMailUnlinked(
+        source="mail_sync",
+        case_id="case_msg9",
+        graph_message_id="AAMk9",
+        sender_address="ana.torres@empresa.com",
+        internal=True,
+    )
+    decided = route(event)
+    assert decided.case_kind == "inbound" and decided.escalate is None
+    [dispatch] = decided.dispatches
+    assert dispatch.agent == "supplier_comms" and dispatch.task.kind == "internal_request"
+    assert dispatch.task.graph_message_id == "AAMk9" and dispatch.task.po_name is None
+
+
 def test_unlinked_mail_with_candidates_becomes_resolve_task() -> None:
     event = ev.InboundMailUnlinked(
         source="mail_sync",

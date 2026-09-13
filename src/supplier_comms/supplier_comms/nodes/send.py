@@ -29,7 +29,18 @@ Sleep = Callable[[float], Awaitable[None]]
 SEND_STEP = "send_email"
 
 
-KNOWN_KINDS = ("rfq", "request_eta", "follow_up", "send_po", "reply", "decline", "counter_offer")
+KNOWN_KINDS = (
+    "rfq",
+    "request_eta",
+    "follow_up",
+    "send_po",
+    "reply",
+    "decline",
+    "counter_offer",
+    "answer",
+    "ack",
+    "status",
+)
 
 
 def kind_label(kind: str, language: Language) -> str:
@@ -101,6 +112,7 @@ def make_send_approval(
                 "draft_id": outbound.get("draft_id"),
                 "web_link": outbound.get("web_link"),
                 "attachments": outbound.get("attachments") or [],
+                "answer": state.get("answer"),
             },
             po_id=ctx.id,
             facts=ActionFacts(
@@ -109,8 +121,9 @@ def make_send_approval(
                 amount=ctx.amount_total,
                 currency=ctx.currency,
                 email_kind=kind or None,
+                confidence=1.0 if kind == "answer" else None,
             ),
-            force_approval=task_of(state).require_approval,
+            force_approval=task_of(state).require_approval or bool(state.get("force_approval")),
             auto_approve=bool(task_of(state).pre_approved),
             auto_reason=task_of(state).pre_approved,
         )
@@ -207,6 +220,13 @@ async def _attachments(ports: AgentPorts, po_id: int, names: list[str]) -> list[
                 Attachment(name=name, content_type="application/pdf", size=len(data), data=data)
             )
     return out
+
+
+async def resolve_sent_ids(
+    ports: AgentPorts, draft: MessageIds, sleep: Sleep, attempts: int = 5
+) -> MessageIds:
+    """Public face of ``_sent_ids`` for nodes that send without the approval step."""
+    return await _sent_ids(ports, draft, sleep, attempts)
 
 
 async def _sent_ids(

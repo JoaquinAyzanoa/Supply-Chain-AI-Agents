@@ -1,5 +1,41 @@
 {
   "$defs": {
+    "AnswerSummary": {
+      "additionalProperties": false,
+      "description": "How a supplier's question was answered: from records (cited) or not at all.",
+      "properties": {
+        "factual": {
+          "title": "Factual",
+          "type": "boolean"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "why a person must decide",
+          "title": "Reason"
+        },
+        "sources": {
+          "description": "record references used",
+          "items": {
+            "type": "string"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "factual"
+      ],
+      "title": "AnswerSummary",
+      "type": "object"
+    },
     "ChangeProposal": {
       "additionalProperties": false,
       "properties": {
@@ -38,6 +74,7 @@
             "quotation",
             "eta_update",
             "question",
+            "dispute",
             "shipping_notice",
             "invoice",
             "other"
@@ -102,6 +139,65 @@
       "title": "DeliverySplit",
       "type": "object"
     },
+    "InternalRequestData": {
+      "additionalProperties": false,
+      "properties": {
+        "confidence": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/RequestedItem"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "need_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Need Date"
+        },
+        "need_date_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Need Date Raw"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        }
+      },
+      "title": "InternalRequestData",
+      "type": "object"
+    },
     "OutboundSummary": {
       "additionalProperties": false,
       "properties": {
@@ -134,7 +230,10 @@
             "reply",
             "discrepancy",
             "decline",
-            "counter_offer"
+            "counter_offer",
+            "answer",
+            "ack",
+            "status"
           ],
           "title": "Kind",
           "type": "string"
@@ -223,6 +322,166 @@
         "summary"
       ],
       "title": "Outcome",
+      "type": "object"
+    },
+    "PriceListDiff": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "partner_id": {
+          "title": "Partner Id",
+          "type": "integer"
+        },
+        "partner_name": {
+          "default": "",
+          "title": "Partner Name",
+          "type": "string"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/PriceListRow"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "source": {
+          "description": "the attachment (and sheet) the rows came from",
+          "title": "Source",
+          "type": "string"
+        },
+        "unmatched": {
+          "default": 0,
+          "title": "Unmatched",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "partner_id",
+        "source"
+      ],
+      "title": "PriceListDiff",
+      "type": "object"
+    },
+    "PriceListRow": {
+      "additionalProperties": false,
+      "description": "One row of a supplier's price list against what Odoo holds.",
+      "properties": {
+        "change_pct": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Change Pct"
+        },
+        "code": {
+          "minLength": 1,
+          "title": "Code",
+          "type": "string"
+        },
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "current_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Current Price"
+        },
+        "description": {
+          "default": "",
+          "title": "Description",
+          "type": "string"
+        },
+        "lead_days": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lead Days"
+        },
+        "matched": {
+          "default": false,
+          "title": "Matched",
+          "type": "boolean"
+        },
+        "min_qty": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Min Qty",
+          "type": "number"
+        },
+        "new_price": {
+          "exclusiveMinimum": 0,
+          "title": "New Price",
+          "type": "number"
+        },
+        "product": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product"
+        },
+        "product_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product Id"
+        }
+      },
+      "required": [
+        "code",
+        "new_price"
+      ],
+      "title": "PriceListRow",
       "type": "object"
     },
     "ProposedChange": {
@@ -538,11 +797,148 @@
       ],
       "title": "QuotedLine",
       "type": "object"
+    },
+    "RequestedItem": {
+      "additionalProperties": false,
+      "description": "One thing an employee asked for, and what the catalogue made of it.",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "description": {
+          "maxLength": 300,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "match_confidence": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Match Confidence",
+          "type": "number"
+        },
+        "product": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product"
+        },
+        "product_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product Id"
+        },
+        "product_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Product Ref"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        },
+        "supplier_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supplier Id"
+        },
+        "supplier_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Supplier Name"
+        },
+        "unit_price": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unit Price"
+        },
+        "uom": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uom"
+        }
+      },
+      "required": [
+        "description",
+        "qty"
+      ],
+      "title": "RequestedItem",
+      "type": "object"
     }
   },
   "additionalProperties": false,
   "description": "What the agent returns to the director (also when paused on an approval).",
   "properties": {
+    "answer": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnswerSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "case_id": {
       "minLength": 1,
       "title": "Case Id",
@@ -583,6 +979,17 @@
       ],
       "default": null
     },
+    "internal_request": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/InternalRequestData"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "kind": {
       "enum": [
         "send_rfq",
@@ -592,7 +999,9 @@
         "handle_inbound",
         "resolve_unlinked",
         "decline_quote",
-        "counter_offer"
+        "counter_offer",
+        "internal_request",
+        "status_reply"
       ],
       "title": "Kind",
       "type": "string"
@@ -622,6 +1031,25 @@
       ],
       "default": null,
       "title": "Po Name"
+    },
+    "po_names": {
+      "description": "RFQs an internal request became",
+      "items": {
+        "type": "string"
+      },
+      "title": "Po Names",
+      "type": "array"
+    },
+    "price_list": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PriceListDiff"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     },
     "proposal": {
       "anyOf": [

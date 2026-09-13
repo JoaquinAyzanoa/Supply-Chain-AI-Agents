@@ -8,7 +8,7 @@ from typing import Any
 from sc_core.graph import cleared
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import Classification, QuotationData, QuotedLine, SupplierCommsTask
-from supplier_comms.models import DraftOutput
+from supplier_comms.models import AnswerOutput
 from supplier_comms.nodes.propose import build_proposal
 from supplier_comms.testing import FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
@@ -162,23 +162,34 @@ async def test_question_is_answered_in_the_thread(
         [
             Classification(kind="question", confidence=0.9, reason="pregunta unidad"),
             "Respondo con la unidad de la orden.",
-            DraftOutput(
+            AnswerOutput(
                 subject="Re: consulta sobre la orden",
-                html_body="<p>Son 20 metros.</p><p>Equipo de Compras</p>",
+                html_body=(
+                    "<p>Son 20 metros. Referencia: P00015, línea 1.</p><p>Equipo de Compras</p>"
+                ),
+                factual=True,
+                sources=["P00015 line 1: 20 m"],
             ),
         ]
     )
     agent = make_agent()
     paused = await agent.run(_task("case_qn"))
     assert paused.status == "awaiting_approval"
-    assert approval_ports.created[0]["kind"] == "send_email"
+    created = approval_ports.created[0]
+    assert created["kind"] == "send_email" and created["payload"]["facts"]["email_kind"] == "answer"
+    assert created["payload"]["answer"] == {
+        "factual": True,
+        "sources": ["P00015 line 1: 20 m"],
+        "reason": None,
+    }
     assert "metros o en rollos" in chat.calls[1].messages[1]["contents"][0]["text"]
     draft = ports.drafts["reply1"]
     assert isinstance(draft, dict) and draft["reply_to"] == MSG
     assert draft["headers"]["x-sc-po"] == "P00015"
     sent = await agent.resume("case_qn", {"approval_id": 101, "status": "approved"})
     assert sent.status == "sent" and ports.sent_ids == ["reply1"]
-    assert sent.outbound is not None and sent.outbound.kind == "reply"
+    assert sent.outbound is not None and sent.outbound.kind == "answer"
+    assert sent.answer is not None and sent.answer.factual
 
 
 async def test_nothing_new_is_no_action_without_approval(

@@ -38,6 +38,7 @@ from director.inbox import EventInbox, EventResults
 from director.jobs import JobRunner
 from director.router import Dispatch, Route, UnroutableEvent, route
 from director.store import Case, CaseStatus, CaseStore
+from director.teams import ApprovalNotifier
 from sc_core.infra import tracing
 from sc_core.odoo.models import PurchaseOrder
 from sc_core.schema.a2a import (
@@ -106,6 +107,8 @@ class AgentOutcome(StrictModel):
     invited: list[InvitedRfq] = []
     """A quote round's invitations: each RFQ gets a case of its own on the board."""
     round_id: int | None = None
+    po_names: list[str] = []
+    """The RFQs an internal request became (phase 11 S6): each starts a playbook."""
 
 
 class RecordOnly(StrictModel):
@@ -154,10 +157,13 @@ class Deps:
     conversations: ConversationLookup
     autonomy: AutonomyApplier | None = None  # applies an approved autonomy change
     feedback: FeedbackHook | None = None  # records decisions made in Odoo
+    notifier: ApprovalNotifier | None = None  # mirrors new approvals to Teams (phase 11 S6)
 
 
 class PlaybookNudge(Protocol):
     async def on_po_event(self, po_name: str) -> list[int]: ...
+
+    async def on_request(self, po_names: list[str]) -> list[int]: ...
 
 
 class AutonomyApplier(Protocol):
@@ -352,6 +358,7 @@ def outcome_from_reply(
         if isinstance(result, SupplierCommsResult) and result.classification
         else None
     )
+    po_names = list(result.po_names) if isinstance(result, SupplierCommsResult) else []
     return AgentOutcome(
         case=case,
         agent=agent,
@@ -366,6 +373,7 @@ def outcome_from_reply(
         classification=classification,
         invited=invited,
         round_id=round_id,
+        po_names=po_names,
     )
 
 
@@ -424,6 +432,7 @@ class ConsolidateExecutor(Executor):
         await ctx.yield_output(
             await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
         )
+        await _announce(deps, outcome)
         if outcome.follow_on is not None:
             await ctx.yield_output(await self._follow_on(outcome.case, outcome.follow_on))
 
@@ -451,7 +460,9 @@ class ConsolidateExecutor(Executor):
             )
         else:
             outcome = outcome_from_reply(case, dispatch.agent, task.kind, task.case_id, reply)
-        return await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
+        update = await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
+        await _announce(deps, outcome)
+        return update
 
     @handler
     async def record(self, item: RecordOnly, ctx: WorkflowContext[Any, CaseUpdate]) -> None:
@@ -477,13 +488,23 @@ class ConsolidateExecutor(Executor):
             {"text": note, "event_type": item.event.type, **event_facts(item.event)},
         )
         status = case.status
+        detail: dict[str, Any] = {}
         if isinstance(item.event, OdooApprovalResolved):
             status = await self._approval_resolved(case, item.event, note)
         elif isinstance(item.event, AgentRunFinished):
             status = await self._run_finished(case, item.event, note)
+            # what the resumed run did, so the orchestrator can start what follows it
+            detail = {
+                "agent": item.event.agent,
+                "task": item.event.task_kind,
+                "status": item.event.status,
+                "po_names": list(item.event.po_names),
+            }
         elif case.status == "open" and not await _has_agent_work(cases, case.case_id):
             status = (await cases.update(case.case_id, status="done", summary=note)).status
-        await ctx.yield_output(CaseUpdate(case_id=case.case_id, status=status, kind="note"))
+        await ctx.yield_output(
+            CaseUpdate(case_id=case.case_id, status=status, kind="note", detail=detail)
+        )
 
     async def _approval_resolved(
         self, case: Case, event: OdooApprovalResolved, note: str
@@ -536,6 +557,38 @@ class ConsolidateExecutor(Executor):
         return await escalate_case(
             self._deps.cases, self._deps.escalator, case, reason=reason, details=details
         )
+
+
+async def _announce(deps: Deps, outcome: AgentOutcome) -> None:
+    """A new approval is mirrored to the chat channel when one is configured."""
+    if deps.notifier is None or outcome.approval_id is None:
+        return
+    try:
+        await deps.notifier.approval_requested(
+            approval_id=outcome.approval_id,
+            kind="escalation" if outcome.status == "escalated" else _approval_kind(outcome),
+            summary=outcome.summary,
+            po_name=outcome.case.po_name,
+            case_code=outcome.case.code,
+            agent=outcome.agent,
+        )
+    except Exception as exc:  # noqa: BLE001 - a mirror must never break the flow
+        logger.bind(approval_id=outcome.approval_id).warning("notifier failed: {}", exc)
+
+
+def _approval_kind(outcome: AgentOutcome) -> str:
+    """The approval kind a task usually ends in, for the notification's label."""
+    by_task = {
+        "handle_inbound": "po_change",
+        "resolve_unlinked": "unlinked_mail",
+        "daily_plan": "planning_run",
+        "match_bill": "vendor_bill",
+        "weekly_scorecard": "supplier_score",
+        "compare_quotes": "award",
+        "counter_offer": "negotiation_offer",
+        "internal_request": "internal_request",
+    }
+    return by_task.get(outcome.task_kind, "send_email")
 
 
 async def _has_agent_work(cases: CaseStore, case_id: str) -> bool:
@@ -643,6 +696,7 @@ async def consolidate_outcome(
             "status": outcome.status,
             "summary": outcome.summary,
             "approval_id": outcome.approval_id,
+            "po_names": outcome.po_names,
         },
     )
 
@@ -858,6 +912,8 @@ class Orchestrator:
                 result = {"case_id": case.case_id, "status": "failed", "error": str(exc)[:500]}
                 await self._deps.cases.update(case.case_id, status="failed", summary=str(exc)[:500])
         await self._results.record(event.event_id, result)
+        if self._playbooks is not None:
+            await self._start_request_playbooks(result)
         if self._playbooks is not None and decided.po_name and not isinstance(event, ScheduledTick):
             try:
                 moved = await self._playbooks.on_po_event(decided.po_name)
@@ -868,6 +924,25 @@ class Orchestrator:
                     result["playbooks_moved"] = moved
         log.bind(case_id=case.case_id).info("event handled")
         return result
+
+    async def _start_request_playbooks(self, result: dict[str, Any]) -> None:
+        """The RFQs an internal request became each get the playbook that keeps the
+        requester informed (phase 11 S6)."""
+        assert self._playbooks is not None
+        for update in result.get("updates") or []:
+            detail = update.get("detail") or {}
+            names = detail.get("po_names") or []
+            if detail.get("task") != "internal_request" or detail.get("status") != "applied":
+                continue
+            if not names:
+                continue
+            try:
+                started = await self._playbooks.on_request(list(names))
+            except Exception as exc:  # noqa: BLE001 - a plan must not break event handling
+                logger.opt(exception=True).warning("request playbook failed: {}", exc)
+            else:
+                if started:
+                    result["playbooks_started"] = started
 
     async def _case_for(self, event: BaseEvent, decided: Route) -> Case:
         thread_id = getattr(event, "thread_id", None)

@@ -671,3 +671,14 @@ async def test_with_playbooks_attached_the_job_starts_plans_instead_of_single_ta
     again = await job.run("po_followups", tick("po_followups", "run_2"))
     assert again["tasks_sent"] == 3 and len(agent.sent) == 3
     assert len(await engine._store.active()) == 3
+
+
+async def test_facts_for_reads_an_order_the_daily_gather_does_not_chase(
+    seeded: tuple[FakeOrders, MemoryMailActivity],
+) -> None:
+    job = _job(seeded, MemoryCaseStore(), FakeAgentCaller(), MemoryEscalator())
+    gathered = {f.po_name for f in await job.gather(TODAY)}
+    assert "P00014" not in gathered  # due far away: nothing to chase today
+    facts = await job.facts_for("P00014", TODAY)
+    assert facts is not None and facts.state == "purchase" and facts.po_name == "P00014"
+    assert await job.facts_for("P09999", TODAY) is None

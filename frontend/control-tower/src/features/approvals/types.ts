@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { Schemas } from "@/api/client";
 
 export type Approval = Schemas["ApprovalView"];
-export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation" | "vendor_bill" | "supplier_score" | "autonomy_change" | "award" | "negotiation_offer" | "partner_create";
+export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation" | "vendor_bill" | "supplier_score" | "autonomy_change" | "award" | "negotiation_offer" | "partner_create" | "internal_request" | "price_list_update";
 
 export const emailPayload = z
   .object({
@@ -295,7 +295,71 @@ export const partnerPayload = z
   .loose();
 export type PartnerPayload = z.infer<typeof partnerPayload>;
 
-const KNOWN: ReadonlySet<string> = new Set(["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score", "autonomy_change", "award", "negotiation_offer", "partner_create"]);
+export const requestPayload = z
+  .object({
+    sender_address: z.string().nullish(),
+    web_link: z.string().nullish(),
+    need_date: z.string().nullish(),
+    need_date_raw: z.string().nullish(),
+    notes: z.string().nullish(),
+    confidence: z.number().default(1),
+    unmatched: z.number().default(0),
+    items: z
+      .array(
+        z
+          .object({
+            description: z.string().default(""),
+            product_ref: z.string().nullish(),
+            qty: z.number().default(1),
+            uom: z.string().nullish(),
+            product_id: z.number().nullish(),
+            product: z.string().nullish(),
+            match_confidence: z.number().default(0),
+            supplier_id: z.number().nullish(),
+            supplier_name: z.string().nullish(),
+            unit_price: z.number().nullish(),
+            currency: z.string().nullish(),
+          })
+          .loose(),
+      )
+      .default([]),
+  })
+  .loose();
+export type RequestPayload = z.infer<typeof requestPayload>;
+
+export const priceListPayload = z
+  .object({
+    partner_id: z.number(),
+    partner_name: z.string().default(""),
+    source: z.string().default(""),
+    currency: z.string().nullish(),
+    web_link: z.string().nullish(),
+    changed: z.number().default(0),
+    unmatched: z.number().default(0),
+    rows: z
+      .array(
+        z
+          .object({
+            code: z.string(),
+            description: z.string().default(""),
+            product_id: z.number().nullish(),
+            product: z.string().nullish(),
+            current_price: z.number().nullish(),
+            new_price: z.number(),
+            currency: z.string().nullish(),
+            min_qty: z.number().default(0),
+            lead_days: z.number().nullish(),
+            change_pct: z.number().nullish(),
+            matched: z.boolean().default(false),
+          })
+          .loose(),
+      )
+      .default([]),
+  })
+  .loose();
+export type PriceListPayload = z.infer<typeof priceListPayload>;
+
+const KNOWN: ReadonlySet<string> = new Set(["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score", "autonomy_change", "award", "negotiation_offer", "partner_create", "internal_request", "price_list_update"]);
 
 export function kindOf(approval: Approval): ApprovalKind | "other" {
   return KNOWN.has(approval.kind) ? (approval.kind as ApprovalKind) : "other";

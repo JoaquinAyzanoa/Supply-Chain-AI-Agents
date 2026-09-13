@@ -789,7 +789,7 @@ export interface paths {
         put?: never;
         /**
          * Act On Risk
-         * @description One click: an alternative source for the late order behind the risk, or a quote round.
+         * @description One click: an alternative source for the order behind the risk, or a quote round.
          */
         post: operations["act_on_risk_api_risk__product_id__act_post"];
         delete?: never;
@@ -2663,7 +2663,7 @@ export interface components {
              * Auto Send Kinds
              * @default []
              */
-            auto_send_kinds: ("rfq" | "send_po" | "follow_up" | "request_eta" | "reply" | "decline" | "counter_offer")[];
+            auto_send_kinds: ("rfq" | "send_po" | "follow_up" | "request_eta" | "reply" | "decline" | "counter_offer" | "answer")[];
             /**
              * Auto Send Partner Ids
              * @default []
@@ -2680,6 +2680,11 @@ export interface components {
              * @default []
              */
             ignored_senders: string[];
+            /**
+             * Internal Senders
+             * @default []
+             */
+            internal_senders: string[];
             /** Invoice Price Tolerance Pct */
             invoice_price_tolerance_pct?: number | null;
             /**
