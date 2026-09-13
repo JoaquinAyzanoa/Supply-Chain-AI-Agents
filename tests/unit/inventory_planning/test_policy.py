@@ -57,11 +57,11 @@ def test_reorder_point_and_order_up_to() -> None:
     ("position", "rop", "out", "moq", "multiple", "expected"),
     [
         (150, 141.45, 176.45, 0, 0, 0.0),  # above the ROP: nothing
-        (100, 141.45, 176.45, 0, 0, 76.45),  # back to order-up-to
+        (100, 141.45, 176.45, 0, 0, 77.0),  # back to order-up-to, whole units
         (100, 141.45, 176.45, 100, 0, 100.0),  # raised to the MOQ
         (100, 141.45, 176.45, 0, 10, 80.0),  # rounded up to the pack
         (100, 141.45, 176.45, 85, 10, 90.0),  # MOQ then pack
-        (-20, 141.45, 176.45, 0, 0, 196.45),  # backorders make the position negative
+        (-20, 141.45, 176.45, 0, 0, 197.0),  # backorders make the position negative
     ],
 )
 def test_order_quantity(

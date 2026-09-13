@@ -16,6 +16,7 @@ from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from datetime import date, timedelta
+from math import ceil
 from typing import Any
 
 from loguru import logger
@@ -112,7 +113,7 @@ def accepted_lines(
         edit = edits.get(line.line_id)
         if edit:
             allowed = {
-                k: float(v)
+                k: float(ceil(float(v) - 1e-9))  # a person's quantities are whole units too
                 for k, v in edit.items()
                 if k in ("order_qty", "proposed_min", "proposed_max")
             }
