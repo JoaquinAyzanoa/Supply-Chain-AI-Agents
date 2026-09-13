@@ -202,6 +202,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/board/{po_name}/detail": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Order Detail
+         * @description The order's lines and where it came from, for the drawer.
+         */
+        get: operations["order_detail_api_board__po_name__detail_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/board/{po_name}/move": {
         parameters: {
             query?: never;
@@ -1390,6 +1410,59 @@ export interface components {
             /** Po Name */
             po_name: string;
         };
+        /** OrderDetail */
+        OrderDetail: {
+            /** Lines */
+            lines: components["schemas"]["OrderLineView"][];
+            origin: components["schemas"]["OrderOrigin"];
+            /** Po Name */
+            po_name: string;
+        };
+        /** OrderLineView */
+        OrderLineView: {
+            /** Date Planned */
+            date_planned?: string | null;
+            /** Line Id */
+            line_id: number;
+            /** Price Unit */
+            price_unit: number;
+            /** Product */
+            product: string;
+            /** Qty */
+            qty: number;
+            /** Qty Invoiced */
+            qty_invoiced: number;
+            /** Qty Received */
+            qty_received: number;
+            /** Subtotal */
+            subtotal: number;
+        };
+        /**
+         * OrderOrigin
+         * @description Where the order came from: the planner (with its reasoning) or a person in Odoo.
+         */
+        OrderOrigin: {
+            /** As Of */
+            as_of?: string | null;
+            /** Created By */
+            created_by?: string | null;
+            /**
+             * Explanations
+             * @default []
+             */
+            explanations: string[];
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "planning" | "odoo";
+            /** Origin */
+            origin?: string | null;
+            /** Run Id */
+            run_id?: string | null;
+            /** Summary */
+            summary?: string | null;
+        };
         /**
          * OverallStatus
          * @enum {string}
@@ -2416,6 +2489,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Board"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    order_detail_api_board__po_name__detail_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                po_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrderDetail"];
                 };
             };
             /** @description Validation Error */

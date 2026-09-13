@@ -577,5 +577,16 @@
   "autonomy.d.change_pct_max": "cambio de precio ≤ {n} %",
   "autonomy.d.change_days_max": "cambio de fecha ≤ {n} d",
   "autonomy.d.days_late_max": "atraso ≤ {n} d",
-  "autonomy.d.always": "siempre"
+  "autonomy.d.always": "siempre",
+  "board.drawer.origin": "Origen",
+  "board.drawer.origin_planning": "Propuesta por el plan diario del {date}",
+  "board.drawer.origin_open_plan": "Abrir el plan",
+  "board.drawer.origin_odoo": "Creada en Odoo por {by}",
+  "board.drawer.lines_unavailable": "No se pudieron leer las líneas de la orden ahora.",
+  "board.drawer.col.product": "Producto",
+  "board.drawer.col.qty": "Cant.",
+  "board.drawer.col.received": "Recibido",
+  "board.drawer.col.price": "Precio unit.",
+  "board.drawer.col.subtotal": "Subtotal",
+  "board.drawer.col.planned": "Planificado"
 }

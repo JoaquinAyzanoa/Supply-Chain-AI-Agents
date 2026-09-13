@@ -173,7 +173,12 @@ function EventLine({ event }: { event: CaseEvent }) {
     case "escalated":
       return <p className="text-sm">{text("summary") || text("reason")}</p>;
     case "note":
-      return <p className="text-sm">{text("text")}</p>;
+      return (
+        <p className="text-sm">
+          {text("text")}
+          <EmailLink href={text("web_link")} />
+        </p>
+      );
     case "chat":
       return (
         <p className="text-sm">
@@ -194,6 +199,20 @@ function EventLine({ event }: { event: CaseEvent }) {
   }
 }
 
+/** The Outlook link of the email an entry refers to; nothing when there is none. */
+function EmailLink({ href }: { href: string }) {
+  const { t } = useI18n();
+  if (!href) return null;
+  return (
+    <>
+      {" · "}
+      <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline">
+        {t("cases.line.open_email")}
+      </a>
+    </>
+  );
+}
+
 function ResultLine({ status, summary, payload }: { status: string; summary: string; payload: Record<string, unknown> }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -202,6 +221,7 @@ function ResultLine({ status, summary, payload }: { status: string; summary: str
     return (
       <p className="text-sm">
         <StatusBadge status={status} /> {summary}
+        <EmailLink href={typeof payload.web_link === "string" ? payload.web_link : ""} />
       </p>
     );
   }

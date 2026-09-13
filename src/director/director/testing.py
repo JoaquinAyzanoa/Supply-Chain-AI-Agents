@@ -38,7 +38,14 @@ from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter
 from sc_core.llm.testing import ScriptedChatClient
-from sc_core.odoo.models import AgentRun, Approval, ApprovalStatus, PurchaseOrder, Ref
+from sc_core.odoo.models import (
+    AgentRun,
+    Approval,
+    ApprovalStatus,
+    PurchaseOrder,
+    PurchaseOrderLine,
+    Ref,
+)
 from sc_core.schema.runtime_settings import RuntimeSettings
 from sc_core.shared.errors import ScError, ValidationFailed
 
@@ -415,6 +422,7 @@ class MemoryBoardOrders:
     def __init__(self) -> None:
         self.orders: dict[int, PurchaseOrder] = {}
         self.off_board: set[int] = set()  # too old for the board's window
+        self.lines_by_po: dict[int, list[PurchaseOrderLine]] = {}
         self.actions: list[tuple[str, int, Any]] = []
         self.notes: list[tuple[int, str]] = []
 
@@ -427,6 +435,9 @@ class MemoryBoardOrders:
 
     async def by_names(self, names: list[str]) -> list[PurchaseOrder]:
         return [po for po in self.orders.values() if po.name in names]
+
+    async def lines(self, po_id: int) -> list[PurchaseOrderLine]:
+        return list(self.lines_by_po.get(po_id, []))
 
     async def confirm(self, po_id: int) -> PurchaseOrder:
         self.actions.append(("confirm", po_id, None))

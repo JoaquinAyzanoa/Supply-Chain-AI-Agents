@@ -10,6 +10,7 @@ import { api, unwrap, type Schemas } from "@/api/client";
 export type Board = Schemas["Board"];
 export type BoardCard = Schemas["BoardCard"];
 export type Column = BoardCard["column"];
+export type OrderDetail = Schemas["OrderDetail"];
 
 export const COLUMNS: Column[] = ["proposed", "rfq_sent", "quote_received", "confirmed", "incoming", "received", "invoicing", "closed"];
 
@@ -86,5 +87,15 @@ export function useSupplierConfirmed() {
     mutationFn: async ({ po_name, value }: { po_name: string; value: boolean }) =>
       unwrap(await api.POST("/api/board/{po_name}/supplier-confirmed", { params: { path: { po_name } }, body: { value } })),
     onSettled: refresh,
+  });
+}
+
+/** The order's lines and where it came from (the planner's reasoning, or a person in Odoo). */
+export function useOrderDetail(poName: string | null) {
+  return useQuery({
+    queryKey: ["board", "detail", poName],
+    enabled: poName !== null,
+    staleTime: 60_000,
+    queryFn: async () => unwrap(await api.GET("/api/board/{po_name}/detail", { params: { path: { po_name: poName! } } })),
   });
 }

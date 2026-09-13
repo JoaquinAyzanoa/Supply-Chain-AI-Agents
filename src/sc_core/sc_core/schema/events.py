@@ -165,6 +165,7 @@ class AgentRunFinished(BaseEvent):
     sent_message_id: str | None = Field(
         default=None, description="Graph id of the email sent after the resume, if any"
     )
+    web_link: str | None = Field(default=None, description="Outlook link to that email")
 
 
 class RfqDrafted(BaseEvent):

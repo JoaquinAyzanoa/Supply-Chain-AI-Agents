@@ -2173,6 +2173,171 @@
         "title": "MoveResponse",
         "type": "object"
       },
+      "OrderDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/OrderLineView"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/OrderOrigin"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "po_name",
+          "lines",
+          "origin"
+        ],
+        "title": "OrderDetail",
+        "type": "object"
+      },
+      "OrderLineView": {
+        "additionalProperties": false,
+        "properties": {
+          "date_planned": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Planned"
+          },
+          "line_id": {
+            "title": "Line Id",
+            "type": "integer"
+          },
+          "price_unit": {
+            "title": "Price Unit",
+            "type": "number"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "qty": {
+            "title": "Qty",
+            "type": "number"
+          },
+          "qty_invoiced": {
+            "title": "Qty Invoiced",
+            "type": "number"
+          },
+          "qty_received": {
+            "title": "Qty Received",
+            "type": "number"
+          },
+          "subtotal": {
+            "title": "Subtotal",
+            "type": "number"
+          }
+        },
+        "required": [
+          "line_id",
+          "product",
+          "qty",
+          "qty_received",
+          "qty_invoiced",
+          "price_unit",
+          "subtotal"
+        ],
+        "title": "OrderLineView",
+        "type": "object"
+      },
+      "OrderOrigin": {
+        "additionalProperties": false,
+        "description": "Where the order came from: the planner (with its reasoning) or a person in Odoo.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "explanations": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Explanations",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "planning",
+              "odoo"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "OrderOrigin",
+        "type": "object"
+      },
       "OverallStatus": {
         "enum": [
           "ok",
@@ -4647,6 +4812,54 @@
           }
         ],
         "summary": "Board",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/{po_name}/detail": {
+      "get": {
+        "description": "The order's lines and where it came from, for the drawer.",
+        "operationId": "order_detail_api_board__po_name__detail_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "po_name",
+            "required": true,
+            "schema": {
+              "title": "Po Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Order Detail",
         "tags": [
           "board"
         ]

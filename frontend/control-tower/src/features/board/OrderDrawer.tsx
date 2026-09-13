@@ -14,14 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorBox, Loading } from "@/components/ui/feedback";
 import { Label, Textarea } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useI18n } from "@/i18n";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatDate, formatMoney, formatNumber } from "@/lib/utils";
 import { ApprovalDetail } from "@/features/approvals/ApprovalDetail";
 import { useApproval } from "@/features/approvals/api";
 import { CaseEvents } from "@/features/cases/CaseTimeline";
 import { useCase } from "@/features/cases/api";
 import { CaseChat } from "@/features/chat/CaseChat";
 import { targetsFor, useActNow, useMoveCard, useSupplierConfirmed, type BoardCard, type Column } from "./api";
+import { useOrderDetail } from "./api";
 import { DeliveryBadge } from "./BoardCard";
 
 export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () => void }) {
@@ -82,6 +84,8 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
           ) : null}
         </div>
 
+        <OrderLines poName={card.po_name} />
+
         {card.pending_approval ? <PendingApproval id={card.pending_approval.id} onBack={onClose} /> : null}
 
         {card.case_id ? (
@@ -97,6 +101,76 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
         {canAct ? <Moves card={card} /> : <p className="text-xs text-muted-foreground">{t("board.role_hint")}</p>}
       </footer>
     </aside>
+  );
+}
+
+/** The lines and the origin: the planner's reasoning per product, or the person who typed it. */
+function OrderLines({ poName }: { poName: string }) {
+  const { t, locale } = useI18n();
+  const detail = useOrderDetail(poName);
+  if (detail.isPending) return <Loading />;
+  if (detail.error) return <p className="text-xs text-destructive">{t("board.drawer.lines_unavailable")}</p>;
+  const { lines, origin } = detail.data;
+  const currency = lines.length ? undefined : undefined;
+  return (
+    <div className="flex flex-col gap-2" data-testid="order-lines">
+      <div className="rounded-md bg-muted/50 p-2 text-sm">
+        <span className="font-medium">{t("board.drawer.origin")}: </span>
+        {origin.kind === "planning" ? (
+          <>
+            {t("board.drawer.origin_planning", { date: origin.as_of ? formatDate(origin.as_of, locale) : "—" })}
+            {origin.summary ? ` · ${origin.summary}` : ""}
+            {origin.run_id ? (
+              <>
+                {" · "}
+                <Link to="/planning/$runId" params={{ runId: origin.run_id }} className="text-primary underline">
+                  {t("board.drawer.origin_open_plan")}
+                </Link>
+              </>
+            ) : null}
+            {origin.explanations.length ? (
+              <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+                {origin.explanations.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+          </>
+        ) : (
+          <>
+            {t("board.drawer.origin_odoo", { by: origin.created_by ?? "—" })}
+            {origin.origin ? ` · ${origin.origin}` : ""}
+          </>
+        )}
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t("board.drawer.col.product")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.qty")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.received")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.price")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.subtotal")}</TableHead>
+            <TableHead>{t("board.drawer.col.planned")}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lines.map((line) => (
+            <TableRow key={line.line_id}>
+              <TableCell className="max-w-[20rem] truncate" title={line.product}>
+                {line.product}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.qty, locale, 0)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.qty_received, locale, 0)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.price_unit, locale, 2)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.subtotal, locale, 2)}</TableCell>
+              <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{line.date_planned ? formatDate(line.date_planned, locale) : "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {currency}
+    </div>
   );
 }
 

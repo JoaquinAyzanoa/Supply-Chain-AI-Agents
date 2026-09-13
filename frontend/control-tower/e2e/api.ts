@@ -236,6 +236,8 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       return json(route, 200, { id, status: body.status, resolved_by: user.name, callback_status: "sent" });
     }
     if (path === "/api/board") return json(route, 200, state.board);
+    if (path.startsWith("/api/board/") && path.endsWith("/detail"))
+      return json(route, 200, { po_name: "P00015", lines: [{ line_id: 1, product: "[CBEA-LHN] Válvula", qty: 12, qty_received: 0, qty_invoiced: 0, price_unit: 104.16, subtotal: 1249.92, date_planned: null }], origin: { kind: "odoo", run_id: null, as_of: null, summary: null, explanations: [], created_by: "Administrator", origin: null } });
     if (path === "/api/performance/scores") return json(route, 200, []);
     if (path === "/api/mailbox/sync") return json(route, 200, { status: "ok", fetched: 0, linked: 0, unlinked: 0, ignored: 0, errors: 0, linked_po_names: [], message: "no new emails" });
     const move = path.match(/^\/api\/board\/(\w+)\/move$/);

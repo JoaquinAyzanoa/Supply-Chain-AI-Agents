@@ -94,6 +94,7 @@ class AgentOutcome(StrictModel):
     run_id: str | None = None
     approval_id: int | None = None
     sent_message_id: str | None = None
+    web_link: str | None = None  # Outlook link to the email sent, for the timeline
     error: dict[str, Any] | None = None
     classification: str | None = None
     """What the supplier agent made of an inbound email (routes a shipping notice on)."""
@@ -338,6 +339,7 @@ def outcome_from_reply(
         run_id=result.run_id,
         approval_id=result.outcome.approval_id,
         sent_message_id=outbound.sent_message_id if outbound else None,
+        web_link=outbound.web_link if outbound else None,
         classification=classification,
     )
 
@@ -441,7 +443,11 @@ class ConsolidateExecutor(Executor):
             )
             return
         note = decided.note or f"{item.event.type} recorded"
-        await cases.add_event(case.case_id, "note", {"text": note, "event_type": item.event.type})
+        await cases.add_event(
+            case.case_id,
+            "note",
+            {"text": note, "event_type": item.event.type, **event_facts(item.event)},
+        )
         status = case.status
         if isinstance(item.event, OdooApprovalResolved):
             status = await self._approval_resolved(case, item.event, note)
@@ -562,6 +568,8 @@ async def consolidate_outcome(
             "summary": outcome.summary,
             "approval_id": outcome.approval_id,
             "error": outcome.error,
+            "sent_message_id": outcome.sent_message_id,
+            "web_link": outcome.web_link,
         },
     )
     conversation = None

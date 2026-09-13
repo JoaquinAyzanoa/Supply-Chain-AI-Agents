@@ -20,7 +20,7 @@ other transitions happen through events and the API says so.
 from __future__ import annotations
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Literal, Protocol, runtime_checkable
 
 from fastapi import APIRouter, HTTPException, Query
@@ -31,13 +31,14 @@ from pydantic import Field
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import Approver, Principal, Viewer
 from director.api.exceptions import ExceptionsSource
+from director.api.planning import PlanningReadStore
 from director.handlers.followups import MailActivity
 from director.policies import next_action
 from director.store import Case, CaseStore
 from director.workflow import Deps, consolidate_outcome, outcome_from_reply
 from sc_core.infra.settings import Settings
 from sc_core.odoo.links import record_url
-from sc_core.odoo.models import Approval, ApprovalKind, PurchaseOrder
+from sc_core.odoo.models import Approval, ApprovalKind, PurchaseOrder, PurchaseOrderLine
 from sc_core.odoo.repositories import PurchaseOrderRepo
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.base import StrictModel
@@ -151,6 +152,8 @@ class BoardOrders(Protocol):
 
     async def by_names(self, names: list[str]) -> list[PurchaseOrder]: ...
 
+    async def lines(self, po_id: int) -> list[PurchaseOrderLine]: ...
+
     async def confirm(self, po_id: int) -> PurchaseOrder: ...
 
     async def cancel(self, po_id: int) -> None: ...
@@ -171,6 +174,9 @@ class OdooBoardOrders:
 
     async def by_names(self, names: list[str]) -> list[PurchaseOrder]:
         return await self._orders.by_names(names)
+
+    async def lines(self, po_id: int) -> list[PurchaseOrderLine]:
+        return await self._orders.lines(po_id)
 
     async def confirm(self, po_id: int) -> PurchaseOrder:
         return await self._orders.confirm(po_id)
@@ -477,6 +483,99 @@ async def _order(orders: BoardOrders, po_name: str) -> PurchaseOrder:
     if po is None:
         raise HTTPException(status_code=404, detail=f"{po_name} is not on the board")
     return po
+
+
+class OrderLineView(StrictModel):
+    line_id: int
+    product: str
+    qty: float
+    qty_received: float
+    qty_invoiced: float
+    price_unit: float
+    subtotal: float
+    date_planned: datetime | None = None
+
+
+class OrderOrigin(StrictModel):
+    """Where the order came from: the planner (with its reasoning) or a person in Odoo."""
+
+    kind: Literal["planning", "odoo"]
+    run_id: str | None = None
+    as_of: date | None = None
+    summary: str | None = None
+    explanations: list[str] = []
+    created_by: str | None = None
+    origin: str | None = None
+
+
+class OrderDetail(StrictModel):
+    po_name: str
+    lines: list[OrderLineView]
+    origin: OrderOrigin
+
+
+def parse_plan_ref(external_ref: str | None) -> str | None:
+    """``plan:<run_id>:<supplier>:<warehouse>`` is how the planner tags the RFQs it creates."""
+    if not external_ref or not external_ref.startswith("plan:"):
+        return None
+    parts = external_ref.split(":")
+    return parts[1] if len(parts) >= 2 and parts[1] else None
+
+
+async def order_origin(
+    po: PurchaseOrder, lines: list[PurchaseOrderLine], planning: PlanningReadStore
+) -> OrderOrigin:
+    run_id = parse_plan_ref(po.sc_external_ref)
+    if run_id is not None:
+        run = await planning.run(run_id)
+        product_ids = {ln.product_id.id for ln in lines if ln.product_id is not None}
+        rows = await planning.lines(run_id) if run else []
+        explanations = [
+            f"{row.line.product_ref}: {row.line.explanation}"
+            for row in rows
+            if row.line.product_id in product_ids and row.line.explanation
+        ]
+        return OrderOrigin(
+            kind="planning",
+            run_id=run_id,
+            as_of=run.as_of if run else None,
+            summary=run.summary if run else None,
+            explanations=explanations,
+        )
+    return OrderOrigin(
+        kind="odoo",
+        created_by=po.user_id.name if po.user_id else None,
+        origin=po.origin or None,
+    )
+
+
+@router.get("/{po_name}/detail", response_model=OrderDetail)
+async def order_detail(
+    po_name: str,
+    _: Principal = Viewer,
+    orders: BoardOrders = Injected(BoardOrders),  # type: ignore[type-abstract]
+    planning: PlanningReadStore = Injected(PlanningReadStore),  # type: ignore[type-abstract]
+) -> OrderDetail:
+    """The order's lines and where it came from, for the drawer."""
+    po = await _order(orders, po_name)
+    lines = await orders.lines(po.id)
+    return OrderDetail(
+        po_name=po.name,
+        lines=[
+            OrderLineView(
+                line_id=ln.id,
+                product=ln.product_id.name if ln.product_id else ln.name,
+                qty=ln.product_qty,
+                qty_received=ln.qty_received,
+                qty_invoiced=ln.qty_invoiced,
+                price_unit=ln.price_unit,
+                subtotal=ln.price_subtotal,
+                date_planned=ln.date_planned,
+            )
+            for ln in lines
+        ],
+        origin=await order_origin(po, lines, planning),
+    )
 
 
 @router.post("/{po_name}/move", response_model=MoveResponse)
