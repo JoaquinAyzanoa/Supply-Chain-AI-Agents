@@ -280,6 +280,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/performance/rank/{product_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Supplier Rank */
+        get: operations["supplier_rank_api_performance_rank__product_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/performance/scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Supplier Scores */
+        get: operations["supplier_scores_api_performance_scores_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/planning/runs": {
         parameters: {
             query?: never;
@@ -642,7 +676,7 @@ export interface components {
              * Column
              * @enum {string}
              */
-            column: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "closed";
+            column: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "invoicing" | "closed";
             /** Currency */
             currency?: string | null;
             /** Date Planned */
@@ -661,12 +695,19 @@ export interface components {
              */
             delivery: "on_time" | "due_soon" | "late" | "none";
             /**
+             * Discrepancy
+             * @default false
+             */
+            discrepancy: boolean;
+            /**
              * Escalated
              * @default false
              */
             escalated: boolean;
             /** Eta Source */
             eta_source?: string | null;
+            /** Invoice Status */
+            invoice_status?: string | null;
             /** Last Inbound */
             last_inbound?: string | null;
             /** Last Outbound */
@@ -1060,7 +1101,7 @@ export interface components {
              * To
              * @enum {string}
              */
-            to: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "closed";
+            to: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "invoicing" | "closed";
         };
         /** MoveResponse */
         MoveResponse: {
@@ -1068,7 +1109,7 @@ export interface components {
              * Column
              * @enum {string}
              */
-            column: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "closed";
+            column: "proposed" | "rfq_sent" | "quote_received" | "confirmed" | "incoming" | "received" | "invoicing" | "closed";
             /** Message */
             message: string;
             /** Po Name */
@@ -1085,6 +1126,8 @@ export interface components {
             id: number;
             /** Kind */
             kind: string;
+            /** Requested By */
+            requested_by?: string | null;
             /** Summary */
             summary: string;
         };
@@ -1215,6 +1258,47 @@ export interface components {
              * @description hold_until: look at the case again then
              */
             until?: string | null;
+        };
+        /** RankedSupplier */
+        RankedSupplier: {
+            /** Currency */
+            currency?: string | null;
+            /** Lead Time Mean Days */
+            lead_time_mean_days?: number | null;
+            /**
+             * Min Qty
+             * @default 0
+             */
+            min_qty: number;
+            /** Otif */
+            otif?: number | null;
+            /** Partner Id */
+            partner_id: number;
+            /** Partner Name */
+            partner_name: string;
+            /** Price */
+            price?: number | null;
+            /**
+             * Promised Lead Days
+             * @default 0
+             */
+            promised_lead_days: number;
+            /**
+             * Rank
+             * @default 0
+             */
+            rank: number;
+            /** Samples */
+            samples?: {
+                [key: string]: number;
+            };
+            /** Score */
+            score?: number | null;
+            /**
+             * Why
+             * @default
+             */
+            why: string;
         };
         /** ReplenishmentLine */
         ReplenishmentLine: {
@@ -1465,6 +1549,57 @@ export interface components {
         SupplierConfirmedRequest: {
             /** Value */
             value: boolean;
+        };
+        /** SupplierRanking */
+        SupplierRanking: {
+            /** Product Id */
+            product_id: number;
+            /** Suppliers */
+            suppliers?: components["schemas"]["RankedSupplier"][];
+        };
+        /**
+         * SupplierScore
+         * @description One supplier's numbers for a period, the model's paragraph and the flagged changes.
+         */
+        SupplierScore: {
+            /** Lead Time Mean Days */
+            lead_time_mean_days?: number | null;
+            /** Lead Time Sigma Days */
+            lead_time_sigma_days?: number | null;
+            /** Otif */
+            otif?: number | null;
+            /** Partner Id */
+            partner_id: number;
+            /** Partner Name */
+            partner_name: string;
+            /**
+             * Period End
+             * Format: date
+             */
+            period_end: string;
+            /**
+             * Period Start
+             * Format: date
+             */
+            period_start: string;
+            /** Price Cv */
+            price_cv?: number | null;
+            /** Promise Drift Days */
+            promise_drift_days?: number | null;
+            /** Quality Rate */
+            quality_rate?: number | null;
+            /** Response Hours Median */
+            response_hours_median?: number | null;
+            /** Samples */
+            samples?: {
+                [key: string]: number;
+            };
+            /** Score */
+            score: number;
+            /** Scorecard */
+            scorecard?: string | null;
+            /** Trends */
+            trends?: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -2019,6 +2154,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MailboxReport"];
+                };
+            };
+        };
+    };
+    supplier_rank_api_performance_rank__product_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                product_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierRanking"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    supplier_scores_api_performance_scores_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierScore"][];
                 };
             };
         };

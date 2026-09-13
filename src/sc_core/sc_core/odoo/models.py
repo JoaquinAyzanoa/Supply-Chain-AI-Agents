@@ -112,6 +112,7 @@ def odoo_now() -> str:
 
 PurchaseState = Literal["draft", "sent", "to approve", "purchase", "done", "cancel"]
 ReceiptStatus = Literal["pending", "partial", "full"]
+InvoiceStatus = Literal["no", "to invoice", "invoiced"]
 EtaSource = Literal["supplier", "tracking", "estimated"]
 
 
@@ -132,6 +133,7 @@ class PurchaseOrder(OdooModel):
     company_id: Ref | None = None
     user_id: Ref | None = None
     receipt_status: ReceiptStatus | None = None
+    invoice_status: InvoiceStatus | None = None
     order_line: list[int] = []
     picking_ids: list[int] = []
     sc_external_ref: str | None = None

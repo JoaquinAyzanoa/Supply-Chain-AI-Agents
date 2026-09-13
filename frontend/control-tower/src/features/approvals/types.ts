@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { Schemas } from "@/api/client";
 
 export type Approval = Schemas["ApprovalView"];
-export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation";
+export type ApprovalKind = "send_email" | "po_change" | "planning_run" | "escalation" | "vendor_bill" | "supplier_score";
 
 export const emailPayload = z
   .object({
@@ -101,11 +101,76 @@ export const escalationPayload = z
   .loose();
 export type EscalationPayload = z.infer<typeof escalationPayload>;
 
+export const billLine = z
+  .object({
+    po_line_id: z.number().nullish(),
+    product: z.string().nullish(),
+    invoice_description: z.string().default(""),
+    invoice_qty: z.number().nullish(),
+    invoice_price: z.number().nullish(),
+    po_qty: z.number().nullish(),
+    po_price: z.number().nullish(),
+    received_qty: z.number().nullish(),
+    status: z.string().default("ok"),
+    note: z.string().nullish(),
+  })
+  .loose();
+
+export const billPayload = z
+  .object({
+    po_name: z.string().nullish(),
+    verdict: z.string().default("hold"),
+    reasons: z.array(z.string()).default([]),
+    invoice: z
+      .object({
+        supplier_name: z.string().nullish(),
+        invoice_number: z.string().nullish(),
+        invoice_date: z.string().nullish(),
+        currency: z.string().nullish(),
+        subtotal: z.number().nullish(),
+        tax: z.number().nullish(),
+        total: z.number().nullish(),
+      })
+      .loose()
+      .default({}),
+    lines: z.array(billLine).default([]),
+    expected_subtotal: z.number().nullish(),
+    existing_bill_name: z.string().nullish(),
+  })
+  .loose();
+export type BillPayload = z.infer<typeof billPayload>;
+
+export const scoreRow = z
+  .object({
+    partner_id: z.number(),
+    partner_name: z.string(),
+    score: z.number(),
+    otif: z.number().nullish(),
+    lead_time_mean_days: z.number().nullish(),
+    lead_time_sigma_days: z.number().nullish(),
+    promise_drift_days: z.number().nullish(),
+    response_hours_median: z.number().nullish(),
+    quality_rate: z.number().nullish(),
+    price_cv: z.number().nullish(),
+    samples: z.record(z.string(), z.number()).default({}),
+    scorecard: z.string().nullish(),
+    trends: z.array(z.string()).default([]),
+  })
+  .loose();
+
+export const scoresPayload = z
+  .object({
+    run_id: z.string().nullish(),
+    period: z.object({ start: z.string().nullish(), end: z.string().nullish() }).loose().nullish(),
+    scores: z.array(scoreRow).default([]),
+  })
+  .loose();
+export type ScoresPayload = z.infer<typeof scoresPayload>;
+
+const KNOWN: ReadonlySet<string> = new Set(["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score"]);
+
 export function kindOf(approval: Approval): ApprovalKind | "other" {
-  const kind = approval.kind;
-  return kind === "send_email" || kind === "po_change" || kind === "planning_run" || kind === "escalation"
-    ? kind
-    : "other";
+  return KNOWN.has(approval.kind) ? (approval.kind as ApprovalKind) : "other";
 }
 
 /** Age in whole days from an ISO timestamp, for the "pending for N days" hint. */

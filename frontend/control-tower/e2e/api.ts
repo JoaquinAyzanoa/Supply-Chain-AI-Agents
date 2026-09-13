@@ -111,7 +111,7 @@ export function makeState() {
       as_of: "2026-09-14",
       due_soon_days: 5,
       planning: { approval_id: 2, run_id: "run_1", as_of: "2026-09-14", summary: "2 RFQs, 3 rules" },
-      counts: { proposed: 0, rfq_sent: 1, quote_received: 0, confirmed: 0, incoming: 1, received: 0, closed: 0 },
+      counts: { proposed: 0, rfq_sent: 1, quote_received: 0, confirmed: 0, incoming: 1, received: 0, invoicing: 0, closed: 0 },
       cards: [
         {
           po_id: 15,
@@ -143,6 +143,8 @@ export function makeState() {
           summary: "RFQ sent, waiting for the supplier",
           act_kind: "rfq_no_reply",
           can_act: false,
+          invoice_status: null,
+          discrepancy: false,
           odoo_url: "http://odoo/purchase.order/15",
         },
         {
@@ -175,6 +177,8 @@ export function makeState() {
           summary: null,
           act_kind: "late_po",
           can_act: true,
+          invoice_status: null,
+          discrepancy: false,
           odoo_url: "http://odoo/purchase.order/16",
         },
       ],
@@ -232,6 +236,7 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       return json(route, 200, { id, status: body.status, resolved_by: user.name, callback_status: "sent" });
     }
     if (path === "/api/board") return json(route, 200, state.board);
+    if (path === "/api/performance/scores") return json(route, 200, []);
     if (path === "/api/mailbox/sync") return json(route, 200, { status: "ok", fetched: 0, linked: 0, unlinked: 0, ignored: 0, errors: 0, linked_po_names: [], message: "no new emails" });
     const move = path.match(/^\/api\/board\/(\w+)\/move$/);
     if (move && request.method() === "POST") {

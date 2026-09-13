@@ -25,7 +25,7 @@ export interface ApprovalsSearch {
   po?: string;
 }
 
-const KINDS = ["send_email", "po_change", "planning_run", "escalation"] as const;
+const KINDS = ["send_email", "po_change", "planning_run", "escalation", "vendor_bill", "supplier_score"] as const;
 
 export function ApprovalsInbox() {
   const { t } = useI18n();

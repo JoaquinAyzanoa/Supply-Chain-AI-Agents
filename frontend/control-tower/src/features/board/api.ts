@@ -11,7 +11,7 @@ export type Board = Schemas["Board"];
 export type BoardCard = Schemas["BoardCard"];
 export type Column = BoardCard["column"];
 
-export const COLUMNS: Column[] = ["proposed", "rfq_sent", "quote_received", "confirmed", "incoming", "received", "closed"];
+export const COLUMNS: Column[] = ["proposed", "rfq_sent", "quote_received", "confirmed", "incoming", "received", "invoicing", "closed"];
 
 export function useBoard() {
   return useQuery({
@@ -30,6 +30,7 @@ export function targetsFor(card: BoardCard): Column[] {
     case "quote_received":
       return ["confirmed", "closed"];
     case "received":
+    case "invoicing":
       return ["closed"];
     default:
       return [];

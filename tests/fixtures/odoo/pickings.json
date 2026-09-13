@@ -18,7 +18,7 @@
    }
   },
   {
-   "key": "4d034647048de20a409f2d72",
+   "key": "c99e9909143f210ae0940d10",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -53,6 +53,7 @@
        "company_id",
        "user_id",
        "receipt_status",
+       "invoice_status",
        "order_line",
        "picking_ids",
        "sc_external_ref",
@@ -102,6 +103,7 @@
        "Mitchell Admin"
       ],
       "receipt_status": "pending",
+      "invoice_status": "no",
       "order_line": [
        26,
        27

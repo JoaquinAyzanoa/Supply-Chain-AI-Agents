@@ -556,6 +556,7 @@
               "confirmed",
               "incoming",
               "received",
+              "invoicing",
               "closed"
             ],
             "title": "Column",
@@ -611,6 +612,11 @@
             "title": "Delivery",
             "type": "string"
           },
+          "discrepancy": {
+            "default": false,
+            "title": "Discrepancy",
+            "type": "boolean"
+          },
           "escalated": {
             "default": false,
             "title": "Escalated",
@@ -626,6 +632,17 @@
               }
             ],
             "title": "Eta Source"
+          },
+          "invoice_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Status"
           },
           "last_inbound": {
             "anyOf": [
@@ -1670,6 +1687,7 @@
               "confirmed",
               "incoming",
               "received",
+              "invoicing",
               "closed"
             ],
             "title": "To",
@@ -1693,6 +1711,7 @@
               "confirmed",
               "incoming",
               "received",
+              "invoicing",
               "closed"
             ],
             "title": "Column",
@@ -1734,6 +1753,17 @@
           "kind": {
             "title": "Kind",
             "type": "string"
+          },
+          "requested_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested By"
           },
           "summary": {
             "title": "Summary",
@@ -2094,6 +2124,107 @@
           "explanation"
         ],
         "title": "ProposedAction",
+        "type": "object"
+      },
+      "RankedSupplier": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "lead_time_mean_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Mean Days"
+          },
+          "min_qty": {
+            "default": 0.0,
+            "title": "Min Qty",
+            "type": "number"
+          },
+          "otif": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Otif"
+          },
+          "partner_id": {
+            "title": "Partner Id",
+            "type": "integer"
+          },
+          "partner_name": {
+            "title": "Partner Name",
+            "type": "string"
+          },
+          "price": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price"
+          },
+          "promised_lead_days": {
+            "default": 0,
+            "title": "Promised Lead Days",
+            "type": "integer"
+          },
+          "rank": {
+            "default": 0,
+            "title": "Rank",
+            "type": "integer"
+          },
+          "samples": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Samples",
+            "type": "object"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "why": {
+            "default": "",
+            "title": "Why",
+            "type": "string"
+          }
+        },
+        "required": [
+          "partner_id",
+          "partner_name"
+        ],
+        "title": "RankedSupplier",
         "type": "object"
       },
       "ReplenishmentLine": {
@@ -2776,6 +2907,178 @@
           "value"
         ],
         "title": "SupplierConfirmedRequest",
+        "type": "object"
+      },
+      "SupplierRanking": {
+        "additionalProperties": false,
+        "properties": {
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "suppliers": {
+            "items": {
+              "$ref": "#/components/schemas/RankedSupplier"
+            },
+            "title": "Suppliers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "product_id"
+        ],
+        "title": "SupplierRanking",
+        "type": "object"
+      },
+      "SupplierScore": {
+        "additionalProperties": false,
+        "description": "One supplier's numbers for a period, the model's paragraph and the flagged changes.",
+        "properties": {
+          "lead_time_mean_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Mean Days"
+          },
+          "lead_time_sigma_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Time Sigma Days"
+          },
+          "otif": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Otif"
+          },
+          "partner_id": {
+            "title": "Partner Id",
+            "type": "integer"
+          },
+          "partner_name": {
+            "minLength": 1,
+            "title": "Partner Name",
+            "type": "string"
+          },
+          "period_end": {
+            "format": "date",
+            "title": "Period End",
+            "type": "string"
+          },
+          "period_start": {
+            "format": "date",
+            "title": "Period Start",
+            "type": "string"
+          },
+          "price_cv": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Cv"
+          },
+          "promise_drift_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Promise Drift Days"
+          },
+          "quality_rate": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Quality Rate"
+          },
+          "response_hours_median": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Response Hours Median"
+          },
+          "samples": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Samples",
+            "type": "object"
+          },
+          "score": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Score",
+            "type": "number"
+          },
+          "scorecard": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Scorecard"
+          },
+          "trends": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Trends",
+            "type": "array"
+          }
+        },
+        "required": [
+          "partner_id",
+          "partner_name",
+          "period_start",
+          "period_end",
+          "score"
+        ],
+        "title": "SupplierScore",
         "type": "object"
       },
       "ValidationError": {
@@ -3814,6 +4117,83 @@
         "summary": "Sync Now",
         "tags": [
           "mailbox"
+        ]
+      }
+    },
+    "/api/performance/rank/{product_id}": {
+      "get": {
+        "operationId": "supplier_rank_api_performance_rank__product_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "title": "Product Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierRanking"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Supplier Rank",
+        "tags": [
+          "performance"
+        ]
+      }
+    },
+    "/api/performance/scores": {
+      "get": {
+        "operationId": "supplier_scores_api_performance_scores_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierScore"
+                  },
+                  "title": "Response Supplier Scores Api Performance Scores Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Supplier Scores",
+        "tags": [
+          "performance"
         ]
       }
     },

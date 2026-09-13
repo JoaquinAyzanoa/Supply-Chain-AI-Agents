@@ -407,22 +407,26 @@ The people's side of the system: a React app served by the director under
 
 - **Board** (the landing page): every purchase order as a card in the column
   its life is at: proposals, quotation requested, quotation received, order
-  confirmed, to receive, received, closed. The card's edge tells the delivery
+  confirmed, to receive, received, invoicing (the invoice is being checked
+  or the bill is drafted), closed. The card's edge tells the delivery
   state (green on time, amber due soon, red late with the days); its frame
   tells what a person owes it (amber: an approval, purple: an escalation,
   dashed: on hold); the body shows supplier, amount, planned date, the last
   email and the agents' next step. Approvers drag cards where Odoo allows
   (send a proposal, confirm an RFQ, close or cancel an order, with a note
   that lands in the chatter); the other columns follow emails and receipts.
-  A card opens a side panel with the facts, the pending approval resolvable
-  in place, the case history and the "Talk to your AI" chat. Filters:
+  Badges say when an invoice waits for a check or a receipt had a
+  discrepancy. A card opens a side panel with the facts, the pending approval
+  resolvable in place, the case history and the "Talk to your AI" chat. Filters:
   search, supplier, buyer, "only with problems". "Check the mailbox" reads the
   inbox right away instead of waiting for the next scheduled poll and says
   what it found.
 - **Approvals**: the inbox. Emails are previewed sanitised (no scripts, no
   remote images) and can be edited before sending; order changes show a
   before/after table with per-line toggles; planning runs link to their
-  review; escalations show the model's summary and the last events. Every
+  review; escalations show the model's summary and the last events;
+  invoices show the verdict and the line-by-line check; the weekly supplier
+  scorecards show every supplier's numbers and paragraph. Every
   card says why the agent proposed it and links to Odoo, the Outlook draft
   and the Langfuse trace. Approving here resolves the `sc.approval` in Odoo
   through the bot, so Odoo fires the same agent callback as its own buttons.
@@ -442,6 +446,9 @@ The people's side of the system: a React app served by the director under
 - **Planning**: the run's lines grouped by supplier, editable quantities and
   min/max, a per-line drawer with the explanation, the 90-day demand and a
   what-if simulation; approving the selected lines is one resume call.
+- **Suppliers**: the latest scorecard per supplier from the weekly run: score,
+  on-time in-full, observed lead time, reply time, receipt problems, flagged
+  changes and the paragraph.
 - **Runs**: agent runs with model, tokens, cost and duration; scheduler runs.
 - **Settings** (admins): model per agent, follow-up policy, which suppliers
   and which email kinds go out without approval (for example reminders and

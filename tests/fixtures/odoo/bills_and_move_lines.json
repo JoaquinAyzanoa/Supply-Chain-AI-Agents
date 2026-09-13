@@ -18,7 +18,7 @@
    }
   },
   {
-   "key": "78388b687c4beaed2914655e",
+   "key": "707a7efb38e28731ddba86bc",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -53,6 +53,7 @@
        "company_id",
        "user_id",
        "receipt_status",
+       "invoice_status",
        "order_line",
        "picking_ids",
        "sc_external_ref",
@@ -102,6 +103,7 @@
        "Mitchell Admin"
       ],
       "receipt_status": "full",
+      "invoice_status": "invoiced",
       "order_line": [
        28,
        29,
@@ -124,9 +126,12 @@
       "sc_external_ref": "seed-po-20260912-24-1",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": false,
+      "sc_needs_human": true,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": false
+      "sc_pending_approval_id": [
+       28,
+       "sc.approval,28"
+      ]
      }
     ]
    }
@@ -889,275 +894,6 @@
    "response": {
     "jsonrpc": "2.0",
     "id": 5,
-    "result": []
-   }
-  },
-  {
-   "key": "3e54f672ce34dd19e381e30a",
-   "request": {
-    "service": "object",
-    "method": "execute_kw",
-    "args": [
-     "scai",
-     "<uid>",
-     "<api_key>",
-     "purchase.order",
-     "action_create_invoice",
-     [
-      [
-       16
-      ]
-     ],
-     {
-      "context": {
-       "tz": "America/Lima"
-      }
-     }
-    ]
-   },
-   "response": {
-    "jsonrpc": "2.0",
-    "id": 6,
-    "result": {
-     "id": 266,
-     "name": "Bills",
-     "type": "ir.actions.act_window",
-     "xml_id": "account.action_move_in_invoice_type",
-     "path": "bills",
-     "help": "<p class=\"o_view_nocontent_smiling_face\">\n                    Create a vendor bill\n                </p><p>\n                    Capture invoices, register payments and keep track of the discussions with your vendors.\n                </p>\n            ",
-     "binding_model_id": false,
-     "binding_type": "action",
-     "binding_view_types": "list,form",
-     "display_name": "Bills",
-     "view_id": [
-      713,
-      "account.out.invoice.list"
-     ],
-     "domain": "[('move_type', 'in', ['in_invoice', 'in_refund'])]",
-     "context": "{'default_move_type': 'in_invoice', 'display_account_trust': True}",
-     "res_id": 49,
-     "res_model": "account.move",
-     "target": "current",
-     "view_mode": "list,kanban,form,activity",
-     "mobile_view_mode": "kanban",
-     "views": [
-      [
-       717,
-       "form"
-      ],
-      [
-       713,
-       "list"
-      ],
-      [
-       false,
-       "kanban"
-      ],
-      [
-       false,
-       "activity"
-      ]
-     ],
-     "limit": 80,
-     "groups_id": [],
-     "search_view_id": [
-      721,
-      "account.invoice.select"
-     ],
-     "embedded_action_ids": [],
-     "filter": false
-    }
-   }
-  },
-  {
-   "key": "941962c4401b3db0928e1195",
-   "request": {
-    "service": "object",
-    "method": "execute_kw",
-    "args": [
-     "scai",
-     "<uid>",
-     "<api_key>",
-     "account.move",
-     "search_read",
-     [
-      [
-       [
-        "move_type",
-        "in",
-        [
-         "in_invoice",
-         "in_refund"
-        ]
-       ],
-       [
-        "invoice_line_ids.purchase_line_id.order_id",
-        "=",
-        16
-       ],
-       [
-        "state",
-        "in",
-        [
-         "draft"
-        ]
-       ]
-      ]
-     ],
-     {
-      "fields": [
-       "name",
-       "move_type",
-       "state",
-       "partner_id",
-       "invoice_date",
-       "invoice_date_due",
-       "ref",
-       "payment_reference",
-       "invoice_origin",
-       "amount_untaxed",
-       "amount_total",
-       "amount_residual",
-       "currency_id",
-       "payment_state",
-       "purchase_id",
-       "invoice_line_ids",
-       "create_date"
-      ],
-      "offset": 0,
-      "order": "id desc",
-      "context": {
-       "tz": "America/Lima"
-      }
-     }
-    ]
-   },
-   "response": {
-    "jsonrpc": "2.0",
-    "id": 7,
-    "result": [
-     {
-      "id": 49,
-      "name": false,
-      "move_type": "in_invoice",
-      "state": "draft",
-      "partner_id": [
-       45,
-       "Proveedor Hidraulica"
-      ],
-      "invoice_date": false,
-      "invoice_date_due": "2026-09-12",
-      "ref": "",
-      "payment_reference": false,
-      "invoice_origin": "P00016",
-      "amount_untaxed": 14681.28,
-      "amount_total": 16883.49,
-      "amount_residual": 16883.49,
-      "currency_id": [
-       1,
-       "USD"
-      ],
-      "payment_state": "not_paid",
-      "purchase_id": false,
-      "invoice_line_ids": [
-       115,
-       116,
-       117,
-       118,
-       119,
-       120,
-       121,
-       122,
-       123,
-       124,
-       125,
-       126,
-       127,
-       128
-      ],
-      "create_date": "2026-09-12 23:47:11"
-     }
-    ]
-   }
-  },
-  {
-   "key": "8bdd40f433fa819ada0e5779",
-   "request": {
-    "service": "object",
-    "method": "execute_kw",
-    "args": [
-     "scai",
-     "<uid>",
-     "<api_key>",
-     "account.move",
-     "write",
-     [
-      [
-       49
-      ],
-      {
-       "ref": "F001-000123",
-       "invoice_date": "2024-09-02"
-      }
-     ],
-     {
-      "context": {
-       "tz": "America/Lima"
-      }
-     }
-    ]
-   },
-   "response": {
-    "jsonrpc": "2.0",
-    "id": 8,
-    "result": true
-   }
-  },
-  {
-   "key": "751f0f01a4df825215912f9f",
-   "request": {
-    "service": "object",
-    "method": "execute_kw",
-    "args": [
-     "scai",
-     "<uid>",
-     "<api_key>",
-     "account.move",
-     "read",
-     [
-      [
-       49
-      ]
-     ],
-     {
-      "fields": [
-       "name",
-       "move_type",
-       "state",
-       "partner_id",
-       "invoice_date",
-       "invoice_date_due",
-       "ref",
-       "payment_reference",
-       "invoice_origin",
-       "amount_untaxed",
-       "amount_total",
-       "amount_residual",
-       "currency_id",
-       "payment_state",
-       "purchase_id",
-       "invoice_line_ids",
-       "create_date"
-      ],
-      "context": {
-       "tz": "America/Lima"
-      }
-     }
-    ]
-   },
-   "response": {
-    "jsonrpc": "2.0",
-    "id": 9,
     "result": [
      {
       "id": 49,
@@ -1268,7 +1004,7 @@
    },
    "response": {
     "jsonrpc": "2.0",
-    "id": 10,
+    "id": 6,
     "result": [
      {
       "id": 49,
@@ -1362,7 +1098,7 @@
    },
    "response": {
     "jsonrpc": "2.0",
-    "id": 11,
+    "id": 7,
     "result": [
      {
       "id": 115,
@@ -1738,7 +1474,7 @@
    },
    "response": {
     "jsonrpc": "2.0",
-    "id": 12,
+    "id": 8,
     "result": [
      {
       "id": 49,
@@ -1842,7 +1578,7 @@
    },
    "response": {
     "jsonrpc": "2.0",
-    "id": 13,
+    "id": 9,
     "result": [
      {
       "id": 49,
@@ -1947,7 +1683,7 @@
    },
    "response": {
     "jsonrpc": "2.0",
-    "id": 14,
+    "id": 10,
     "result": [
      {
       "id": 49,

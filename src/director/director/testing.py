@@ -201,6 +201,7 @@ class MemoryApprovalsGateway:
         po: tuple[int, str] | None = (15, "P00015"),
         thread_id: str | None = "case_msg1",
         status: ApprovalStatus = "pending",
+        requested_by: str = "supplier_comms",
     ) -> Approval:
         import json as _json
 
@@ -212,7 +213,7 @@ class MemoryApprovalsGateway:
                 status=status,
                 po_id=Ref(id=po[0], name=po[1]) if po else None,
                 payload_json=_json.dumps(payload or {}),
-                requested_by="supplier_comms",
+                requested_by=requested_by,
                 case_id=thread_id,
                 thread_id=thread_id,
                 callback_status="none",
