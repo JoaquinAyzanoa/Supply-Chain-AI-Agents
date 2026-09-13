@@ -459,6 +459,23 @@ async def resolve_approval(
     autonomy: AutonomyChanges = Injected(AutonomyChanges),
     feedback: FeedbackRecorder = Injected(FeedbackRecorder),
 ) -> ResolveResponse:
+    return await resolve_now(approval_id, body, principal, gateway, cases, autonomy, feedback)
+
+
+async def resolve_now(
+    approval_id: int,
+    body: ResolveRequest,
+    principal: Principal,
+    gateway: ApprovalsGateway,
+    cases: CaseStore,
+    autonomy: AutonomyChanges,
+    feedback: FeedbackRecorder,
+) -> ResolveResponse:
+    """One decision, the way the inbox makes it: Odoo, feedback, the case, autonomy.
+
+    Shared by the single, the bulk and the demo's decisions; raises ``HTTPException``
+    with the status the caller would answer.
+    """
     try:
         approval = await gateway.get(approval_id)
     except NotFound as exc:

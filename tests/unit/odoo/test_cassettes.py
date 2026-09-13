@@ -12,6 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
+from director.demo import OdooDemoWorld
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import (
     AccountMoveRepo,
@@ -132,3 +133,21 @@ async def test_sourcing_reads_the_valve_price_list_and_the_suppliers_emails(
     # the other two have no address in Odoo: a round marks their RFQs "no email"
     for name in ("Hidráulica Alterna SAC", "Importadora del Sur SAC"):
         assert await partners.emails_of(by_partner[name].partner_id.id) == []
+
+
+async def test_demo_world_finds_the_late_order_and_owns_a_receipt_order(
+    cassette: Cassette,
+) -> None:
+    """What a demo reset reads and creates: the supplier's most overdue order, and a
+    confirmed order of its own (idempotent by external reference) with lines to quote."""
+    world = OdooDemoWorld(cassette("demo_world"), None, today=lambda: date(2026, 9, 14))
+    late = await world.late_order(HIDRAULICA_EMAIL)
+    assert late is not None and late.po_name.startswith("P") and late.date_planned is not None
+    assert late.date_planned < date(2026, 9, 14)
+    receipt = await world.create_confirmed_order(
+        HIDRAULICA_EMAIL, external_ref="demo-cassette-receipt"
+    )
+    assert receipt.partner_id == late.partner_id and receipt.amount_total > 0
+    lines = await world.order_lines(receipt.po_name)
+    assert len(lines) == 2 and all(line.qty == 10 and line.price_unit > 0 for line in lines)
+    assert not world.can_receive  # no warehouse login here: receipts and bills stay manual

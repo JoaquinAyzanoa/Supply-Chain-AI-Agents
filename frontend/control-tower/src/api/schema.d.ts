@@ -503,6 +503,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/demo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Demo */
+        get: operations["read_demo_api_demo_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Next Step */
+        post: operations["next_step_api_demo_next_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/demo/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset Demo */
+        post: operations["reset_demo_api_demo_reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/exceptions": {
         parameters: {
             query?: never;
@@ -2116,6 +2167,85 @@ export interface components {
             /** Ordered */
             ordered: number;
         };
+        /** DemoLink */
+        DemoLink: {
+            /** Label */
+            label: string;
+            /** Path */
+            path: string;
+        };
+        /** DemoReadiness */
+        DemoReadiness: {
+            /** Mailbox */
+            mailbox: boolean;
+            /** Notes */
+            notes?: string[];
+            /** World */
+            world: boolean;
+        };
+        /** DemoStep */
+        DemoStep: {
+            /**
+             * Click
+             * @description where the audience looks in the Control Tower
+             */
+            click: string;
+            /** Key */
+            key: string;
+            /**
+             * Needs
+             * @default none
+             * @enum {string}
+             */
+            needs: "none" | "mailbox" | "world";
+            /**
+             * Say
+             * @description what the presenter says while it runs
+             */
+            say: string;
+            /** Title */
+            title: string;
+        };
+        /** DemoStepOutcome */
+        DemoStepOutcome: {
+            /** Approval Ids */
+            approval_ids?: number[];
+            /**
+             * At
+             * Format: date-time
+             */
+            at?: string;
+            /** Key */
+            key: string;
+            /** Links */
+            links?: components["schemas"]["DemoLink"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "done" | "waiting" | "failed";
+            /** Summary */
+            summary: string;
+        };
+        /** DemoView */
+        DemoView: {
+            /** Finished */
+            finished: boolean;
+            next: components["schemas"]["DemoStep"] | null;
+            /** Outcomes */
+            outcomes: components["schemas"]["DemoStepOutcome"][];
+            /** Position */
+            position: number;
+            ready: components["schemas"]["DemoReadiness"];
+            /** Records */
+            records: {
+                [key: string]: unknown;
+            };
+            /** Started At */
+            started_at: string | null;
+            /** Steps */
+            steps: components["schemas"]["DemoStep"][];
+        };
         /** DiscoveryResponse */
         DiscoveryResponse: {
             /** Core Version */
@@ -2530,6 +2660,20 @@ export interface components {
             product_id?: number | null;
             /** Target Price */
             target_price?: number | null;
+        };
+        /** NextRequest */
+        NextRequest: {
+            /**
+             * Approve
+             * @description decide the approvals this step raises, as the presenter
+             * @default false
+             */
+            approve: boolean;
+            /**
+             * Step
+             * @description run this step instead of the next one
+             */
+            step?: string | null;
         };
         /** OrderDetail */
         OrderDetail: {
@@ -4782,6 +4926,79 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_demo_api_demo_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoView"];
+                };
+            };
+        };
+    };
+    next_step_api_demo_next_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NextRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_demo_api_demo_reset_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoView"];
                 };
             };
         };

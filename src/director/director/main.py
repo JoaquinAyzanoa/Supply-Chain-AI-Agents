@@ -29,6 +29,7 @@ from director.api.chat import (
     GraphEmailReader,
     NoEmailReader,
 )
+from director.api.demo import DirectorApprovalResolver
 from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import HttpMailboxSync, MailboxSync
 from director.api.performance import HttpPerformanceSource, PerformanceSource
@@ -58,6 +59,14 @@ from director.autonomy import (
 from director.briefing import BriefingBuilder, BriefingJob, BriefingStore, PostgresBriefingStore
 from director.concurrency import PoLocks
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
+from director.demo import (
+    DemoDirector,
+    DemoStore,
+    OdooDemoWorld,
+    PostgresDemoStore,
+    SmtpSupplierMailbox,
+    SupplierMailbox,
+)
 from director.escalation import (
     Escalator,
     LoggingEscalator,
@@ -301,6 +310,59 @@ class DirectorModule(Module):
     @singleton
     def provide_briefing_store(self, db: Database) -> BriefingStore:  # type: ignore[type-abstract]
         return PostgresBriefingStore(db)
+
+    @provider
+    @singleton
+    def provide_demo_store(self, db: Database) -> DemoStore:  # type: ignore[type-abstract]
+        return PostgresDemoStore(db)
+
+    @provider
+    @singleton
+    def provide_demo_director(
+        self,
+        settings: Settings,
+        store: DemoStore,  # type: ignore[type-abstract]
+        odoo: OdooClient,
+        deps: Deps,
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        cases: CaseStore,  # type: ignore[type-abstract]
+        mailbox_sync: MailboxSync,  # type: ignore[type-abstract]
+        risk: RiskSource,  # type: ignore[type-abstract]
+        sourcing: SourcingDispatcher,
+        sourcing_source: SourcingSource,  # type: ignore[type-abstract]
+        briefing: BriefingJob,
+        autonomy: AutonomyChanges,
+        feedback: FeedbackRecorder,
+    ) -> DemoDirector:
+        """Demo mode: the world side needs a second Odoo login (stock and accounting rights)
+        and the supplier's mailbox needs SMTP credentials; both local only, both optional."""
+        cfg = settings.demo
+        admin: OdooClient | None = None
+        if cfg.world_configured:
+            admin = OdooClient(
+                settings.odoo.model_copy(
+                    update={"login": cfg.odoo_login, "api_key": cfg.odoo_api_key}
+                )
+            )
+            _demo_clients.append(admin)
+        mailbox: SupplierMailbox | None = (
+            SmtpSupplierMailbox(cfg) if cfg.mailbox_configured else None
+        )
+        return DemoDirector(
+            cfg=cfg,
+            store=store,
+            world=OdooDemoWorld(odoo, admin),
+            mailbox=mailbox,
+            deps=deps,
+            approvals=approvals,
+            cases=cases,
+            mailbox_sync=mailbox_sync,
+            risk=risk,
+            sourcing=sourcing,
+            sourcing_source=sourcing_source,
+            briefing=briefing,
+            resolver=DirectorApprovalResolver(approvals, cases, autonomy, feedback),
+        )
 
     @provider
     @singleton
@@ -719,6 +781,11 @@ async def _connect_odoo() -> None:
 async def _close_odoo() -> None:
     if settings.odoo.configured:
         await app.state.injector.get(OdooClient).aclose()
+    for client in _demo_clients:
+        await client.aclose()
+
+
+_demo_clients: list[OdooClient] = []  # the demo's second Odoo login, closed with the app
 
 
 if not settings.events.configured:

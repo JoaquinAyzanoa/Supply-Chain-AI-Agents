@@ -13,6 +13,7 @@ from director.api.approvals import ApprovalsGateway
 from director.api.auth import LoginRateLimit, MemoryUserStore, UserStore
 from director.api.board import BoardMoves, BoardOrders
 from director.api.chat import CaseAssistant, ChatActions, EmailSnapshot
+from director.api.demo import DirectorApprovalResolver
 from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import MailboxSync
 from director.api.performance import PerformanceSource
@@ -31,6 +32,15 @@ from director.autonomy import AutoAction, AutoActionsStore, AutonomyChanges, Rev
 from director.briefing import BriefingBuilder, BriefingJob, BriefingStore, MemoryBriefingStore
 from director.concurrency import PoLocks
 from director.conversations import MemoryConversationLookup, MemoryMailActivity
+from director.demo import (
+    DemoDirector,
+    DemoStore,
+    DemoWorld,
+    MemoryDemoStore,
+    MemoryDemoWorld,
+    MemorySupplierMailbox,
+    SupplierMailbox,
+)
 from director.escalation import Escalator, MemoryEscalator
 from director.handlers.followups import MailActivity
 from director.inbox import EventInbox, EventResults, MemoryEventInbox, MemoryEventResults
@@ -194,6 +204,9 @@ class MemoryDirectorModule(Module):
         self.prices = MemorySupplierPrices()
         self.mail_links = MemoryMailLinks()
         self.assistant_store = MemoryAssistantStore()
+        self.demo_store = MemoryDemoStore()
+        self.demo_world = MemoryDemoWorld()
+        self.supplier_mailbox = MemorySupplierMailbox()
         self.sent_mail: list[Any] = []
         self.deps = memory_deps(
             cases=self.case_store,
@@ -227,6 +240,55 @@ class MemoryDirectorModule(Module):
             orders=orders,
         )
 
+    def _briefing_job(self) -> BriefingJob:
+        if getattr(self, "_briefing", None) is None:
+            self._briefing = BriefingJob(
+                BriefingBuilder(
+                    cases=self.case_store,
+                    approvals=self.approvals,
+                    auto_actions=self.auto_actions,
+                    exceptions=self.exceptions,
+                    settings=self.settings,
+                    store=self.briefings,
+                    risk=self.risk_source,
+                    playbooks=self.playbooks,
+                    chat=self.chat,
+                    langfuse=LangfuseCfg(enabled=False),
+                ),
+                self.briefings,
+                runtime=self.runtime_reader,
+                mail=_RecordingMail(self.sent_mail),
+                control_tower_url="https://tower.test",
+            )
+        return self._briefing
+
+    def demo_director(self, *, briefing: BriefingJob | None = None) -> DemoDirector:
+        """The scripted scenario on the memory doubles: no waiting, three looks per step."""
+
+        async def no_sleep(_: float) -> None:
+            return None
+
+        return DemoDirector(
+            cfg=self.settings.demo,
+            store=self.demo_store,
+            world=self.demo_world,
+            mailbox=self.supplier_mailbox,
+            deps=self.deps,
+            approvals=self.approvals,
+            cases=self.case_store,
+            mailbox_sync=self.mailbox,
+            risk=self.risk_source,
+            sourcing=self.sourcing,
+            sourcing_source=self.sourcing_source,
+            briefing=briefing or self._briefing_job(),
+            resolver=DirectorApprovalResolver(
+                self.approvals, self.case_store, self.autonomy, self.recorder
+            ),
+            sleep=no_sleep,
+            wait_seconds=3,
+            poll_seconds=1.0,
+        )
+
     def configure(self, binder: Binder) -> None:
         binder.bind(EventInbox, to=self.inbox, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(EventResults, to=self.results, scope=singleton)  # type: ignore[type-abstract]
@@ -258,29 +320,12 @@ class MemoryDirectorModule(Module):
         binder.bind(PushStore, to=self.push_store, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(SupplierPrices, to=self.prices, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(MailLinks, to=self.mail_links, scope=singleton)  # type: ignore[type-abstract]
-        binder.bind(
-            BriefingJob,
-            to=BriefingJob(
-                BriefingBuilder(
-                    cases=self.case_store,
-                    approvals=self.approvals,
-                    auto_actions=self.auto_actions,
-                    exceptions=self.exceptions,
-                    settings=self.settings,
-                    store=self.briefings,
-                    risk=self.risk_source,
-                    playbooks=self.playbooks,
-                    chat=self.chat,
-                    langfuse=LangfuseCfg(enabled=False),
-                ),
-                self.briefings,
-                runtime=self.runtime_reader,
-                mail=_RecordingMail(self.sent_mail),
-                control_tower_url="https://tower.test",
-            ),
-            scope=singleton,
-        )
+        binder.bind(BriefingJob, to=self._briefing_job(), scope=singleton)
         binder.bind(AssistantStore, to=self.assistant_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(DemoStore, to=self.demo_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(DemoWorld, to=self.demo_world, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SupplierMailbox, to=self.supplier_mailbox, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(DemoDirector, to=self.demo_director(), scope=singleton)
         binder.bind(
             DepartmentAssistant,
             to=DepartmentAssistant(

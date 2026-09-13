@@ -19,6 +19,7 @@ from director.api import (
     calendar,
     cases,
     chat,
+    demo,
     exceptions,
     home,
     learning,
@@ -48,6 +49,7 @@ api_router.include_router(mailbox.router)
 api_router.include_router(performance.router)
 api_router.include_router(cases.router)
 api_router.include_router(chat.router)
+api_router.include_router(demo.router)
 api_router.include_router(exceptions.router)
 api_router.include_router(home.router)
 api_router.include_router(planning.router)

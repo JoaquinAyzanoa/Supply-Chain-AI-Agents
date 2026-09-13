@@ -2524,6 +2524,209 @@
         "title": "DemandDay",
         "type": "object"
       },
+      "DemoLink": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "path"
+        ],
+        "title": "DemoLink",
+        "type": "object"
+      },
+      "DemoReadiness": {
+        "additionalProperties": false,
+        "properties": {
+          "mailbox": {
+            "title": "Mailbox",
+            "type": "boolean"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "world": {
+            "title": "World",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mailbox",
+          "world"
+        ],
+        "title": "DemoReadiness",
+        "type": "object"
+      },
+      "DemoStep": {
+        "additionalProperties": false,
+        "properties": {
+          "click": {
+            "description": "where the audience looks in the Control Tower",
+            "title": "Click",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "needs": {
+            "default": "none",
+            "enum": [
+              "none",
+              "mailbox",
+              "world"
+            ],
+            "title": "Needs",
+            "type": "string"
+          },
+          "say": {
+            "description": "what the presenter says while it runs",
+            "title": "Say",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "say",
+          "click"
+        ],
+        "title": "DemoStep",
+        "type": "object"
+      },
+      "DemoStepOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Approval Ids",
+            "type": "array"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/DemoLink"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "done",
+              "waiting",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "summary"
+        ],
+        "title": "DemoStepOutcome",
+        "type": "object"
+      },
+      "DemoView": {
+        "additionalProperties": false,
+        "properties": {
+          "finished": {
+            "title": "Finished",
+            "type": "boolean"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DemoStep"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/DemoStepOutcome"
+            },
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "ready": {
+            "$ref": "#/components/schemas/DemoReadiness"
+          },
+          "records": {
+            "additionalProperties": true,
+            "title": "Records",
+            "type": "object"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/DemoStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "steps",
+          "position",
+          "started_at",
+          "finished",
+          "next",
+          "outcomes",
+          "records",
+          "ready"
+        ],
+        "title": "DemoView",
+        "type": "object"
+      },
       "DiscoveryResponse": {
         "properties": {
           "core_version": {
@@ -3576,6 +3779,31 @@
           "po_name"
         ],
         "title": "NegotiateRequest",
+        "type": "object"
+      },
+      "NextRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "approve": {
+            "default": false,
+            "description": "decide the approvals this step raises, as the presenter",
+            "title": "Approve",
+            "type": "boolean"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "run this step instead of the next one",
+            "title": "Step"
+          }
+        },
+        "title": "NextRequest",
         "type": "object"
       },
       "OrderDetail": {
@@ -8806,6 +9034,104 @@
         "summary": "Dismiss Action",
         "tags": [
           "chat"
+        ]
+      }
+    },
+    "/api/demo": {
+      "get": {
+        "operationId": "read_demo_api_demo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Demo",
+        "tags": [
+          "demo"
+        ]
+      }
+    },
+    "/api/demo/next": {
+      "post": {
+        "operationId": "next_step_api_demo_next_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Next Step",
+        "tags": [
+          "demo"
+        ]
+      }
+    },
+    "/api/demo/reset": {
+      "post": {
+        "operationId": "reset_demo_api_demo_reset_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reset Demo",
+        "tags": [
+          "demo"
         ]
       }
     },

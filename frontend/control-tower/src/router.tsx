@@ -17,6 +17,7 @@ import { HomePage } from "@/features/home/HomePage";
 import { Supplier360Page } from "@/features/suppliers/Supplier360Page";
 import { AssistantPage } from "@/features/assistant/AssistantPage";
 import { BriefingPage } from "@/features/briefing/BriefingPage";
+import { DemoPage } from "@/features/demo/DemoPage";
 import { AutonomyPage } from "@/features/autonomy/AutonomyPage";
 import { PlaybooksPage } from "@/features/playbooks/PlaybooksPage";
 import { BoardPage, type BoardSearch } from "@/features/board/BoardPage";
@@ -120,6 +121,7 @@ export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
 export const riskRoute = child("/risk", RiskPage);
 export const briefingRoute = child("/briefing", BriefingPage);
+export const demoRoute = child("/demo", DemoPage);
 export const assistantRoute = createRoute({
   getParentRoute: () => appRoute,
   path: "/assistant",
@@ -166,6 +168,7 @@ const routeTree = rootRoute.addChildren([
     planningRunRoute,
     riskRoute,
     briefingRoute,
+    demoRoute,
     assistantRoute,
     runsRoute,
     settingsRoute,

@@ -97,7 +97,7 @@ test("a buyer clears the day's approvals from a phone in one go", async ({ page 
   await expect(page.getByRole("status")).toContainText("2 decided");
 });
 
-test("home, the board, the inbox, the planning review, supplier 360 and the AI page have no serious accessibility violations", async ({ page }) => {
+test("home, the board, the inbox, the planning review, supplier 360, the AI and demo pages have no serious accessibility violations", async ({ page }) => {
   await login(page, "ana@x.com");
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
   const home = await new AxeBuilder({ page }).analyze();
@@ -114,6 +114,11 @@ test("home, the board, the inbox, the planning review, supplier 360 and the AI p
   await expect(page.getByRole("heading", { name: "AI performance" })).toBeVisible();
   const ai = await new AxeBuilder({ page }).analyze();
   expect(ai.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
+  await page.goto("/demo");
+  await expect(page.getByRole("heading", { name: "Demo mode" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "The script" })).toContainText("A late order gets a delivery-date request");
+  const demo = await new AxeBuilder({ page }).analyze();
+  expect(demo.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
   await page.goto("/approvals");
   await expect(page.getByRole("button", { name: /Send follow-up/ })).toBeVisible();
   const inbox = await new AxeBuilder({ page }).analyze();

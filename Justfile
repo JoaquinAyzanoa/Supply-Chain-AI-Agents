@@ -280,6 +280,21 @@ run-job job="mail_sync":
     {{UV}} run python scripts/run_job.py {{job}}
 
 # --------------------------------------------------------------------
+# Demo mode (phase 11 S9; needs SC_UI_PASSWORD, see docs/demo.md)
+
+# Run the ten-minute scenario unattended on the live stack, deciding approvals as the presenter
+demo-auto:
+    {{UV}} run python scripts/demo_day.py --auto
+
+# Run the scenario step by step: Enter before each step, decisions in the inbox
+demo-pace:
+    {{UV}} run python scripts/demo_day.py --pace
+
+# Put the demo orders back to their start state
+demo-reset:
+    {{UV}} run python scripts/demo_day.py --reset
+
+# --------------------------------------------------------------------
 # Packaging & cleaning
 
 # Build wheels for every member into dist/

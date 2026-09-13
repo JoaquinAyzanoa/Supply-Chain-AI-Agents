@@ -338,6 +338,34 @@ class UiCfg(_Section):
     vapid_subject: str = "mailto:admin@example.com"
 
 
+class DemoCfg(_Section):
+    """Demo mode (phase 11 S9): the scripted scenario the Demo page and ``scripts/demo_day.py``
+    drive. Off unless the supplier mailbox is configured; the world side (warehouse receipts,
+    a typed vendor bill) needs an Odoo login with stock and accounting rights, local only."""
+
+    supplier_email: str = "ventas.hidraulica.sc@gmail.com"  # the demo supplier's mailbox
+    bot_email: str = "scai.compras@outlook.com"  # where the supplier's replies go
+    # The supplier's replies are sent by SMTP from its own mailbox (Gmail: an app password).
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = Field(default=587, ge=1)
+    smtp_user: str = ""
+    smtp_password: SecretStr = SecretStr("")
+    # Odoo user for the world side (receipts, bills): the bot deliberately cannot do these.
+    odoo_login: str = ""
+    odoo_api_key: SecretStr = SecretStr("")
+    # How long a step waits for the mailbox and the agents (seconds), and how often it looks.
+    wait_seconds: int = Field(default=150, ge=0)
+    poll_seconds: float = Field(default=10.0, gt=0)
+
+    @property
+    def mailbox_configured(self) -> bool:
+        return bool(self.smtp_user and self.smtp_password.get_secret_value())
+
+    @property
+    def world_configured(self) -> bool:
+        return bool(self.odoo_login and self.odoo_api_key.get_secret_value())
+
+
 class AgentsCfg(_Section):
     """Shared by every LangGraph agent: who approves and how long they get."""
 
@@ -403,6 +431,7 @@ class Settings(BaseSettings):
     invoice_match: InvoiceMatchCfg = Field(default_factory=InvoiceMatchCfg)
     supplier_performance: SupplierPerformanceCfg = Field(default_factory=SupplierPerformanceCfg)
     sourcing: SourcingCfg = Field(default_factory=SourcingCfg)
+    demo: DemoCfg = Field(default_factory=DemoCfg)
 
     @property
     def a2a_token(self) -> str:
