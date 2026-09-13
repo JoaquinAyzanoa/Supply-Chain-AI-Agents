@@ -112,7 +112,7 @@ export function RiskPage() {
                       </TableCell>
                       <TableCell className="text-xs">
                         {p.open_po_names.map((po) => (
-                          <Link key={po} to="/" search={{ po }} className={cn("mr-1 underline", p.late_po_names.includes(po) ? "text-destructive" : "text-primary")}>
+                          <Link key={po} to="/board" search={{ po }} className={cn("mr-1 underline", p.late_po_names.includes(po) ? "text-destructive" : "text-primary")}>
                             {po}
                             {p.late_po_names.includes(po) ? ` (${t("risk.late")})` : ""}
                           </Link>

@@ -17,7 +17,9 @@ import { agentName } from "@/features/cases/labels";
 import { useResolveApproval } from "./api";
 import { ChangesCard, EmailCard, EscalationCard, PlanCard, type EmailEdits } from "./ApprovalCards";
 import { AutonomyChangeCard } from "./AutonomyChangeCard";
+import { SHORTCUT_EVENT } from "./ApprovalsInbox";
 import { BillCard } from "./BillCard";
+import { DiffView } from "./DiffView";
 import { InternalRequestCard, PriceListCard } from "./RequestCards";
 import { ScoreCard } from "./ScoreCard";
 import { AwardCard, OfferCard, PartnerCard, recommendedChoice, type LineChoice } from "./SourcingCards";
@@ -126,6 +128,20 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
     }
   };
 
+  // a, r, e from the inbox list: approve, reject, edit the open approval
+  useEffect(() => {
+    const onShortcut = (event: Event) => {
+      const detail = (event as CustomEvent<{ key: string; id: number }>).detail;
+      if (!canAct || detail.id !== approval.id) return;
+      if (detail.key === "a") void submit("approved");
+      else if (detail.key === "r") setRejecting(true);
+      else if (detail.key === "e" && email) setEditing((on) => !on);
+    };
+    window.addEventListener(SHORTCUT_EVENT, onShortcut);
+    return () => window.removeEventListener(SHORTCUT_EVENT, onShortcut);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [approval.id, canAct, email, emailEdits, accepted, lineChoice, offeredPrice, partnerName, acceptedItems, acceptedCodes]);
+
   const toggle = (change: ProposedChange, on: boolean) =>
     setAccepted((prev) => {
       const next = new Set(prev);
@@ -160,6 +176,7 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
 
       <div className="flex-1 space-y-4 overflow-y-auto p-3">
         {email ? <EmailCard payload={email} editing={editing} edits={emailEdits} onEdits={setEmailEdits} /> : null}
+        {email && editing ? <DiffView before={email.html_body} after={emailEdits.html_body} subjectBefore={email.subject} subjectAfter={emailEdits.subject} /> : null}
         {changes ? <ChangesCard payload={changes} accepted={accepted} onToggle={toggle} /> : null}
         {plan ? <PlanCard payload={plan} /> : null}
         {escalation ? <EscalationCard payload={escalation} caseCode={approval.case_code} withChat={withChat} /> : null}

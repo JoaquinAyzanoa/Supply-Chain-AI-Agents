@@ -8,6 +8,8 @@ serves the built frontend under ``/`` when the bundle exists.
 
 from __future__ import annotations
 
+import asyncio
+from contextlib import suppress
 from pathlib import Path
 
 from fastapi import FastAPI
@@ -39,6 +41,7 @@ from director.api.planning import (
 from director.api.risk import HttpRiskSource, RiskSource
 from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
+from director.api.suppliers import MailLinks, SupplierPrices
 from director.assistant import (
     AssistantStore,
     DepartmentAssistant,
@@ -78,6 +81,7 @@ from director.learning import (
 )
 from director.playbooks import PlaybookEngine, PlaybookStore, PostgresPlaybookStore
 from director.policies import FollowUpPolicy
+from director.push import PostgresPushStore, PushRelay, PushStore, WebPushSender
 from director.realtime import BroadcastingCaseStore
 from director.routers import events
 from director.sourcing import HttpSourcingSource, SourcingDispatcher, SourcingSource
@@ -110,7 +114,9 @@ from sc_core.odoo.repositories import (
     ActivityRepo,
     AgentRunRepo,
     ApprovalRepo,
+    MailLinkRepo,
     PurchaseOrderRepo,
+    SupplierInfoRepo,
 )
 
 settings = Settings(service_name="director")
@@ -255,6 +261,41 @@ class DirectorModule(Module):
         approvals: ApprovalsGateway,  # type: ignore[type-abstract]
     ) -> ChatActions:
         return ChatActions(deps, approvals)
+
+    @provider
+    @singleton
+    def provide_supplier_prices(self, odoo: OdooClient) -> SupplierPrices:  # type: ignore[type-abstract]
+        return SupplierInfoRepo(odoo)
+
+    @provider
+    @singleton
+    def provide_mail_links(self, odoo: OdooClient) -> MailLinks:  # type: ignore[type-abstract]
+        return MailLinkRepo(odoo)
+
+    @provider
+    @singleton
+    def provide_push_store(self, db: Database) -> PushStore:  # type: ignore[type-abstract]
+        return PostgresPushStore(db)
+
+    @provider
+    @singleton
+    def provide_push_relay(
+        self,
+        settings: Settings,
+        realtime: Realtime,  # type: ignore[type-abstract]
+        store: PushStore,  # type: ignore[type-abstract]
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+    ) -> PushRelay:
+        return PushRelay(
+            realtime=realtime,
+            store=store,
+            sender=WebPushSender(
+                private_key=settings.ui.vapid_private_key.get_secret_value(),
+                subject=settings.ui.vapid_subject,
+            ),
+            approvals=approvals,
+            control_tower_url=settings.ui.public_url,
+        )
 
     @provider
     @singleton
@@ -622,8 +663,8 @@ def build_app() -> FastAPI:
             LlmModule(),
             DirectorModule(),
         ],
-        startup=[_open_db, _connect_odoo],
-        shutdown=[_close_odoo, _close_agents, _close_db],
+        startup=[_open_db, _connect_odoo, _start_push_relay],
+        shutdown=[_stop_push_relay, _close_odoo, _close_agents, _close_db],
     )
     # The Control Tower bundle, when built (docker/director.Dockerfile or `just ui-build`).
     mount_spa(application, Path(settings.ui.static_dir))
@@ -640,6 +681,27 @@ async def _close_db() -> None:
 
 async def _close_agents() -> None:
     await app.state.injector.get(Agents).aclose()
+
+
+_push_task: asyncio.Task[None] | None = None
+
+
+async def _start_push_relay() -> None:
+    """Approvals reach the phones that subscribed, when a VAPID key pair is configured."""
+    global _push_task  # noqa: PLW0603 - one background task per process
+    if not (settings.ui.vapid_public_key and settings.ui.vapid_private_key.get_secret_value()):
+        logger.info("web push off: SC__UI__VAPID_PUBLIC_KEY / PRIVATE_KEY not set")
+        return
+    relay = app.state.injector.get(PushRelay)
+    _push_task = asyncio.create_task(relay.run(), name="push-relay")
+    logger.info("web push on: approvals are relayed to subscribed browsers")
+
+
+async def _stop_push_relay() -> None:
+    if _push_task is not None:
+        _push_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await _push_task
 
 
 async def _connect_odoo() -> None:

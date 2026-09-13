@@ -11,7 +11,10 @@ import type { AuthState } from "@/auth/AuthProvider";
 import { atLeast, authStore } from "@/auth/store";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/routes/login";
+import { AiPage } from "@/features/ai/AiPage";
 import { ApprovalsInbox, type ApprovalsSearch } from "@/features/approvals/ApprovalsInbox";
+import { HomePage } from "@/features/home/HomePage";
+import { Supplier360Page } from "@/features/suppliers/Supplier360Page";
 import { AssistantPage } from "@/features/assistant/AssistantPage";
 import { BriefingPage } from "@/features/briefing/BriefingPage";
 import { AutonomyPage } from "@/features/autonomy/AutonomyPage";
@@ -67,6 +70,8 @@ const approvalsSearch = z.object({
   tab: z.enum(["pending", "resolved"]).optional(),
   kind: z.string().optional(),
   po: z.string().optional(),
+  email: z.string().optional(),
+  supplier: z.string().optional(),
 });
 
 export const approvalsRoute = createRoute({
@@ -81,11 +86,13 @@ const boardSearch = z.object({
   supplier: z.string().optional(),
   buyer: z.string().optional(),
   problems: z.string().optional(),
+  lanes: z.string().optional(),
 });
 
+export const homeRoute = child("/", HomePage);
 export const boardRoute = createRoute({
   getParentRoute: () => appRoute,
-  path: "/",
+  path: "/board",
   validateSearch: (search): BoardSearch => boardSearch.parse(search),
   component: BoardPage,
 });
@@ -105,13 +112,20 @@ export const casesRoute = createRoute({
 export const caseRoute = child("/cases/$caseId", CaseTimelinePage);
 export const exceptionsRoute = child("/exceptions", ExceptionsBoardPage);
 export const suppliersRoute = child("/suppliers", SuppliersPage);
+export const supplierRoute = child("/suppliers/$partnerId", Supplier360Page);
+export const aiRoute = child("/ai", AiPage);
 export const autonomyRoute = child("/autonomy", AutonomyPage);
 export const playbooksRoute = child("/playbooks", PlaybooksPage);
 export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
 export const riskRoute = child("/risk", RiskPage);
 export const briefingRoute = child("/briefing", BriefingPage);
-export const assistantRoute = child("/assistant", AssistantPage);
+export const assistantRoute = createRoute({
+  getParentRoute: () => appRoute,
+  path: "/assistant",
+  validateSearch: (search) => z.object({ q: z.string().optional() }).parse(search),
+  component: AssistantPage,
+});
 const runsSearch = z.object({
   agent: z.string().optional(),
   model: z.string().optional(),
@@ -137,12 +151,15 @@ export const settingsRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   appRoute.addChildren([
+    homeRoute,
     boardRoute,
     approvalsRoute,
     casesRoute,
     caseRoute,
     exceptionsRoute,
     suppliersRoute,
+    supplierRoute,
+    aiRoute,
     autonomyRoute,
     playbooksRoute,
     planningRoute,

@@ -36,6 +36,26 @@ export interface BoardSearch {
   supplier?: string;
   buyer?: string;
   problems?: string;
+  lanes?: string;
+}
+
+type Lane = { key: string; title: string; cards: BoardCard[] };
+
+/** Rows of the board: by supplier, or by priority (late and problems first). */
+function lanesFor(cards: BoardCard[], mode: string, t: (key: string) => string): Lane[] {
+  if (mode === "supplier") {
+    const by = new Map<string, BoardCard[]>();
+    for (const card of cards) by.set(card.partner_name, [...(by.get(card.partner_name) ?? []), card]);
+    return [...by.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([name, rows]) => ({ key: name, title: name, cards: rows }));
+  }
+  const attention = cards.filter((c) => hasProblem(c) || c.delivery === "late");
+  const soon = cards.filter((c) => !attention.includes(c) && (c.delivery === "due_soon" || (c.predicted_delay_days ?? 0) > 0));
+  const rest = cards.filter((c) => !attention.includes(c) && !soon.includes(c));
+  return [
+    { key: "attention", title: t("board.lane.attention"), cards: attention },
+    { key: "soon", title: t("board.lane.soon"), cards: soon },
+    { key: "rest", title: t("board.lane.rest"), cards: rest },
+  ].filter((lane) => lane.cards.length > 0);
 }
 
 export function BoardPage() {
@@ -53,7 +73,7 @@ export function BoardPage() {
   const canDrag = hasRole("approver");
 
   const setSearch = (patch: Partial<BoardSearch>) =>
-    void navigate({ to: "/", search: (prev: BoardSearch) => clean({ ...prev, ...patch }) });
+    void navigate({ to: "/board", search: (prev: BoardSearch) => clean({ ...prev, ...patch }) });
 
   const cards = board.data?.cards ?? [];
   const suppliers = useMemo(() => unique(cards.map((c) => c.partner_name)), [cards]);
@@ -138,6 +158,11 @@ export function BoardPage() {
             <input type="checkbox" checked={Boolean(search.problems)} onChange={(event) => setSearch({ problems: event.target.checked ? "1" : undefined })} />
             {t("board.filter.problems")}
           </label>
+          <select aria-label={t("board.lanes")} className="h-8 rounded-md border bg-card px-2 text-sm" value={search.lanes ?? ""} onChange={(event) => setSearch({ lanes: event.target.value || undefined })}>
+            <option value="">{t("board.lane.none")}</option>
+            <option value="supplier">{t("board.lane.by_supplier")}</option>
+            <option value="priority">{t("board.lane.by_priority")}</option>
+          </select>
           {canDrag ? (
             <Button
               variant="outline"
@@ -183,18 +208,42 @@ export function BoardPage() {
       {board.error ? <ErrorBox error={board.error} onRetry={() => board.refetch()} /> : null}
       {board.data ? (
         <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-          <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto p-4">
-            {COLUMNS.map((column) => (
-              <BoardColumn
-                key={column}
-                column={column}
-                cards={visible.filter((c) => c.column === column)}
-                total={board.data.counts[column] ?? 0}
-                canDrag={canDrag}
-                onOpen={(card) => setSearch({ po: card.po_name })}
-              />
-            ))}
-          </div>
+          {search.lanes ? (
+            <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-auto p-4">
+              {lanesFor(visible, search.lanes, t).map((lane) => (
+                <section key={lane.key} aria-label={lane.title} className="rounded-lg border bg-muted/30 p-2">
+                  <h2 className="mb-2 px-1 text-sm font-semibold">
+                    {lane.title} <span className="font-normal text-muted-foreground">({lane.cards.length})</span>
+                  </h2>
+                  <div className="flex gap-3 overflow-x-auto">
+                    {COLUMNS.map((column) => (
+                      <BoardColumn
+                        key={`${lane.key}:${column}`}
+                        column={column}
+                        cards={lane.cards.filter((c) => c.column === column)}
+                        total={lane.cards.filter((c) => c.column === column).length}
+                        canDrag={canDrag}
+                        onOpen={(card) => setSearch({ po: card.po_name })}
+                      />
+                    ))}
+                  </div>
+                </section>
+              ))}
+            </div>
+          ) : (
+            <div className="flex min-h-0 flex-1 gap-3 overflow-x-auto p-4">
+              {COLUMNS.map((column) => (
+                <BoardColumn
+                  key={column}
+                  column={column}
+                  cards={visible.filter((c) => c.column === column)}
+                  total={board.data.counts[column] ?? 0}
+                  canDrag={canDrag}
+                  onOpen={(card) => setSearch({ po: card.po_name })}
+                />
+              ))}
+            </div>
+          )}
         </DndContext>
       ) : null}
       {open ? <OrderDrawer card={open} onClose={() => setSearch({ po: undefined })} /> : null}

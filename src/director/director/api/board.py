@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime, timedelta
-from typing import Literal, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_injector import Injected
@@ -31,6 +31,7 @@ from pydantic import Field
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import Approver, Principal, Viewer
 from director.api.exceptions import ExceptionsSource
+from director.api.performance import PerformanceSource
 from director.api.planning import PlanningReadStore
 from director.handlers.followups import MailActivity
 from director.playbooks import PlaybookEngine, PlaybookPosition
@@ -118,6 +119,9 @@ class BoardCard(StrictModel):
     can_act: bool = False
     odoo_url: str
     playbook: PlaybookPosition | None = None  # where the order is in its playbook
+    age_days: int = 0  # since the order was created
+    predicted_delay_days: int | None = None  # S8: the supplier's usual drift, before it is late
+    delay_confidence: float | None = None  # from the supplier's OTIF
 
 
 class PlanningPending(StrictModel):
@@ -235,6 +239,21 @@ def delivery_for(po: PurchaseOrder, *, today: date, due_soon_days: int) -> tuple
     return "on_time", 0
 
 
+def predicted_delay(
+    po: PurchaseOrder, score: dict[str, Any] | None, delivery: Delivery
+) -> tuple[int | None, float | None]:
+    """How late the supplier usually delivers against its promise, for an order that is
+    confirmed and not late yet; the confidence follows the supplier's OTIF."""
+    if score is None or delivery not in ("on_time", "due_soon") or po.state != "purchase":
+        return None, None
+    drift = score.get("promise_drift_days")
+    if drift is None or float(drift) < 0.5:
+        return None, None
+    otif = score.get("otif")
+    confidence = round(min(0.95, 0.4 + (1 - float(otif)) * 0.6), 2) if otif is not None else 0.5
+    return round(float(drift)), confidence
+
+
 async def build_board(
     *,
     orders: BoardOrders,
@@ -246,8 +265,19 @@ async def build_board(
     today: date,
     due_soon_days: int = DUE_SOON_DAYS,
     playbooks: PlaybookPositions | None = None,
+    performance: PerformanceSource | None = None,
 ) -> Board:
     rows = await orders.board_orders(closed_since=today - timedelta(days=CLOSED_DAYS))
+    scores: dict[int, dict[str, Any]] = {}
+    if performance is not None:
+        try:
+            scores = {
+                int(r["partner_id"]): r
+                for r in await performance.scores()
+                if r.get("partner_id") is not None
+            }
+        except ScError as exc:
+            logger.warning("scores unavailable for the board: {}", exc)
     pending = await approvals.list(status="pending", kind=None, po_name=None)
     by_po: dict[str, list[Approval]] = {}
     for approval in pending:
@@ -284,6 +314,7 @@ async def build_board(
                 act_kind = "late_po"
             elif fact.is_rfq and (fact.silent_days(today) or 0) > 0:
                 act_kind = "rfq_no_reply"
+        predicted, confidence = predicted_delay(po, scores.get(po.partner_id.id), delivery)
         cards.append(
             BoardCard(
                 po_id=po.id,
@@ -339,6 +370,9 @@ async def build_board(
                 act_kind=act_kind,
                 can_act=act_kind is not None and fact is not None and not fact.awaiting_human,
                 odoo_url=record_url(settings.odoo.browser_url, "purchase.order", po.id),
+                age_days=max(0, (today - po.date_order.date()).days) if po.date_order else 0,
+                predicted_delay_days=predicted,
+                delay_confidence=confidence,
             )
         )
     order = {name: i for i, name in enumerate(COLUMNS)}
@@ -473,6 +507,7 @@ async def board(
     source: ExceptionsSource = Injected(ExceptionsSource),  # type: ignore[type-abstract]
     settings: Settings = Injected(Settings),
     playbooks: PlaybookEngine = Injected(PlaybookEngine),
+    performance: PerformanceSource = Injected(PerformanceSource),  # type: ignore[type-abstract]
 ) -> Board:
     return await build_board(
         orders=orders,
@@ -484,6 +519,7 @@ async def board(
         today=local_today(),
         due_soon_days=due_soon_days,
         playbooks=playbooks,
+        performance=performance,
     )
 
 

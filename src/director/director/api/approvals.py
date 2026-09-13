@@ -159,6 +159,23 @@ class ResolveResponse(StrictModel):
     callback_status: str | None = None
 
 
+class BulkRequest(StrictModel):
+    ids: list[int] = Field(min_length=1, max_length=100)
+    status: Literal["approved", "rejected"]
+    reason: str | None = Field(default=None, max_length=1000)
+
+
+class BulkResult(StrictModel):
+    id: int
+    status: str | None = None
+    error: str | None = None
+
+
+class BulkResponse(StrictModel):
+    resolved: int
+    results: list[BulkResult]
+
+
 # --- gateway to Odoo ---------------------------------------------------------------------------
 
 
@@ -388,6 +405,48 @@ async def get_approval(
     except NotFound as exc:
         raise HTTPException(status_code=404, detail=f"approval {approval_id} not found") from exc
     return await build_view(approval, settings=settings, cases=cases, playbooks=playbooks)
+
+
+@router.post("/bulk", response_model=BulkResponse)
+async def resolve_many(
+    body: BulkRequest,
+    principal: Principal = Approver,
+    gateway: ApprovalsGateway = Injected(ApprovalsGateway),  # type: ignore[type-abstract]
+    cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
+    autonomy: AutonomyChanges = Injected(AutonomyChanges),
+    feedback: FeedbackRecorder = Injected(FeedbackRecorder),
+) -> BulkResponse:
+    """Decide many at once (S8): each one goes through the same path as a single
+    decision; the ones that cannot be decided are reported, not skipped silently."""
+    results: list[BulkResult] = []
+    for approval_id in dict.fromkeys(body.ids):
+        try:
+            done = await resolve_approval(
+                approval_id,
+                ResolveRequest(status=body.status, reason=body.reason, edited_payload=None),
+                principal=principal,
+                gateway=gateway,
+                cases=cases,
+                autonomy=autonomy,
+                feedback=feedback,
+            )
+        except HTTPException as exc:
+            detail = str(exc.detail)
+            error = (
+                "not found"
+                if exc.status_code == 404
+                else detail.replace(f"approval {approval_id} is ", "")
+                if exc.status_code == 409
+                else detail
+            )
+            results.append(BulkResult(id=approval_id, error=error))
+            continue
+        results.append(BulkResult(id=approval_id, status=done.status))
+    resolved = sum(1 for r in results if r.error is None)
+    logger.bind(by=principal.email, resolved=resolved, asked=len(body.ids)).info(
+        "approvals decided in bulk"
+    )
+    return BulkResponse(resolved=resolved, results=results)
 
 
 @router.post("/{approval_id}/resolve", response_model=ResolveResponse)

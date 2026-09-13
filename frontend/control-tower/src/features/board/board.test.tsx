@@ -37,6 +37,7 @@ const card = (over: Partial<Card> & Pick<Card, "po_id" | "po_name" | "column" | 
   summary: null,
   act_kind: null,
   can_act: false,
+  age_days: 3,
   invoice_status: null,
   discrepancy: false,
   odoo_url: `http://odoo/purchase.order/${over.po_id}`,
@@ -137,7 +138,7 @@ describe("orders board", () => {
     acted = [];
     vi.spyOn(globalThis, "fetch").mockImplementation(fakeFetch);
     authStore.set({ token: "jwt", user: { email: "ana@x.com", name: "Ana", role: "approver" } });
-    window.history.replaceState(null, "", "/");
+    window.history.replaceState(null, "", "/board");
   });
   afterEach(() => vi.restoreAllMocks());
 

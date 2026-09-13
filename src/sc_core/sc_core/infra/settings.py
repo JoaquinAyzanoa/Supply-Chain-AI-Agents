@@ -331,6 +331,11 @@ class UiCfg(_Section):
     sse_heartbeat_seconds: float = Field(default=15.0, gt=0)  # keeps /api/stream alive
     # Where a person's browser opens the Control Tower (links in Odoo notes and To-Dos).
     public_url: str = "http://localhost:8010"
+    # Web push for approvals (phase 11 S8): a VAPID key pair and the contact the push
+    # services may write to. Empty keys keep the feature off.
+    vapid_public_key: str = ""
+    vapid_private_key: SecretStr = SecretStr("")
+    vapid_subject: str = "mailto:admin@example.com"
 
 
 class AgentsCfg(_Section):

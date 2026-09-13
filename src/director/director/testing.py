@@ -20,6 +20,7 @@ from director.api.planning import DemandSource, PlanningLineRow, PlanningReadSto
 from director.api.risk import RiskSource
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
+from director.api.suppliers import MailLinks, SupplierPrices
 from director.assistant import (
     AssistantStore,
     DepartmentAssistant,
@@ -43,6 +44,7 @@ from director.learning import (
 )
 from director.playbooks import MemoryPlaybookStore, PlaybookEngine, PlaybookStore
 from director.policies import FollowUpPolicy, PoFacts
+from director.push import MemoryPushStore, PushStore
 from director.realtime import BroadcastingCaseStore
 from director.sourcing import SourcingDispatcher, SourcingSource
 from director.store import CaseStore, MemoryCaseStore
@@ -61,9 +63,11 @@ from sc_core.odoo.models import (
     AgentRun,
     Approval,
     ApprovalStatus,
+    MailLink,
     PurchaseOrder,
     PurchaseOrderLine,
     Ref,
+    SupplierInfo,
 )
 from sc_core.schema.runtime_settings import RuntimeSettings
 from sc_core.shared.errors import ScError, ValidationFailed
@@ -186,6 +190,9 @@ class MemoryDirectorModule(Module):
             odoo={"url": "http://odoo.test:8069"},
         )
         self.briefings = MemoryBriefingStore()
+        self.push_store = MemoryPushStore()
+        self.prices = MemorySupplierPrices()
+        self.mail_links = MemoryMailLinks()
         self.assistant_store = MemoryAssistantStore()
         self.sent_mail: list[Any] = []
         self.deps = memory_deps(
@@ -248,6 +255,9 @@ class MemoryDirectorModule(Module):
         actions = ChatActions(self.deps, self.approvals)
         binder.bind(ChatActions, to=actions, scope=singleton)
         binder.bind(BriefingStore, to=self.briefings, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(PushStore, to=self.push_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(SupplierPrices, to=self.prices, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(MailLinks, to=self.mail_links, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(
             BriefingJob,
             to=BriefingJob(
@@ -613,6 +623,30 @@ class MemoryPerformanceSource:
 
     async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
         return [await self.rank(pid) for pid in sorted(set(product_ids))]
+
+
+class MemorySupplierPrices:
+    """Price list rows per supplier, as Odoo's ``product.supplierinfo`` would list them."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, list[SupplierInfo]] = {}
+        self.variants: dict[int, int] = {}  # template id -> first variant id
+
+    async def for_partner(self, partner_id: int) -> list[SupplierInfo]:
+        return list(self.rows.get(partner_id, []))
+
+    async def variant_ids(self, template_ids: list[int]) -> dict[int, int]:
+        return {tid: self.variants[tid] for tid in template_ids if tid in self.variants}
+
+
+class MemoryMailLinks:
+    """Mail links per order id (metadata only)."""
+
+    def __init__(self) -> None:
+        self.rows: dict[int, list[MailLink]] = {}
+
+    async def for_po(self, po_id: int) -> list[MailLink]:
+        return list(self.rows.get(po_id, []))
 
 
 class _RecordingMail:

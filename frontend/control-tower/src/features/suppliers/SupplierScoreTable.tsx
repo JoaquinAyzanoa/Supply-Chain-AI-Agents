@@ -7,6 +7,8 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Link } from "@tanstack/react-router";
+
 import { useI18n } from "@/i18n";
 import { cn, formatNumber } from "@/lib/utils";
 import { SupplierProfileEditor } from "./SupplierProfileEditor";
@@ -78,6 +80,9 @@ function Row({
           <button type="button" className="text-left font-medium text-primary underline" onClick={onToggle} aria-expanded={open}>
             {row.partner_name}
           </button>
+          <Link to="/suppliers/$partnerId" params={{ partnerId: String(row.partner_id) }} className="ml-2 text-xs text-primary underline">
+            {t("supplier.open_360")}
+          </Link>
           {row.samples?.lines !== undefined ? <div className="text-xs text-muted-foreground">{t("suppliers.lines", { n: row.samples.lines })}</div> : null}
         </TableCell>
         <TableCell>

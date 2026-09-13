@@ -46,7 +46,7 @@ export function AutoActionsFeed({ days = 7, compact = false }: { days?: number; 
               <Badge variant={action.level === "auto_notice" ? "warning" : "secondary"}>{t(`autonomy.level.${action.level}`)}</Badge>
               <Badge variant="outline">{t(`approvals.kind.${action.kind}`)}</Badge>
               {action.po_name ? (
-                <Link to="/" search={{ po: action.po_name }} className="text-primary underline">
+                <Link to="/board" search={{ po: action.po_name }} className="text-primary underline">
                   {action.po_name}
                 </Link>
               ) : null}

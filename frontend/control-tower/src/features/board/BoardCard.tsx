@@ -81,6 +81,7 @@ export function OrderCard({
           <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
             <span className="tabular-nums">{formatMoney(card.amount_total, card.currency, locale)}</span>
             {card.date_planned ? <span>{t("board.planned", { date: formatDate(card.date_planned, locale) })}</span> : null}
+            {card.age_days ? <span title={t("board.age_hint")}>{t("board.age", { n: card.age_days })}</span> : null}
           </div>
           <MailLine card={card} />
           {card.next_action && card.next_action_at ? (
@@ -94,6 +95,11 @@ export function OrderCard({
               <Badge variant="warning">{card.pending_approval.kind === "vendor_bill" ? t("board.invoice_to_check") : t("board.approval")}</Badge>
             ) : null}
             {card.discrepancy ? <Badge variant="destructive">{t("board.discrepancy")}</Badge> : null}
+            {card.predicted_delay_days ? (
+              <Badge variant="warning" title={t("board.predicted_hint")}>
+                {t("board.predicted", { n: card.predicted_delay_days, pct: Math.round((card.delay_confidence ?? 0) * 100) })}
+              </Badge>
+            ) : null}
             {card.column === "invoicing" && !card.pending_approval && card.invoice_status === "invoiced" ? (
               <Badge variant="success">{t("board.bill_drafted")}</Badge>
             ) : null}

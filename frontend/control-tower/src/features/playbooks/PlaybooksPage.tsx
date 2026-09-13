@@ -199,7 +199,7 @@ function RunsTable({ rows, canAct, onDone }: { rows: RunView[]; canAct: boolean;
             <TableRow key={row.run.id}>
               <TableCell className="font-medium">
                 {row.run.po_name ? (
-                  <Link to="/" search={{ po: row.run.po_name }} className="text-primary underline">
+                  <Link to="/board" search={{ po: row.run.po_name }} className="text-primary underline">
                     {row.run.po_name}
                   </Link>
                 ) : (

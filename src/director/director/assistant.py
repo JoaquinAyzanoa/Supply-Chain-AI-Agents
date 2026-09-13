@@ -413,13 +413,13 @@ class DepartmentAssistant:
             silent = f.silent_days(today)
             if f.is_confirmed_open and late > 0:
                 lines.append(
-                    f"{ctx.cite(f.po_name, f.po_name, f'/?po={f.po_name}')} confirmed order "
+                    f"{ctx.cite(f.po_name, f.po_name, f'/board?po={f.po_name}')} confirmed order "
                     f"{late} day(s) late (planned {f.date_planned})"
                     + (", a person has it" if f.awaiting_human else "")
                 )
             elif f.is_rfq and silent:
                 lines.append(
-                    f"{ctx.cite(f.po_name, f.po_name, f'/?po={f.po_name}')} quotation request "
+                    f"{ctx.cite(f.po_name, f.po_name, f'/board?po={f.po_name}')} quotation request "
                     f"without a reply for {silent} day(s)"
                 )
         ctx.block("Late and silent orders", lines)
@@ -485,7 +485,7 @@ class DepartmentAssistant:
             planned = po.date_planned.date().isoformat() if po.date_planned else "unknown"
             currency = po.currency_id.name if po.currency_id else ""
             line = (
-                f"{ctx.cite(po.name, po.name, f'/?po={po.name}')} with {po.partner_id.name}: "
+                f"{ctx.cite(po.name, po.name, f'/board?po={po.name}')} with {po.partner_id.name}: "
                 f"state {po.state}, planned {planned}, receipt {po.receipt_status or 'none'}, "
                 f"total {po.amount_total:,.2f} {currency}".rstrip()
             )

@@ -105,7 +105,7 @@ function RoundsTable({ rows, canAct, onDone }: { rows: SourcingRound[]; canAct: 
                 {round.source_po_name ? (
                   <>
                     {" · "}
-                    <Link to="/" search={{ po: round.source_po_name }} className="text-primary underline">
+                    <Link to="/board" search={{ po: round.source_po_name }} className="text-primary underline">
                       {round.source_po_name}
                     </Link>
                   </>

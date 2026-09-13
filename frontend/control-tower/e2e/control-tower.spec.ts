@@ -10,9 +10,12 @@ test.beforeEach(async ({ page }) => {
   await mockApi(page, state);
 });
 
-test("an approver lands on the board, opens an order and confirms it from the panel", async ({ page }) => {
+test("an approver lands on home, then opens an order on the board and confirms it from the panel", async ({ page }) => {
   await login(page, "ana@x.com");
   await expect(page).toHaveURL(/\/(\?.*)?$/);
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Needs you" })).toContainText("Send follow-up to Proveedor Hidraulica");
+  await page.goto("/board");
   const incoming = page.getByRole("region", { name: "To receive" });
   await expect(incoming.getByRole("article", { name: "P00016" })).toContainText("2 d late");
   await expect(page.getByRole("link", { name: "Review the plan" })).toHaveAttribute("href", "/planning/run_1");
@@ -63,6 +66,7 @@ test("a planner reviews the run, edits a quantity and approves the selected line
 
 test("a viewer sees no actions and no settings; the language switch works", async ({ page }) => {
   await login(page, "vic@x.com");
+  await page.goto("/board");
   await expect(page.getByRole("article", { name: "P00016" })).toBeVisible();
   await expect(page.getByRole("button", { name: /Drag P/ })).toHaveCount(0); // viewers cannot move cards
   await page.goto("/approvals");
@@ -71,6 +75,7 @@ test("a viewer sees no actions and no settings; the language switch works", asyn
   await expect(page.getByRole("link", { name: "Settings" })).toHaveCount(0);
   await page.goto("/settings");
   await expect(page).toHaveURL(/\/(\?.*)?$/);
+  await page.goto("/board");
   await page.getByRole("button", { name: "es", exact: true }).or(page.getByRole("button", { name: "Español" })).first().click();
   await expect(page.getByRole("region", { name: "Por recibir" })).toBeVisible();
 });
@@ -81,11 +86,34 @@ test("a wrong password stays on the login page", async ({ page }) => {
   await expect(page).toHaveURL(/\/login/);
 });
 
-test("the board, the inbox and the planning review have no serious accessibility violations", async ({ page }) => {
+test("a buyer clears the day's approvals from a phone in one go", async ({ page }) => {
   await login(page, "ana@x.com");
+  await page.goto("/approvals");
+  await expect(page.getByRole("button", { name: /Send follow-up/ })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Select all shown" }).check();
+  await page.getByRole("button", { name: /^Approve 2/ }).click();
+  await expect.poll(() => state.bulk.length).toBe(1);
+  expect(state.bulk[0]).toEqual({ ids: [1, 2], status: "approved", reason: null });
+  await expect(page.getByRole("status")).toContainText("2 decided");
+});
+
+test("home, the board, the inbox, the planning review, supplier 360 and the AI page have no serious accessibility violations", async ({ page }) => {
+  await login(page, "ana@x.com");
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  const home = await new AxeBuilder({ page }).analyze();
+  expect(home.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
+  await page.goto("/board");
   await expect(page.getByRole("article", { name: "P00016" })).toBeVisible();
   const board = await new AxeBuilder({ page }).analyze();
   expect(board.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
+  await page.goto("/suppliers/45");
+  await expect(page.getByRole("heading", { name: "Proveedor Hidraulica" })).toBeVisible();
+  const supplier = await new AxeBuilder({ page }).analyze();
+  expect(supplier.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
+  await page.goto("/ai");
+  await expect(page.getByRole("heading", { name: "AI performance" })).toBeVisible();
+  const ai = await new AxeBuilder({ page }).analyze();
+  expect(ai.violations.filter((v) => v.impact === "critical" || v.impact === "serious")).toEqual([]);
   await page.goto("/approvals");
   await expect(page.getByRole("button", { name: /Send follow-up/ })).toBeVisible();
   const inbox = await new AxeBuilder({ page }).analyze();

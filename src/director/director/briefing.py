@@ -238,35 +238,13 @@ class BriefingBuilder:
 
     async def _needs_you(self, now: datetime) -> BriefingSection:
         pending = await self._approvals.list(status="pending", kind=None, po_name=None)
-        items: list[BriefingItem] = []
-        for approval in pending:
-            payload = ApprovalRepo.payload_of(approval)
-            facts = payload.get("facts") or {}
-            amount = facts.get("amount")
-            created = approval.create_date
-            days = (now - created).days if created else 0
-            label = t(f"briefing.kind.{approval.kind}", self._language)
-            text = f"#{approval.id} {label}: {approval.summary}"
-            if amount:
-                text += f" · {float(amount):,.0f} {facts.get('currency') or ''}".rstrip()
-            if days:
-                text += " · " + t("briefing.waiting", self._language, n=days)
-            items.append(
-                BriefingItem(
-                    text=text[:300],
-                    path=f"/approvals?id={approval.id}",
-                    po_name=approval.po_id.name if approval.po_id else None,
-                    amount=float(amount) if amount else None,
-                    days=days,
-                )
-            )
-        # money first, then age: the costly decision before the old one
-        items.sort(key=lambda i: (-(i.amount or 0.0), -(i.days or 0)))
         return BriefingSection(
             key="needs_you",
             title=t("briefing.section.needs_you", self._language),
             count=len(pending),
-            items=items[:MAX_ITEMS],
+            items=await needs_you_items(
+                self._approvals, now=now, language=self._language, limit=MAX_ITEMS
+            ),
         )
 
     async def _risks(self) -> BriefingSection:
@@ -335,7 +313,7 @@ class BriefingBuilder:
             items.append(
                 BriefingItem(
                     text=t("briefing.late_po", self._language, po=item.title, days=item.days),
-                    path=f"/?po={item.po_name}" if item.po_name else "/exceptions",
+                    path=f"/board?po={item.po_name}" if item.po_name else "/exceptions",
                     po_name=item.po_name,
                     days=item.days,
                 )
@@ -344,7 +322,7 @@ class BriefingBuilder:
             items.append(
                 BriefingItem(
                     text=t("briefing.silent_rfq", self._language, po=item.title, days=item.days),
-                    path=f"/?po={item.po_name}" if item.po_name else "/exceptions",
+                    path=f"/board?po={item.po_name}" if item.po_name else "/exceptions",
                     po_name=item.po_name,
                     days=item.days,
                 )
@@ -448,6 +426,36 @@ class BriefingBuilder:
             logger.warning("briefing paragraph not written: {}", exc)
             return None
         return answer.text.strip()
+
+
+async def needs_you_items(
+    approvals: ApprovalsGateway, *, now: datetime, language: Language, limit: int = MAX_ITEMS
+) -> list[BriefingItem]:
+    """The pending approvals as items, the costly decision before the old one."""
+    items: list[BriefingItem] = []
+    for approval in await approvals.list(status="pending", kind=None, po_name=None):
+        payload = ApprovalRepo.payload_of(approval)
+        facts = payload.get("facts") or {}
+        amount = facts.get("amount")
+        created = approval.create_date
+        days = (now - created).days if created else 0
+        label = t(f"briefing.kind.{approval.kind}", language)
+        text = f"#{approval.id} {label}: {approval.summary}"
+        if amount:
+            text += f" · {float(amount):,.0f} {facts.get('currency') or ''}".rstrip()
+        if days:
+            text += " · " + t("briefing.waiting", language, n=days)
+        items.append(
+            BriefingItem(
+                text=text[:300],
+                path=f"/approvals?id={approval.id}",
+                po_name=approval.po_id.name if approval.po_id else None,
+                amount=float(amount) if amount else None,
+                days=days,
+            )
+        )
+    items.sort(key=lambda i: (-(i.amount or 0.0), -(i.days or 0)))
+    return items[:limit]
 
 
 def facts_text(briefing: Briefing) -> str:

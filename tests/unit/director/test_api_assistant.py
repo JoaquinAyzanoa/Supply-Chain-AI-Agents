@@ -188,7 +188,7 @@ async def test_a_question_is_answered_from_the_desk_with_citations(
         "#24",
     ]
     paths = {c["ref"]: c["path"] for c in answered["citations"]}
-    assert paths["P00077"] == "/?po=P00077" and paths["#24"] == "/approvals?id=24"
+    assert paths["P00077"] == "/board?po=P00077" and paths["#24"] == "/approvals?id=24"
     assert paths["CBEA-LHN"] == "/risk" and paths["Proveedor Hidraulica"] == "/suppliers"
     # the model saw the order from Odoo, the scorecard and the risk line
     prompt = chat.last_prompt_text()

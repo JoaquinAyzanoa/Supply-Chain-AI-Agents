@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/ai": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Ai Performance */
+        get: operations["ai_performance_api_ai_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/approvals": {
         parameters: {
             query?: never;
@@ -15,6 +32,27 @@ export interface paths {
         get: operations["list_approvals_api_approvals_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/approvals/bulk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Many
+         * @description Decide many at once (S8): each one goes through the same path as a single
+         *     decision; the ones that cannot be decided are reported, not skipped silently.
+         */
+        post: operations["resolve_many_api_approvals_bulk_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -502,6 +540,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Home */
+        get: operations["home_api_home_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/learning/profiles/{partner_id}": {
         parameters: {
             query?: never;
@@ -884,6 +939,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/push/key": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Push Key */
+        get: operations["push_key_api_push_key_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/push/subscriptions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subscribe */
+        post: operations["subscribe_api_push_subscriptions_post"];
+        /** Unsubscribe */
+        delete: operations["unsubscribe_api_push_subscriptions_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/risk": {
         parameters: {
             query?: never;
@@ -1122,6 +1212,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/suppliers/{partner_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Supplier 360 */
+        get: operations["supplier_360_api_suppliers__partner_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1214,6 +1321,15 @@ export interface components {
             /** Supplier Score */
             supplier_score?: number | null;
         };
+        /** AgentCost */
+        AgentCost: {
+            /** Agent */
+            agent: string;
+            /** Cost Usd */
+            cost_usd: number;
+            /** Runs */
+            runs: number;
+        };
         /** AgentRunView */
         AgentRunView: {
             /** Agent */
@@ -1260,6 +1376,77 @@ export interface components {
             summary?: string | null;
             /** Trace Url */
             trace_url?: string | null;
+        };
+        /** AiPerformance */
+        AiPerformance: {
+            /**
+             * Automation
+             * @default []
+             */
+            automation: components["schemas"]["AutomationView"][];
+            /** Automation Rate */
+            automation_rate?: number | null;
+            /**
+             * By Agent
+             * @default []
+             */
+            by_agent: components["schemas"]["AgentCost"][];
+            /**
+             * Cases With Runs
+             * @default 0
+             */
+            cases_with_runs: number;
+            /** Cost Per Case Usd */
+            cost_per_case_usd?: number | null;
+            /**
+             * Cost Usd
+             * @default 0
+             */
+            cost_usd: number;
+            /** Days */
+            days: number;
+            /**
+             * Decisions
+             * @default 0
+             */
+            decisions: number;
+            /** Edit Rate */
+            edit_rate?: number | null;
+            /** Eta Error Days */
+            eta_error_days?: number | null;
+            /**
+             * Invoices First Time
+             * @default 0
+             */
+            invoices_first_time: number;
+            /** Invoices First Time Rate */
+            invoices_first_time_rate?: number | null;
+            /**
+             * Invoices Total
+             * @default 0
+             */
+            invoices_total: number;
+            /** Negotiation Savings */
+            negotiation_savings?: number | null;
+            /** Rejection Rate */
+            rejection_rate?: number | null;
+            /**
+             * Runs
+             * @default 0
+             */
+            runs: number;
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+            /** Turnaround Hours Median */
+            turnaround_hours_median?: number | null;
+            /**
+             * Wape By Class
+             * @default []
+             */
+            wape_by_class: components["schemas"]["ClassWape"][];
         };
         /** ApprovalLinks */
         ApprovalLinks: {
@@ -1404,6 +1591,17 @@ export interface components {
             /** Summary */
             summary: string;
         };
+        /** AutomationView */
+        AutomationView: {
+            /** Automated */
+            automated: number;
+            /** Decided */
+            decided: number;
+            /** Kind */
+            kind: string;
+            /** Rate */
+            rate: number | null;
+        };
         /** AutonomyPolicy */
         AutonomyPolicy: {
             /**
@@ -1466,6 +1664,11 @@ export interface components {
             /** Act Kind */
             act_kind?: ("late_po" | "rfq_no_reply") | null;
             /**
+             * Age Days
+             * @default 0
+             */
+            age_days: number;
+            /**
              * Amount Total
              * @default 0
              */
@@ -1499,6 +1702,8 @@ export interface components {
             days_late: number;
             /** Days Silent */
             days_silent?: number | null;
+            /** Delay Confidence */
+            delay_confidence?: number | null;
             /**
              * Delivery
              * @default none
@@ -1541,6 +1746,8 @@ export interface components {
             po_id: number;
             /** Po Name */
             po_name: string;
+            /** Predicted Delay Days */
+            predicted_delay_days?: number | null;
             /** Receipt Status */
             receipt_status?: string | null;
             /** State */
@@ -1629,6 +1836,34 @@ export interface components {
             key: "overnight" | "ran_alone" | "needs_you" | "risks" | "late" | "playbooks";
             /** Title */
             title: string;
+        };
+        /** BulkRequest */
+        BulkRequest: {
+            /** Ids */
+            ids: number[];
+            /** Reason */
+            reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "approved" | "rejected";
+        };
+        /** BulkResponse */
+        BulkResponse: {
+            /** Resolved */
+            resolved: number;
+            /** Results */
+            results: components["schemas"]["BulkResult"][];
+        };
+        /** BulkResult */
+        BulkResult: {
+            /** Error */
+            error?: string | null;
+            /** Id */
+            id: number;
+            /** Status */
+            status?: string | null;
         };
         /** CalendarEvent */
         CalendarEvent: {
@@ -1813,6 +2048,15 @@ export interface components {
             path: string;
             /** Ref */
             ref: string;
+        };
+        /** ClassWape */
+        ClassWape: {
+            /** Abc Class */
+            abc_class: string;
+            /** Lines */
+            lines: number;
+            /** Wape */
+            wape: number | null;
         };
         /** ClassWhatIfRequest */
         ClassWhatIfRequest: {
@@ -2046,6 +2290,62 @@ export interface components {
             /** Version */
             version: string;
         };
+        /** HomeView */
+        HomeView: {
+            /**
+             * As Of
+             * Format: date
+             */
+            as_of: string;
+            /**
+             * Automated Week
+             * @default 0
+             */
+            automated_week: number;
+            /**
+             * Kpis
+             * @default []
+             */
+            kpis: components["schemas"]["Kpi"][];
+            /**
+             * Late
+             * @default 0
+             */
+            late: number;
+            /**
+             * Needs You
+             * @default []
+             */
+            needs_you: components["schemas"]["BriefingItem"][];
+            /**
+             * Pending
+             * @default 0
+             */
+            pending: number;
+            /**
+             * Silent
+             * @default 0
+             */
+            silent: number;
+        };
+        /** Kpi */
+        Kpi: {
+            /** Currency */
+            currency?: string | null;
+            /** Detail */
+            detail?: string | null;
+            /** Key */
+            key: string;
+            /** Previous */
+            previous?: number | null;
+            /**
+             * Unit
+             * @default count
+             */
+            unit: string;
+            /** Value */
+            value?: number | null;
+        };
         /**
          * LineDemand
          * @description Daily demand behind one line, with the forecast the line used (for the sparkline).
@@ -2128,6 +2428,19 @@ export interface components {
             role: "viewer" | "approver" | "admin";
             /** Token */
             token: string;
+        };
+        /** MailRow */
+        MailRow: {
+            /** At */
+            at?: string | null;
+            /** Confidence */
+            confidence?: string | null;
+            /** Direction */
+            direction: string;
+            /** Po Name */
+            po_name: string;
+            /** Web Link */
+            web_link?: string | null;
         };
         /** MailboxReport */
         MailboxReport: {
@@ -2270,6 +2583,26 @@ export interface components {
             run_id?: string | null;
             /** Summary */
             summary?: string | null;
+        };
+        /** OrderRow */
+        OrderRow: {
+            /**
+             * Amount Total
+             * @default 0
+             */
+            amount_total: number;
+            /** Currency */
+            currency?: string | null;
+            /** Date Planned */
+            date_planned?: string | null;
+            /** Po Id */
+            po_id: number;
+            /** Po Name */
+            po_name: string;
+            /** Receipt Status */
+            receipt_status?: string | null;
+            /** State */
+            state: string;
         };
         /**
          * OverallStatus
@@ -2635,6 +2968,31 @@ export interface components {
             /** Summary */
             summary: string;
         };
+        /** PriceRow */
+        PriceRow: {
+            /** Currency */
+            currency?: string | null;
+            /**
+             * Lead Days
+             * @default 0
+             */
+            lead_days: number;
+            /**
+             * Min Qty
+             * @default 0
+             */
+            min_qty: number;
+            /** Price */
+            price: number;
+            /** Product */
+            product: string;
+            /** Product Id */
+            product_id?: number | null;
+            /** Supplier Code */
+            supplier_code?: string | null;
+            /** Valid From */
+            valid_from?: string | null;
+        };
         /**
          * Principal
          * @description Who is calling, as decoded from the token.
@@ -2649,6 +3007,24 @@ export interface components {
              * @enum {string}
              */
             role: "viewer" | "approver" | "admin";
+        };
+        /** ProductRank */
+        ProductRank: {
+            /** Best Partner Name */
+            best_partner_name?: string | null;
+            /** Best Score */
+            best_score?: number | null;
+            /** Product */
+            product: string;
+            /** Product Id */
+            product_id: number;
+            /** Rank */
+            rank?: number | null;
+            /**
+             * Suppliers
+             * @default 0
+             */
+            suppliers: number;
         };
         /** ProfileUpdate */
         ProfileUpdate: {
@@ -2708,6 +3084,13 @@ export interface components {
              * @description hold_until: look at the case again then
              */
             until?: string | null;
+        };
+        /** PushKey */
+        PushKey: {
+            /** Enabled */
+            enabled: boolean;
+            /** Public Key */
+            public_key?: string | null;
         };
         /** RankedSupplier */
         RankedSupplier: {
@@ -3213,6 +3596,19 @@ export interface components {
             /** When */
             when: string;
         };
+        /** SubscribeRequest */
+        SubscribeRequest: {
+            /** Endpoint */
+            endpoint: string;
+            keys: components["schemas"]["SubscriptionKeys"];
+        };
+        /** SubscriptionKeys */
+        SubscriptionKeys: {
+            /** Auth */
+            auth: string;
+            /** P256Dh */
+            p256dh: string;
+        };
         /** Suggestion */
         Suggestion: {
             /** Created At */
@@ -3264,6 +3660,44 @@ export interface components {
             /** Saved Version */
             saved_version?: number | null;
             suggestion: components["schemas"]["Suggestion"];
+        };
+        /** Supplier360 */
+        Supplier360: {
+            /**
+             * Emails
+             * @default []
+             */
+            emails: components["schemas"]["MailRow"][];
+            /**
+             * Orders
+             * @default []
+             */
+            orders: components["schemas"]["OrderRow"][];
+            /** Partner Id */
+            partner_id: number;
+            /** Partner Name */
+            partner_name: string;
+            /**
+             * Prices
+             * @default []
+             */
+            prices: components["schemas"]["PriceRow"][];
+            /**
+             * Products
+             * @default []
+             */
+            products: components["schemas"]["ProductRank"][];
+            /**
+             * Rounds
+             * @default []
+             */
+            rounds: {
+                [key: string]: unknown;
+            }[];
+            /** Score */
+            score?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** SupplierConfirmedRequest */
         SupplierConfirmedRequest: {
@@ -3355,6 +3789,11 @@ export interface components {
             /** Trends */
             trends?: string[];
         };
+        /** UnsubscribeRequest */
+        UnsubscribeRequest: {
+            /** Endpoint */
+            endpoint: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -3390,6 +3829,37 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ai_performance_api_ai_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AiPerformance"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_approvals_api_approvals_get: {
         parameters: {
             query?: {
@@ -3410,6 +3880,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ApprovalView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_many_api_approvals_bulk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BulkRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BulkResponse"];
                 };
             };
             /** @description Validation Error */
@@ -4335,6 +4838,26 @@ export interface operations {
             };
         };
     };
+    home_api_home_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HomeView"];
+                };
+            };
+        };
+    };
     get_profile_api_learning_profiles__partner_id__get: {
         parameters: {
             query?: never;
@@ -5045,6 +5568,92 @@ export interface operations {
             };
         };
     };
+    push_key_api_push_key_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PushKey"];
+                };
+            };
+        };
+    };
+    subscribe_api_push_subscriptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: number;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    unsubscribe_api_push_subscriptions_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UnsubscribeRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     risk_radar_api_risk_get: {
         parameters: {
             query?: {
@@ -5490,6 +6099,37 @@ export interface operations {
                 content: {
                     "application/json": unknown;
                     "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    supplier_360_api_suppliers__partner_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partner_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Supplier360"];
                 };
             };
             /** @description Validation Error */

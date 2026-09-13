@@ -4,6 +4,7 @@
  * once, after which every step runs through the agents and their approvals.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useSearch } from "@tanstack/react-router";
 import { Bot, Check, Send, X } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 
@@ -32,7 +33,8 @@ export function AssistantPage() {
   const { hasRole } = useAuth();
   const queryClient = useQueryClient();
   const chat = useAssistant();
-  const [text, setText] = useState("");
+  const search = useSearch({ strict: false }) as { q?: string };
+  const [text, setText] = useState(search.q ?? "");
   const bottom = useRef<HTMLDivElement>(null);
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["assistant"] });

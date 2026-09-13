@@ -238,6 +238,30 @@
         "title": "ActionFacts",
         "type": "object"
       },
+      "AgentCost": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent",
+          "runs",
+          "cost_usd"
+        ],
+        "title": "AgentCost",
+        "type": "object"
+      },
       "AgentRunView": {
         "additionalProperties": false,
         "properties": {
@@ -381,6 +405,168 @@
           "status"
         ],
         "title": "AgentRunView",
+        "type": "object"
+      },
+      "AiPerformance": {
+        "additionalProperties": false,
+        "properties": {
+          "automation": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AutomationView"
+            },
+            "title": "Automation",
+            "type": "array"
+          },
+          "automation_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automation Rate"
+          },
+          "by_agent": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AgentCost"
+            },
+            "title": "By Agent",
+            "type": "array"
+          },
+          "cases_with_runs": {
+            "default": 0,
+            "title": "Cases With Runs",
+            "type": "integer"
+          },
+          "cost_per_case_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Case Usd"
+          },
+          "cost_usd": {
+            "default": 0.0,
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "decisions": {
+            "default": 0,
+            "title": "Decisions",
+            "type": "integer"
+          },
+          "edit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edit Rate"
+          },
+          "eta_error_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta Error Days"
+          },
+          "invoices_first_time": {
+            "default": 0,
+            "title": "Invoices First Time",
+            "type": "integer"
+          },
+          "invoices_first_time_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoices First Time Rate"
+          },
+          "invoices_total": {
+            "default": 0,
+            "title": "Invoices Total",
+            "type": "integer"
+          },
+          "negotiation_savings": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negotiation Savings"
+          },
+          "rejection_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Rate"
+          },
+          "runs": {
+            "default": 0,
+            "title": "Runs",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "turnaround_hours_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turnaround Hours Median"
+          },
+          "wape_by_class": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ClassWape"
+            },
+            "title": "Wape By Class",
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "since"
+        ],
+        "title": "AiPerformance",
         "type": "object"
       },
       "ApprovalLinks": {
@@ -893,6 +1079,42 @@
         "title": "AutoActionView",
         "type": "object"
       },
+      "AutomationView": {
+        "additionalProperties": false,
+        "properties": {
+          "automated": {
+            "title": "Automated",
+            "type": "integer"
+          },
+          "decided": {
+            "title": "Decided",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          }
+        },
+        "required": [
+          "kind",
+          "automated",
+          "decided",
+          "rate"
+        ],
+        "title": "AutomationView",
+        "type": "object"
+      },
       "AutonomyPolicy": {
         "additionalProperties": false,
         "properties": {
@@ -1025,6 +1247,11 @@
             ],
             "title": "Act Kind"
           },
+          "age_days": {
+            "default": 0,
+            "title": "Age Days",
+            "type": "integer"
+          },
           "amount_total": {
             "default": 0.0,
             "title": "Amount Total",
@@ -1131,6 +1358,17 @@
               }
             ],
             "title": "Days Silent"
+          },
+          "delay_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delay Confidence"
           },
           "delivery": {
             "default": "none",
@@ -1273,6 +1511,17 @@
           "po_name": {
             "title": "Po Name",
             "type": "string"
+          },
+          "predicted_delay_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Delay Days"
           },
           "receipt_status": {
             "anyOf": [
@@ -1500,6 +1749,104 @@
           "title"
         ],
         "title": "BriefingSection",
+        "type": "object"
+      },
+      "BulkRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Ids",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids",
+          "status"
+        ],
+        "title": "BulkRequest",
+        "type": "object"
+      },
+      "BulkResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "resolved": {
+            "title": "Resolved",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BulkResult"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "resolved",
+          "results"
+        ],
+        "title": "BulkResponse",
+        "type": "object"
+      },
+      "BulkResult": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "BulkResult",
         "type": "object"
       },
       "CalendarEvent": {
@@ -1998,6 +2345,37 @@
           "path"
         ],
         "title": "Citation",
+        "type": "object"
+      },
+      "ClassWape": {
+        "additionalProperties": false,
+        "properties": {
+          "abc_class": {
+            "title": "Abc Class",
+            "type": "string"
+          },
+          "lines": {
+            "title": "Lines",
+            "type": "integer"
+          },
+          "wape": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wape"
+          }
+        },
+        "required": [
+          "abc_class",
+          "wape",
+          "lines"
+        ],
+        "title": "ClassWape",
         "type": "object"
       },
       "ClassWhatIfRequest": {
@@ -2637,6 +3015,120 @@
         "title": "HealthReport",
         "type": "object"
       },
+      "HomeView": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "automated_week": {
+            "default": 0,
+            "title": "Automated Week",
+            "type": "integer"
+          },
+          "kpis": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Kpi"
+            },
+            "title": "Kpis",
+            "type": "array"
+          },
+          "late": {
+            "default": 0,
+            "title": "Late",
+            "type": "integer"
+          },
+          "needs_you": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BriefingItem"
+            },
+            "title": "Needs You",
+            "type": "array"
+          },
+          "pending": {
+            "default": 0,
+            "title": "Pending",
+            "type": "integer"
+          },
+          "silent": {
+            "default": 0,
+            "title": "Silent",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of"
+        ],
+        "title": "HomeView",
+        "type": "object"
+      },
+      "Kpi": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          },
+          "unit": {
+            "default": "count",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "Kpi",
+        "type": "object"
+      },
       "LineDemand": {
         "additionalProperties": false,
         "description": "Daily demand behind one line, with the forecast the line used (for the sparkline).",
@@ -2831,6 +3323,59 @@
           "expires_at"
         ],
         "title": "LoginResponse",
+        "type": "object"
+      },
+      "MailRow": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          },
+          "web_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Web Link"
+          }
+        },
+        "required": [
+          "po_name",
+          "direction"
+        ],
+        "title": "MailRow",
         "type": "object"
       },
       "MailboxReport": {
@@ -3196,6 +3741,69 @@
           "kind"
         ],
         "title": "OrderOrigin",
+        "type": "object"
+      },
+      "OrderRow": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_total": {
+            "default": 0.0,
+            "title": "Amount Total",
+            "type": "number"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "date_planned": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Planned"
+          },
+          "po_id": {
+            "title": "Po Id",
+            "type": "integer"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          },
+          "receipt_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Status"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "po_id",
+          "po_name",
+          "state"
+        ],
+        "title": "OrderRow",
         "type": "object"
       },
       "OverallStatus": {
@@ -4266,6 +4874,80 @@
         "title": "PreviewRow",
         "type": "object"
       },
+      "PriceRow": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "lead_days": {
+            "default": 0,
+            "title": "Lead Days",
+            "type": "integer"
+          },
+          "min_qty": {
+            "default": 0.0,
+            "title": "Min Qty",
+            "type": "number"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "supplier_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Code"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          }
+        },
+        "required": [
+          "product",
+          "price"
+        ],
+        "title": "PriceRow",
+        "type": "object"
+      },
       "Principal": {
         "additionalProperties": false,
         "description": "Who is calling, as decoded from the token.",
@@ -4294,6 +4976,63 @@
           "role"
         ],
         "title": "Principal",
+        "type": "object"
+      },
+      "ProductRank": {
+        "additionalProperties": false,
+        "properties": {
+          "best_partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Partner Name"
+          },
+          "best_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Score"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "suppliers": {
+            "default": 0,
+            "title": "Suppliers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product_id",
+          "product"
+        ],
+        "title": "ProductRank",
         "type": "object"
       },
       "ProfileUpdate": {
@@ -4452,6 +5191,31 @@
           "explanation"
         ],
         "title": "ProposedAction",
+        "type": "object"
+      },
+      "PushKey": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Key"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "PushKey",
         "type": "object"
       },
       "RankedSupplier": {
@@ -5809,6 +6573,47 @@
         "title": "StepView",
         "type": "object"
       },
+      "SubscribeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/SubscriptionKeys"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "SubscribeRequest",
+        "type": "object"
+      },
+      "SubscriptionKeys": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "minLength": 1,
+            "title": "Auth",
+            "type": "string"
+          },
+          "p256dh": {
+            "minLength": 1,
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "SubscriptionKeys",
+        "type": "object"
+      },
       "Suggestion": {
         "additionalProperties": false,
         "properties": {
@@ -5933,6 +6738,78 @@
           "suggestion"
         ],
         "title": "SuggestionAction",
+        "type": "object"
+      },
+      "Supplier360": {
+        "additionalProperties": false,
+        "properties": {
+          "emails": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MailRow"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "orders": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OrderRow"
+            },
+            "title": "Orders",
+            "type": "array"
+          },
+          "partner_id": {
+            "title": "Partner Id",
+            "type": "integer"
+          },
+          "partner_name": {
+            "title": "Partner Name",
+            "type": "string"
+          },
+          "prices": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PriceRow"
+            },
+            "title": "Prices",
+            "type": "array"
+          },
+          "products": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ProductRank"
+            },
+            "title": "Products",
+            "type": "array"
+          },
+          "rounds": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Rounds",
+            "type": "array"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "required": [
+          "partner_id",
+          "partner_name"
+        ],
+        "title": "Supplier360",
         "type": "object"
       },
       "SupplierConfirmedRequest": {
@@ -6229,6 +7106,22 @@
         "title": "SupplierScore",
         "type": "object"
       },
+      "UnsubscribeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "UnsubscribeRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -6323,6 +7216,56 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/ai": {
+      "get": {
+        "operationId": "ai_performance_api_ai_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiPerformance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ai Performance",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/api/approvals": {
       "get": {
         "operationId": "list_approvals_api_approvals_get",
@@ -6409,6 +7352,53 @@
           }
         ],
         "summary": "List Approvals",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/approvals/bulk": {
+      "post": {
+        "description": "Decide many at once (S8): each one goes through the same path as a single\ndecision; the ones that cannot be decided are reported, not skipped silently.",
+        "operationId": "resolve_many_api_approvals_bulk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resolve Many",
         "tags": [
           "approvals"
         ]
@@ -7909,6 +8899,32 @@
         ]
       }
     },
+    "/api/home": {
+      "get": {
+        "operationId": "home_api_home_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Home",
+        "tags": [
+          "home"
+        ]
+      }
+    },
     "/api/learning/profiles/{partner_id}": {
       "get": {
         "operationId": "get_profile_api_learning_profiles__partner_id__get",
@@ -9030,6 +10046,119 @@
         ]
       }
     },
+    "/api/push/key": {
+      "get": {
+        "operationId": "push_key_api_push_key_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushKey"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Key",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/push/subscriptions": {
+      "delete": {
+        "operationId": "unsubscribe_api_push_subscriptions_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnsubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unsubscribe",
+        "tags": [
+          "push"
+        ]
+      },
+      "post": {
+        "operationId": "subscribe_api_push_subscriptions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Subscribe Api Push Subscriptions Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Subscribe",
+        "tags": [
+          "push"
+        ]
+      }
+    },
     "/api/risk": {
       "get": {
         "operationId": "risk_radar_api_risk_get",
@@ -9820,6 +10949,53 @@
         "summary": "Stream",
         "tags": [
           "stream"
+        ]
+      }
+    },
+    "/api/suppliers/{partner_id}": {
+      "get": {
+        "operationId": "supplier_360_api_suppliers__partner_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "partner_id",
+            "required": true,
+            "schema": {
+              "title": "Partner Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Supplier360"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Supplier 360",
+        "tags": [
+          "suppliers"
         ]
       }
     }
