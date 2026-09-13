@@ -570,6 +570,7 @@ dependencies = [
     { name = "loguru" },
     { name = "pydantic" },
     { name = "pyjwt" },
+    { name = "pyyaml" },
     { name = "sc-core" },
 ]
 
@@ -585,6 +586,7 @@ requires-dist = [
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "pydantic", specifier = ">=2.11.0" },
     { name = "pyjwt", specifier = ">=2.9" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "sc-core", editable = "src/sc_core" },
 ]
 

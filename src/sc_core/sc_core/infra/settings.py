@@ -198,6 +198,7 @@ class SchedulerCfg(_Section):
     inventory_planning_cron: str = "0 6 * * *"
     supplier_performance_cron: str = "0 7 * * 1"
     calibration_cron: str = "30 7 * * 1"  # what people decided last week, as suggestions
+    playbooks_cron: str = "15 * * * *"  # every hour: due waits and resolved approvals move on
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 

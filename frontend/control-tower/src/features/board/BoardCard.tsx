@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { useI18n } from "@/i18n";
 import { cn, formatDate, formatMoney } from "@/lib/utils";
 import { labelFor } from "@/features/cases/labels";
+import { PlaybookBadge } from "@/features/playbooks/PlaybookBadge";
 import type { BoardCard } from "./api";
 
 export function OrderCard({
@@ -108,6 +109,7 @@ export function OrderCard({
               )
             ) : null}
             {card.receipt_status === "partial" ? <Badge variant="secondary">{t("board.partial")}</Badge> : null}
+            {card.playbook ? <PlaybookBadge position={card.playbook} compact /> : null}
           </div>
         </button>
       </div>

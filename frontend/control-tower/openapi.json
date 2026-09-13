@@ -457,6 +457,16 @@
             "title": "Payload",
             "type": "object"
           },
+          "playbook": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaybookPosition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "po_id": {
             "anyOf": [
               {
@@ -1074,6 +1084,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/PendingApproval"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "playbook": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaybookPosition"
               },
               {
                 "type": "null"
@@ -2786,6 +2806,274 @@
         "title": "PlanningRunRow",
         "type": "object"
       },
+      "PlaybookPosition": {
+        "additionalProperties": false,
+        "description": "Where a run is, in words the UI shows on cards, drawers and approvals.",
+        "properties": {
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "if_rejected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "If Rejected"
+          },
+          "next_steps": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Steps",
+            "type": "array"
+          },
+          "playbook": {
+            "title": "Playbook",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Id"
+          },
+          "step_index": {
+            "default": 0,
+            "title": "Step Index",
+            "type": "integer"
+          },
+          "step_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Label"
+          },
+          "steps_total": {
+            "default": 0,
+            "title": "Steps Total",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "playbook",
+          "title",
+          "status"
+        ],
+        "title": "PlaybookPosition",
+        "type": "object"
+      },
+      "PlaybookRun": {
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "playbook": {
+            "title": "Playbook",
+            "type": "string"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Name"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started By"
+          },
+          "status": {
+            "default": "running",
+            "enum": [
+              "running",
+              "waiting",
+              "waiting_approval",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "step_index": {
+            "default": 0,
+            "title": "Step Index",
+            "type": "integer"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "waiting_for": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting For"
+          }
+        },
+        "required": [
+          "id",
+          "playbook",
+          "case_id",
+          "started_at",
+          "updated_at"
+        ],
+        "title": "PlaybookRun",
+        "type": "object"
+      },
+      "PlaybookView": {
+        "additionalProperties": false,
+        "properties": {
+          "active_runs": {
+            "default": 0,
+            "title": "Active Runs",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepView"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "title",
+          "description",
+          "trigger",
+          "steps"
+        ],
+        "title": "PlaybookView",
+        "type": "object"
+      },
       "PolicyDecision": {
         "additionalProperties": false,
         "properties": {
@@ -3885,6 +4173,31 @@
         "title": "RunRanking",
         "type": "object"
       },
+      "RunView": {
+        "additionalProperties": false,
+        "properties": {
+          "position": {
+            "$ref": "#/components/schemas/PlaybookPosition"
+          },
+          "run": {
+            "$ref": "#/components/schemas/PlaybookRun"
+          },
+          "steps": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StepRecord"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run",
+          "position"
+        ],
+        "title": "RunView",
+        "type": "object"
+      },
       "RuntimeSettings": {
         "additionalProperties": false,
         "properties": {
@@ -4173,6 +4486,157 @@
           "changed_at"
         ],
         "title": "SettingsVersion",
+        "type": "object"
+      },
+      "StartRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "playbook": {
+            "title": "Playbook",
+            "type": "string"
+          },
+          "po_name": {
+            "minLength": 1,
+            "title": "Po Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook",
+          "po_name"
+        ],
+        "title": "StartRequest",
+        "type": "object"
+      },
+      "StepRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Detail",
+            "type": "object"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "title": "Step Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step_id",
+          "status",
+          "at"
+        ],
+        "title": "StepRecord",
+        "type": "object"
+      },
+      "StepView": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "active_runs": {
+            "default": 0,
+            "title": "Active Runs",
+            "type": "integer"
+          },
+          "agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          },
+          "wait_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wait Days"
+          },
+          "when": {
+            "title": "When",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "when"
+        ],
+        "title": "StepView",
         "type": "object"
       },
       "Suggestion": {
@@ -6575,6 +7039,268 @@
         "summary": "What If",
         "tags": [
           "planning"
+        ]
+      }
+    },
+    "/api/playbooks": {
+      "get": {
+        "operationId": "list_playbooks_api_playbooks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlaybookView"
+                  },
+                  "title": "Response List Playbooks Api Playbooks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Playbooks",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/runs": {
+      "get": {
+        "operationId": "list_runs_api_playbooks_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Active",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunView"
+                  },
+                  "title": "Response List Runs Api Playbooks Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Runs",
+        "tags": [
+          "playbooks"
+        ]
+      },
+      "post": {
+        "description": "Start a playbook on an order by hand (the daily job starts the usual ones).",
+        "operationId": "start_run_api_playbooks_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Run",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_playbooks_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Run",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_run_api_playbooks_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Run",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/tick": {
+      "post": {
+        "description": "Move every active run now (the hourly job does the same).",
+        "operationId": "tick_api_playbooks_tick_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Tick Api Playbooks Tick Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Tick",
+        "tags": [
+          "playbooks"
         ]
       }
     },

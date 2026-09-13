@@ -22,6 +22,7 @@ import { useApproval } from "@/features/approvals/api";
 import { CaseEvents } from "@/features/cases/CaseTimeline";
 import { useCase } from "@/features/cases/api";
 import { CaseChat } from "@/features/chat/CaseChat";
+import { PlaybookOutlook } from "@/features/playbooks/PlaybookBadge";
 import { targetsFor, useActNow, useMoveCard, useSupplierConfirmed, type BoardCard, type Column } from "./api";
 import { useOrderDetail } from "./api";
 import { DeliveryBadge } from "./BoardCard";
@@ -83,6 +84,18 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
             </Link>
           ) : null}
         </div>
+
+        {card.playbook ? (
+          <section className="rounded-md border p-3" aria-label={t("board.drawer.playbook")}>
+            <div className="mb-1 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold">{t("board.drawer.playbook")}</h3>
+              <Link to="/playbooks" className="text-xs text-primary underline">
+                {t("board.drawer.playbooks_page")}
+              </Link>
+            </div>
+            <PlaybookOutlook position={card.playbook} />
+          </section>
+        ) : null}
 
         <OrderLines poName={card.po_name} />
 

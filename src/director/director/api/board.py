@@ -33,6 +33,7 @@ from director.api.auth import Approver, Principal, Viewer
 from director.api.exceptions import ExceptionsSource
 from director.api.planning import PlanningReadStore
 from director.handlers.followups import MailActivity
+from director.playbooks import PlaybookEngine, PlaybookPosition
 from director.policies import next_action
 from director.store import Case, CaseStore
 from director.workflow import Deps, consolidate_outcome, outcome_from_reply
@@ -79,6 +80,10 @@ class PendingApproval(StrictModel):
     requested_by: str | None = None
 
 
+class PlaybookPositions(Protocol):
+    async def position_for_po(self, po_name: str) -> PlaybookPosition | None: ...
+
+
 class BoardCard(StrictModel):
     po_id: int
     po_name: str
@@ -112,6 +117,7 @@ class BoardCard(StrictModel):
     act_kind: ActKind | None = None
     can_act: bool = False
     odoo_url: str
+    playbook: PlaybookPosition | None = None  # where the order is in its playbook
 
 
 class PlanningPending(StrictModel):
@@ -239,6 +245,7 @@ async def build_board(
     settings: Settings,
     today: date,
     due_soon_days: int = DUE_SOON_DAYS,
+    playbooks: PlaybookPositions | None = None,
 ) -> Board:
     rows = await orders.board_orders(closed_since=today - timedelta(days=CLOSED_DAYS))
     pending = await approvals.list(status="pending", kind=None, po_name=None)
@@ -324,6 +331,7 @@ async def build_board(
                     if case and case.next_action_at and case.next_action_at.date() > today
                     else None
                 ),
+                playbook=await playbooks.position_for_po(po.name) if playbooks else None,
                 case_id=case.case_id if case else None,
                 case_code=case.code if case else None,
                 case_status=case.status if case else None,
@@ -464,6 +472,7 @@ async def board(
     mail: MailActivity = Injected(MailActivity),  # type: ignore[type-abstract]
     source: ExceptionsSource = Injected(ExceptionsSource),  # type: ignore[type-abstract]
     settings: Settings = Injected(Settings),
+    playbooks: PlaybookEngine = Injected(PlaybookEngine),
 ) -> Board:
     return await build_board(
         orders=orders,
@@ -474,6 +483,7 @@ async def board(
         settings=settings,
         today=local_today(),
         due_soon_days=due_soon_days,
+        playbooks=playbooks,
     )
 
 

@@ -79,6 +79,12 @@ class NoApprovals:
         return None
 
 
+class PlaybookStarter(Protocol):
+    async def start(
+        self, name: str, *, po_name: str, partner_id: int | None, started_by: str | None = None
+    ) -> Any: ...
+
+
 class FollowUpJob:
     """``JobRunner`` for ``po_followups`` (other job ids are recorded as not implemented)."""
 
@@ -96,8 +102,10 @@ class FollowUpJob:
         today: Callable[[], date] = local_today,
         language: Language = "en",
         runtime: RuntimeSettingsReader | None = None,
+        playbooks: PlaybookStarter | None = None,
     ) -> None:
         self._language = language
+        self._playbooks = playbooks
         self._base_policy = policy
         self._policy = policy
         self._runtime = runtime
@@ -126,6 +134,7 @@ class FollowUpJob:
         sent = escalated = 0
         outcomes: list[dict[str, Any]] = []
         skipped: list[str] = []
+        started: list[dict[str, Any]] = []
         for decision in decisions:
             # Every action is a model run and an email or an escalation: cap them per run.
             # What is skipped is not recorded on the case, so it fires on the next run.
@@ -133,6 +142,18 @@ class FollowUpJob:
                 skipped.append(decision.po_name)
                 continue
             fact = next(f for f in facts if f.po_name == decision.po_name)
+            if self._playbooks is not None and not decision.escalate:
+                # phase 11: the playbook carries the order through the whole story
+                name = "silent_rfq" if fact.is_rfq else "late_order"
+                run = await self._playbooks.start(
+                    name,
+                    po_name=fact.po_name,
+                    partner_id=fact.partner_id,
+                    started_by="po_followups",
+                )
+                started.append({"po_name": fact.po_name, "playbook": name, "run_id": run.id})
+                sent += 1
+                continue
             outcome = await self.act(decision, fact, tick, today)
             outcomes.append(outcome)
             sent += outcome.get("task") is not None
@@ -152,6 +173,7 @@ class FollowUpJob:
             "tasks_sent": sent,
             "escalated": escalated,
             "decisions": outcomes,
+            "playbooks": started,
             "skipped": skipped,
             "approvals": reviewed,
         }
@@ -244,6 +266,14 @@ class FollowUpJob:
                 )
             )
         return facts
+
+    def attach_playbooks(self, playbooks: PlaybookStarter) -> None:
+        """Wired after construction: the engine reads facts from this job."""
+        self._playbooks = playbooks
+
+    async def facts_for(self, po_name: str, today: date) -> PoFacts | None:
+        """One order's facts, as the playbook engine's conditions read them."""
+        return next((f for f in await self.gather(today) if f.po_name == po_name), None)
 
     async def act_now(
         self, po_name: str, *, requested_by: str, today: date | None = None

@@ -172,6 +172,18 @@ function EventLine({ event }: { event: CaseEvent }) {
     }
     case "escalated":
       return <p className="text-sm">{text("summary") || text("reason")}</p>;
+    case "playbook":
+      return (
+        <p className="text-sm">
+          {t(`playbooks.event.${text("event") || "started"}`, { playbook: labelFor(t, "playbook", text("playbook")) })}
+          {text("summary") ? ` · ${text("summary")}` : ""}
+          {text("by") ? ` · ${text("by")}` : ""}
+          {" · "}
+          <Link to="/playbooks" className="text-primary underline">
+            {t("playbooks.open_page")}
+          </Link>
+        </p>
+      );
     case "note":
       return (
         <p className="text-sm">

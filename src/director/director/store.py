@@ -43,6 +43,7 @@ CaseEventKind = Literal[
     "promise",
     "note",
     "chat",
+    "playbook",  # a playbook run started or finished on the case
 ]
 
 TERMINAL_STATUSES: frozenset[str] = frozenset({"done", "rejected", "failed"})

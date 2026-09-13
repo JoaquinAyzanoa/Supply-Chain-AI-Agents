@@ -55,6 +55,7 @@ from director.escalation import (
     OdooEscalator,
 )
 from director.handlers.followups import FollowUpJob, MailActivity
+from director.handlers.jobs import PlaybooksJob
 from director.handlers.performance import PerformanceJob
 from director.handlers.planning import JobDispatcher, PlanningJob
 from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
@@ -67,6 +68,7 @@ from director.learning import (
     PostgresSuggestionStore,
     SuggestionStore,
 )
+from director.playbooks import PlaybookEngine, PlaybookStore, PostgresPlaybookStore
 from director.policies import FollowUpPolicy
 from director.realtime import BroadcastingCaseStore
 from director.routers import events
@@ -256,9 +258,12 @@ class DirectorModule(Module):
         feedback: FeedbackStore,  # type: ignore[type-abstract]
         suggestions: SuggestionStore,  # type: ignore[type-abstract]
         runtime: RuntimeSettingsReader,
+        playbooks: PlaybookEngine,
     ) -> JobRunner:  # type: ignore[type-abstract]
+        followups.attach_playbooks(playbooks)
         return JobDispatcher(
             {
+                "playbooks": PlaybooksJob(playbooks),
                 "calibration": CalibrationJob(
                     recorder=recorder,
                     feedback=feedback,
@@ -382,6 +387,31 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_playbook_store(self, db: Database) -> PlaybookStore:  # type: ignore[type-abstract]
+        return PostgresPlaybookStore(db)
+
+    @provider
+    @singleton
+    def provide_playbooks(
+        self,
+        store: PlaybookStore,  # type: ignore[type-abstract]
+        cases: CaseStore,  # type: ignore[type-abstract]
+        agents: Agents,
+        escalator: Escalator,  # type: ignore[type-abstract]
+        followups: FollowUpJob,
+        db: Database,
+    ) -> PlaybookEngine:
+        return PlaybookEngine(
+            store=store,
+            cases=cases,
+            agents=agents,
+            escalator=escalator,
+            facts=followups,
+            conversations=PostgresConversationLookup(db),
+        )
+
+    @provider
+    @singleton
     def provide_login_limit(self, settings: Settings) -> LoginRateLimit:
         return LoginRateLimit(settings.ui.login_rate_per_minute)
 
@@ -417,6 +447,7 @@ class DirectorModule(Module):
         inbox: EventInbox,  # type: ignore[type-abstract]
         redis: AsyncRedis,
         orders: PurchaseOrderRepo,
+        playbooks: PlaybookEngine,
     ) -> Orchestrator:
         locks = PoLocks(
             RedisLock(redis),
@@ -426,6 +457,7 @@ class DirectorModule(Module):
         return Orchestrator(
             deps,
             results,
+            playbooks=playbooks,
             inbox=inbox,
             locks=locks,
             orders=orders,

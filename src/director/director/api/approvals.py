@@ -27,6 +27,7 @@ from pydantic import Field, ValidationError
 from director.api.auth import Approver, Principal, Viewer
 from director.autonomy import AutonomyChanges
 from director.learning import FeedbackRecorder
+from director.playbooks import PlaybookEngine, PlaybookPosition
 from director.store import Case, CaseStore
 from sc_core.infra import tracing
 from sc_core.infra.settings import Settings
@@ -42,6 +43,10 @@ ListStatus = Literal["pending", "approved", "rejected", "expired", "all"]
 
 
 # --- what the inbox shows ---------------------------------------------------------------------
+
+
+class PlaybookLookup(Protocol):
+    async def position_for_case(self, case_id: str) -> PlaybookPosition | None: ...
 
 
 class ApprovalLinks(StrictModel):
@@ -69,6 +74,7 @@ class ApprovalView(StrictModel):
     payload: dict[str, Any] = {}
     why: str | None = Field(default=None, description="rule or model reasoning behind it")
     links: ApprovalLinks = ApprovalLinks()
+    playbook: PlaybookPosition | None = None  # the plan this approval sits in, and what follows
 
 
 # --- the decision ----------------------------------------------------------------------------
@@ -201,9 +207,16 @@ class OdooApprovalsGateway:
 # --- helpers -----------------------------------------------------------------------------------
 
 
-async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore) -> ApprovalView:
+async def build_view(
+    approval: Approval,
+    *,
+    settings: Settings,
+    cases: CaseStore,
+    playbooks: PlaybookLookup | None = None,
+) -> ApprovalView:
     payload = ApprovalRepo.payload_of(approval)
     case = await case_for(cases, approval)
+    position = await playbooks.position_for_case(case.case_id) if playbooks and case else None
     why = await _why(cases, case.case_id) if case else None
     trace_id = case.trace_id if case else None
     links = ApprovalLinks(
@@ -230,6 +243,7 @@ async def build_view(approval: Approval, *, settings: Settings, cases: CaseStore
         resolved_by=approval.resolved_by_name
         or (approval.resolved_by_id.name if approval.resolved_by_id else None),
         reason=approval.reason,
+        playbook=position,
         payload=payload,
         why=why,
         links=links,
@@ -302,12 +316,13 @@ async def get_approval(
     gateway: ApprovalsGateway = Injected(ApprovalsGateway),  # type: ignore[type-abstract]
     cases: CaseStore = Injected(CaseStore),  # type: ignore[type-abstract]
     settings: Settings = Injected(Settings),
+    playbooks: PlaybookEngine = Injected(PlaybookEngine),
 ) -> ApprovalView:
     try:
         approval = await gateway.get(approval_id)
     except NotFound as exc:
         raise HTTPException(status_code=404, detail=f"approval {approval_id} not found") from exc
-    return await build_view(approval, settings=settings, cases=cases)
+    return await build_view(approval, settings=settings, cases=cases, playbooks=playbooks)
 
 
 @router.post("/{approval_id}/resolve", response_model=ResolveResponse)

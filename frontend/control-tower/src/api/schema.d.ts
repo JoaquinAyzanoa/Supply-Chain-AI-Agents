@@ -614,6 +614,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/playbooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Playbooks */
+        get: operations["list_playbooks_api_playbooks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playbooks/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Runs */
+        get: operations["list_runs_api_playbooks_runs_get"];
+        put?: never;
+        /**
+         * Start Run
+         * @description Start a playbook on an order by hand (the daily job starts the usual ones).
+         */
+        post: operations["start_run_api_playbooks_runs_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playbooks/runs/{run_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Run */
+        get: operations["get_run_api_playbooks_runs__run_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playbooks/runs/{run_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Run */
+        post: operations["cancel_run_api_playbooks_runs__run_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playbooks/tick": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Tick
+         * @description Move every active run now (the hourly job does the same).
+         */
+        post: operations["tick_api_playbooks_tick_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/runs": {
         parameters: {
             query?: never;
@@ -878,6 +970,7 @@ export interface components {
             payload: {
                 [key: string]: unknown;
             };
+            playbook?: components["schemas"]["PlaybookPosition"] | null;
             /** Po Id */
             po_id?: number | null;
             /** Po Name */
@@ -1079,6 +1172,7 @@ export interface components {
             /** Partner Name */
             partner_name: string;
             pending_approval?: components["schemas"]["PendingApproval"] | null;
+            playbook?: components["schemas"]["PlaybookPosition"] | null;
             /** Po Id */
             po_id: number;
             /** Po Name */
@@ -1703,6 +1797,105 @@ export interface components {
             /** Warehouse Id */
             warehouse_id: number;
         };
+        /**
+         * PlaybookPosition
+         * @description Where a run is, in words the UI shows on cards, drawers and approvals.
+         */
+        PlaybookPosition: {
+            /** Due At */
+            due_at?: string | null;
+            /** If Rejected */
+            if_rejected?: string | null;
+            /**
+             * Next Steps
+             * @default []
+             */
+            next_steps: string[];
+            /** Playbook */
+            playbook: string;
+            /** Run Id */
+            run_id: number;
+            /** Status */
+            status: string;
+            /** Step Id */
+            step_id?: string | null;
+            /**
+             * Step Index
+             * @default 0
+             */
+            step_index: number;
+            /** Step Label */
+            step_label?: string | null;
+            /**
+             * Steps Total
+             * @default 0
+             */
+            steps_total: number;
+            /** Title */
+            title: string;
+        };
+        /** PlaybookRun */
+        PlaybookRun: {
+            /** Case Id */
+            case_id: string;
+            /** Due At */
+            due_at?: string | null;
+            /** Finished At */
+            finished_at?: string | null;
+            /** Id */
+            id: number;
+            /** Partner Id */
+            partner_id?: number | null;
+            /** Playbook */
+            playbook: string;
+            /** Po Name */
+            po_name?: string | null;
+            /**
+             * Started At
+             * Format: date-time
+             */
+            started_at: string;
+            /** Started By */
+            started_by?: string | null;
+            /**
+             * Status
+             * @default running
+             * @enum {string}
+             */
+            status: "running" | "waiting" | "waiting_approval" | "done" | "failed" | "cancelled";
+            /**
+             * Step Index
+             * @default 0
+             */
+            step_index: number;
+            /** Summary */
+            summary?: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Waiting For */
+            waiting_for?: string | null;
+        };
+        /** PlaybookView */
+        PlaybookView: {
+            /**
+             * Active Runs
+             * @default 0
+             */
+            active_runs: number;
+            /** Description */
+            description: string;
+            /** Name */
+            name: string;
+            /** Steps */
+            steps: components["schemas"]["StepView"][];
+            /** Title */
+            title: string;
+            /** Trigger */
+            trigger: string;
+        };
         /** PolicyDecision */
         PolicyDecision: {
             /**
@@ -2087,6 +2280,16 @@ export interface components {
             /** Run Id */
             run_id: string;
         };
+        /** RunView */
+        RunView: {
+            position: components["schemas"]["PlaybookPosition"];
+            run: components["schemas"]["PlaybookRun"];
+            /**
+             * Steps
+             * @default []
+             */
+            steps: components["schemas"]["StepRecord"][];
+        };
         /** RuntimeSettings */
         RuntimeSettings: {
             /**
@@ -2201,6 +2404,60 @@ export interface components {
             settings: components["schemas"]["RuntimeSettings"];
             /** Version */
             version: number;
+        };
+        /** StartRequest */
+        StartRequest: {
+            /** Partner Id */
+            partner_id?: number | null;
+            /** Playbook */
+            playbook: string;
+            /** Po Name */
+            po_name: string;
+        };
+        /** StepRecord */
+        StepRecord: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /**
+             * Detail
+             * @default {}
+             */
+            detail: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+            /** Step Id */
+            step_id: string;
+        };
+        /** StepView */
+        StepView: {
+            /** Action */
+            action?: string | null;
+            /**
+             * Active Runs
+             * @default 0
+             */
+            active_runs: number;
+            /** Agent */
+            agent?: string | null;
+            /** Id */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Label */
+            label: string;
+            /** Task */
+            task?: string | null;
+            /** Until */
+            until?: string | null;
+            /** Wait Days */
+            wait_days?: number | null;
+            /** When */
+            when: string;
         };
         /** Suggestion */
         Suggestion: {
@@ -3501,6 +3758,175 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_playbooks_api_playbooks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaybookView"][];
+                };
+            };
+        };
+    };
+    list_runs_api_playbooks_runs_get: {
+        parameters: {
+            query?: {
+                active?: boolean;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunView"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    start_run_api_playbooks_runs_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_run_api_playbooks_runs__run_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_run_api_playbooks_runs__run_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                run_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunView"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    tick_api_playbooks_tick_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };

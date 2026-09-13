@@ -150,6 +150,10 @@ class Deps:
     feedback: FeedbackHook | None = None  # records decisions made in Odoo
 
 
+class PlaybookNudge(Protocol):
+    async def on_po_event(self, po_name: str) -> list[int]: ...
+
+
 class AutonomyApplier(Protocol):
     async def apply_approval(self, approval_id: int, *, by: str) -> Any: ...
 
@@ -665,6 +669,7 @@ class Orchestrator:
         results: EventResults,
         *,
         inbox: EventInbox | None = None,
+        playbooks: PlaybookNudge | None = None,
         locks: PoLocks | None = None,
         orders: ConfirmedOrders | None = None,
         reconcile_since_days: int = 3,
@@ -672,6 +677,7 @@ class Orchestrator:
         self._deps = deps
         self._results = results
         self._inbox = inbox
+        self._playbooks = playbooks
         self._locks = locks or PoLocks(None)
         self._orders = orders
         self._reconcile_since_days = reconcile_since_days
@@ -782,6 +788,14 @@ class Orchestrator:
                 result = {"case_id": case.case_id, "status": "failed", "error": str(exc)[:500]}
                 await self._deps.cases.update(case.case_id, status="failed", summary=str(exc)[:500])
         await self._results.record(event.event_id, result)
+        if self._playbooks is not None and decided.po_name and not isinstance(event, ScheduledTick):
+            try:
+                moved = await self._playbooks.on_po_event(decided.po_name)
+            except Exception as exc:  # noqa: BLE001 - a plan must not break event handling
+                log.opt(exception=True).warning("playbook nudge failed: {}", exc)
+            else:
+                if moved:
+                    result["playbooks_moved"] = moved
         log.bind(case_id=case.case_id).info("event handled")
         return result
 

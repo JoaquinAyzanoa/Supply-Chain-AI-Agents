@@ -1,0 +1,38 @@
+# A confirmed order past its planned date: ask, chase, then look elsewhere.
+name: late_order
+title: Late order
+description: >
+  Ask the supplier for a new delivery date, wait two days, chase once more,
+  wait again, and when nothing comes propose an alternative source. Closes
+  itself when the goods arrive.
+trigger: po_late
+case_kind: eta
+done_when: received
+done_reason: The goods were received; the late order playbook is done.
+steps:
+  - id: ask_eta
+    label: Ask the supplier for a new delivery date
+    when: not_received
+    agent: supplier_comms
+    task: request_eta
+  - id: wait_reply
+    label: Wait two days for a reply
+    wait_days: 2
+    until: reply_received
+  - id: chase
+    label: Chase once more, firmly
+    when: no_reply
+    agent: supplier_comms
+    task: follow_up
+    notes: "Second request: the order is late and we have had no answer. Ask for a firm date today."
+  - id: wait_again
+    label: Wait two more days
+    when: no_reply
+    wait_days: 2
+    until: reply_received
+  - id: alternate
+    label: Propose an alternative source
+    when: no_reply
+    agent: sourcing
+    task: alternate_source
+    fallback: escalate

@@ -33,6 +33,7 @@ from director.learning import (
     MemorySuggestionStore,
     SuggestionStore,
 )
+from director.playbooks import MemoryPlaybookStore, PlaybookEngine, PlaybookStore
 from director.policies import FollowUpPolicy, PoFacts
 from director.realtime import BroadcastingCaseStore
 from director.store import CaseStore, MemoryCaseStore
@@ -140,6 +141,7 @@ class MemoryDirectorModule(Module):
         self.suggestions = MemorySuggestionStore()
         self.profiles = MemoryProfileStore()
         self.recorder = FeedbackRecorder(self.approvals, self.feedback)
+        self.playbook_store = MemoryPlaybookStore()
         self.autonomy = AutonomyChanges(
             approvals=self.approvals,
             settings_store=self.runtime_settings,
@@ -171,10 +173,18 @@ class MemoryDirectorModule(Module):
             feedback=self.recorder,
             jobs=jobs,
         )
+        self.playbooks = PlaybookEngine(
+            store=self.playbook_store,
+            cases=self.case_store,
+            agents=self.deps.agents,
+            escalator=self.escalator,
+            facts=self.exceptions,
+        )
         self.orchestrator = Orchestrator(
             self.deps,
             self.results,
             inbox=self.inbox,
+            playbooks=self.playbooks,
             locks=PoLocks(self.lock, wait_seconds=lock_wait_seconds, poll_seconds=0.01),
             orders=orders,
         )
@@ -220,6 +230,8 @@ class MemoryDirectorModule(Module):
         binder.bind(SuggestionStore, to=self.suggestions, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(ProfileStore, to=self.profiles, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(FeedbackRecorder, to=self.recorder, scope=singleton)
+        binder.bind(PlaybookStore, to=self.playbook_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(PlaybookEngine, to=self.playbooks, scope=singleton)
         binder.bind(RuntimeSettingsReader, to=self.runtime_reader, scope=singleton)
         binder.bind(RuntimeSettingsStore, to=self.runtime_settings, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(LoginRateLimit, to=self.login_limit, scope=singleton)
@@ -397,6 +409,9 @@ class MemoryExceptionsSource:
 
     async def gather(self, today: date) -> list[PoFacts]:
         return list(self.facts)
+
+    async def facts_for(self, po_name: str, today: date) -> PoFacts | None:
+        return next((f for f in self.facts if f.po_name == po_name), None)
 
     async def act_now(
         self, po_name: str, *, requested_by: str, today: date | None = None

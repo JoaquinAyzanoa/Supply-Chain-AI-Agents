@@ -267,6 +267,10 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path === "/api/settings/models") return json(route, 200, []);
     if (path === "/api/autonomy" && request.method() === "GET") return json(route, 200, { version: 0, changed_by: "environment", changed_at: null, policy: { rules: [] }, pending: null });
     if (path === "/api/autonomy/actions") return json(route, 200, []);
+    if (path === "/api/playbooks" && request.method() === "GET")
+      return json(route, 200, [{ name: "late_order", title: "Late order", description: "Ask, wait, chase.", trigger: "po_late", active_runs: 0, steps: [{ id: "ask_eta", label: "Ask the supplier for a new delivery date", kind: "agent", when: "not_received", agent: "supplier_comms", task: "request_eta", wait_days: null, until: null, action: null, active_runs: 0 }] }]);
+    if (path === "/api/playbooks/runs" && request.method() === "GET") return json(route, 200, []);
+    if (path === "/api/playbooks/runs" && request.method() === "POST") return json(route, 403, { detail: "approver role required" });
     if (path === "/api/learning/suggestions") return json(route, 200, []);
     if (path === "/api/learning/stats") return json(route, 200, { days: 90, total: 0, unchanged: 0, edited: 0, rejected: 0, expired: 0, by_kind: [], by_supplier: [] });
     if (path.startsWith("/api/learning/profiles/")) return json(route, 200, { partner_id: 45, language: null, formality: null, greeting: null, sign_off: null, contacts: [], notes: "", facts: {}, updated_at: null, updated_by: null });

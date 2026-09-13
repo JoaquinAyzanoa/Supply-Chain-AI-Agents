@@ -10,6 +10,7 @@ import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { Label, Textarea } from "@/components/ui/input";
+import { PlaybookOutlook } from "@/features/playbooks/PlaybookBadge";
 import { useI18n } from "@/i18n";
 import { formatDateTime } from "@/lib/utils";
 import { agentName } from "@/features/cases/labels";
@@ -188,6 +189,7 @@ export function ApprovalDetail({ approval, onBack, withChat = true }: { approval
 
 function WhyPanel({ approval }: { approval: Approval }) {
   const { t } = useI18n();
+  const position = approval.playbook ?? null;
   const links = [
     ["odoo", approval.links.odoo],
     ["order", approval.links.order],
@@ -198,6 +200,12 @@ function WhyPanel({ approval }: { approval: Approval }) {
     <div className="rounded-md border bg-muted/40 p-3 text-sm">
       <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">{t("approvals.why")}</div>
       <p>{approval.why ?? t("approvals.why_unknown")}</p>
+      {position ? (
+        <div className="mt-2 border-t pt-2">
+          <p className="mb-1 text-xs text-muted-foreground">{t("approvals.playbook_intro", { title: position.title, n: position.step_index + 1, total: position.steps_total })}</p>
+          <PlaybookOutlook position={position} />
+        </div>
+      ) : null}
       {links.length ? (
         <div className="mt-2 flex flex-wrap gap-3">
           {links.map(([key, href]) => (
