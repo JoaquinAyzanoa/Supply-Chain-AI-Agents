@@ -5,11 +5,13 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
+from sc_core.schema.a2a import Need
 from sc_core.schema.events import (
     EVENT_TYPES,
     AgentRunFinished,
     InboundMailLinked,
     InboundMailUnlinked,
+    NeedsProposed,
     OdooApprovalResolved,
     OdooBillCreated,
     OdooOrderpointTriggered,
@@ -76,6 +78,12 @@ def test_parse_each_type_roundtrip() -> None:
         partner_id=20,
         run_id="run_1",
     )
+    needs = NeedsProposed(
+        source="inventory_planning",
+        case_id="plan_needs_run_1",
+        run_id="run_1",
+        needs=[Need(product_id=1, product="CBEA-LHN", qty=30)],
+    )
     events = (
         linked,
         unlinked,
@@ -87,6 +95,7 @@ def test_parse_each_type_roundtrip() -> None:
         resolved,
         finished,
         drafted,
+        needs,
     )
     assert {type(e) for e in events} == set(EVENT_TYPES)
     for event in events:

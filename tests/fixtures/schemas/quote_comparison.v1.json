@@ -143,6 +143,67 @@
       "title": "ComparedQuote",
       "type": "object"
     },
+    "LineAward": {
+      "additionalProperties": false,
+      "description": "The best offer for one product of the basket: the award can be split per line.",
+      "properties": {
+        "landed_unit": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Landed Unit"
+        },
+        "partner_id": {
+          "title": "Partner Id",
+          "type": "integer"
+        },
+        "partner_name": {
+          "title": "Partner Name",
+          "type": "string"
+        },
+        "po_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Po Name"
+        },
+        "product": {
+          "default": "",
+          "title": "Product",
+          "type": "string"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "integer"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "product_id",
+        "partner_id",
+        "partner_name"
+      ],
+      "title": "LineAward",
+      "type": "object"
+    },
     "QuoteLine": {
       "additionalProperties": false,
       "description": "One product as one supplier quoted it (or lists it), with its landed cost.",
@@ -172,6 +233,19 @@
           ],
           "default": null,
           "title": "Lead Days"
+        },
+        "line_id": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the purchase.order.line",
+          "title": "Line Id"
         },
         "min_qty": {
           "default": 0.0,
@@ -241,6 +315,14 @@
       "description": "per product id",
       "title": "Last Paid",
       "type": "object"
+    },
+    "line_awards": {
+      "description": "best per product",
+      "items": {
+        "$ref": "#/$defs/LineAward"
+      },
+      "title": "Line Awards",
+      "type": "array"
     },
     "quotes": {
       "items": {

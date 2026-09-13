@@ -22,7 +22,7 @@ from typing import Any, Literal, Protocol, runtime_checkable
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_injector import Injected
 from loguru import logger
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, model_validator
 
 from director.api.auth import Approver, Principal, Viewer
 from director.autonomy import AutonomyChanges
@@ -98,7 +98,16 @@ class PlanEdits(StrictModel):
 
 
 class AwardEdits(StrictModel):
-    partner_id: int = Field(description="the supplier who gets the order")
+    partner_id: int | None = Field(default=None, description="one supplier for every line")
+    lines: dict[str, int] = Field(
+        default_factory=dict, description="product id -> supplier id, when the award is split"
+    )
+
+    @model_validator(mode="after")
+    def _one_or_the_other(self) -> AwardEdits:
+        if self.partner_id is None and not self.lines:
+            raise ValueError("choose a supplier, or one per line")
+        return self
 
 
 class OfferEdits(StrictModel):

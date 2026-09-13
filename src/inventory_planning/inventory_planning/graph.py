@@ -49,13 +49,13 @@ from sc_core.i18n import Language, t
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg
 from sc_core.llm import ChatCompleter
-from sc_core.schema.events import RfqDrafted
+from sc_core.schema.events import BaseEvent
 from sc_core.shared.time import local_today
 
-Publish = Callable[[RfqDrafted], Awaitable[Any]]
+Publish = Callable[[BaseEvent], Awaitable[Any]]
 
 
-async def _no_publish(_: RfqDrafted) -> None:
+async def _no_publish(_: BaseEvent) -> None:
     return None
 
 

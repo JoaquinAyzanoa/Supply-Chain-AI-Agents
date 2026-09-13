@@ -159,6 +159,7 @@ def result_from(state: dict[str, Any], *, language: Language = "en") -> Sourcing
         comparison=QuoteComparison.model_validate(comparison) if comparison else None,
         counter_offer=CounterOffer.model_validate(offer) if offer else None,
         awarded_po_name=state.get("awarded_po_name"),
+        awarded_po_names=list(state.get("awarded_po_names") or []),
         trace_id=state.get("trace_id"),
     )
 

@@ -191,9 +191,9 @@ describe("planning review", () => {
     const rankTable = within(drawer).getByRole("table", { name: "Suppliers for this product" });
     const rankRows = within(rankTable).getAllByRole("row");
     expect(rankRows[1]).toHaveTextContent("Hidraulica Alterna");
-    expect(rankRows[2]).toHaveTextContent("Proveedor Hidraulica(chosen)");
+    expect(rankRows[2]).toHaveTextContent("Proveedor Hidraulica(reference)");
     expect(rankRows[3]).toHaveTextContent("no history");
-    expect(drawer).toHaveTextContent("Hidraulica Alterna scores higher than the chosen supplier.");
+    expect(drawer).toHaveTextContent("Hidraulica Alterna scores higher than the reference supplier.");
     expect(await within(drawer).findByRole("img", { name: "demand 2 days" })).toBeInTheDocument();
     expect(drawer).toHaveTextContent("Forecast ses: 2 per day (WAPE 12%)");
 

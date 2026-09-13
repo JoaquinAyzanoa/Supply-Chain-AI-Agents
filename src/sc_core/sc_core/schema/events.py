@@ -16,6 +16,7 @@ from typing import Annotated, Any, ClassVar, Literal
 
 from pydantic import AwareDatetime, Field, TypeAdapter
 
+from sc_core.schema.a2a import Need
 from sc_core.schema.base import StrictModel
 from sc_core.shared.idempotency import deterministic_id, new_id
 from sc_core.shared.time import utc_now
@@ -180,6 +181,16 @@ class RfqDrafted(BaseEvent):
     line_count: int = Field(default=0, ge=0)
 
 
+class NeedsProposed(BaseEvent):
+    """The planner's approved buys, as needs for the sourcing agent (phase 11): no
+    supplier is chosen; a quote round asks the market and a person awards."""
+
+    type: Literal["sourcing.needs"] = "sourcing.needs"
+    run_id: str
+    warehouse_id: int | None = None
+    needs: list[Need] = Field(default_factory=list)
+
+
 AnyEvent = Annotated[
     InboundMailLinked
     | InboundMailUnlinked
@@ -190,7 +201,8 @@ AnyEvent = Annotated[
     | OdooOrderpointTriggered
     | OdooApprovalResolved
     | AgentRunFinished
-    | RfqDrafted,
+    | RfqDrafted
+    | NeedsProposed,
     Field(discriminator="type"),
 ]
 
@@ -205,6 +217,7 @@ EVENT_TYPES: tuple[type[BaseEvent], ...] = (
     OdooApprovalResolved,
     AgentRunFinished,
     RfqDrafted,
+    NeedsProposed,
 )
 
 _adapter: TypeAdapter[Any] = TypeAdapter(AnyEvent)

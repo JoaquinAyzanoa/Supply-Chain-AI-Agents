@@ -82,6 +82,23 @@ def test_unlinked_mail_from_unknown_sender_goes_to_the_supplier_agent() -> None:
     assert decided.dispatches[0].task.kind == "resolve_unlinked"
 
 
+def test_planner_needs_become_one_quote_round() -> None:
+    from sc_core.schema.a2a import Need
+
+    event = ev.NeedsProposed(
+        source="inventory_planning",
+        case_id="plan_needs_run_1",
+        run_id="run_1",
+        warehouse_id=1,
+        needs=[Need(product_id=1, product="CBEA-LHN", qty=30, expected_price=104.0)],
+    )
+    decided = route(event)
+    assert decided.case_kind == "sourcing" and len(decided.dispatches) == 1
+    task = decided.dispatches[0].task
+    assert decided.dispatches[0].agent == "sourcing" and task.kind == "quote_round"
+    assert task.case_id == "round_plan_run_1" and task.needs[0].qty == 30  # type: ignore[union-attr]
+
+
 def test_unlinked_mail_without_a_sender_escalates_without_agent() -> None:
     event = ev.InboundMailUnlinked(
         source="mail_sync", case_id="case_msg4", graph_message_id="AAMk4"

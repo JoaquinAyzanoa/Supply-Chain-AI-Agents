@@ -42,6 +42,7 @@ from sc_core.infra import tracing
 from sc_core.odoo.models import PurchaseOrder
 from sc_core.schema.a2a import (
     InventoryPlanningResult,
+    InvitedRfq,
     InvoiceMatchResult,
     InvoiceMatchTask,
     LogisticsResult,
@@ -102,6 +103,9 @@ class AgentOutcome(StrictModel):
     """What the supplier agent made of an inbound email (routes a shipping notice on)."""
     follow_on: Dispatch | None = None
     """A second task another agent must run once this outcome is recorded."""
+    invited: list[InvitedRfq] = []
+    """A quote round's invitations: each RFQ gets a case of its own on the board."""
+    round_id: int | None = None
 
 
 class RecordOnly(StrictModel):
@@ -341,6 +345,8 @@ def outcome_from_reply(
             approval_id=result.outcome.approval_id,
         )
     outbound = getattr(result, "outbound", None)
+    invited = list(result.invited) if isinstance(result, SourcingResult) else []
+    round_id = result.round_id if isinstance(result, SourcingResult) else None
     classification = (
         result.classification.kind
         if isinstance(result, SupplierCommsResult) and result.classification
@@ -358,6 +364,8 @@ def outcome_from_reply(
         sent_message_id=outbound.sent_message_id if outbound else None,
         web_link=outbound.web_link if outbound else None,
         classification=classification,
+        invited=invited,
+        round_id=round_id,
     )
 
 
@@ -598,6 +606,8 @@ async def consolidate_outcome(
             "web_link": outcome.web_link,
         },
     )
+    for rfq in outcome.invited:
+        await _open_invited_case(cases, outcome, rfq)
     conversation = None
     if outcome.sent_message_id:
         conversation = await conversations.conversation_for(outcome.sent_message_id)
@@ -637,6 +647,54 @@ async def consolidate_outcome(
     )
 
 
+async def _open_invited_case(cases: CaseStore, outcome: AgentOutcome, rfq: InvitedRfq) -> None:
+    """One card per invited supplier: the RFQ's case carries the round, the send task
+    (so the supplier agent's result and approval land on it) and the invitation note."""
+    if not rfq.po_name:
+        return
+    case, _ = await cases.attach_or_create(
+        kind="rfq", po_name=rfq.po_name, partner_id=rfq.partner_id, agent="sourcing"
+    )
+    thread_id = f"{outcome.thread_id}_rfq{rfq.partner_id}"
+    await cases.add_event(
+        case.case_id,
+        "note",
+        {
+            "text": f"Invited in quote round #{outcome.round_id}"
+            if outcome.round_id
+            else "Invited in a quote round",
+            "round_id": outcome.round_id,
+            "round_case_id": outcome.case.case_id,
+        },
+    )
+    if rfq.status in ("sent", "awaiting_approval", "failed"):
+        await cases.add_event(
+            case.case_id,
+            "task_sent",
+            {
+                "agent": "supplier_comms",
+                "task": "send_rfq",
+                "thread_id": thread_id,
+                "po_name": rfq.po_name,
+                "round_id": outcome.round_id,
+            },
+        )
+    status = {
+        "sent": "done",
+        "awaiting_approval": "awaiting_approval",
+        "failed": "failed",
+        "no_email": "escalated",
+    }.get(rfq.status, "open")
+    summary = {
+        "sent": "request for quotation sent",
+        "awaiting_approval": "request for quotation waiting for approval",
+        "failed": "the request for quotation could not be sent",
+        "no_email": "the supplier has no email in Odoo; the request was not sent",
+        "created": "request for quotation drafted",
+    }.get(rfq.status, rfq.status)
+    await cases.update(case.case_id, status=status, summary=summary)  # type: ignore[arg-type]
+
+
 # --- building and running -----------------------------------------------------------
 
 AGENT_NAMES = (
@@ -645,6 +703,7 @@ AGENT_NAMES = (
     "logistics",
     "invoice_match",
     "supplier_performance",
+    "sourcing",
 )
 
 

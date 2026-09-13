@@ -1,4 +1,83 @@
 {
+  "$defs": {
+    "Need": {
+      "additionalProperties": false,
+      "description": "What the planner wants bought: a product, a quantity, and what it expects to pay\nand when it needs it. No supplier: the sourcing agent asks the market.",
+      "properties": {
+        "currency": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Currency"
+        },
+        "expected_price": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Price"
+        },
+        "need_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Need Date"
+        },
+        "product": {
+          "default": "",
+          "title": "Product",
+          "type": "string"
+        },
+        "product_id": {
+          "title": "Product Id",
+          "type": "integer"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        },
+        "source_line_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "the planning line",
+          "title": "Source Line Id"
+        }
+      },
+      "required": [
+        "product_id",
+        "qty"
+      ],
+      "title": "Need",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
   "description": "What the director asks the sourcing agent to do.\n\nA round is described either by ``product_id`` + ``qty`` or by ``po_name``\n(the lines of an existing order or RFQ, its partner being the incumbent).",
   "properties": {
@@ -51,6 +130,14 @@
       ],
       "default": null,
       "title": "Max Suppliers"
+    },
+    "needs": {
+      "description": "a basket of needs to quote",
+      "items": {
+        "$ref": "#/$defs/Need"
+      },
+      "title": "Needs",
+      "type": "array"
     },
     "notes": {
       "anyOf": [

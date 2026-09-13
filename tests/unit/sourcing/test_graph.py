@@ -124,7 +124,7 @@ async def test_a_round_invites_the_ranked_suppliers_and_compares_to_an_award(
     done = await agent.resume("round_1_cmp1", _decision(101, partner_id=ALTERNA))
     assert done.status == "applied" and done.awarded_po_name == "P00901"
     assert (
-        "awarded to Hidráulica Alterna SAC" in done.outcome.summary
+        "Hidráulica Alterna SAC (P00901)" in done.outcome.summary
         and "1 other quote(s) declined" in done.outcome.summary
     )
     assert ports.confirmed == [901] and sorted(ports.cancelled) == [81, 902]

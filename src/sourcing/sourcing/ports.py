@@ -64,6 +64,10 @@ class SourcingPorts(RoundStore, Protocol):
 
     async def post_note(self, po_id: int, html: str) -> None: ...
 
+    async def drop_lines(self, po_id: int, keep_product_ids: list[int]) -> int:
+        """Remove the RFQ lines of products awarded elsewhere; returns how many went."""
+        ...
+
     # --- the supplier agent ------------------------------------------------------
     async def send_task(self, agent: str, task_json: str, *, case_id: str) -> AgentReply: ...
 
@@ -161,8 +165,10 @@ class LiveSourcingPorts:
     async def options_for(self, product_ids: list[int]) -> list[SupplierOption]:
         rankings = await self._rankings(product_ids)
         by_partner: dict[int, SupplierOption] = {}
+        listed: dict[int, list[int]] = {}
         for ranking in rankings:
             for entry in ranking.suppliers:
+                listed.setdefault(entry.partner_id, []).append(ranking.product_id)
                 current = by_partner.get(entry.partner_id)
                 option = SupplierOption(
                     partner_id=entry.partner_id,
@@ -184,7 +190,13 @@ class LiveSourcingPorts:
                 [["partner_id", "=", option.partner_id], ["state", "in", ["purchase", "done"]]]
             )
             options.append(
-                option.model_copy(update={"has_email": bool(emails), "first_time": confirmed == 0})
+                option.model_copy(
+                    update={
+                        "has_email": bool(emails),
+                        "first_time": confirmed == 0,
+                        "product_ids": sorted(set(listed.get(option.partner_id, []))),
+                    }
+                )
             )
         options.sort(key=lambda o: (o.rank or 99, o.partner_name))
         return options
@@ -245,6 +257,7 @@ class LiveSourcingPorts:
                 product_id=line.product_id.id,
                 product=line.product_id.name,
                 qty=line.product_qty or 1.0,
+                line_id=line.id,
                 price_unit=line.price_unit,
                 lead_days=_lead_days(po.date_order, line.date_planned),
             )
@@ -279,7 +292,22 @@ class LiveSourcingPorts:
     ) -> tuple[int, str]:
         po = await self._pos.create_rfq(
             partner_id,
-            [NewOrderLine(product_id=line.product_id, product_qty=line.qty) for line in lines],
+            [
+                NewOrderLine(
+                    product_id=line.product_id,
+                    product_qty=line.qty,
+                    date_planned=datetime(
+                        line.need_date.year,
+                        line.need_date.month,
+                        line.need_date.day,
+                        12,
+                        tzinfo=UTC,
+                    )
+                    if line.need_date
+                    else None,
+                )
+                for line in lines
+            ],
             external_ref=external_ref,
             origin=origin,
         )
@@ -299,6 +327,17 @@ class LiveSourcingPorts:
 
     async def post_note(self, po_id: int, html: str) -> None:
         await self._pos.post_note(po_id, html)
+
+    async def drop_lines(self, po_id: int, keep_product_ids: list[int]) -> int:
+        keep = set(keep_product_ids)
+        gone = [
+            line.id
+            for line in await self._pos.lines(po_id)
+            if line.product_id is not None and line.product_id.id not in keep
+        ]
+        if gone:
+            await self._odoo.unlink("purchase.order.line", gone)
+        return len(gone)
 
     # --- the supplier agent ------------------------------------------------------
 

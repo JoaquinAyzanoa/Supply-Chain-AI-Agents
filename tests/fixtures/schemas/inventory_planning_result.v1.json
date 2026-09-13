@@ -8,6 +8,11 @@
           "title": "Lines Applied",
           "type": "integer"
         },
+        "needs_sent": {
+          "default": 0,
+          "title": "Needs Sent",
+          "type": "integer"
+        },
         "orderpoints_written": {
           "default": 0,
           "title": "Orderpoints Written",

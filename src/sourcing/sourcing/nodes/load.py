@@ -7,6 +7,7 @@ from typing import Any
 from loguru import logger
 
 from sc_core.infra import tracing
+from sourcing.models import BasketLine
 from sourcing.nodes.common import fail, task_of
 from sourcing.ports import SourcingPorts
 from sourcing.state import Node
@@ -30,6 +31,19 @@ def make_load(ports: SourcingPorts) -> Node:
             update["order"] = order.model_dump(mode="json")
             update["basket"] = [
                 b.model_dump(mode="json") for b in await ports.basket_for_po(task.po_name)
+            ]
+        elif task.needs:
+            update["basket"] = [
+                BasketLine(
+                    product_id=n.product_id,
+                    product=n.product or str(n.product_id),
+                    qty=n.qty,
+                    last_paid=await ports.last_paid(n.product_id),
+                    currency=n.currency,
+                    expected_price=n.expected_price,
+                    need_date=n.need_date,
+                ).model_dump(mode="json")
+                for n in task.needs
             ]
         elif task.product_id and task.qty:
             update["basket"] = [

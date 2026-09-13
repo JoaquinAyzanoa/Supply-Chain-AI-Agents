@@ -272,6 +272,7 @@ class InventoryPlanningTask(StrictModel):
 
 class AppliedSummary(StrictModel):
     orderpoints_written: int = 0
+    needs_sent: int = 0  # phase 11: the plan's buys go to the sourcing agent as needs
     rfqs_created: list[str] = []
     rfqs_existing: list[str] = []
     lines_applied: int = 0
@@ -584,6 +585,19 @@ class SupplierRanking(StrictModel):
 SourcingTaskKind = Literal["quote_round", "compare_quotes", "counter_offer", "alternate_source"]
 
 
+class Need(StrictModel):
+    """What the planner wants bought: a product, a quantity, and what it expects to pay
+    and when it needs it. No supplier: the sourcing agent asks the market."""
+
+    product_id: int
+    product: str = ""
+    qty: float = Field(gt=0)
+    expected_price: float | None = Field(default=None, ge=0)
+    currency: str | None = None
+    need_date: dt.date | None = None
+    source_line_id: str | None = Field(default=None, description="the planning line")
+
+
 class SourcingTask(StrictModel):
     """What the director asks the sourcing agent to do.
 
@@ -600,6 +614,7 @@ class SourcingTask(StrictModel):
     partner_id: int | None = Field(default=None, description="the incumbent supplier, if any")
     product_id: int | None = None
     qty: float | None = Field(default=None, gt=0)
+    needs: list[Need] = Field(default_factory=list, description="a basket of needs to quote")
     partner_ids: list[int] = Field(default_factory=list, description="invite these as well")
     exclude_partner_ids: list[int] = Field(default_factory=list)
     round_id: int | None = Field(default=None, description="compare_quotes: the round")
@@ -613,8 +628,10 @@ class SourcingTask(StrictModel):
 
     @model_validator(mode="after")
     def _required_by_kind(self) -> SourcingTask:
-        if self.kind == "quote_round" and not (self.po_name or (self.product_id and self.qty)):
-            raise ValueError("quote_round needs po_name or product_id and qty")
+        if self.kind == "quote_round" and not (
+            self.po_name or (self.product_id and self.qty) or self.needs
+        ):
+            raise ValueError("quote_round needs po_name, product_id and qty, or needs")
         if self.kind == "compare_quotes" and not (self.round_id or self.po_name):
             raise ValueError("compare_quotes needs round_id or po_name")
         if self.kind in ("counter_offer", "alternate_source") and not self.po_name:
@@ -628,6 +645,7 @@ class QuoteLine(StrictModel):
     product_id: int
     product: str
     qty: float = Field(gt=0)
+    line_id: int | None = Field(default=None, description="the purchase.order.line")
     price_unit: float | None = Field(default=None, ge=0)
     landed_unit: float | None = Field(default=None, ge=0)
     lead_days: int | None = Field(default=None, ge=0)
@@ -657,12 +675,25 @@ class ComparedQuote(StrictModel):
     first_time_supplier: bool = False
 
 
+class LineAward(StrictModel):
+    """The best offer for one product of the basket: the award can be split per line."""
+
+    product_id: int
+    product: str = ""
+    partner_id: int
+    partner_name: str
+    po_name: str | None = None
+    landed_unit: float | None = None
+    reasons: list[str] = Field(default_factory=list)
+
+
 class QuoteComparison(StrictModel):
     round_id: int
     source_po_name: str | None = None
     basket: list[QuoteLine] = Field(default_factory=list, description="what was asked, per product")
     quotes: list[ComparedQuote] = Field(default_factory=list)
     recommended_partner_id: int | None = None
+    line_awards: list[LineAward] = Field(default_factory=list, description="best per product")
     recommendation: str = ""
     freight_pct: float = 0.0
     weights: dict[str, float] = Field(default_factory=dict)
@@ -712,6 +743,7 @@ class SourcingResult(StrictModel):
     comparison: QuoteComparison | None = None
     counter_offer: CounterOffer | None = None
     awarded_po_name: str | None = None
+    awarded_po_names: list[str] = Field(default_factory=list)
     trace_id: str | None = None
 
     @property

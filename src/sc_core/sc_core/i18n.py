@@ -295,13 +295,10 @@ MESSAGES: dict[str, dict[Language, str]] = {
         ),
     },
     "sourcing.awarded": {
-        "en": (
-            "round #{round_id} awarded to {partner}: {po} confirmed, {declined} other "
-            "quote(s) declined"
-        ),
+        "en": "round #{round_id} awarded: {partner}; {declined} other quote(s) declined",
         "es": (
-            "ronda #{round_id} adjudicada a {partner}: {po} confirmada, {declined} otra(s) "
-            "cotización(es) declinada(s)"
+            "ronda #{round_id} adjudicada: {partner}; {declined} otra(s) cotización(es) "
+            "declinada(s)"
         ),
     },
     "sourcing.award_rejected": {
@@ -485,8 +482,8 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "es": "esperando aprobación del plan",
     },
     "plan.applied": {
-        "en": "{rules} rules written, {rfqs} RFQs created",
-        "es": "{rules} reglas escritas, {rfqs} solicitudes de cotización creadas",
+        "en": "{rules} rules written, {needs} need(s) sent to sourcing",
+        "es": "{rules} reglas escritas, {needs} necesidad(es) enviada(s) a abastecimiento",
     },
     "plan.existing": {"en": ", {n} already existed", "es": ", {n} ya existían"},
     "plan.rejected": {"en": "plan rejected: {reason}", "es": "plan rechazado: {reason}"},

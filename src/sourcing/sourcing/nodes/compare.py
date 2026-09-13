@@ -263,6 +263,17 @@ async def _source_po_id(state: dict[str, Any]) -> int | None:
     return next((rfq.po_id for rfq in round_.rfqs if rfq.po_id), None)
 
 
+def winners_of(comparison: QuoteComparison, details: dict[str, Any]) -> dict[int, int]:
+    """Product id -> supplier id: the person's split, one supplier for all, or the best per
+    line as the comparison found it."""
+    if details.get("lines"):
+        return {int(k): int(v) for k, v in dict(details["lines"]).items()}
+    if details.get("partner_id"):
+        chosen = int(details["partner_id"])
+        return {b.product_id: chosen for b in comparison.basket}
+    return {a.product_id: a.partner_id for a in comparison.line_awards}
+
+
 def make_award_apply(
     ports: SourcingPorts, *, now: Callable[[], datetime], language: Language = "en"
 ) -> Node:
@@ -271,47 +282,75 @@ def make_award_apply(
         comparison = QuoteComparison.model_validate(state["comparison"])
         decision = decision_for(state, AWARD_STEP)
         details = (decision.details or {}) if decision else {}
-        chosen_id = int(details.get("partner_id") or comparison.recommended_partner_id or 0)
-        chosen = next((q for q in comparison.quotes if q.partner_id == chosen_id), None)
-        if chosen is None:
-            return finish("failed", f"partner {chosen_id} is not part of round #{round_.id}")
+        winners = winners_of(comparison, details)
+        if not winners:
+            return finish("failed", f"round #{round_.id}: nobody to award to")
+        names = {q.partner_id: q.partner_name for q in comparison.quotes}
+        unknown = sorted(set(winners.values()) - set(names))
+        if unknown:
+            return finish("failed", f"partner {unknown[0]} is not part of round #{round_.id}")
         who = decision.resolved_by if decision and decision.resolved_by else "-"
         basket = round_.basket or basket_of(state)
         declined = 0
+        awarded: list[str] = []
+        first_partner: int | None = None
         if state.get("mode") == "direct":
-            po_id, po_name = await ports.create_rfq(
-                chosen.partner_id,
-                basket,
-                external_ref=f"alt-{round_.id}-{chosen.partner_id}",
-                origin=f"SC alternative source / {round_.source_po_name or ''}".strip(" /"),
-            )
-            awarded = await ports.confirm_rfq(po_id)
-            winner_po_id = po_id
+            by_partner: dict[int, list[BasketLine]] = {}
+            for line in basket:
+                pid = winners.get(line.product_id)
+                if pid is not None:
+                    by_partner.setdefault(pid, []).append(line)
+            for pid, lines in by_partner.items():
+                po_id, _ = await ports.create_rfq(
+                    pid,
+                    lines,
+                    external_ref=f"alt-{round_.id}-{pid}",
+                    origin=f"SC alternative source / {round_.source_po_name or ''}".strip(" /"),
+                )
+                awarded.append(await ports.confirm_rfq(po_id))
+                await ports.post_note(
+                    po_id, _award_note(round_, comparison, names[pid], who, language)
+                )
+                first_partner = first_partner or pid
         else:
-            winner = next((r for r in round_.rfqs if r.partner_id == chosen.partner_id), None)
-            if winner is None or winner.po_id is None:
-                return finish("failed", f"no RFQ for {chosen.partner_name} in round #{round_.id}")
             # Odoo confirms an RFQ that still has live alternatives only through a wizard:
-            # the others are declined and cancelled first, the winner confirmed last.
+            # losers are declined and cancelled first, winners trimmed and confirmed last.
+            winning: list[tuple[RoundRfq, list[int]]] = []
             for rfq in round_.rfqs:
-                if rfq.partner_id == chosen.partner_id or rfq.po_id is None:
+                if rfq.po_id is None:
+                    continue
+                asked = rfq.product_ids or [b.product_id for b in basket]
+                won = [p for p in asked if winners.get(p) == rfq.partner_id]
+                if won:
+                    winning.append((rfq, won))
                     continue
                 if rfq.status == "sent" or rfq.replied_at is not None:
                     await _decline(ports, rfq, state["case_id"], round_.id, language)
                     declined += 1
                 await ports.cancel_rfq(rfq.po_id)
                 await ports.update_rfq(round_.id, rfq.partner_id, status="declined")
-            awarded = await ports.confirm_rfq(winner.po_id)
-            winner_po_id = winner.po_id
-        await ports.post_note(winner_po_id, _award_note(round_, comparison, chosen, who, language))
+            for rfq, won in winning:
+                assert rfq.po_id is not None
+                asked = rfq.product_ids or [b.product_id for b in basket]
+                if set(won) != set(asked):
+                    await ports.drop_lines(rfq.po_id, won)
+                awarded.append(await ports.confirm_rfq(rfq.po_id))
+                await ports.post_note(
+                    rfq.po_id, _award_note(round_, comparison, rfq.partner_name, who, language)
+                )
+                first_partner = first_partner or rfq.partner_id
+            if not winning:
+                return finish("failed", f"round #{round_.id}: no RFQ matches the award")
         await ports.update_round(
             round_.id,
             status="awarded",
-            awarded_partner_id=chosen.partner_id,
-            awarded_po_name=awarded,
+            awarded_partner_id=first_partner,
+            awarded_po_name=", ".join(awarded),
         )
-        logger.bind(round_id=round_.id, partner_id=chosen.partner_id, po_name=awarded).info(
-            "round awarded"
+        logger.bind(round_id=round_.id, awarded=awarded).info("round awarded")
+        winners_text = ", ".join(
+            f"{names[pid]} ({po})"
+            for pid, po in zip(dict.fromkeys(winners.values()), awarded, strict=False)
         )
         return finish(
             "applied",
@@ -319,11 +358,12 @@ def make_award_apply(
                 "sourcing.awarded",
                 language,
                 round_id=round_.id,
-                partner=chosen.partner_name,
-                po=awarded,
+                partner=winners_text or names.get(first_partner or 0, "-"),
+                po=", ".join(awarded),
                 declined=declined,
             ),
-            awarded_po_name=awarded,
+            awarded_po_name=awarded[0] if awarded else None,
+            awarded_po_names=awarded,
         )
 
     return award_apply
@@ -347,7 +387,7 @@ async def _decline(
 
 
 def _award_note(
-    round_: Round, comparison: QuoteComparison, chosen: Any, who: str, language: Language
+    round_: Round, comparison: QuoteComparison, chosen: str, who: str, language: Language
 ) -> str:
     rows = "".join(
         f"<li>{q.partner_name}: {money(q.total, q.currency)} "
@@ -355,9 +395,9 @@ def _award_note(
         for q in comparison.quotes
     )
     head = (
-        f"Quote round #{round_.id} awarded to {chosen.partner_name} by {who}."
+        f"Quote round #{round_.id} awarded to {chosen} by {who}."
         if language == "en"
-        else f"Ronda de cotización #{round_.id} adjudicada a {chosen.partner_name} por {who}."
+        else f"Ronda de cotización #{round_.id} adjudicada a {chosen} por {who}."
     )
     return f"<p>{head}</p><ul>{rows}</ul>"
 

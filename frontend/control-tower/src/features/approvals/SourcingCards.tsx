@@ -18,21 +18,40 @@ const fixed2 = (value: number, locale: string) => new Intl.NumberFormat(locale, 
 
 // --- award ------------------------------------------------------------------------------
 
+export type LineChoice = Record<string, number>; // product id -> supplier id
+
+/** The recommended split: the best offer per product, as the comparison found it. */
+export function recommendedChoice(payload: AwardPayload): LineChoice {
+  const out: LineChoice = {};
+  for (const award of payload.comparison.line_awards) out[String(award.product_id)] = award.partner_id;
+  return out;
+}
+
 export function AwardCard({
   payload,
-  chosen,
-  onChoose,
+  choice,
+  onChoice,
   canAct,
 }: {
   payload: AwardPayload;
-  chosen: number | null;
-  onChoose: (partnerId: number) => void;
+  choice: LineChoice;
+  onChoice: (next: LineChoice) => void;
   canAct: boolean;
 }) {
   const { t, locale } = useI18n();
   const comparison = payload.comparison;
   const money = (value: number | null | undefined, currency: string | null | undefined) =>
     value === null || value === undefined ? "—" : `${fixed2(value, locale)} ${currency ?? ""}`.trim();
+  const allTo = (partnerId: number) => {
+    const next: LineChoice = {};
+    for (const line of comparison.basket) {
+      const quote = comparison.quotes.find((q) => q.partner_id === partnerId);
+      const priced = quote?.lines.find((l) => l.product_id === line.product_id && l.landed_unit !== null && l.landed_unit !== undefined);
+      if (priced) next[String(line.product_id)] = partnerId;
+    }
+    onChoice(next);
+  };
+  const single = new Set(Object.values(choice)).size === 1 && Object.keys(choice).length === comparison.basket.length ? Object.values(choice)[0] : null;
   return (
     <div className="flex flex-col gap-3 text-sm">
       <div className="flex flex-wrap items-center gap-2">
@@ -40,15 +59,11 @@ export function AwardCard({
         <span className="text-xs text-muted-foreground">{t("approvals.award.replied", { replied: comparison.replied, invited: comparison.invited })}</span>
         {comparison.freight_pct ? <span className="text-xs text-muted-foreground">{t("approvals.award.freight", { pct: comparison.freight_pct })}</span> : null}
       </div>
-      <div>
-        <div className="text-xs font-medium uppercase text-muted-foreground">{t("approvals.award.basket")}</div>
-        <p>{comparison.basket.map((line) => `${line.product} × ${formatNumber(line.qty, locale, 0)}`).join(" · ")}</p>
-      </div>
       <div className="overflow-x-auto rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>{t("approvals.award.col.choose")}</TableHead>
+              <TableHead>{t("approvals.award.col.all")}</TableHead>
               <TableHead>{t("approvals.award.col.supplier")}</TableHead>
               <TableHead>{t("approvals.award.col.total")}</TableHead>
               <TableHead>{t("approvals.award.col.lead")}</TableHead>
@@ -59,7 +74,7 @@ export function AwardCard({
           <TableBody>
             {comparison.quotes.map((quote: ComparedQuote) => {
               const selectable = canAct && quote.total !== null && quote.total !== undefined;
-              const selected = chosen === quote.partner_id;
+              const selected = single === quote.partner_id;
               return (
                 <TableRow key={quote.partner_id} className={cn(selected ? "bg-primary/5" : "", quote.recommended ? "font-medium" : "")}>
                   <TableCell>
@@ -69,7 +84,7 @@ export function AwardCard({
                       aria-label={t("approvals.award.choose", { supplier: quote.partner_name })}
                       checked={selected}
                       disabled={!selectable}
-                      onChange={() => onChoose(quote.partner_id)}
+                      onChange={() => allTo(quote.partner_id)}
                     />
                   </TableCell>
                   <TableCell>
@@ -83,14 +98,7 @@ export function AwardCard({
                       {quote.first_time_supplier ? ` · ${t("approvals.award.first_time")}` : ""}
                     </div>
                   </TableCell>
-                  <TableCell className="tabular-nums">
-                    {money(quote.total, quote.currency)}
-                    {quote.lines.length ? (
-                      <div className="text-xs text-muted-foreground">
-                        {quote.lines.map((line) => `${money(line.price_unit, null)} → ${money(line.landed_unit, null)}`).join(" · ")}
-                      </div>
-                    ) : null}
-                  </TableCell>
+                  <TableCell className="tabular-nums">{money(quote.total, quote.currency)}</TableCell>
                   <TableCell className="tabular-nums">{quote.lead_days === null || quote.lead_days === undefined ? "—" : t("approvals.award.days", { n: quote.lead_days })}</TableCell>
                   <TableCell className="tabular-nums">{quote.score === null || quote.score === undefined ? "—" : Math.round(quote.score)}</TableCell>
                   <TableCell className="text-xs text-muted-foreground">{quote.reasons.join("; ")}</TableCell>
@@ -99,6 +107,57 @@ export function AwardCard({
             })}
           </TableBody>
         </Table>
+      </div>
+      <div>
+        <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">{t("approvals.award.per_line")}</div>
+        <div className="overflow-x-auto rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{t("approvals.award.col.product")}</TableHead>
+                <TableHead>{t("approvals.award.col.qty")}</TableHead>
+                <TableHead>{t("approvals.award.col.winner")}</TableHead>
+                <TableHead>{t("approvals.award.col.why")}</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {comparison.basket.map((line) => {
+                const offers = comparison.quotes
+                  .map((q) => ({ quote: q, priced: q.lines.find((l) => l.product_id === line.product_id && l.landed_unit !== null && l.landed_unit !== undefined) }))
+                  .filter((o) => o.priced);
+                const recommended = comparison.line_awards.find((a) => a.product_id === line.product_id);
+                const value = choice[String(line.product_id)];
+                return (
+                  <TableRow key={line.product_id}>
+                    <TableCell>{line.product}</TableCell>
+                    <TableCell className="tabular-nums">{formatNumber(line.qty, locale, 0)}</TableCell>
+                    <TableCell>
+                      {offers.length ? (
+                        <select
+                          aria-label={t("approvals.award.line_winner", { product: line.product })}
+                          className="h-8 rounded-md border bg-background px-2 text-sm"
+                          value={value ?? ""}
+                          disabled={!canAct}
+                          onChange={(event) => onChoice({ ...choice, [String(line.product_id)]: Number(event.target.value) })}
+                        >
+                          <option value="">{t("approvals.award.no_winner")}</option>
+                          {offers.map((o) => (
+                            <option key={o.quote.partner_id} value={o.quote.partner_id}>
+                              {o.quote.partner_name} · {money(o.priced?.landed_unit, o.quote.currency)}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="text-muted-foreground">{t("approvals.award.no_price")}</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground">{recommended ? recommended.reasons.join("; ") : ""}</TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       {comparison.recommendation ? <p className="whitespace-pre-line rounded-md bg-muted/40 p-3">{comparison.recommendation}</p> : null}
       <p className="text-xs text-muted-foreground">{payload.mode === "direct" ? t("approvals.award.writes_direct") : t("approvals.award.writes")}</p>

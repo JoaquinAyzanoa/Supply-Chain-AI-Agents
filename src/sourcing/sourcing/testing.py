@@ -105,6 +105,7 @@ class FakeSourcingPorts(MemoryRoundStore):
     cancelled: list[int] = field(default_factory=list)
     groups: list[list[int]] = field(default_factory=list)
     notes: list[tuple[int, str]] = field(default_factory=list)
+    dropped: list[tuple[int, list[int]]] = field(default_factory=list)
     journal: list[tuple[str, int]] = field(default_factory=list)  # writes to Odoo, in order
     runs: dict[str, dict[str, Any]] = field(default_factory=dict)
     next_po_id: int = 900
@@ -133,7 +134,13 @@ class FakeSourcingPorts(MemoryRoundStore):
         ]
 
     async def options_for(self, product_ids: list[int]) -> list[SupplierOption]:
-        return list(self.options)
+        wanted = set(product_ids)
+        out = []
+        for option in self.options:
+            listed = [e.product_id for e in self.entries if e.partner_id == option.partner_id]
+            mine = sorted(set(listed) & wanted) if self.entries else sorted(wanted)
+            out.append(option.model_copy(update={"product_ids": mine}))
+        return out
 
     async def price_entries(self, product_ids: list[int]) -> list[PriceEntry]:
         return [e for e in self.entries if e.product_id in set(product_ids)]
@@ -173,8 +180,13 @@ class FakeSourcingPorts(MemoryRoundStore):
             state="draft",
             currency="USD",
             lines=[
-                QuoteLine(product_id=line.product_id, product=line.product, qty=line.qty)
-                for line in lines
+                QuoteLine(
+                    product_id=line.product_id,
+                    product=line.product,
+                    qty=line.qty,
+                    line_id=po_id * 10 + i,
+                )
+                for i, line in enumerate(lines)
             ],
         )
         return po_id, po_name
@@ -199,6 +211,16 @@ class FakeSourcingPorts(MemoryRoundStore):
 
     async def post_note(self, po_id: int, html: str) -> None:
         self.notes.append((po_id, html))
+
+    async def drop_lines(self, po_id: int, keep_product_ids: list[int]) -> int:
+        self.dropped.append((po_id, list(keep_product_ids)))
+        self.journal.append(("drop", po_id))
+        snap = self.rfqs.get(po_id)
+        if snap is None:
+            return 0
+        kept = [ln for ln in snap.lines if ln.product_id in set(keep_product_ids)]
+        self.rfqs[po_id] = snap.model_copy(update={"lines": kept})
+        return len(snap.lines) - len(kept)
 
     # --- the supplier agent ------------------------------------------------------
 

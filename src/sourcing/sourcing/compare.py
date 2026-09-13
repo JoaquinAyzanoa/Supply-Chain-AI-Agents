@@ -14,7 +14,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Literal
 
-from sc_core.schema.a2a import ComparedQuote, QuoteComparison, QuoteLine
+from sc_core.schema.a2a import ComparedQuote, LineAward, QuoteComparison, QuoteLine
 from sourcing.models import BasketLine
 
 
@@ -145,6 +145,7 @@ def compare(
         for position, quote in enumerate(ranked, start=1)
     ]
     recommended = next((q for q in ranked if q.recommended), None)
+    line_awards = _line_awards(basket, ranked)
     return QuoteComparison(
         round_id=round_id,
         source_po_name=source_po_name,
@@ -154,6 +155,7 @@ def compare(
         ],
         quotes=ranked,
         recommended_partner_id=recommended.partner_id if recommended else None,
+        line_awards=line_awards,
         recommendation=_recommendation(recommended, ranked) if recommended else "",
         freight_pct=freight_pct,
         weights=weights.as_dict(),
@@ -163,6 +165,40 @@ def compare(
         invited=invited,
         replied=sum(1 for q in quotes if q.source == "reply"),
     )
+
+
+def _line_awards(basket: list[BasketLine], ranked: list[ComparedQuote]) -> list[LineAward]:
+    """Per product: the cheapest landed unit among the priced quotes; a tie goes to the
+    better composite (lead time and score). The person may still award otherwise."""
+    awards: list[LineAward] = []
+    for want in basket:
+        candidates: list[tuple[float, float, ComparedQuote, QuoteLine]] = []
+        for quote in ranked:
+            for line in quote.lines:
+                if line.product_id == want.product_id and line.landed_unit is not None:
+                    candidates.append((line.landed_unit, -(quote.composite or 0.0), quote, line))
+        if not candidates:
+            continue
+        candidates.sort(key=lambda c: (c[0], c[1]))
+        _, _, best, line = candidates[0]
+        reasons = [f"cheapest landed unit {line.landed_unit:.2f}"]
+        if len(candidates) > 1:
+            runner = candidates[1][3]
+            reasons.append(f"next {candidates[1][2].partner_name} at {runner.landed_unit:.2f}")
+        if best.lead_days is not None:
+            reasons.append(f"{best.lead_days} day(s)")
+        awards.append(
+            LineAward(
+                product_id=want.product_id,
+                product=want.product,
+                partner_id=best.partner_id,
+                partner_name=best.partner_name,
+                po_name=best.po_name,
+                landed_unit=line.landed_unit,
+                reasons=reasons,
+            )
+        )
+    return awards
 
 
 def _reasons(

@@ -235,6 +235,9 @@ export const awardPayload = z
         basket: z.array(quoteLine).default([]),
         quotes: z.array(comparedQuote).default([]),
         recommended_partner_id: z.number().nullish(),
+        line_awards: z
+          .array(z.object({ product_id: z.number(), product: z.string().default(""), partner_id: z.number(), partner_name: z.string(), po_name: z.string().nullish(), landed_unit: z.number().nullish(), reasons: z.array(z.string()).default([]) }).loose())
+          .default([]),
         recommendation: z.string().default(""),
         freight_pct: z.number().default(0),
         invited: z.number().default(0),

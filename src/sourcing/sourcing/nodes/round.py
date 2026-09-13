@@ -22,27 +22,42 @@ from sourcing.state import Node
 def pick_invitees(
     options: list[SupplierOption],
     *,
+    basket_products: list[int],
     named: list[int],
     excluded: set[int],
     top_n: int,
-) -> list[SupplierOption]:
-    """Named partners first, then the ranking; suppliers with an email before those without."""
+) -> dict[int, list[int]]:
+    """Who gets asked for what: per product, the ``top_n`` suppliers who list it (those
+    with an email first); a named partner is asked for everything they list, or the whole
+    basket when they list nothing yet. Returns partner id -> product ids."""
     by_id = {o.partner_id: o for o in options}
-    chosen: list[SupplierOption] = []
+    asked: dict[int, list[int]] = {}
+
+    def add(pid: int, product_id: int) -> None:
+        if product_id not in asked.setdefault(pid, []):
+            asked[pid].append(product_id)
+
     for pid in named:
-        if pid in excluded or pid in {c.partner_id for c in chosen}:
+        if pid in excluded:
             continue
-        chosen.append(
-            by_id.get(pid) or SupplierOption(partner_id=pid, partner_name=f"partner {pid}")
-        )
-    ranked = [o for o in options if o.partner_id not in excluded and o not in chosen]
-    with_email = [o for o in ranked if o.has_email]
-    without = [o for o in ranked if not o.has_email]
-    for option in [*with_email, *without]:
-        if len(chosen) >= max(top_n, len(named)):
-            break
-        chosen.append(option)
-    return chosen
+        option = by_id.get(pid)
+        products = [
+            p
+            for p in basket_products
+            if not option or not option.product_ids or p in option.product_ids
+        ]
+        for product_id in products:
+            add(pid, product_id)
+    for product_id in basket_products:
+        listing = [
+            o
+            for o in options
+            if o.partner_id not in excluded and (product_id in o.product_ids or not o.product_ids)
+        ]
+        ranked = [o for o in listing if o.has_email] + [o for o in listing if not o.has_email]
+        for option in ranked[:top_n]:
+            add(option.partner_id, product_id)
+    return asked
 
 
 def make_invite(
@@ -68,14 +83,17 @@ def make_invite(
                 o.model_dump(mode="json")
                 for o in await ports.options_for([b.product_id for b in basket])
             ]
-        invitees = pick_invitees(
-            [SupplierOption.model_validate(o) for o in options],
+        parsed = [SupplierOption.model_validate(o) for o in options]
+        by_id = {o.partner_id: o for o in parsed}
+        asked = pick_invitees(
+            parsed,
+            basket_products=[b.product_id for b in basket],
             named=task.partner_ids,
             excluded=excluded,
             top_n=task.max_suppliers or current.top_n,
         )
         products = ", ".join(b.product for b in basket)
-        if not invitees:
+        if not asked:
             return finish("no_action", t("sourcing.nobody", language, product=products))
         deadline = now() + timedelta(days=task.deadline_days or current.deadline_days)
         round_ = await ports.create_round(
@@ -90,10 +108,14 @@ def make_invite(
         rfqs: list[RoundRfq] = []
         invited: list[InvitedRfq] = []
         po_ids: list[int] = [order.po_id] if order and order.state in ("draft", "sent") else []
-        for option in invitees:
+        for partner_id, product_ids in asked.items():
+            option = by_id.get(partner_id) or SupplierOption(
+                partner_id=partner_id, partner_name=f"partner {partner_id}"
+            )
+            lines = [b for b in basket if b.product_id in set(product_ids)]
             po_id, po_name = await ports.create_rfq(
                 option.partner_id,
-                basket,
+                lines,
                 external_ref=f"round-{round_.id}-{option.partner_id}",
                 origin=origin,
             )
@@ -104,6 +126,7 @@ def make_invite(
                 po_id=po_id,
                 po_name=po_name,
                 status="created" if option.has_email else "no_email",
+                product_ids=[b.product_id for b in lines],
             )
             if option.has_email:
                 rfq = await _send(ports, rfq, state["case_id"], task.notes, now)
@@ -124,6 +147,7 @@ def make_invite(
                 po_id=order.po_id,
                 po_name=order.po_name,
                 status="sent" if order.state == "sent" else "created",
+                product_ids=[b.product_id for b in basket],
             )
             rfqs.insert(0, incumbent_rfq)
         group_id = await ports.group_alternatives(po_ids)

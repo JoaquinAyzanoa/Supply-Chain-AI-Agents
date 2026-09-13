@@ -85,6 +85,7 @@ def _rfq(row: dict[str, Any]) -> RoundRfq:
         po_id=row.get("po_id"),
         po_name=row.get("po_name"),
         status=str(row.get("status") or "created"),  # type: ignore[arg-type]
+        product_ids=[int(p) for p in _js(row.get("products")) or []],
         thread_id=row.get("thread_id"),
         sent_at=row.get("sent_at"),
         replied_at=row.get("replied_at"),
@@ -195,8 +196,8 @@ class PostgresRoundStore:
         for rfq in rfqs:
             await self._db.execute(
                 "INSERT INTO sourcing_round_rfqs (round_id, partner_id, partner_name, po_id, "
-                "po_name, status, thread_id, sent_at, replied_at) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "po_name, status, thread_id, sent_at, replied_at, products) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s::jsonb)",
                 (
                     round_id,
                     rfq.partner_id,
@@ -207,6 +208,7 @@ class PostgresRoundStore:
                     rfq.thread_id,
                     rfq.sent_at,
                     rfq.replied_at,
+                    json.dumps(rfq.product_ids),
                 ),
             )
 

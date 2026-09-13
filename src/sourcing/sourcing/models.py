@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Literal
 
 from pydantic import Field
@@ -42,6 +42,8 @@ class BasketLine(StrictModel):
     qty: float = Field(gt=0)
     last_paid: float | None = Field(default=None, ge=0)
     currency: str | None = None
+    expected_price: float | None = Field(default=None, ge=0, description="what the planner expects")
+    need_date: date | None = None
 
 
 class SupplierOption(StrictModel):
@@ -58,6 +60,7 @@ class SupplierOption(StrictModel):
     lead_days: int | None = None
     first_time: bool = False
     why: str = ""
+    product_ids: list[int] = Field(default_factory=list, description="basket products they list")
 
 
 class PriceEntry(StrictModel):
@@ -91,6 +94,7 @@ class RoundRfq(StrictModel):
     po_id: int | None = None
     po_name: str | None = None
     status: RfqStatus = "created"
+    product_ids: list[int] = Field(default_factory=list, description="what this RFQ asks")
     thread_id: str | None = None
     sent_at: datetime | None = None
     replied_at: datetime | None = None

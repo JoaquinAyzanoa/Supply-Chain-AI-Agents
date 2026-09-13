@@ -29,9 +29,8 @@ from inventory_planning.state import Node
 from sc_core.graph import ApprovalRequest
 from sc_core.graph.approval import decision_for
 from sc_core.i18n import Language, t
-from sc_core.odoo.models import NewOrderLine
-from sc_core.schema.a2a import AppliedSummary
-from sc_core.schema.events import RfqDrafted, event_id_for
+from sc_core.schema.a2a import AppliedSummary, Need
+from sc_core.schema.events import BaseEvent, NeedsProposed, event_id_for
 from sc_core.schema.planning import ReplenishmentLine, ReplenishmentProposal
 
 PLAN_STEP = "planning_run"
@@ -167,7 +166,7 @@ def make_apply(
     ports: WritePorts,
     runs: RunStore,
     *,
-    publish: Callable[[RfqDrafted], Awaitable[Any]],
+    publish: Callable[[BaseEvent], Awaitable[Any]],
     today: Callable[[], date],
     language: Language = "en",
     params_store: ParamsStore | None = None,
@@ -200,51 +199,38 @@ def make_apply(
                 applied.setdefault(line.line_id, {})["orderpoint_id"] = orderpoint_id
                 applied[line.line_id]["min_max"] = [line.proposed_min, line.proposed_max]
                 rules_written += 1
-        created: list[str] = []
-        existing_rfqs: list[str] = []
-        by_supplier: dict[int, list[ReplenishmentLine]] = {}
+        # The buys are needs for the sourcing agent: it asks the suppliers who list each
+        # product, and a person awards. The planner names no supplier; its price and
+        # supplier fields are the reference (what we last paid, who listed it).
+        needs: list[Need] = []
         for line in lines:
             if line.action in ("create_rfq", "update_rule_and_rfq") and line.order_qty > 0:
-                if line.supplier_id is None:
-                    continue
-                by_supplier.setdefault(line.supplier_id, []).append(line)
-        for supplier_id, group in sorted(by_supplier.items()):
-            external_ref = f"plan:{state['run_id']}:{supplier_id}:{dataset.warehouse_id}"
-            planned = today() + timedelta(days=int(group[0].lead_time_days or 0))
-            po_id, po_name, was_created = await ports.create_rfq(
-                partner_id=supplier_id,
-                lines=[
-                    NewOrderLine(
-                        product_id=ln.product_id,
-                        product_qty=ln.order_qty,
-                        price_unit=ln.unit_price,
-                        date_planned=_at_noon(planned),
-                    )
-                    for ln in group
-                ],
-                external_ref=external_ref,
-                origin=f"plan {state['run_id']}",
-            )
-            for ln in group:
-                applied.setdefault(ln.line_id, {})["po_name"] = po_name
-                applied[ln.line_id]["po_id"] = po_id
-                applied[ln.line_id]["order_qty"] = ln.order_qty
-            if was_created:
-                created.append(po_name)
-                await publish(
-                    RfqDrafted(
-                        event_id=event_id_for("rfq.drafted", po_id),
-                        source=AGENT_NAME,
-                        case_id=f"plan_rfq_{po_id}",
-                        po_id=po_id,
-                        po_name=po_name,
-                        partner_id=supplier_id,
-                        run_id=state["run_id"],
-                        line_count=len(group),
+                needs.append(
+                    Need(
+                        product_id=line.product_id,
+                        product=line.product_ref,
+                        qty=line.order_qty,
+                        expected_price=line.unit_price,
+                        currency=line.currency,
+                        need_date=today() + timedelta(days=int(line.lead_time_days or 0)),
+                        source_line_id=line.line_id,
                     )
                 )
-            else:
-                existing_rfqs.append(po_name)
+                applied.setdefault(line.line_id, {})["order_qty"] = line.order_qty
+                applied[line.line_id]["need"] = True
+        if needs:
+            await publish(
+                NeedsProposed(
+                    event_id=event_id_for("sourcing.needs", state["run_id"]),
+                    source=AGENT_NAME,
+                    case_id=f"plan_needs_{state['run_id']}",
+                    run_id=state["run_id"],
+                    warehouse_id=dataset.warehouse_id,
+                    needs=needs,
+                )
+            )
+        created: list[str] = []
+        existing_rfqs: list[str] = []
         await runs.mark_applied(state["run_id"], applied, accepted={ln.line_id for ln in lines})
         await runs.set_status(
             state["run_id"],
@@ -253,13 +239,14 @@ def make_apply(
         )
         summary = AppliedSummary(
             orderpoints_written=rules_written,
+            needs_sent=len(needs),
             rfqs_created=created,
             rfqs_existing=existing_rfqs,
             lines_applied=len(lines),
         )
         logger.bind(run_id=state["run_id"], **summary.model_dump()).info("plan applied")
         text = (
-            t("plan.applied", language, rules=rules_written, rfqs=len(created))
+            t("plan.applied", language, rules=rules_written, needs=len(needs))
             + (f" ({', '.join(created)})" if created else "")
             + (t("plan.existing", language, n=len(existing_rfqs)) if existing_rfqs else "")
         )

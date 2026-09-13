@@ -20,6 +20,7 @@ class SourcingState(BaseAgentState, total=False):
     offer: dict[str, Any] | None  # CounterOffer
     negotiation_id: int | None
     awarded_po_name: str | None
+    awarded_po_names: list[str] | None
     outcome: dict[str, Any] | None
     escalation_approval_id: int | None
 

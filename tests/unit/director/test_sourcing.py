@@ -180,6 +180,47 @@ async def test_rounds_are_listed_started_and_compared_from_the_control_tower(
     assert task["kind"] == "counter_offer" and task["target_price"] == 100.0
 
 
+async def test_every_invited_rfq_gets_its_own_case_on_the_board(
+    module: MemoryDirectorModule, sourcing: FakeAgentCaller
+) -> None:
+    from sc_core.schema.a2a import InvitedRfq, Need, SourcingTask
+
+    result = SourcingResult(
+        kind="quote_round",
+        case_id="round_plan_run_1",
+        run_id="run_s2",
+        outcome=Outcome(status="sent", summary="quote round #4 started: 2 supplier(s) invited"),
+        round_id=4,
+        invited=[
+            InvitedRfq(
+                partner_id=8, partner_name="Proveedor Hidraulica", po_name="P00090", status="sent"
+            ),
+            InvitedRfq(
+                partner_id=10,
+                partner_name="Importadora del Sur SAC",
+                po_name="P00091",
+                status="no_email",
+            ),
+        ],
+    )
+    sourcing.replies.append(AgentReply(status="completed", text=result.model_dump_json()))
+    task = SourcingTask(
+        kind="quote_round", case_id="round_plan_run_1", needs=[Need(product_id=1, qty=30)]
+    )
+    await module.sourcing.run(task)
+    by_po = {c.po_name: c for c in module.cases.cases.values()}
+    assert by_po[None].kind == "sourcing" and by_po[None].status == "done"
+    assert by_po["P00090"].kind == "rfq" and by_po["P00090"].status == "done"
+    assert by_po["P00091"].status == "escalated" and "no email" in (by_po["P00091"].summary or "")
+    sent = [
+        e
+        for e in module.cases.case_events
+        if e.kind == "task_sent" and e.payload.get("po_name") == "P00090"
+    ]
+    assert sent and sent[0].payload["thread_id"] == "round_plan_run_1_rfq8"
+    assert await module.cases.find_by_thread("round_plan_run_1_rfq8") is not None
+
+
 async def test_the_hourly_job_compares_the_due_rounds(
     module: MemoryDirectorModule, sourcing: FakeAgentCaller
 ) -> None:
