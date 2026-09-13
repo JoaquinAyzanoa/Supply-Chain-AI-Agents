@@ -138,7 +138,7 @@ function RoundsTable({ rows, canAct, onDone }: { rows: SourcingRound[]; canAct: 
               <TableCell className="text-muted-foreground">{formatDateTime(round.deadline, locale)}</TableCell>
               {canAct ? (
                 <TableCell className="text-right">
-                  {round.status === "open" || round.status === "rejected" ? (
+                  {round.status === "open" || round.status === "comparing" || round.status === "rejected" ? (
                     <Button variant="outline" size="sm" onClick={() => void run(round)} disabled={compare.isPending} aria-label={t("sourcing.compare_round", { id: round.id })}>
                       <Scale className="h-4 w-4" /> {t("sourcing.compare")}
                     </Button>

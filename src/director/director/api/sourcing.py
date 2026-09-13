@@ -130,7 +130,7 @@ async def compare_round(
         raise HTTPException(status_code=502, detail=exc.message) from exc
     if found is None:
         raise HTTPException(status_code=404, detail=f"round {round_id} not found")
-    if found.get("status") not in ("open", "rejected"):
+    if found.get("status") not in ("open", "comparing", "rejected"):
         raise HTTPException(
             status_code=409, detail=f"round {round_id} is {found.get('status')}; nothing to compare"
         )

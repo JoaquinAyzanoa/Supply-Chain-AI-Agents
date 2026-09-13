@@ -242,12 +242,25 @@ def make_award_approval(
                 "recommended_partner_id": comparison.recommended_partner_id,
                 "writes": "confirm the winner's RFQ; decline and cancel the others",
             },
+            po_id=await _source_po_id(state),
             res_model="sc.approval",
             res_id=None,
             review_on_approval=True,
         )
 
     return build
+
+
+async def _source_po_id(state: dict[str, Any]) -> int | None:
+    """The order the award is about: the late order, or the incumbent's RFQ of the round."""
+    order = state.get("order") or {}
+    if order.get("po_id"):
+        return int(order["po_id"])
+    round_ = round_of(state)
+    for rfq in round_.rfqs:
+        if rfq.partner_id == round_.incumbent_partner_id and rfq.po_id:
+            return rfq.po_id
+    return next((rfq.po_id for rfq in round_.rfqs if rfq.po_id), None)
 
 
 def make_award_apply(
@@ -278,8 +291,8 @@ def make_award_apply(
             winner = next((r for r in round_.rfqs if r.partner_id == chosen.partner_id), None)
             if winner is None or winner.po_id is None:
                 return finish("failed", f"no RFQ for {chosen.partner_name} in round #{round_.id}")
-            awarded = await ports.confirm_rfq(winner.po_id)
-            winner_po_id = winner.po_id
+            # Odoo confirms an RFQ that still has live alternatives only through a wizard:
+            # the others are declined and cancelled first, the winner confirmed last.
             for rfq in round_.rfqs:
                 if rfq.partner_id == chosen.partner_id or rfq.po_id is None:
                     continue
@@ -288,6 +301,8 @@ def make_award_apply(
                     declined += 1
                 await ports.cancel_rfq(rfq.po_id)
                 await ports.update_rfq(round_.id, rfq.partner_id, status="declined")
+            awarded = await ports.confirm_rfq(winner.po_id)
+            winner_po_id = winner.po_id
         await ports.post_note(winner_po_id, _award_note(round_, comparison, chosen, who, language))
         await ports.update_round(
             round_.id,

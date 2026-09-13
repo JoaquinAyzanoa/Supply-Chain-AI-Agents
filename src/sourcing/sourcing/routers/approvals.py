@@ -73,9 +73,23 @@ async def approval_callback(
             detail=f"case {callback.thread_id} waits for approval {pending}, "
             f"not {callback.approval_id}",
         )
-    result = await agent.resume(callback.thread_id, callback.decision())
-    background.add_task(publisher.publish, run_finished(result, callback.approval_id))
-    return CallbackResponse(resumed=True, result=result)
+    # What follows an award or a counter-offer takes longer than Odoo waits for the
+    # callback (confirmations, declines and emails through the supplier agent): the run
+    # resumes in the background and the director learns the outcome from the event.
+    snapshot = await agent.snapshot(callback.thread_id)
+    background.add_task(_resume, agent, callback, publisher)
+    return CallbackResponse(resumed=True, result=agent.result_from(snapshot))
+
+
+async def _resume(agent: Any, callback: ApprovalCallback, publisher: EventPublisher) -> None:
+    try:
+        result = await agent.resume(callback.thread_id, callback.decision())
+    except Exception as exc:  # the failure is on the run row; nothing else can hear it here
+        logger.bind(case_id=callback.thread_id, approval_id=callback.approval_id).error(
+            "resume after the decision failed: {}", exc
+        )
+        return
+    await publisher.publish(run_finished(result, callback.approval_id))
 
 
 def run_finished(result: SourcingResult, approval_id: int) -> AgentRunFinished:

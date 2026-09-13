@@ -128,6 +128,8 @@ async def test_a_round_invites_the_ranked_suppliers_and_compares_to_an_award(
         and "1 other quote(s) declined" in done.outcome.summary
     )
     assert ports.confirmed == [901] and sorted(ports.cancelled) == [81, 902]
+    # the losers are cancelled before the winner is confirmed (Odoo's alternatives wizard)
+    assert ports.journal == [("cancel", 81), ("cancel", 902), ("confirm", 901)]
     decline = ports.sent_tasks[-1]
     assert decline["kind"] == "decline_quote" and decline["po_name"] == "P00081"
     assert decline["pre_approved"] and "no commitment" in decline["pre_approved"]

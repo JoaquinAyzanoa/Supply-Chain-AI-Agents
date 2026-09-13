@@ -105,6 +105,7 @@ class FakeSourcingPorts(MemoryRoundStore):
     cancelled: list[int] = field(default_factory=list)
     groups: list[list[int]] = field(default_factory=list)
     notes: list[tuple[int, str]] = field(default_factory=list)
+    journal: list[tuple[str, int]] = field(default_factory=list)  # writes to Odoo, in order
     runs: dict[str, dict[str, Any]] = field(default_factory=dict)
     next_po_id: int = 900
 
@@ -186,6 +187,7 @@ class FakeSourcingPorts(MemoryRoundStore):
 
     async def confirm_rfq(self, po_id: int) -> str:
         self.confirmed.append(po_id)
+        self.journal.append(("confirm", po_id))
         snap = self.rfqs.get(po_id)
         if snap is not None:
             self.rfqs[po_id] = snap.model_copy(update={"state": "purchase"})
@@ -193,6 +195,7 @@ class FakeSourcingPorts(MemoryRoundStore):
 
     async def cancel_rfq(self, po_id: int) -> None:
         self.cancelled.append(po_id)
+        self.journal.append(("cancel", po_id))
 
     async def post_note(self, po_id: int, html: str) -> None:
         self.notes.append((po_id, html))
