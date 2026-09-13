@@ -149,6 +149,8 @@ class SupplierConfirmedRequest(StrictModel):
 class BoardOrders(Protocol):
     async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]: ...
 
+    async def by_names(self, names: list[str]) -> list[PurchaseOrder]: ...
+
     async def confirm(self, po_id: int) -> PurchaseOrder: ...
 
     async def cancel(self, po_id: int) -> None: ...
@@ -166,6 +168,9 @@ class OdooBoardOrders:
 
     async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
         return await self._orders.board_orders(closed_since=closed_since)
+
+    async def by_names(self, names: list[str]) -> list[PurchaseOrder]:
+        return await self._orders.by_names(names)
 
     async def confirm(self, po_id: int) -> PurchaseOrder:
         return await self._orders.confirm(po_id)
@@ -235,6 +240,12 @@ async def build_board(
     for approval in pending:
         if approval.po_id is not None:
             by_po.setdefault(approval.po_id.name, []).append(approval)
+    # An order someone still has to decide on belongs on the board however old it is
+    # (an invoice for a receipt of months ago, for instance).
+    known = {po.name for po in rows}
+    missing = sorted({name for name in by_po if name not in known})
+    if missing:
+        rows = [*rows, *await orders.by_names(missing)]
     contacts = await mail.contacts()
     policy = await source.effective_policy()
     facts = {f.po_name: f for f in await source.gather(today)}

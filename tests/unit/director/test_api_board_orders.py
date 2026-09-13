@@ -132,6 +132,11 @@ async def _seed(module: MemoryDirectorModule) -> None:
         po=(7, "P00007"),
         requested_by="logistics",
     )
+    b.add(_po(11, "P00011", "purchase", planned_in=-400, receipt_status="full"))
+    b.off_board.add(11)  # received a year ago: off the board unless someone must decide on it
+    module.approvals.seed(
+        36, kind="vendor_bill", summary="Record invoice F001-000900", po=(11, "P00011")
+    )
     module.approvals.seed(31, kind="po_change", summary="date change on P00003", po=(3, "P00003"))
     module.approvals.seed(32, kind="escalation", summary="P00006 needs a person", po=(6, "P00006"))
     module.approvals.seed(
@@ -182,9 +187,10 @@ async def test_board_puts_every_order_in_its_column_with_colours_and_badges(
         "P00008": "closed",
         "P00009": "invoicing",
         "P00010": "invoicing",
+        "P00011": "invoicing",
     }
     assert board["counts"]["incoming"] == 2 and board["due_soon_days"] == 5
-    assert board["counts"]["invoicing"] == 2
+    assert board["counts"]["invoicing"] == 3
     assert by_name["P00007"]["discrepancy"] is True and by_name["P00009"]["discrepancy"] is False
     assert by_name["P00010"]["pending_approval"]["kind"] == "vendor_bill"
     assert by_name["P00007"]["pending_approval"]["requested_by"] == "logistics"

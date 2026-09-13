@@ -182,7 +182,7 @@ image member="director":
 # Odoo
 
 ODOO_DB := "scai"
-ODOO_MODULES := "base,contacts,mail,product,purchase,stock,purchase_stock,sale_management,purchase_requisition,base_automation,sc_agents"
+ODOO_MODULES := "base,contacts,mail,product,purchase,stock,purchase_stock,sale_management,purchase_requisition,base_automation,account,sc_agents"
 
 # Create the Odoo database with demo data and install the modules (idempotent)
 odoo-init:

@@ -374,6 +374,7 @@ class MemoryBoardOrders:
 
     def __init__(self) -> None:
         self.orders: dict[int, PurchaseOrder] = {}
+        self.off_board: set[int] = set()  # too old for the board's window
         self.actions: list[tuple[str, int, Any]] = []
         self.notes: list[tuple[int, str]] = []
 
@@ -382,7 +383,10 @@ class MemoryBoardOrders:
         return po
 
     async def board_orders(self, *, closed_since: date) -> list[PurchaseOrder]:
-        return list(self.orders.values())
+        return [po for po in self.orders.values() if po.id not in self.off_board]
+
+    async def by_names(self, names: list[str]) -> list[PurchaseOrder]:
+        return [po for po in self.orders.values() if po.name in names]
 
     async def confirm(self, po_id: int) -> PurchaseOrder:
         self.actions.append(("confirm", po_id, None))
