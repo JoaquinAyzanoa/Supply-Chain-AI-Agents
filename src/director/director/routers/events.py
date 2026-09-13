@@ -36,6 +36,7 @@ JOB_NAMES = {
     "calibration",
     "playbooks",
     "sourcing-rounds",
+    "briefing",
 }
 
 

@@ -55,6 +55,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/assistant": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Conversation */
+        get: operations["read_conversation_api_assistant_get"];
+        put?: never;
+        /** Ask */
+        post: operations["ask_api_assistant_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/{message_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm Plan */
+        post: operations["confirm_plan_api_assistant__message_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/assistant/{message_id}/dismiss": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Dismiss Plan */
+        post: operations["dismiss_plan_api_assistant__message_id__dismiss_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -250,6 +302,77 @@ export interface paths {
         put?: never;
         /** Supplier Confirmed */
         post: operations["supplier_confirmed_api_board__po_name__supplier_confirmed_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/briefing": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read Briefing */
+        get: operations["read_briefing_api_briefing_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/briefing/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Email Briefing */
+        post: operations["email_briefing_api_briefing_email_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/briefing/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** History */
+        get: operations["history_api_briefing_history_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/briefing/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Now
+         * @description Build today's briefing now (the 07:30 job does the same).
+         */
+        post: operations["run_now_api_briefing_run_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1177,6 +1300,8 @@ export interface components {
             po_name?: string | null;
             /** Reason */
             reason?: string | null;
+            /** @description facts, rule or step, confidence, alternatives, counterfactual */
+            reasoning?: components["schemas"]["Reasoning"] | null;
             /** Requested By */
             requested_by?: string | null;
             /** Resolved At */
@@ -1194,6 +1319,45 @@ export interface components {
              * @description rule or model reasoning behind it
              */
             why?: string | null;
+        };
+        /** AskRequest */
+        AskRequest: {
+            /** Text */
+            text: string;
+        };
+        /** AssistantMessage */
+        AssistantMessage: {
+            /**
+             * At
+             * Format: date-time
+             */
+            at: string;
+            /** By */
+            by?: string | null;
+            /**
+             * Citations
+             * @default []
+             */
+            citations: components["schemas"]["Citation"][];
+            /** Id */
+            id: number;
+            /** Outcome */
+            outcome?: string | null;
+            plan?: components["schemas"]["Plan"] | null;
+            /** Plan Status */
+            plan_status?: ("proposed" | "confirmed" | "dismissed") | null;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "user" | "director";
+            /** Text */
+            text: string;
+        };
+        /** AssistantTurn */
+        AssistantTurn: {
+            /** Messages */
+            messages: components["schemas"]["AssistantMessage"][];
         };
         /** AutoActionView */
         AutoActionView: {
@@ -1389,6 +1553,83 @@ export interface components {
              */
             supplier_confirmed: boolean;
         };
+        /** Briefing */
+        Briefing: {
+            /**
+             * Counts
+             * @default {}
+             */
+            counts: {
+                [key: string]: number;
+            };
+            /** Created At */
+            created_at?: string | null;
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /**
+             * Emailed To
+             * @default []
+             */
+            emailed_to: string[];
+            /**
+             * Language
+             * @default en
+             */
+            language: string;
+            /** Paragraph */
+            paragraph?: string | null;
+            /**
+             * Sections
+             * @default []
+             */
+            sections: components["schemas"]["BriefingSection"][];
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+        };
+        /** BriefingItem */
+        BriefingItem: {
+            /** Amount */
+            amount?: number | null;
+            /** Days */
+            days?: number | null;
+            /**
+             * Path
+             * @description where to open it in the Control Tower
+             */
+            path?: string | null;
+            /** Po Name */
+            po_name?: string | null;
+            /** Probability */
+            probability?: number | null;
+            /** Text */
+            text: string;
+        };
+        /** BriefingSection */
+        BriefingSection: {
+            /**
+             * Count
+             * @default 0
+             */
+            count: number;
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["BriefingItem"][];
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "overnight" | "ran_alone" | "needs_you" | "risks" | "late" | "playbooks";
+            /** Title */
+            title: string;
+        };
         /** CalendarEvent */
         CalendarEvent: {
             /**
@@ -1564,6 +1805,15 @@ export interface components {
          * @enum {string}
          */
         CheckStatus: "ok" | "fail";
+        /** Citation */
+        Citation: {
+            /** Label */
+            label: string;
+            /** Path */
+            path: string;
+            /** Ref */
+            ref: string;
+        };
         /** ClassWhatIfRequest */
         ClassWhatIfRequest: {
             /**
@@ -1649,6 +1899,24 @@ export interface components {
             summary: string;
             /** Thread Id */
             thread_id: string;
+        };
+        /** EmailRequest */
+        EmailRequest: {
+            /**
+             * To
+             * @description recipients; empty means the ones in Settings
+             */
+            to?: string[];
+        };
+        /** EmailResponse */
+        EmailResponse: {
+            /**
+             * Day
+             * Format: date
+             */
+            day: string;
+            /** Sent To */
+            sent_to: string[];
         };
         /** ExceptionItem */
         ExceptionItem: {
@@ -2027,6 +2295,44 @@ export interface components {
             requested_by: string;
             /** Widened */
             widened: string[];
+        };
+        /** Plan */
+        Plan: {
+            /** Steps */
+            steps: components["schemas"]["PlanStep"][];
+            /** Summary */
+            summary: string;
+        };
+        /** PlanStep */
+        PlanStep: {
+            /** Deadline Days */
+            deadline_days?: number | null;
+            /** Explanation */
+            explanation: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "quote_round" | "alternate_source" | "request_eta" | "follow_up" | "hold_until" | "close_case" | "start_playbook";
+            /** Note */
+            note?: string | null;
+            /**
+             * Partner Ids
+             * @default []
+             */
+            partner_ids: number[];
+            /** Playbook */
+            playbook?: string | null;
+            /** Po Name */
+            po_name?: string | null;
+            /** Product Id */
+            product_id?: number | null;
+            /** Product Ref */
+            product_ref?: string | null;
+            /** Qty */
+            qty?: number | null;
+            /** Until */
+            until?: string | null;
         };
         /** PlanningLineRow */
         PlanningLineRow: {
@@ -2444,6 +2750,34 @@ export interface components {
              */
             why: string;
         };
+        /**
+         * Reasoning
+         * @description Why an action was proposed, for the person who decides (phase 11 S7).
+         */
+        Reasoning: {
+            /**
+             * Alternatives
+             * @description what else the person can do
+             */
+            alternatives?: string[];
+            /** Confidence */
+            confidence?: number | null;
+            /**
+             * Counterfactual
+             * @description what would have let it run alone, or why it never will
+             */
+            counterfactual?: string | null;
+            /**
+             * Facts
+             * @description what the agent knew, in words
+             */
+            facts?: string[];
+            /**
+             * Rule
+             * @description the rule or the playbook step behind it
+             */
+            rule?: string | null;
+        };
         /** ReplenishmentLine */
         ReplenishmentLine: {
             /** Abc Class */
@@ -2670,6 +3004,11 @@ export interface components {
              */
             auto_send_partner_ids: number[];
             autonomy?: components["schemas"]["AutonomyPolicy"];
+            /**
+             * Briefing Recipients
+             * @default []
+             */
+            briefing_recipients: string[];
             /**
              * Holding Cost Pct Year
              * @default 20
@@ -3150,6 +3489,121 @@ export interface operations {
             };
         };
     };
+    read_conversation_api_assistant_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantMessage"][];
+                };
+            };
+        };
+    };
+    ask_api_assistant_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AskRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantTurn"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_plan_api_assistant__message_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dismiss_plan_api_assistant__message_id__dismiss_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                message_id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssistantMessage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     login_api_auth_login_post: {
         parameters: {
             query?: never;
@@ -3512,6 +3966,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_briefing_api_briefing_get: {
+        parameters: {
+            query?: {
+                /** @description a past day; default: the latest */
+                day?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Briefing"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    email_briefing_api_briefing_email_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    history_api_briefing_history_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Briefing"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_now_api_briefing_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Briefing"];
                 };
             };
         };

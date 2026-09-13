@@ -81,6 +81,12 @@ def job_table(settings: Settings) -> list[Job]:
             target=f"{director}/jobs/playbooks",
             timeout_seconds=900,
         ),
+        Job(
+            id="briefing",
+            cron=s.briefing_cron,
+            target=f"{director}/jobs/briefing",
+            timeout_seconds=600,
+        ),
     ]
     for job in jobs:  # fail at startup, not at the first firing
         job.trigger(settings.timezone)

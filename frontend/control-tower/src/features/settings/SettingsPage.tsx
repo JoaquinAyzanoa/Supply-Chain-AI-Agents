@@ -49,6 +49,7 @@ interface Draft {
   max_actions_per_run: string;
   ignored_senders: string;
   internal_senders: string;
+  briefing_recipients: string;
   planning_service_level: string;
   planning_review_period_days: string;
   planning_max_coverage_days: string;
@@ -71,6 +72,7 @@ function toDraft(settings: RuntimeSettings): Draft {
     max_actions_per_run: String(settings.max_actions_per_run),
     ignored_senders: (settings.ignored_senders ?? []).join(", "),
     internal_senders: (settings.internal_senders ?? []).join(", "),
+    briefing_recipients: (settings.briefing_recipients ?? []).join(", "),
     planning_service_level: settings.planning_service_level === null || settings.planning_service_level === undefined ? "" : String(settings.planning_service_level),
     planning_review_period_days: settings.planning_review_period_days === null || settings.planning_review_period_days === undefined ? "" : String(settings.planning_review_period_days),
     planning_max_coverage_days: settings.planning_max_coverage_days === null || settings.planning_max_coverage_days === undefined ? "" : String(settings.planning_max_coverage_days),
@@ -107,6 +109,10 @@ export function fromDraft(draft: Draft, base: RuntimeSettings): RuntimeSettings 
       .map((v) => v.trim())
       .filter(Boolean),
     internal_senders: draft.internal_senders
+      .split(/[,\s]+/)
+      .map((v) => v.trim())
+      .filter(Boolean),
+    briefing_recipients: draft.briefing_recipients
       .split(/[,\s]+/)
       .map((v) => v.trim())
       .filter(Boolean),
@@ -215,6 +221,7 @@ export function SettingsPage() {
           <h2 className="text-sm font-semibold">{t("settings.mailbox")}</h2>
           {field("ignored_senders", t("settings.f.ignored_senders"), t("settings.h.ignored_senders"))}
           {field("internal_senders", t("settings.f.internal_senders"), t("settings.h.internal_senders"))}
+          {field("briefing_recipients", t("settings.f.briefing_recipients"), t("settings.h.briefing_recipients"))}
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.planning")}</h2>

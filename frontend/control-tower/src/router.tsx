@@ -12,6 +12,8 @@ import { atLeast, authStore } from "@/auth/store";
 import { AppShell } from "@/components/layout/AppShell";
 import { LoginPage } from "@/routes/login";
 import { ApprovalsInbox, type ApprovalsSearch } from "@/features/approvals/ApprovalsInbox";
+import { AssistantPage } from "@/features/assistant/AssistantPage";
+import { BriefingPage } from "@/features/briefing/BriefingPage";
 import { AutonomyPage } from "@/features/autonomy/AutonomyPage";
 import { PlaybooksPage } from "@/features/playbooks/PlaybooksPage";
 import { BoardPage, type BoardSearch } from "@/features/board/BoardPage";
@@ -108,6 +110,8 @@ export const playbooksRoute = child("/playbooks", PlaybooksPage);
 export const planningRoute = child("/planning", PlanningPage);
 export const planningRunRoute = child("/planning/$runId", PlanningRunPage);
 export const riskRoute = child("/risk", RiskPage);
+export const briefingRoute = child("/briefing", BriefingPage);
+export const assistantRoute = child("/assistant", AssistantPage);
 const runsSearch = z.object({
   agent: z.string().optional(),
   model: z.string().optional(),
@@ -144,6 +148,8 @@ const routeTree = rootRoute.addChildren([
     planningRoute,
     planningRunRoute,
     riskRoute,
+    briefingRoute,
+    assistantRoute,
     runsRoute,
     settingsRoute,
   ]),

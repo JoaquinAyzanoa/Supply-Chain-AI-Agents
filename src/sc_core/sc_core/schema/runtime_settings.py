@@ -76,6 +76,8 @@ class RuntimeSettings(StrictModel):
     negotiation_max_rounds: int = Field(default=2, ge=1, le=5)
     # Order consolidation: what a year of holding stock costs, as a share of its value.
     holding_cost_pct_year: float = Field(default=20.0, ge=0, le=100)
+    # The morning briefing goes to these addresses from the bot mailbox (phase 11 S7).
+    briefing_recipients: list[str] = []
 
     @classmethod
     def from_settings(cls, settings: Settings) -> RuntimeSettings:

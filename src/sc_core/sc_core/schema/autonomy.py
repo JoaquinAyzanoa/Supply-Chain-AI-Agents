@@ -163,6 +163,18 @@ class AutonomyRule(StrictModel):
         return self.enabled and self.level != "approve"
 
 
+class Reasoning(StrictModel):
+    """Why an action was proposed, for the person who decides (phase 11 S7)."""
+
+    facts: list[str] = Field(default_factory=list, description="what the agent knew, in words")
+    rule: str | None = Field(default=None, description="the rule or the playbook step behind it")
+    confidence: float | None = Field(default=None, ge=0, le=1)
+    alternatives: list[str] = Field(default_factory=list, description="what else the person can do")
+    counterfactual: str | None = Field(
+        default=None, description="what would have let it run alone, or why it never will"
+    )
+
+
 class PolicyDecision(StrictModel):
     level: AutonomyLevel
     rule_id: str | None = None

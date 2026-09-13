@@ -31,11 +31,12 @@ from loguru import logger
 from pydantic import Field
 
 from sc_core.graph.auto_actions import AutoActionPorts, AutoActionRecord
+from sc_core.graph.reasoning import build_reasoning
 from sc_core.i18n import Language, t
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.odoo.models import ApprovalKind
 from sc_core.odoo.repositories import ActivityRepo, ApprovalRepo
-from sc_core.schema.autonomy import ActionFacts, AutonomyPolicy
+from sc_core.schema.autonomy import ActionFacts, AutonomyPolicy, PolicyDecision, Reasoning
 from sc_core.schema.base import StrictModel
 from sc_core.shared.time import local_today
 
@@ -59,6 +60,8 @@ class ApprovalRequest(StrictModel):
     """A person asked to read this one first: no rule applies."""
     revert: dict[str, Any] | None = None
     """The inverse write when the action runs alone (per kind), or None: not revertible."""
+    reasoning: Reasoning | None = None
+    """The node's own reasons (facts in words, alternatives); the gateway completes them."""
 
 
 class ApprovalDecision(StrictModel):
@@ -158,13 +161,15 @@ class ApprovalGateway:
         """Create the approval (or record an automatic decision). Idempotent per step."""
         if decision_for(state, step) is not None or pending_for(state, step) is not None:
             return {}
-        automatic = await self._automatic(state, step, req)
+        verdict = await self._verdict(req)
+        automatic = await self._automatic(state, step, req, verdict)
         if automatic is not None:
             return {"approvals": [automatic.model_dump()]}
         res_id = req.res_id if req.res_id is not None else req.po_id
         payload = {**req.payload, "step": step}
         if req.facts is not None:
             payload["facts"] = req.facts.model_dump(mode="json")  # replayed by the preview
+        payload["reasoning"] = self._reasoning(req, verdict, "approve").model_dump(mode="json")
         approval_id = await self._ports.create_approval(
             kind=req.kind,
             summary=req.summary,
@@ -196,16 +201,36 @@ class ApprovalGateway:
         logger.bind(approval_id=approval_id, kind=req.kind, step=step).info("approval requested")
         return {"pending_approvals": [{"approval_id": approval_id, "step": step, "kind": req.kind}]}
 
+    async def _verdict(self, req: ApprovalRequest) -> PolicyDecision | None:
+        """What the autonomy policy says about the request; None when none is in force."""
+        if self._policy is None or req.force_approval:
+            return None
+        return (await self._policy()).decide(req.kind, req.facts)
+
+    @staticmethod
+    def _reasoning(req: ApprovalRequest, verdict: PolicyDecision | None, level: str) -> Reasoning:
+        return build_reasoning(
+            kind=req.kind,
+            facts=req.facts,
+            given=req.reasoning,
+            verdict=verdict,
+            level=level,
+            forced=req.force_approval,
+        )
+
     async def _automatic(
-        self, state: dict[str, Any], step: str, req: ApprovalRequest
+        self,
+        state: dict[str, Any],
+        step: str,
+        req: ApprovalRequest,
+        verdict: PolicyDecision | None = None,
     ) -> ApprovalDecision | None:
         """The decision when no person is needed: the request says so (legacy
         ``auto_approve``) or the autonomy policy lets it through."""
         level, rule_id, reason = "approve", None, req.auto_reason
         if req.auto_approve:
             level = "auto_notice"
-        elif self._policy is not None and not req.force_approval:
-            verdict = (await self._policy()).decide(req.kind, req.facts)
+        elif verdict is not None:
             level, rule_id, reason = verdict.level, verdict.rule_id, verdict.reason
         if level == "approve":
             return None
@@ -238,7 +263,10 @@ class ApprovalGateway:
                     po_id=req.po_id,
                     po_name=str(req.payload.get("po_name") or "") or None,
                     partner_id=req.facts.partner_id if req.facts else None,
-                    payload={k: v for k, v in req.payload.items() if k != "html_body"},
+                    payload={
+                        **{k: v for k, v in req.payload.items() if k != "html_body"},
+                        "reasoning": self._reasoning(req, verdict, level).model_dump(mode="json"),
+                    },
                     revert=req.revert if revertible else None,
                     revert_until=datetime.now(UTC) + timedelta(hours=hours) if revertible else None,
                 )

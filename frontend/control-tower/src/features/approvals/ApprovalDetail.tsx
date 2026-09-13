@@ -286,7 +286,44 @@ function WhyPanel({ approval }: { approval: Approval }) {
   return (
     <div className="rounded-md border bg-muted/40 p-3 text-sm">
       <div className="mb-1 text-xs font-medium uppercase text-muted-foreground">{t("approvals.why")}</div>
-      <p>{approval.why ?? t("approvals.why_unknown")}</p>
+      {approval.reasoning ? (
+        <div className="space-y-2" data-testid="reasoning">
+          {approval.reasoning.rule ? (
+            <p>
+              <span className="text-muted-foreground">{t("approvals.reasoning.rule")}: </span>
+              {approval.reasoning.rule}
+              {approval.reasoning.confidence !== null && approval.reasoning.confidence !== undefined ? (
+                <Badge variant={approval.reasoning.confidence >= 0.8 ? "success" : "warning"} className="ml-2">
+                  {t("approvals.reasoning.confidence", { pct: Math.round(approval.reasoning.confidence * 100) })}
+                </Badge>
+              ) : null}
+            </p>
+          ) : null}
+          {(approval.reasoning.facts ?? []).length ? (
+            <div>
+              <div className="text-xs text-muted-foreground">{t("approvals.reasoning.facts")}</div>
+              <ul className="list-disc pl-5">
+                {(approval.reasoning.facts ?? []).map((fact) => (
+                  <li key={fact}>{fact}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {(approval.reasoning.alternatives ?? []).length ? (
+            <div>
+              <div className="text-xs text-muted-foreground">{t("approvals.reasoning.alternatives")}</div>
+              <ul className="list-disc pl-5">
+                {(approval.reasoning.alternatives ?? []).map((option) => (
+                  <li key={option}>{option}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          {approval.reasoning.counterfactual ? <p className="text-xs text-muted-foreground">{approval.reasoning.counterfactual}</p> : null}
+        </div>
+      ) : (
+        <p>{approval.why ?? t("approvals.why_unknown")}</p>
+      )}
       {position ? (
         <div className="mt-2 border-t pt-2">
           <p className="mb-1 text-xs text-muted-foreground">{t("approvals.playbook_intro", { title: position.title, n: position.step_index + 1, total: position.steps_total })}</p>

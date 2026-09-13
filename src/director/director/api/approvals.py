@@ -34,6 +34,7 @@ from sc_core.infra.settings import Settings
 from sc_core.odoo.links import record_url
 from sc_core.odoo.models import Approval, ApprovalStatus
 from sc_core.odoo.repositories import ApprovalRepo
+from sc_core.schema.autonomy import Reasoning
 from sc_core.schema.base import StrictModel
 from sc_core.shared.errors import NotFound, ScError
 
@@ -73,6 +74,9 @@ class ApprovalView(StrictModel):
     reason: str | None = None
     payload: dict[str, Any] = {}
     why: str | None = Field(default=None, description="rule or model reasoning behind it")
+    reasoning: Reasoning | None = Field(
+        default=None, description="facts, rule or step, confidence, alternatives, counterfactual"
+    )
     links: ApprovalLinks = ApprovalLinks()
     playbook: PlaybookPosition | None = None  # the plan this approval sits in, and what follows
 
@@ -254,6 +258,7 @@ async def build_view(
     case = await case_for(cases, approval)
     position = await playbooks.position_for_case(case.case_id) if playbooks and case else None
     why = await _why(cases, case.case_id) if case else None
+    reasoning = reasoning_of(payload, position, why)
     trace_id = case.trace_id if case else None
     links = ApprovalLinks(
         odoo=record_url(settings.odoo.browser_url, "sc.approval", approval.id),
@@ -282,8 +287,32 @@ async def build_view(
         playbook=position,
         payload=payload,
         why=why,
+        reasoning=reasoning,
         links=links,
     )
+
+
+def reasoning_of(
+    payload: dict[str, Any], position: PlaybookPosition | None, why: str | None
+) -> Reasoning | None:
+    """The reasoning the agent stored, completed with the playbook step and the case's
+    last rule when the request itself did not name one."""
+    raw = payload.get("reasoning")
+    try:
+        reasoning = Reasoning.model_validate(raw) if isinstance(raw, dict) else None
+    except ValidationError:
+        reasoning = None
+    if position is not None:
+        step = f"playbook {position.title}, step {position.step_label or position.step_id}"
+        if reasoning is None:
+            reasoning = Reasoning(rule=step)
+        elif not reasoning.rule or reasoning.rule.startswith("no autonomy"):
+            reasoning = reasoning.model_copy(update={"rule": step})
+        else:
+            reasoning = reasoning.model_copy(update={"rule": f"{reasoning.rule} · {step}"})
+    if reasoning is None and why:
+        reasoning = Reasoning(rule=why)
+    return reasoning
 
 
 async def case_for(cases: CaseStore, approval: Approval) -> Case | None:

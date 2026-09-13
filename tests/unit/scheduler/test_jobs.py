@@ -19,6 +19,7 @@ def test_default_table_targets_and_crons() -> None:
         "calibration",
         "playbooks",
         "sourcing_rounds",
+        "briefing",
     }
     assert jobs["mail_sync"].cron == "*/5 * * * *"
     assert jobs["mail_sync"].target == "http://localhost:8011/jobs/sync"

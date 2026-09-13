@@ -39,6 +39,12 @@ from director.api.planning import (
 from director.api.risk import HttpRiskSource, RiskSource
 from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
+from director.assistant import (
+    AssistantStore,
+    DepartmentAssistant,
+    PlanRunner,
+    PostgresAssistantStore,
+)
 from director.autonomy import (
     AutoActionsStore,
     AutonomyChanges,
@@ -46,6 +52,7 @@ from director.autonomy import (
     PostgresAutoActionsStore,
     Reverter,
 )
+from director.briefing import BriefingBuilder, BriefingJob, BriefingStore, PostgresBriefingStore
 from director.concurrency import PoLocks
 from director.conversations import PostgresConversationLookup, PostgresMailActivity
 from director.escalation import (
@@ -251,6 +258,98 @@ class DirectorModule(Module):
 
     @provider
     @singleton
+    def provide_briefing_store(self, db: Database) -> BriefingStore:  # type: ignore[type-abstract]
+        return PostgresBriefingStore(db)
+
+    @provider
+    @singleton
+    def provide_briefing_job(
+        self,
+        settings: Settings,
+        chats: ChatClientFactory,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        auto_actions: AutoActionsStore,  # type: ignore[type-abstract]
+        followups: FollowUpJob,
+        store: BriefingStore,  # type: ignore[type-abstract]
+        risk: RiskSource,  # type: ignore[type-abstract]
+        playbooks: PlaybookEngine,
+        runtime: RuntimeSettingsReader,
+        injector: Injector,
+    ) -> BriefingJob:
+        builder = BriefingBuilder(
+            cases=cases,
+            approvals=approvals,
+            auto_actions=auto_actions,
+            exceptions=followups,
+            settings=settings,
+            store=store,
+            risk=risk,
+            playbooks=playbooks,
+            chat=chats.for_agent("director"),
+            language=settings.agents.language,
+            langfuse=settings.langfuse,
+        )
+        mail = injector.get(MailClient) if settings.mail.configured else None  # type: ignore[type-abstract]
+        return BriefingJob(
+            builder,
+            store,
+            runtime=runtime,
+            mail=mail,
+            control_tower_url=settings.ui.public_url,
+        )
+
+    @provider
+    @singleton
+    def provide_assistant_store(self, db: Database) -> AssistantStore:  # type: ignore[type-abstract]
+        return PostgresAssistantStore(db)
+
+    @provider
+    @singleton
+    def provide_department_assistant(
+        self,
+        settings: Settings,
+        chats: ChatClientFactory,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        approvals: ApprovalsGateway,  # type: ignore[type-abstract]
+        followups: FollowUpJob,
+        auto_actions: AutoActionsStore,  # type: ignore[type-abstract]
+        risk: RiskSource,  # type: ignore[type-abstract]
+        playbooks: PlaybookEngine,
+        orders: BoardOrders,  # type: ignore[type-abstract]
+        performance: PerformanceSource,  # type: ignore[type-abstract]
+        planning: PlanningReadStore,  # type: ignore[type-abstract]
+        runtime: RuntimeSettingsReader,
+    ) -> DepartmentAssistant:
+        return DepartmentAssistant(
+            chats.for_agent("director"),
+            cases=cases,
+            approvals=approvals,
+            exceptions=followups,
+            auto_actions=auto_actions,
+            risk=risk,
+            playbooks=playbooks,
+            orders=orders,
+            performance=performance,
+            planning=planning,
+            runtime=runtime,
+            language=settings.agents.language,
+            langfuse=settings.langfuse,
+        )
+
+    @provider
+    @singleton
+    def provide_plan_runner(
+        self,
+        cases: CaseStore,  # type: ignore[type-abstract]
+        actions: ChatActions,
+        sourcing: SourcingDispatcher,
+        playbooks: PlaybookEngine,
+    ) -> PlanRunner:
+        return PlanRunner(cases=cases, actions=actions, sourcing=sourcing, playbooks=playbooks)
+
+    @provider
+    @singleton
     def provide_jobs(
         self,
         db: Database,
@@ -265,10 +364,12 @@ class DirectorModule(Module):
         playbooks: PlaybookEngine,
         sourcing_source: SourcingSource,  # type: ignore[type-abstract]
         sourcing_dispatcher: SourcingDispatcher,
+        briefing: BriefingJob,
     ) -> JobRunner:  # type: ignore[type-abstract]
         followups.attach_playbooks(playbooks)
         return JobDispatcher(
             {
+                "briefing": briefing,
                 "playbooks": PlaybooksJob(playbooks),
                 "calibration": CalibrationJob(
                     recorder=recorder,

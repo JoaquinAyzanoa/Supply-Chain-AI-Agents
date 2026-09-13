@@ -20,6 +20,7 @@ JOB_KINDS: dict[str, CaseKind] = {
     "calibration": "planning",  # no case of its own; the suggestions land on the Autonomy page
     "playbooks": "eta",  # the hourly nudge of every active playbook run
     "sourcing_rounds": "sourcing",  # rounds past their deadline get compared
+    "briefing": "planning",  # no case of its own; the briefing lands on its page and by email
 }
 
 

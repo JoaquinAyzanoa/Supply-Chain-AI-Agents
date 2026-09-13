@@ -4,7 +4,7 @@
  * bottom bar on phones.
  */
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Activity, CalendarClock, ClipboardCheck, History, Kanban, ListChecks, LogOut, Settings, ShieldCheck, Siren, Truck } from "lucide-react";
+import { Activity, Bot, CalendarClock, ClipboardCheck, History, Kanban, ListChecks, LogOut, Settings, ShieldCheck, Siren, Sunrise, Truck } from "lucide-react";
 
 import { useAuth } from "@/auth/AuthProvider";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useStream } from "@/realtime/useStream";
 
 const NAV = [
+  { to: "/briefing", key: "nav.briefing", icon: Sunrise, role: "viewer" },
   { to: "/", key: "nav.board", icon: Kanban, role: "viewer" },
   { to: "/approvals", key: "nav.approvals", icon: ClipboardCheck, role: "viewer" },
   { to: "/cases", key: "nav.cases", icon: History, role: "viewer" },
@@ -24,6 +25,7 @@ const NAV = [
   { to: "/suppliers", key: "nav.suppliers", icon: Truck, role: "viewer" },
   { to: "/autonomy", key: "nav.autonomy", icon: ShieldCheck, role: "viewer" },
   { to: "/playbooks", key: "nav.playbooks", icon: ListChecks, role: "viewer" },
+  { to: "/assistant", key: "nav.assistant", icon: Bot, role: "viewer" },
   { to: "/runs", key: "nav.runs", icon: Activity, role: "viewer" },
   { to: "/settings", key: "nav.settings", icon: Settings, role: "admin" },
 ] as const;

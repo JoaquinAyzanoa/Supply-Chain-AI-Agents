@@ -202,6 +202,7 @@ class SchedulerCfg(_Section):
     calibration_cron: str = "30 7 * * 1"  # what people decided last week, as suggestions
     playbooks_cron: str = "15 * * * *"  # every hour: due waits and resolved approvals move on
     sourcing_rounds_cron: str = "45 * * * *"  # every hour: rounds past their deadline are compared
+    briefing_cron: str = "30 7 * * 1-5"  # weekdays, after the daily plan: the morning briefing
     dispatch_timeout_seconds: float = Field(default=600.0, gt=0)
 
 

@@ -20,7 +20,14 @@ from director.api.planning import DemandSource, PlanningLineRow, PlanningReadSto
 from director.api.risk import RiskSource
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
+from director.assistant import (
+    AssistantStore,
+    DepartmentAssistant,
+    MemoryAssistantStore,
+    PlanRunner,
+)
 from director.autonomy import AutoAction, AutoActionsStore, AutonomyChanges, Reverter
+from director.briefing import BriefingBuilder, BriefingJob, BriefingStore, MemoryBriefingStore
 from director.concurrency import PoLocks
 from director.conversations import MemoryConversationLookup, MemoryMailActivity
 from director.escalation import Escalator, MemoryEscalator
@@ -47,7 +54,7 @@ from sc_core.infra.calendar import CalendarStore, MemoryCalendarStore
 from sc_core.infra.locks import MemoryLock
 from sc_core.infra.profiles import MemoryProfileStore, ProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
-from sc_core.infra.settings import LangfuseCfg
+from sc_core.infra.settings import LangfuseCfg, Settings
 from sc_core.llm.client import ChatCompleter
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.odoo.models import (
@@ -171,6 +178,16 @@ class MemoryDirectorModule(Module):
         self.sourcing_source = MemorySourcingSource()
         self.risk_source = MemoryRiskSource()
         self.calendar = MemoryCalendarStore()
+        # the briefing links records to Odoo; the test settings name a fake Odoo
+        self.settings = Settings(
+            _env_file=None,
+            service_name="director",
+            environment="test",
+            odoo={"url": "http://odoo.test:8069"},
+        )
+        self.briefings = MemoryBriefingStore()
+        self.assistant_store = MemoryAssistantStore()
+        self.sent_mail: list[Any] = []
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
@@ -228,7 +245,60 @@ class MemoryDirectorModule(Module):
             ),
             scope=singleton,
         )
-        binder.bind(ChatActions, to=ChatActions(self.deps, self.approvals), scope=singleton)
+        actions = ChatActions(self.deps, self.approvals)
+        binder.bind(ChatActions, to=actions, scope=singleton)
+        binder.bind(BriefingStore, to=self.briefings, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(
+            BriefingJob,
+            to=BriefingJob(
+                BriefingBuilder(
+                    cases=self.case_store,
+                    approvals=self.approvals,
+                    auto_actions=self.auto_actions,
+                    exceptions=self.exceptions,
+                    settings=self.settings,
+                    store=self.briefings,
+                    risk=self.risk_source,
+                    playbooks=self.playbooks,
+                    chat=self.chat,
+                    langfuse=LangfuseCfg(enabled=False),
+                ),
+                self.briefings,
+                runtime=self.runtime_reader,
+                mail=_RecordingMail(self.sent_mail),
+                control_tower_url="https://tower.test",
+            ),
+            scope=singleton,
+        )
+        binder.bind(AssistantStore, to=self.assistant_store, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(
+            DepartmentAssistant,
+            to=DepartmentAssistant(
+                self.chat,
+                cases=self.case_store,
+                approvals=self.approvals,
+                exceptions=self.exceptions,
+                auto_actions=self.auto_actions,
+                risk=self.risk_source,
+                playbooks=self.playbooks,
+                orders=self.board_orders,
+                performance=self.performance,
+                planning=self.planning,
+                runtime=self.runtime_reader,
+                langfuse=LangfuseCfg(enabled=False),
+            ),
+            scope=singleton,
+        )
+        binder.bind(
+            PlanRunner,
+            to=PlanRunner(
+                cases=self.case_store,
+                actions=actions,
+                sourcing=self.sourcing,
+                playbooks=self.playbooks,
+            ),
+            scope=singleton,
+        )
         binder.bind(MailActivity, to=self.mail_activity, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardOrders, to=self.board_orders, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(MailboxSync, to=self.mailbox, scope=singleton)  # type: ignore[type-abstract]
@@ -543,6 +613,19 @@ class MemoryPerformanceSource:
 
     async def rank_many(self, product_ids: list[int]) -> list[dict[str, Any]]:
         return [await self.rank(pid) for pid in sorted(set(product_ids))]
+
+
+class _RecordingMail:
+    """Only ``send`` is used by the briefing; everything else is never called in tests."""
+
+    def __init__(self, sent: list[Any]) -> None:
+        self._sent = sent
+
+    async def send(self, message: Any) -> None:
+        self._sent.append(message)
+
+    def __getattr__(self, name: str) -> Any:
+        raise AttributeError(name)
 
 
 class MemoryRiskSource:
