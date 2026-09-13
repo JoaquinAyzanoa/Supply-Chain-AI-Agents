@@ -1,0 +1,50 @@
+{
+  "additionalProperties": false,
+  "description": "What the director asks the performance agent to do (the weekly run).",
+  "properties": {
+    "as_of": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "period end; today when omitted",
+      "title": "As Of"
+    },
+    "case_id": {
+      "minLength": 1,
+      "title": "Case Id",
+      "type": "string"
+    },
+    "kind": {
+      "const": "weekly_scorecard",
+      "title": "Kind",
+      "type": "string"
+    },
+    "partner_ids": {
+      "description": "empty = every active supplier",
+      "items": {
+        "type": "integer"
+      },
+      "title": "Partner Ids",
+      "type": "array"
+    },
+    "schema_version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "kind",
+    "case_id"
+  ],
+  "title": "SupplierPerformanceTask",
+  "type": "object"
+}

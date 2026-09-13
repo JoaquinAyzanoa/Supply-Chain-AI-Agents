@@ -57,10 +57,11 @@ just run director      # exactly what the container runs
 The director container publishes on host port 8010 by default (8000 is often
 taken on developer machines), mail_sync on 8011, the scheduler on 8012, the
 supplier_comms agent on 8013, the inventory_planning agent on 8014 and the
-logistics agent on 8015 and the invoice_match agent on 8016; override with
-`SC_DIRECTOR_PORT`, `SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`,
-`SC_SUPPLIER_COMMS_PORT`, `SC_INVENTORY_PLANNING_PORT`, `SC_LOGISTICS_PORT`,
-`SC_INVOICE_MATCH_PORT`.
+logistics agent on 8015, the invoice_match agent on 8016 and the
+supplier_performance agent on 8017; override with `SC_DIRECTOR_PORT`,
+`SC_MAIL_SYNC_PORT`, `SC_SCHEDULER_PORT`, `SC_SUPPLIER_COMMS_PORT`,
+`SC_INVENTORY_PLANNING_PORT`, `SC_LOGISTICS_PORT`, `SC_INVOICE_MATCH_PORT`,
+`SC_SUPPLIER_PERFORMANCE_PORT`.
 Odoo publishes on 8069 (`SC_ODOO_PORT`); see `odoo/README.md`.
 
 ## Configuration
@@ -319,6 +320,35 @@ received, and never posts an accounting entry.
   always ask). Held: approving means "record it anyway", rejecting leaves
   the invoice with the supplier; asking for a credit note is a chat
   instruction on the case. A bill typed in Odoo only gets its match note.
+
+## Supplier performance agent
+
+`supplier_performance` runs every Monday at 07:00 (scheduler job
+`supplier_performance`, through the director) over the last
+`SC__SUPPLIER_PERFORMANCE__MONTHS` (12) of history per active supplier.
+
+- **Metrics in code** (`metrics.py`): OTIF against the first promise (the
+  confirmation snapshot on the case, else the line's planned date), observed
+  lead time (confirmed to received, mean and std, 5% trimmed), promise drift,
+  median reply time from the order's emails, receipt problems (the logistics
+  agent's discrepancy reports over received lines) and price stability from
+  the price list. The score (0 to 100) weighs only the components with data;
+  weights are settings (`SC__SUPPLIER_PERFORMANCE__WEIGHT_*`).
+- **The model** writes one paragraph per supplier from those numbers
+  (`prompts/scorecard.md`) and may add short trend flags; the code flags lead
+  time up 30%, OTIF down ten points, slower replies and more receipt
+  problems against the previous run.
+- **One approval per run** (`supplier_score`): approving writes the partner
+  fields (`sc_score`, `sc_otif`, `sc_lead_time_mean`, `sc_lead_time_std`,
+  shown on the partner's "Supplier performance" tab), the price list lead
+  times (`product.supplierinfo.delay`) and the planner's parameters
+  (`planning_params.lead_time_mean_days`, source `measured`), so the next
+  plan uses observed lead times. Observations and scores live in
+  `lead_time_observations` and `supplier_scores` (migration 008).
+- **Ranking**: `GET /performance/rank/{product_id}` on the agent (bearer)
+  joins the latest scores with the price list, ordered by score, then price,
+  then lead time, each with a one-line reason; the director proxies it and
+  the scores to the Control Tower under `/api/performance/*`.
 
 ## Orchestrator
 

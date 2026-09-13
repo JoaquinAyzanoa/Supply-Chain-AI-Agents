@@ -435,5 +435,9 @@
   "task.match_bill": "Verificación de factura",
   "event.invoice": "Factura",
   "approvals.kind.vendor_bill": "Factura",
-  "event.odoo.bill_created": "Factura de proveedor creada en Odoo"
+  "event.odoo.bill_created": "Factura de proveedor creada en Odoo",
+  "agent.supplier_performance": "el agente de desempeño",
+  "agent.name.supplier_performance": "Agente de desempeño",
+  "task.weekly_scorecard": "Puntuaciones semanales de proveedores",
+  "approvals.kind.supplier_score": "Puntuaciones de proveedores"
 }

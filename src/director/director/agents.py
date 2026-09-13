@@ -91,6 +91,11 @@ def build_agents(settings: Settings) -> Agents:
         token=settings.a2a_token,
         timeout_seconds=settings.a2a.timeout_seconds,
     )
+    supplier_performance = A2AClient(
+        settings.a2a.supplier_performance_url,
+        token=settings.a2a_token,
+        timeout_seconds=max(settings.a2a.timeout_seconds, 1800.0),  # one model call per supplier
+    )
     return Agents(
         supplier_comms=AgentProxy(
             "supplier_comms", supplier_comms, max_concurrent=settings.a2a.max_concurrent
@@ -104,6 +109,9 @@ def build_agents(settings: Settings) -> Agents:
             ),
             "invoice_match": AgentProxy(
                 "invoice_match", invoice_match, max_concurrent=settings.a2a.max_concurrent
+            ),
+            "supplier_performance": AgentProxy(
+                "supplier_performance", supplier_performance, max_concurrent=1
             ),
         },
     )

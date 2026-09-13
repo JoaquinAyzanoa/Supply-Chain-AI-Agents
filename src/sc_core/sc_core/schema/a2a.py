@@ -461,7 +461,93 @@ class InvoiceMatchResult(StrictModel):
         return self.outcome.status
 
 
+# --- supplier performance (phase 9) ---------------------------------------------------
+
+PerformanceTaskKind = Literal["weekly_scorecard"]
+
+
+class SupplierPerformanceTask(StrictModel):
+    """What the director asks the performance agent to do (the weekly run)."""
+
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: PerformanceTaskKind
+    case_id: str = Field(min_length=1)
+    as_of: date | None = Field(default=None, description="period end; today when omitted")
+    partner_ids: list[int] = Field(
+        default_factory=list, description="empty = every active supplier"
+    )
+
+
+class SupplierScore(StrictModel):
+    """One supplier's numbers for a period, the model's paragraph and the flagged changes."""
+
+    partner_id: int
+    partner_name: str = Field(min_length=1)
+    period_start: date
+    period_end: date
+    otif: float | None = Field(default=None, ge=0, le=1)
+    lead_time_mean_days: float | None = Field(default=None, ge=0)
+    lead_time_sigma_days: float | None = Field(default=None, ge=0)
+    promise_drift_days: float | None = None
+    response_hours_median: float | None = Field(default=None, ge=0)
+    quality_rate: float | None = Field(default=None, ge=0, le=1)
+    price_cv: float | None = Field(default=None, ge=0)
+    score: float = Field(ge=0, le=100)
+    samples: dict[str, int] = Field(default_factory=dict)
+    scorecard: str | None = Field(default=None, max_length=1000)
+    trends: list[str] = Field(default_factory=list)
+
+
+class PerformanceApplied(StrictModel):
+    partners: int = 0
+    price_list_entries: int = 0
+    planning_params: int = 0
+
+
+class SupplierPerformanceResult(StrictModel):
+    SCHEMA_VERSION: ClassVar[int] = 1
+
+    schema_version: int = Field(default=1, ge=1)
+    kind: PerformanceTaskKind
+    case_id: str = Field(min_length=1)
+    run_id: str = Field(min_length=1)
+    outcome: Outcome
+    period_start: date | None = None
+    period_end: date | None = None
+    scores: list[SupplierScore] = Field(default_factory=list)
+    applied: PerformanceApplied | None = None
+    trace_id: str | None = None
+
+    @property
+    def status(self) -> OutcomeStatus:
+        return self.outcome.status
+
+
+class RankedSupplier(StrictModel):
+    rank: int = 0
+    partner_id: int
+    partner_name: str
+    score: float | None = None
+    otif: float | None = None
+    lead_time_mean_days: float | None = None
+    price: float | None = None
+    currency: str | None = None
+    min_qty: float = 0.0
+    promised_lead_days: int = 0
+    samples: dict[str, int] = Field(default_factory=dict)
+    why: str = ""
+
+
+class SupplierRanking(StrictModel):
+    product_id: int
+    suppliers: list[RankedSupplier] = Field(default_factory=list)
+
+
 CONTRACTS: dict[str, type[StrictModel]] = {
+    "supplier_performance_task": SupplierPerformanceTask,
+    "supplier_performance_result": SupplierPerformanceResult,
     "invoice_match_task": InvoiceMatchTask,
     "invoice_match_result": InvoiceMatchResult,
     "logistics_task": LogisticsTask,

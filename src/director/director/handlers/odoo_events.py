@@ -121,6 +121,7 @@ _APPROVAL_LABELS: dict[str, str] = {
     "unlinked_mail": "unlinked email",
     "orderpoint_change": "reorder rule change",
     "vendor_bill": "vendor bill",
+    "supplier_score": "supplier scorecards",
 }
 
 
@@ -142,6 +143,7 @@ _APPROVAL_CASE_KINDS: dict[str, CaseKind] = {
     "orderpoint_change": "planning",
     "planning_run": "planning",
     "vendor_bill": "invoice",
+    "supplier_score": "receipt",
 }
 
 

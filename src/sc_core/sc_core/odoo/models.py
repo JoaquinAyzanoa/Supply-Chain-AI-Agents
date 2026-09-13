@@ -373,6 +373,7 @@ ApprovalKind = Literal[
     "unlinked_mail",
     "escalation",
     "vendor_bill",
+    "supplier_score",
 ]
 ApprovalStatus = Literal["pending", "approved", "rejected", "expired"]
 RunStatus = Literal[

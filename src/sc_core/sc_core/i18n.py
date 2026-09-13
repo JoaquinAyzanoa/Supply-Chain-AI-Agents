@@ -70,6 +70,30 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "en": "arrival date from the shipping notice applied on {n} line(s) of {po}",
         "es": "fecha de llegada del aviso de despacho aplicada en {n} línea(s) de {po}",
     },
+    # --- supplier performance -------------------------------------------------------------
+    "score.nobody": {
+        "en": "no supplier had a confirmed order since {since}; nothing to score",
+        "es": "ningún proveedor tuvo órdenes confirmadas desde {since}; nada que puntuar",
+    },
+    "score.approval_summary": {
+        "en": (
+            "Weekly supplier scorecards to {end}: {n} supplier(s), {flagged} with changes to watch"
+        ),
+        "es": (
+            "Puntuaciones semanales de proveedores al {end}: {n} proveedor(es), "
+            "{flagged} con cambios a vigilar"
+        ),
+    },
+    "score.applied_summary": {
+        "en": "scores written on {partners} supplier(s), {entries} price list lead time(s) and "
+        "{params} planning parameter(s)",
+        "es": "puntuaciones escritas en {partners} proveedor(es), {entries} plazo(s) de la "
+        "lista de precios y {params} parámetro(s) de planificación",
+    },
+    "score.rejected_summary": {
+        "en": "weekly scorecards not applied: rejected by {who} ({reason})",
+        "es": "puntuaciones semanales no aplicadas: rechazadas por {who} ({reason})",
+    },
     # --- invoice matching ---------------------------------------------------------------
     "bill.already": {
         "en": "invoice {number} is already recorded as {bill}",

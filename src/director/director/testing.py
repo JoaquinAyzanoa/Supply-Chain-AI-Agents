@@ -15,6 +15,7 @@ from director.api.board import BoardMoves, BoardOrders
 from director.api.chat import CaseAssistant, ChatActions, EmailSnapshot
 from director.api.exceptions import ExceptionsSource
 from director.api.mailbox import MailboxSync
+from director.api.performance import PerformanceSource
 from director.api.planning import DemandSource, PlanningLineRow, PlanningReadStore, PlanningRunRow
 from director.api.runs import RunsGateway, SchedulerRuns
 from director.api.settings import MemoryRuntimeSettingsStore, RuntimeSettingsStore
@@ -46,6 +47,7 @@ def memory_deps(
     inventory_planning: AgentCaller | None = None,
     logistics: AgentCaller | None = None,
     invoice_match: AgentCaller | None = None,
+    supplier_performance: AgentCaller | None = None,
     escalator: Escalator | None = None,
     jobs: JobRunner | None = None,
     conversations: MemoryConversationLookup | None = None,
@@ -61,6 +63,10 @@ def memory_deps(
     if invoice_match is not None:
         others["invoice_match"] = AgentProxy(
             "invoice_match", invoice_match, max_concurrent=max_concurrent
+        )
+    if supplier_performance is not None:
+        others["supplier_performance"] = AgentProxy(
+            "supplier_performance", supplier_performance, max_concurrent=max_concurrent
         )
     return Deps(
         cases=cases or MemoryCaseStore(),
@@ -86,6 +92,7 @@ class MemoryDirectorModule(Module):
         inventory_planning: AgentCaller | None = None,
         logistics: AgentCaller | None = None,
         invoice_match: AgentCaller | None = None,
+        supplier_performance: AgentCaller | None = None,
         cases: MemoryCaseStore | None = None,
         escalator: Escalator | None = None,
         jobs: JobRunner | None = None,
@@ -116,12 +123,14 @@ class MemoryDirectorModule(Module):
         self.mail_activity = MemoryMailActivity()
         self.board_orders = MemoryBoardOrders()
         self.mailbox = MemoryMailboxSync()
+        self.performance = MemoryPerformanceSource()
         self.deps = memory_deps(
             cases=self.case_store,
             supplier_comms=supplier_comms,
             inventory_planning=inventory_planning,
             logistics=logistics,
             invoice_match=invoice_match,
+            supplier_performance=supplier_performance,
             escalator=self.escalator,
             jobs=jobs,
         )
@@ -162,6 +171,7 @@ class MemoryDirectorModule(Module):
         binder.bind(MailActivity, to=self.mail_activity, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardOrders, to=self.board_orders, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(MailboxSync, to=self.mailbox, scope=singleton)  # type: ignore[type-abstract]
+        binder.bind(PerformanceSource, to=self.performance, scope=singleton)  # type: ignore[type-abstract]
         binder.bind(BoardMoves, to=BoardMoves(self.board_orders, self.deps), scope=singleton)
         binder.bind(Orchestrator, to=self.orchestrator, scope=singleton)
         binder.bind(UserStore, to=self.users, scope=singleton)  # type: ignore[type-abstract]
@@ -408,3 +418,17 @@ class MemoryMailboxSync:
         if self.fail:
             raise ScError("the mailbox service did not answer")
         return dict(self.report)
+
+
+class MemoryPerformanceSource:
+    """Scores and rankings as the performance agent would answer them."""
+
+    def __init__(self) -> None:
+        self.rows: list[dict[str, Any]] = []
+        self.rankings: dict[int, dict[str, Any]] = {}
+
+    async def scores(self) -> list[dict[str, Any]]:
+        return list(self.rows)
+
+    async def rank(self, product_id: int) -> dict[str, Any]:
+        return self.rankings.get(product_id) or {"product_id": product_id, "suppliers": []}

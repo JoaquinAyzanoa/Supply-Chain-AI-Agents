@@ -49,6 +49,7 @@ from sc_core.schema.a2a import (
     OutcomeStatus,
     SupplierCommsResult,
     SupplierCommsTask,
+    SupplierPerformanceResult,
 )
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import (
@@ -336,18 +337,26 @@ def outcome_from_reply(
     )
 
 
-AgentResult = SupplierCommsResult | InventoryPlanningResult | LogisticsResult | InvoiceMatchResult
+AgentResult = (
+    SupplierCommsResult
+    | InventoryPlanningResult
+    | LogisticsResult
+    | InvoiceMatchResult
+    | SupplierPerformanceResult
+)
 _ALL_RESULTS: tuple[type[AgentResult], ...] = (
     SupplierCommsResult,
     InventoryPlanningResult,
     LogisticsResult,
     InvoiceMatchResult,
+    SupplierPerformanceResult,
 )
 _FIRST_CONTRACT: dict[str, type[AgentResult]] = {
     "supplier_comms": SupplierCommsResult,
     "inventory_planning": InventoryPlanningResult,
     "logistics": LogisticsResult,
     "invoice_match": InvoiceMatchResult,
+    "supplier_performance": SupplierPerformanceResult,
 }
 _CONTRACTS: dict[str, tuple[type[AgentResult], ...]] = {
     name: (first, *[c for c in _ALL_RESULTS if c is not first])
@@ -580,7 +589,13 @@ async def consolidate_outcome(
 
 # --- building and running -----------------------------------------------------------
 
-AGENT_NAMES = ("supplier_comms", "inventory_planning", "logistics", "invoice_match")
+AGENT_NAMES = (
+    "supplier_comms",
+    "inventory_planning",
+    "logistics",
+    "invoice_match",
+    "supplier_performance",
+)
 
 
 def build_workflow(deps: Deps) -> Workflow:

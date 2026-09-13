@@ -23,15 +23,24 @@ from sc_core.schema.a2a import (
     InvoiceMatchTask,
     LogisticsTask,
     SupplierCommsTask,
+    SupplierPerformanceTask,
 )
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import BaseEvent
 
-AgentName = Literal["supplier_comms", "inventory_planning", "logistics", "invoice_match"]
+AgentName = Literal[
+    "supplier_comms", "inventory_planning", "logistics", "invoice_match", "supplier_performance"
+]
 
 # Phase 9 adds the logistics task; the union keeps ``Route.dispatches`` typed
 # without a wrapper per agent (the ``kind`` literals never overlap).
-AgentTask = SupplierCommsTask | InventoryPlanningTask | LogisticsTask | InvoiceMatchTask
+AgentTask = (
+    SupplierCommsTask
+    | InventoryPlanningTask
+    | LogisticsTask
+    | InvoiceMatchTask
+    | SupplierPerformanceTask
+)
 
 
 class Dispatch(StrictModel):

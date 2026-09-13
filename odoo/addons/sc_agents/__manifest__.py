@@ -14,7 +14,7 @@ Integration points for the Supply Chain AI Agents:
 * signed events to the orchestrator when an order is confirmed, a receipt
   is validated or an approval is resolved
 """,
-    "version": "18.0.1.8.0",
+    "version": "18.0.1.9.0",
     "category": "Purchases",
     "author": "Supply Chain AI Agents",
     "license": "LGPL-3",
@@ -28,6 +28,7 @@ Integration points for the Supply Chain AI Agents:
         "views/sc_agent_run_views.xml",
         "views/sc_mail_link_views.xml",
         "views/purchase_order_views.xml",
+        "views/res_partner_views.xml",
         "views/menus.xml",
     ],
     "installable": True,
