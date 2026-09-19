@@ -232,6 +232,11 @@ async def test_the_whole_script_runs_unattended_and_decides_as_the_presenter(
     # 4. the quote above target: the reply carries prices 12% above the list, the
     #    counter-offer waits and is approved
     module.demo_world.lines["P00091"] = module.demo_world.lines["P00901"]
+    # the supplier cannot quote a request that has not reached it
+    view = client.post("/api/demo/next", json={"approve": True}, headers=ana).json()
+    assert view["position"] == 3 and view["outcomes"][-1]["status"] == "waiting"
+    assert "has not left yet" in view["outcomes"][-1]["summary"] and len(sent) == 1
+    module.demo_world.outbound["P00091"] = 1
     module.mailbox.report = {"status": "ok", "fetched": 1, "linked_po_names": ["P00091"]}
     module.approvals.seed(
         205,
@@ -249,7 +254,11 @@ async def test_the_whole_script_runs_unattended_and_decides_as_the_presenter(
     assert view["outcomes"][-1]["approval_ids"] == [205]
     assert (await module.approvals.get(205)).status == "approved"
 
-    # 5. the acceptance names the counter-offer's price; the comparison ends in an award
+    # 5. the supplier accepts once the counter-offer reached it
+    view = client.post("/api/demo/next", json={"approve": True}, headers=ana).json()
+    assert view["position"] == 4 and "counter-offer has not left" in view["outcomes"][-1]["summary"]
+    module.demo_world.outbound["P00091"] = 2
+    # the acceptance names the counter-offer's price; the comparison ends in an award
     module.approvals.seed(206, kind="award", summary="award", po=(91, "P00091"))
     sourcing.replies.append(_sourcing_reply("compare_quotes", "awaiting_approval", 206))
     view = client.post("/api/demo/next", json={"approve": True}, headers=ana).json()

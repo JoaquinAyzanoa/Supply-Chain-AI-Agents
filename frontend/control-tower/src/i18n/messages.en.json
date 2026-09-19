@@ -1096,5 +1096,6 @@
   "demo.status.failed": "Failed",
   "demo.needs.none": "",
   "demo.needs.mailbox": "needs the supplier's mailbox",
-  "demo.needs.world": "needs the warehouse login"
+  "demo.needs.world": "needs the warehouse login",
+  "approvals.changes.field.lead_days": "Lead time (days)"
 }

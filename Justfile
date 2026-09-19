@@ -294,6 +294,10 @@ demo-pace:
 demo-reset:
     {{UV}} run python scripts/demo_day.py --reset
 
+# Record the demo day as a captioned video into demo-video/ (lang: en or es; about 7 minutes, live stack)
+demo-video lang="en":
+    cd {{UI}} && node scripts/demo-video.mjs --lang {{lang}}
+
 # --------------------------------------------------------------------
 # Packaging & cleaning
 

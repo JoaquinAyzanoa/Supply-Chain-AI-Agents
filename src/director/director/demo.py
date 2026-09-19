@@ -42,6 +42,7 @@ from sc_core.infra.settings import DemoCfg
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.models import NewOrderLine
 from sc_core.odoo.repositories import (
+    MailLinkRepo,
     PartnerRepo,
     PickingRepo,
     PurchaseOrderRepo,
@@ -305,6 +306,10 @@ class DemoWorld(Protocol):
 
     async def cancel_orders(self, po_names: list[str]) -> int: ...
 
+    async def outbound_count(self, po_name: str) -> int:
+        """How many emails of ours are linked to the order (they are linked once sent)."""
+        ...
+
 
 QUIET = {"sc_skip_events": True}  # the addon's rules stay silent for demo housekeeping
 
@@ -496,6 +501,13 @@ class OdooDemoWorld:
         )
         return DemoBill(move_id=int(move_id), ref=ref, amount=round(amount, 2))
 
+    async def outbound_count(self, po_name: str) -> int:
+        po = await PurchaseOrderRepo(self._bot).get_by_name(po_name)
+        if po is None:
+            return 0
+        links = await MailLinkRepo(self._bot).for_po(po.id)
+        return sum(1 for link in links if link.direction == "out")
+
     async def cancel_orders(self, po_names: list[str]) -> int:
         orders = PurchaseOrderRepo(self._bot)
         cancelled = 0
@@ -521,6 +533,7 @@ class MemoryDemoWorld:
         self.receipts: list[tuple[int, float]] = []
         self.bills: list[tuple[int, str, float]] = []
         self.cancelled: list[str] = []
+        self.outbound: dict[str, int] = {}  # emails of ours per order
         self._next_id = 900
 
     async def late_order(self, supplier_email: str) -> DemoOrder | None:
@@ -554,6 +567,9 @@ class MemoryDemoWorld:
             raise ScError("SC__DEMO__ODOO_LOGIN / ODOO_API_KEY not set: nobody can type the bill")
         self.bills.append((po_id, ref, uplift_pct))
         return DemoBill(move_id=500 + len(self.bills), ref=ref, amount=206.0)
+
+    async def outbound_count(self, po_name: str) -> int:
+        return self.outbound.get(po_name, 0)
 
     async def cancel_orders(self, po_names: list[str]) -> int:
         self.cancelled.extend(po_names)
@@ -837,6 +853,14 @@ class DemoDirector:
                 await self._sleep(self._poll)
         return False
 
+    async def _wait_outbound(self, po_name: str, *, more_than: int) -> bool:
+        """The supplier can only answer an email that reached it: wait until ours left."""
+
+        async def check() -> bool:
+            return await self._world.outbound_count(po_name) > more_than
+
+        return await self._wait_for(check)
+
     async def _sync_until_linked(self, po_name: str) -> bool:
         async def check() -> bool:
             report = await self._sync.run(requested_by="demo")
@@ -974,8 +998,9 @@ class DemoDirector:
             new_date = local_today() + timedelta(days=7)
             text = (
                 "Estimados,\n\n"
-                f"Lamentamos la demora con la orden {po_name}. El material sale de planta esta "
-                f"semana y la entrega queda confirmada para el {new_date.strftime('%d/%m/%Y')}.\n\n"
+                f"Lamentamos la demora con la orden {po_name}.\n\n"
+                f"Nueva fecha de entrega confirmada en su almacén: {new_date.strftime('%d/%m/%Y')} "
+                f"({new_date.isoformat()}), para todas las líneas de la orden.\n\n"
                 "Saludos cordiales,\nVentas\nProveedor Hidraulica"
             )
             message_id = await mailbox.reply(
@@ -1108,6 +1133,14 @@ class DemoDirector:
         seen = self._seen(state)
         if not state.records.get("quote_sent"):
             mailbox = self._need_mailbox()
+            if not await self._wait_outbound(po_name, more_than=0):
+                return DemoStepOutcome(
+                    key="supplier_quote",
+                    status="waiting",
+                    summary=f"the request {po_name} has not left yet: approve its email, then "
+                    "run the step again",
+                    links=self._links(po_name, []),
+                )
             lines = await self._world.order_lines(po_name)
             if not lines:
                 raise ScError(f"{po_name} has no lines to quote")
@@ -1141,6 +1174,7 @@ class DemoDirector:
         quote_ids = await self._wait_for_approvals(po_name, seen=seen, kinds={"po_change"})
         if quote_ids and approve:
             quote_ids = await self._approve_chain(po_name, quote_ids, actor=actor)
+        state.records["out_before_offer"] = await self._world.outbound_count(po_name)
         list_price = state.records.get("quote_list_price")
         task = SourcingTask(
             kind="counter_offer",
@@ -1168,6 +1202,7 @@ class DemoDirector:
             )
             summary = f"{summary}; approved, the counter-offer is on its way"
         state.records["counter_offer_case"] = result["case_id"]
+        state.records["counter_offer_made"] = bool(result.get("approval_id"))
         await self._store.save(state)
         return DemoStepOutcome(
             key="supplier_quote",
@@ -1188,6 +1223,16 @@ class DemoDirector:
         seen = self._seen(state)
         if not state.records.get("acceptance_sent"):
             mailbox = self._need_mailbox()
+            if state.records.get("counter_offer_made") and not await self._wait_outbound(
+                po_name, more_than=int(state.records.get("out_before_offer") or 0)
+            ):
+                return DemoStepOutcome(
+                    key="award",
+                    status="waiting",
+                    summary="the counter-offer has not left yet: approve it, then run the step "
+                    "again",
+                    links=self._links(po_name, []),
+                )
             offered = await self._offered_price(state)
             price_line = f" de USD {offered:.2f} por unidad" if offered else ""
             text = (

@@ -268,7 +268,9 @@ class LiveSourcingPorts:
         replied_at: datetime | None = None
         for link in await self._links.for_po(po.id):
             if link.direction == "out" and link.received_at:
-                sent_at = max(sent_at, link.received_at) if sent_at else link.received_at
+                # the request is the first email we sent; a later one of ours (a reminder, a
+                # counter-offer) does not make the supplier's earlier answer disappear
+                sent_at = min(sent_at, link.received_at) if sent_at else link.received_at
             if link.direction == "in" and link.received_at:
                 replied_at = max(replied_at, link.received_at) if replied_at else link.received_at
         if replied_at and sent_at and replied_at < sent_at:

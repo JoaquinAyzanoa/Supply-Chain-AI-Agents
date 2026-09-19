@@ -134,6 +134,21 @@ it. Ask it anything about the desk."
 the AI performance page for the automation rate of the day. Assistant: one
 question, with citations that open the records.
 
+## A recorded version
+
+`just demo-video` (or `just demo-video es`) films the same scenario without a presenter: it
+runs every step through the demo API while a browser tours the screens that matter, decides
+the approvals on screen in the inbox, and tells the story in captions. The supplier's emails
+still travel in real time, so a take lasts about seven minutes. The result is
+`demo-video/demo-<lang>.webm` (git-ignored); convert it for sharing with
+
+```
+ffmpeg -i demo-video/demo-en.webm -c:v libx264 -crf 22 -pix_fmt yuv420p -movflags +faststart demo-video/demo-en.mp4
+```
+
+Before filming, the script retires stale pending approvals on the late order so the drawer
+tells one story. Each take creates real records, like any other run of the demo.
+
 ## When something does not go to plan
 
 - A step says **waiting**: the mailbox or an agent has not answered yet. Press

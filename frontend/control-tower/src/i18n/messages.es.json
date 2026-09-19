@@ -1096,5 +1096,6 @@
   "demo.status.failed": "Falló",
   "demo.needs.none": "",
   "demo.needs.mailbox": "necesita el buzón del proveedor",
-  "demo.needs.world": "necesita el acceso de almacén"
+  "demo.needs.world": "necesita el acceso de almacén",
+  "approvals.changes.field.lead_days": "Plazo (días)"
 }

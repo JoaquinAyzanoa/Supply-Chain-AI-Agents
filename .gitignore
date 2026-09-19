@@ -234,3 +234,6 @@ test-results/
 
 # scripts/odoo_fresh.py keeps the mailbox login here during a reset
 .mail_token_cache.sql
+
+# Recorded demo videos (scripts/demo-video.mjs)
+/demo-video/
