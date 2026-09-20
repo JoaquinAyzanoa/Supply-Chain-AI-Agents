@@ -11,8 +11,9 @@ def test_committed_dataset_loads_and_is_consistent() -> None:
     ds = load(DEFAULT_PATH)
     assert len(ds.products) == 30 and set(ds.suppliers) == {"primary", "alternate", "importer"}
     assert ds.suppliers["primary"].email == "ventas.hidraulica.sc@gmail.com"
-    assert ds.suppliers["alternate"].email is None  # no mailbox on purpose
-    assert ds.suppliers["importer"].email is None
+    # the other two are aliases of the demo mailbox, so the demo can answer for all three
+    assert ds.suppliers["alternate"].email == "ventas.hidraulica.sc+alterna@gmail.com"
+    assert ds.suppliers["importer"].email == "ventas.hidraulica.sc+importadora@gmail.com"
     codes = {p.code for p in ds.products}
     assert {"CBEA-LHN", "CBCA-LHN", "770-212", "990-011-007", "AAA-T11A", "MH-R2-12"} <= codes
     assert len({p.category for p in ds.products}) == 5

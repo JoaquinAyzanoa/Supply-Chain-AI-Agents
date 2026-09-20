@@ -189,9 +189,9 @@ async def test_the_whole_script_runs_unattended_and_decides_as_the_presenter(
     view = client.post("/api/demo/next", json={"approve": True}, headers=ana).json()
     assert view["position"] == 2
     sent = module.supplier_mailbox.sent
-    assert len(sent) == 1 and sent[0]["subject"] == "Re: [P00077] Fecha de entrega"
+    assert len(sent) == 1 and sent[0]["subject"] == "Re: [P00077] Delivery date"
     assert sent[0]["to"] == "scai.compras@outlook.com"
-    assert (TODAY + timedelta(days=7)).strftime("%d/%m/%Y") in sent[0]["text"]
+    assert (TODAY + timedelta(days=7)).isoformat() in sent[0]["text"]
     assert view["outcomes"][-1]["approval_ids"] == [202]
     assert (await module.approvals.get(202)).status == "approved"
 
@@ -237,6 +237,13 @@ async def test_the_whole_script_runs_unattended_and_decides_as_the_presenter(
     assert view["position"] == 3 and view["outcomes"][-1]["status"] == "waiting"
     assert "has not left yet" in view["outcomes"][-1]["summary"] and len(sent) == 1
     module.demo_world.outbound["P00091"] = 1
+    # the rival's request left too, so the rival quotes as well, in character
+    module.demo_world.outbound["P00092"] = 1
+    module.demo_world.lines["P00092"] = module.demo_world.lines["P00901"]
+    module.demo_world.contacts["P00092"] = (
+        "Hidráulica Alterna SAC",
+        "ventas.hidraulica.sc+alterna@gmail.com",
+    )
     module.mailbox.report = {"status": "ok", "fetched": 1, "linked_po_names": ["P00091"]}
     module.approvals.seed(
         205,
@@ -248,7 +255,12 @@ async def test_the_whole_script_runs_unattended_and_decides_as_the_presenter(
     sourcing.replies.append(_sourcing_reply("counter_offer", "awaiting_approval", 205))
     view = client.post("/api/demo/next", json={"approve": True}, headers=ana).json()
     assert view["position"] == 4
-    assert sent[1]["subject"] == "Re: [P00091] Cotización" and "USD 28.00" in sent[1]["text"]
+    assert sent[1]["subject"] == "Re: [P00091] Quotation" and "USD 28.00" in sent[1]["text"]
+    assert (
+        sent[2]["subject"] == "Re: [P00092] Quotation"
+        and sent[2]["from"] == "Hidráulica Alterna SAC"
+    )
+    assert "USD 25.00" in sent[2]["text"] and "Delivery time: 12 days" in sent[2]["text"]
     assert '"kind":"counter_offer"' in sourcing.sent[-1].task_json
     assert '"target_price":25.0' in sourcing.sent[-1].task_json  # the list price before the quote
     assert view["outcomes"][-1]["approval_ids"] == [205]
@@ -263,7 +275,16 @@ async def test_the_whole_script_runs_unattended_and_decides_as_the_presenter(
     sourcing.replies.append(_sourcing_reply("compare_quotes", "awaiting_approval", 206))
     view = client.post("/api/demo/next", json={"approve": True}, headers=ana).json()
     assert view["position"] == 5
-    assert "USD 26.50" in sent[2]["text"]
+    assert "USD 26.50" in sent[3]["text"]
+    # the presenter can read what the suppliers wrote; nothing of it is stored
+    emails = client.get("/api/demo/emails", headers=vic).json()
+    assert [(e["step"], e["po_name"], e["from_name"]) for e in emails] == [
+        ("supplier_eta_reply", "P00077", "Proveedor Hidraulica"),
+        ("supplier_quote", "P00091", "Proveedor Hidraulica"),
+        ("supplier_quote", "P00092", "Hidráulica Alterna SAC"),
+        ("award", "P00091", "Proveedor Hidraulica"),
+    ]
+    assert emails[3]["text"] == sent[3]["text"] and emails[1]["text"] == sent[1]["text"]
     assert '"kind":"compare_quotes"' in sourcing.sent[-1].task_json
     assert '"round_id":7' in sourcing.sent[-1].task_json
     assert view["outcomes"][-1]["approval_ids"] == [206]
@@ -358,3 +379,21 @@ async def test_a_step_waits_without_resending_when_the_mailbox_is_slow(
     assert failed["key"] == "short_receipt" and failed["status"] == "failed"
     assert "SC__DEMO__ODOO_LOGIN" in failed["summary"]
     assert client.get("/api/demo", headers=ana).json()["ready"]["world"] is False
+
+
+async def test_a_kind_can_be_left_for_the_presenter_to_decide_on_screen(
+    client: TestClient, module: MemoryDirectorModule, supplier: FakeAgentCaller
+) -> None:
+    await _users(module)
+    _the_world(module)
+    ana = _token(client, "ana@x.com")
+    client.post("/api/demo/reset", headers=ana)
+    module.approvals.seed(
+        201, kind="send_email", summary="Delivery date request", po=(77, "P00077")
+    )
+    supplier.replies.append(_supplier_reply("request_eta", "awaiting_approval", 201))
+    view = client.post(
+        "/api/demo/next", json={"approve": True, "leave": ["send_email"]}, headers=ana
+    ).json()
+    assert view["position"] == 1 and view["outcomes"][-1]["approval_ids"] == [201]
+    assert (await module.approvals.get(201)).status == "pending"  # theirs to click

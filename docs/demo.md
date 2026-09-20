@@ -136,18 +136,29 @@ question, with citations that open the records.
 
 ## A recorded version
 
-`just demo-video` (or `just demo-video es`) films the same scenario without a presenter: it
-runs every step through the demo API while a browser tours the screens that matter, decides
-the approvals on screen in the inbox, and tells the story in captions. The supplier's emails
-still travel in real time, so a take lasts about seven minutes. The result is
-`demo-video/demo-<lang>.webm` (git-ignored); convert it for sharing with
+`just demo-video` films the same scenario without a presenter, in English. Every step runs
+through the demo API while a browser tours the product, and the captions tell the story:
 
-```
-ffmpeg -i demo-video/demo-en.webm -c:v libx264 -crf 22 -pix_fmt yuv420p -movflags +faststart demo-video/demo-en.mp4
-```
+- the board explained column by column, Supplier 360, Autonomy, Planning, Playbooks, Runs;
+- who wrote what: each supplier email is shown as the supplier sent it (rebuilt from the
+  run's records by `GET /api/demo/emails`, never stored), and every draft carries a badge
+  with the agent that wrote it;
+- the chat typed live, on an order and for the whole department;
+- the order's history with its emails, the order in Odoo with the agent's audit note, the
+  request for quotation and the purchase order as Odoo prints them, the draft vendor bill;
+- how a supplier is chosen: three suppliers quote (the two rivals are aliases of the demo
+  mailbox and the demo answers in character: one fast and dearer, one cheap and slow), and
+  the award's comparison is walked through: landed cost, lead time, score, weights;
+- a trace in Langfuse: what the model was given and what it answered;
+- approvals decided on screen (`leave` on `POST /api/demo/next` keeps the counter-offer and
+  the award for the person in front of the camera).
 
-Before filming, the script retires stale pending approvals on the late order so the drawer
-tells one story. Each take creates real records, like any other run of the demo.
+The take is kept as `demo-video/demo-raw.webm` with `demo-timeline.json`, which marks the
+seconds meant to be read and the seconds spent waiting for real email. ffmpeg (the
+`ffmpeg-static` dev dependency) re-times it into `demo-video/demo.mp4`: reading at 2x,
+waiting at 10x. `just demo-video-recut 1.5` re-times the same take at another speed.
+The folder is git-ignored. Each take creates real records, like any other run of the demo;
+before filming, stale pending approvals on the late order are retired.
 
 ## When something does not go to plan
 

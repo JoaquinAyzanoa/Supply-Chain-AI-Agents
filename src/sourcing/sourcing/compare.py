@@ -168,23 +168,31 @@ def compare(
 
 
 def _line_awards(basket: list[BasketLine], ranked: list[ComparedQuote]) -> list[LineAward]:
-    """Per product: the cheapest landed unit among the priced quotes; a tie goes to the
-    better composite (lead time and score). The person may still award otherwise."""
+    """Per product: the quote that ranks best on the same weights as the recommendation
+    (price, lead time, score), so approving without choosing follows what was recommended.
+    The cheapest is named when it is someone else; the person may still award otherwise."""
     awards: list[LineAward] = []
     for want in basket:
         candidates: list[tuple[float, float, ComparedQuote, QuoteLine]] = []
         for quote in ranked:
             for line in quote.lines:
                 if line.product_id == want.product_id and line.landed_unit is not None:
-                    candidates.append((line.landed_unit, -(quote.composite or 0.0), quote, line))
+                    candidates.append((-(quote.composite or 0.0), line.landed_unit, quote, line))
         if not candidates:
             continue
         candidates.sort(key=lambda c: (c[0], c[1]))
         _, _, best, line = candidates[0]
-        reasons = [f"cheapest landed unit {line.landed_unit:.2f}"]
-        if len(candidates) > 1:
-            runner = candidates[1][3]
-            reasons.append(f"next {candidates[1][2].partner_name} at {runner.landed_unit:.2f}")
+        cheapest = min(candidates, key=lambda c: c[1])
+        if cheapest[2].partner_id == best.partner_id:
+            reasons = [f"cheapest landed unit {line.landed_unit:.2f}"]
+            if len(candidates) > 1:
+                runner = sorted(candidates, key=lambda c: c[1])[1]
+                reasons.append(f"next {runner[2].partner_name} at {runner[3].landed_unit:.2f}")
+        else:
+            reasons = [
+                f"best on price, lead time and score at {line.landed_unit:.2f}",
+                f"cheapest is {cheapest[2].partner_name} at {cheapest[3].landed_unit:.2f}",
+            ]
         if best.lead_days is not None:
             reasons.append(f"{best.lead_days} day(s)")
         awards.append(

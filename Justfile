@@ -263,6 +263,10 @@ mail-logout:
 mail-check:
     {{UV}} run python -m sc_core.mail.cli check
 
+# Empty the bot's inbox (to Deleted Items): a fresh stack re-reads the inbox and order numbers restart
+mail-clear-inbox:
+    {{UV}} run python -m sc_core.mail.cli clear-inbox
+
 # --------------------------------------------------------------------
 # Mail sync and scheduler
 
@@ -294,9 +298,13 @@ demo-pace:
 demo-reset:
     {{UV}} run python scripts/demo_day.py --reset
 
-# Record the demo day as a captioned video into demo-video/ (lang: en or es; about 7 minutes, live stack)
-demo-video lang="en":
-    cd {{UI}} && node scripts/demo-video.mjs --lang {{lang}}
+# Film the demo day into demo-video/demo.mp4: captions, Odoo, Langfuse, approvals on screen (live stack)
+demo-video:
+    cd {{UI}} && node scripts/demo-video.mjs
+
+# Re-time the last take without filming again (demo-video/demo-raw.webm + demo-timeline.json)
+demo-video-recut speed="2":
+    cd {{UI}} && node scripts/demo-video.mjs --recut --speed {{speed}}
 
 # --------------------------------------------------------------------
 # Packaging & cleaning

@@ -65,6 +65,73 @@ StepStatus = Literal["done", "waiting", "failed"]
 StepNeeds = Literal["none", "mailbox", "world"]
 
 
+# --- what the suppliers write -----------------------------------------------------------
+# Rebuilt from the run's records whenever someone wants to read them: no email text is kept.
+
+RIVAL_TERMS = {  # how the two other suppliers quote: (price factor on their list, lead days, note)
+    "alterna": (1.00, 12, "Stock in Arequipa; we can ship within the week."),
+    "importadora": (
+        0.97,
+        55,
+        "Price valid for full cartons; shipped by sea from the manufacturer.",
+    ),
+}
+DEFAULT_RIVAL_TERMS = (1.00, 25, "")
+
+
+def rival_terms(supplier_name: str) -> tuple[float, int, str]:
+    lowered = supplier_name.lower()
+    return next((t for key, t in RIVAL_TERMS.items() if key in lowered), DEFAULT_RIVAL_TERMS)
+
+
+def eta_reply_text(po_name: str, new_date: date) -> str:
+    return (
+        "Dear Purchasing Team,\n\n"
+        f"We apologise for the delay on purchase order {po_name}.\n\n"
+        f"New confirmed delivery date at your warehouse: {new_date.strftime('%d %B %Y')} "
+        f"({new_date.isoformat()}), for every line of the order.\n\n"
+        "Kind regards,\nSales\nProveedor Hidraulica"
+    )
+
+
+def quote_text(
+    po_name: str, lines: list[dict[str, Any]], *, lead_days: int, supplier: str, note: str = ""
+) -> str:
+    rows = "\n".join(
+        f"- {line['product']}: {line['qty']:g} units at USD {line['price']:.2f} each"
+        for line in lines
+    )
+    extra = f"{note}\n\n" if note else ""
+    return (
+        "Dear Purchasing Team,\n\n"
+        f"Thank you for your request for quotation {po_name}. Our quote:\n{rows}\n\n"
+        f"Delivery time: {lead_days} days. Prices in USD, taxes not included. Valid for 15 days."
+        f"\n\n{extra}Kind regards,\nSales\n{supplier}"
+    )
+
+
+def acceptance_text(po_name: str, offered: float | None) -> str:
+    price = f" of USD {offered:.2f} per unit" if offered else ""
+    return (
+        "Dear Purchasing Team,\n\n"
+        f"We accept your counter-offer{price} for request {po_name}. "
+        "The delivery time of 20 days stands.\n\n"
+        "We look forward to your purchase order.\n\nKind regards,\nSales\n"
+        "Proveedor Hidraulica"
+    )
+
+
+class SupplierEmail(StrictModel):
+    """One email the demo sent for a supplier, rebuilt for the presenter to read."""
+
+    step: str
+    po_name: str
+    from_name: str
+    from_email: str
+    subject: str
+    text: str
+
+
 # --- the script -----------------------------------------------------------------------
 
 
@@ -96,8 +163,8 @@ STEPS: list[DemoStep] = [
     DemoStep(
         key="risk_quote_round",
         title="A stockout risk starts a quote round",
-        say="The risk radar sees a product running out inside its lead time with nothing "
-        "on order. One click asks every supplier who lists it for a quote.",
+        say="The risk radar sees a product likely to run out inside its lead time. One click "
+        "asks every supplier who lists it for a quote.",
         click="Risk: the product at the top; Board: one RFQ per supplier, grouped.",
         needs="none",
     ),
@@ -136,7 +203,7 @@ STEPS: list[DemoStep] = [
     DemoStep(
         key="briefing",
         title="The briefing the next morning",
-        say="Every morning the director writes what happened, what ran alone and what "
+        say="Every morning the Director agent writes what happened, what ran alone and what "
         "needs a decision, with the facts behind each line.",
         click="Briefing: today's paragraph and sections; Home: the day at a glance.",
         needs="none",
@@ -308,6 +375,18 @@ class DemoWorld(Protocol):
 
     async def outbound_count(self, po_name: str) -> int:
         """How many emails of ours are linked to the order (they are linked once sent)."""
+        ...
+
+    async def inbound_count(self, po_name: str) -> int:
+        """How many supplier emails are linked to the order."""
+        ...
+
+    async def supplier_counts(self, product_ids: list[int]) -> dict[int, int]:
+        """How many suppliers list each product (a round needs rivals to compare)."""
+        ...
+
+    async def supplier_contact(self, po_name: str) -> tuple[str, str | None]:
+        """The order's supplier: name and mailbox."""
         ...
 
 
@@ -501,12 +580,33 @@ class OdooDemoWorld:
         )
         return DemoBill(move_id=int(move_id), ref=ref, amount=round(amount, 2))
 
-    async def outbound_count(self, po_name: str) -> int:
+    async def _mail_count(self, po_name: str, direction: str) -> int:
         po = await PurchaseOrderRepo(self._bot).get_by_name(po_name)
         if po is None:
             return 0
         links = await MailLinkRepo(self._bot).for_po(po.id)
-        return sum(1 for link in links if link.direction == "out")
+        return sum(1 for link in links if link.direction == direction)
+
+    async def outbound_count(self, po_name: str) -> int:
+        return await self._mail_count(po_name, "out")
+
+    async def inbound_count(self, po_name: str) -> int:
+        return await self._mail_count(po_name, "in")
+
+    async def supplier_counts(self, product_ids: list[int]) -> dict[int, int]:
+        prices = SupplierInfoRepo(self._bot)
+        counts: dict[int, int] = {}
+        for product_id in product_ids:
+            entries = await prices.for_product(product_id)
+            counts[product_id] = len({entry.partner_id.id for entry in entries})
+        return counts
+
+    async def supplier_contact(self, po_name: str) -> tuple[str, str | None]:
+        po = await PurchaseOrderRepo(self._bot).get_by_name(po_name)
+        if po is None:
+            return po_name, None
+        emails = await PartnerRepo(self._bot).emails_of(po.partner_id.id)
+        return po.partner_id.name or po_name, (emails[0] if emails else None)
 
     async def cancel_orders(self, po_names: list[str]) -> int:
         orders = PurchaseOrderRepo(self._bot)
@@ -534,6 +634,9 @@ class MemoryDemoWorld:
         self.bills: list[tuple[int, str, float]] = []
         self.cancelled: list[str] = []
         self.outbound: dict[str, int] = {}  # emails of ours per order
+        self.inbound: dict[str, int] = {}  # supplier emails per order
+        self.listed: dict[int, int] = {}  # suppliers listing a product
+        self.contacts: dict[str, tuple[str, str | None]] = {}  # order -> supplier
         self._next_id = 900
 
     async def late_order(self, supplier_email: str) -> DemoOrder | None:
@@ -571,6 +674,17 @@ class MemoryDemoWorld:
     async def outbound_count(self, po_name: str) -> int:
         return self.outbound.get(po_name, 0)
 
+    async def inbound_count(self, po_name: str) -> int:
+        return self.inbound.get(po_name, 0)
+
+    async def supplier_counts(self, product_ids: list[int]) -> dict[int, int]:
+        return {pid: self.listed.get(pid, 1) for pid in product_ids}
+
+    async def supplier_contact(self, po_name: str) -> tuple[str, str | None]:
+        return self.contacts.get(
+            po_name, ("Proveedor Hidraulica", "ventas.hidraulica.sc@gmail.com")
+        )
+
     async def cancel_orders(self, po_names: list[str]) -> int:
         self.cancelled.extend(po_names)
         return len(po_names)
@@ -581,7 +695,15 @@ class MemoryDemoWorld:
 
 @runtime_checkable
 class SupplierMailbox(Protocol):
-    async def reply(self, *, to: str, subject: str, text: str) -> str:
+    async def reply(
+        self,
+        *,
+        to: str,
+        subject: str,
+        text: str,
+        sender_name: str | None = None,
+        sender_email: str | None = None,
+    ) -> str:
         """Send from the supplier's mailbox; returns the Message-ID."""
         ...
 
@@ -593,9 +715,20 @@ class SmtpSupplierMailbox:
         self._cfg = cfg
         self._name = supplier_name
 
-    async def reply(self, *, to: str, subject: str, text: str) -> str:
+    async def reply(
+        self,
+        *,
+        to: str,
+        subject: str,
+        text: str,
+        sender_name: str | None = None,
+        sender_email: str | None = None,
+    ) -> str:
         message = EmailMessage()
-        message["From"] = f"{self._name} <{self._cfg.supplier_email}>"
+        # the rivals are aliases of the same mailbox (name+alias@...): one login sends for all
+        message["From"] = (
+            f"{sender_name or self._name} <{sender_email or self._cfg.supplier_email}>"
+        )
         message["To"] = to
         message["Subject"] = subject
         message["Message-ID"] = make_msgid(domain=self._cfg.supplier_email.split("@")[-1])
@@ -619,8 +752,23 @@ class MemorySupplierMailbox:
     def __init__(self) -> None:
         self.sent: list[dict[str, str]] = []
 
-    async def reply(self, *, to: str, subject: str, text: str) -> str:
-        self.sent.append({"to": to, "subject": subject, "text": text})
+    async def reply(
+        self,
+        *,
+        to: str,
+        subject: str,
+        text: str,
+        sender_name: str | None = None,
+        sender_email: str | None = None,
+    ) -> str:
+        self.sent.append(
+            {
+                "to": to,
+                "subject": subject,
+                "text": text,
+                "from": sender_name or "Proveedor Hidraulica",
+            }
+        )
         return f"<demo-{len(self.sent)}@test>"
 
 
@@ -681,6 +829,7 @@ class DemoDirector:
         # After a decision, what it triggers (an order going out) shows up within seconds.
         self._chain_wait = min(chain_wait_seconds, self._wait)
         self._lock = asyncio.Lock()
+        self._leave: frozenset[str] = frozenset()
 
     # -- reading ------------------------------------------------------------------------
 
@@ -716,6 +865,56 @@ class DemoDirector:
             records=state.records,
             ready=self.readiness(),
         )
+
+    async def supplier_emails(self) -> list[SupplierEmail]:
+        """What the demo wrote for the suppliers in this run, rebuilt from the records."""
+        records = (await self._store.load()).records
+        bot = self._cfg.supplier_email
+        emails: list[SupplierEmail] = []
+        late = records.get("late_order") or {}
+        if records.get("eta_reply_sent") and records.get("eta_new_date"):
+            emails.append(
+                SupplierEmail(
+                    step="supplier_eta_reply",
+                    po_name=str(late.get("po_name")),
+                    from_name="Proveedor Hidraulica",
+                    from_email=bot,
+                    subject=f"Re: [{late.get('po_name')}] Delivery date",
+                    text=eta_reply_text(
+                        str(late.get("po_name")), date.fromisoformat(records["eta_new_date"])
+                    ),
+                )
+            )
+        for po_name, quote in (records.get("quotes") or {}).items():
+            emails.append(
+                SupplierEmail(
+                    step="supplier_quote",
+                    po_name=po_name,
+                    from_name=quote["supplier"],
+                    from_email=quote["email"],
+                    subject=f"Re: [{po_name}] Quotation",
+                    text=quote_text(
+                        po_name,
+                        quote["lines"],
+                        lead_days=quote["lead_days"],
+                        supplier=quote["supplier"],
+                        note=quote["note"],
+                    ),
+                )
+            )
+        if records.get("acceptance_sent"):
+            po_name = str(records.get("supplier_rfq"))
+            emails.append(
+                SupplierEmail(
+                    step="award",
+                    po_name=po_name,
+                    from_name="Proveedor Hidraulica",
+                    from_email=bot,
+                    subject=f"Re: [{po_name}] Quotation",
+                    text=acceptance_text(po_name, records.get("accepted_price")),
+                )
+            )
+        return emails
 
     # -- reset --------------------------------------------------------------------------
 
@@ -786,13 +985,17 @@ class DemoDirector:
 
     # -- stepping -----------------------------------------------------------------------
 
-    async def next(self, actor: DemoActor, *, approve: bool) -> DemoView:
+    async def next(
+        self, actor: DemoActor, *, approve: bool, leave: frozenset[str] = frozenset()
+    ) -> DemoView:
         state = await self._store.load()
         if state.position >= len(STEPS):
             return self._view(state)
-        return await self.run(STEPS[state.position].key, actor, approve=approve)
+        return await self.run(STEPS[state.position].key, actor, approve=approve, leave=leave)
 
-    async def run(self, key: str, actor: DemoActor, *, approve: bool) -> DemoView:
+    async def run(
+        self, key: str, actor: DemoActor, *, approve: bool, leave: frozenset[str] = frozenset()
+    ) -> DemoView:
         """Run one step (the next one, or an earlier one again); a finished step moves
         the position forward only when it is the next one."""
         if key not in STEP_KEYS:
@@ -802,6 +1005,8 @@ class DemoDirector:
             if state.started_at is None:
                 raise ScError("the demo has not been reset yet")
             runner = getattr(self, f"_step_{key}")
+            # kinds the presenter wants to decide on screen even when the rest is automatic
+            self._leave = leave
             try:
                 outcome = await runner(state, actor, approve)
             except ScError as exc:
@@ -861,10 +1066,22 @@ class DemoDirector:
 
         return await self._wait_for(check)
 
-    async def _sync_until_linked(self, po_name: str) -> bool:
+    async def _mark_inbound(self, state: DemoState, po_name: str) -> None:
+        """Remember how many supplier emails the order had before the demo sends one."""
+        before = dict(state.records.get("in_before") or {})
+        before[po_name] = await self._world.inbound_count(po_name)
+        state.records["in_before"] = before
+
+    async def _sync_until_linked(self, po_name: str, state: DemoState | None = None) -> bool:
+        """Read the mailbox until the supplier's email is linked to the order, whoever
+        linked it: this sync, or the scheduler's a moment earlier."""
+        before = int(((state.records.get("in_before") or {}) if state else {}).get(po_name, -1))
+
         async def check() -> bool:
             report = await self._sync.run(requested_by="demo")
-            return po_name in (report.get("linked_po_names") or [])
+            if po_name in (report.get("linked_po_names") or []):
+                return True
+            return before >= 0 and await self._world.inbound_count(po_name) > before
 
         return await self._wait_for(check)
 
@@ -898,6 +1115,9 @@ class DemoDirector:
             if not pending:
                 break
             for approval_id in pending:
+                if self._leave and (await self._approvals.get(approval_id)).kind in self._leave:
+                    approved.append(approval_id)  # the run's own, left for a person
+                    continue
                 await self._resolver.approve(approval_id, actor=actor)
                 approved.append(approval_id)
             seen |= set(pending)
@@ -996,20 +1216,16 @@ class DemoDirector:
         if not state.records.get("eta_reply_sent"):
             mailbox = self._need_mailbox()
             new_date = local_today() + timedelta(days=7)
-            text = (
-                "Estimados,\n\n"
-                f"Lamentamos la demora con la orden {po_name}.\n\n"
-                f"Nueva fecha de entrega confirmada en su almacén: {new_date.strftime('%d/%m/%Y')} "
-                f"({new_date.isoformat()}), para todas las líneas de la orden.\n\n"
-                "Saludos cordiales,\nVentas\nProveedor Hidraulica"
-            )
+            await self._mark_inbound(state, po_name)
             message_id = await mailbox.reply(
-                to=self._cfg.bot_email, subject=f"Re: [{po_name}] Fecha de entrega", text=text
+                to=self._cfg.bot_email,
+                subject=f"Re: [{po_name}] Delivery date",
+                text=eta_reply_text(po_name, new_date),
             )
             state.records["eta_reply_sent"] = message_id
             state.records["eta_new_date"] = new_date.isoformat()
             await self._store.save(state)
-        if not await self._sync_until_linked(po_name):
+        if not await self._sync_until_linked(po_name, state):
             return DemoStepOutcome(
                 key="supplier_eta_reply",
                 status="waiting",
@@ -1049,9 +1265,21 @@ class DemoDirector:
         without_order = [
             p for p in products if not (p.get("late_po_names") or p.get("open_po_names"))
         ]
-        product = (without_order or products or [None])[0]
-        if product is None:
+        candidates = products[:15]
+        if not candidates:
             raise ScError("the risk radar lists no product; run the planner first")
+        # A comparison needs rivals: among the riskiest, the product most suppliers list;
+        # then one with nothing on order yet, then the higher risk.
+        listed = await self._world.supplier_counts([int(p["product_id"]) for p in candidates])
+        orderless = {int(p["product_id"]) for p in without_order}
+        product = max(
+            candidates,
+            key=lambda p: (
+                listed.get(int(p["product_id"]), 0),
+                int(p["product_id"]) in orderless,
+                float(p.get("p_stockout_30") or 0),
+            ),
+        )
         qty = float(product.get("suggested_qty") or 0) or 10.0
         label = str(product.get("product_name") or product.get("product") or product["product_id"])
         if product.get("product_ref"):
@@ -1144,26 +1372,68 @@ class DemoDirector:
             lines = await self._world.order_lines(po_name)
             if not lines:
                 raise ScError(f"{po_name} has no lines to quote")
-            rows = "\n".join(
-                f"- {line.product}: {line.qty:g} unidades a USD {line.price_unit * 1.12:.2f} "
-                "cada una"
-                for line in lines
-            )
             # What the list said before the quote: the buyer's target for the counter-offer
             # (once recorded, the quote itself becomes the supplier's list entry).
             state.records["quote_list_price"] = min(line.price_unit for line in lines)
-            text = (
-                "Estimados,\n\n"
-                f"Gracias por su solicitud {po_name}. Nuestra cotización:\n{rows}\n\n"
-                "Plazo de entrega: 20 días. Precios en USD, sin IGV. Validez: 15 días.\n\n"
-                "Saludos cordiales,\nVentas\nProveedor Hidraulica"
-            )
-            message_id = await mailbox.reply(
-                to=self._cfg.bot_email, subject=f"Re: [{po_name}] Cotización", text=text
-            )
-            state.records["quote_sent"] = message_id
+            quotes: dict[str, Any] = {
+                po_name: {
+                    "supplier": "Proveedor Hidraulica",
+                    "email": self._cfg.supplier_email,
+                    "lead_days": 20,
+                    "note": "",
+                    "lines": [
+                        {
+                            "product": line.product,
+                            "qty": line.qty,
+                            "price": round(line.price_unit * 1.12, 2),
+                        }
+                        for line in lines
+                    ],
+                }
+            }
+            # The rivals answer their own requests, each in character: one fast and dearer,
+            # one cheap and slow. Only requests that actually left are answered.
+            rivals = [n for n in state.records.get("rfq_names") or [] if n != po_name]
+            for rival_po in rivals:
+                if await self._world.outbound_count(rival_po) == 0:
+                    continue
+                name, email = await self._world.supplier_contact(rival_po)
+                factor, lead_days, note = rival_terms(name)
+                quotes[rival_po] = {
+                    "supplier": name,
+                    "email": email or self._cfg.supplier_email,
+                    "lead_days": lead_days,
+                    "note": note,
+                    "lines": [
+                        {
+                            "product": line.product,
+                            "qty": line.qty,
+                            "price": round(line.price_unit * factor, 2),
+                        }
+                        for line in await self._world.order_lines(rival_po)
+                    ],
+                }
+            for quoted_po, quote in quotes.items():
+                if not quote["lines"]:
+                    continue
+                await self._mark_inbound(state, quoted_po)
+                await mailbox.reply(
+                    to=self._cfg.bot_email,
+                    subject=f"Re: [{quoted_po}] Quotation",
+                    text=quote_text(
+                        quoted_po,
+                        quote["lines"],
+                        lead_days=quote["lead_days"],
+                        supplier=quote["supplier"],
+                        note=quote["note"],
+                    ),
+                    sender_name=quote["supplier"],
+                    sender_email=quote["email"],
+                )
+            state.records["quotes"] = quotes
+            state.records["quote_sent"] = True
             await self._store.save(state)
-        if not await self._sync_until_linked(po_name):
+        if not await self._sync_until_linked(po_name, state):
             return DemoStepOutcome(
                 key="supplier_quote",
                 status="waiting",
@@ -1174,6 +1444,13 @@ class DemoDirector:
         quote_ids = await self._wait_for_approvals(po_name, seen=seen, kinds={"po_change"})
         if quote_ids and approve:
             quote_ids = await self._approve_chain(po_name, quote_ids, actor=actor)
+        # the rivals' quotes are recorded the same way, each on its own request
+        for rival_po in [n for n in (state.records.get("quotes") or {}) if n != po_name]:
+            await self._sync_until_linked(rival_po, state)
+            rival_ids = await self._wait_for_approvals(rival_po, seen=seen, kinds={"po_change"})
+            if rival_ids and approve:
+                rival_ids = await self._approve_chain(rival_po, rival_ids, actor=actor)
+            quote_ids = quote_ids + rival_ids
         state.records["out_before_offer"] = await self._world.outbound_count(po_name)
         list_price = state.records.get("quote_list_price")
         task = SourcingTask(
@@ -1234,20 +1511,16 @@ class DemoDirector:
                     links=self._links(po_name, []),
                 )
             offered = await self._offered_price(state)
-            price_line = f" de USD {offered:.2f} por unidad" if offered else ""
-            text = (
-                "Estimados,\n\n"
-                f"Aceptamos su contrapropuesta{price_line} para la solicitud {po_name}. "
-                "Mantenemos el plazo de entrega de 20 días.\n\n"
-                "Quedamos atentos a la orden de compra.\n\nSaludos cordiales,\nVentas\n"
-                "Proveedor Hidraulica"
-            )
+            await self._mark_inbound(state, po_name)
             message_id = await mailbox.reply(
-                to=self._cfg.bot_email, subject=f"Re: [{po_name}] Cotización", text=text
+                to=self._cfg.bot_email,
+                subject=f"Re: [{po_name}] Quotation",
+                text=acceptance_text(po_name, offered),
             )
             state.records["acceptance_sent"] = message_id
+            state.records["accepted_price"] = offered
             await self._store.save(state)
-        if not await self._sync_until_linked(po_name):
+        if not await self._sync_until_linked(po_name, state):
             return DemoStepOutcome(
                 key="award",
                 status="waiting",

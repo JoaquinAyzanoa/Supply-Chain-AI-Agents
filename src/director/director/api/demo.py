@@ -19,7 +19,7 @@ from director.api.approvals import (
 )
 from director.api.auth import Approver, Principal, Viewer
 from director.autonomy import AutonomyChanges
-from director.demo import DemoActor, DemoDirector, DemoView
+from director.demo import DemoActor, DemoDirector, DemoView, SupplierEmail
 from director.learning import FeedbackRecorder
 from director.store import CaseStore
 from sc_core.schema.base import StrictModel
@@ -64,11 +64,23 @@ class NextRequest(StrictModel):
         default=False, description="decide the approvals this step raises, as the presenter"
     )
     step: str | None = Field(default=None, description="run this step instead of the next one")
+    leave: list[str] = Field(
+        default_factory=list,
+        description="approval kinds to leave pending even with approve, to decide them on screen",
+    )
 
 
 @router.get("", response_model=DemoView)
 async def read_demo(_: Principal = Viewer, demo: DemoDirector = Injected(DemoDirector)) -> DemoView:
     return await demo.view()
+
+
+@router.get("/emails", response_model=list[SupplierEmail])
+async def supplier_emails(
+    _: Principal = Viewer, demo: DemoDirector = Injected(DemoDirector)
+) -> list[SupplierEmail]:
+    """What the demo wrote for the suppliers in this run (rebuilt, never stored)."""
+    return await demo.supplier_emails()
 
 
 @router.post("/reset", response_model=DemoView)
@@ -91,8 +103,9 @@ async def next_step(
 ) -> DemoView:
     actor = DemoActor(name=principal.name, email=principal.email)
     try:
+        leave = frozenset(body.leave)
         if body.step:
-            return await demo.run(body.step, actor, approve=body.approve)
-        return await demo.next(actor, approve=body.approve)
+            return await demo.run(body.step, actor, approve=body.approve, leave=leave)
+        return await demo.next(actor, approve=body.approve, leave=leave)
     except ScError as exc:
         raise HTTPException(status_code=409, detail=exc.message) from exc

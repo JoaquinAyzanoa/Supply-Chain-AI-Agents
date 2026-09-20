@@ -86,9 +86,7 @@ async def ensure_products(
             "sale_ok": True,
             "uom_id": uom_id,
             "uom_po_id": uom_id,
-            "description_purchase": (
-                "Marca Sun Hydraulics. Indicar número de parte en la cotización."
-            ),
+            "description_purchase": ("Sun Hydraulics brand. Quote the part number."),
         }
         template_id = await client.find_or_create(
             "product.template", [["default_code", "=", p.code]], values, update=True

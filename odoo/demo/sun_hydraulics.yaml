@@ -16,7 +16,7 @@
 # one with a price variance).
 
 seed: 20260912
-language: es_PE
+language: en_US   # the demo runs in English end to end (emails follow the partner's language)
 
 company:
   name: Hidráulica Andina SAC
@@ -30,12 +30,12 @@ company:
 warehouse: WH
 
 categories:
-  - Hidráulica
-  - Hidráulica / Cartuchos
-  - Hidráulica / Cuerpos
-  - Hidráulica / Bobinas
-  - Hidráulica / Kits de sellos
-  - Hidráulica / Mangueras y conexiones
+  - Hydraulics
+  - Hydraulics / Cartridges
+  - Hydraulics / Bodies
+  - Hydraulics / Coils
+  - Hydraulics / Seal kits
+  - Hydraulics / Hoses and fittings
 
 # Seasonality: 12 monthly factors (Jan..Dec), mean 1.0. Mining maintenance
 # peaks in April-May and October-November; December and January are quiet.
@@ -53,21 +53,21 @@ suppliers:
     email: ventas.hidraulica.sc@gmail.com     # the demo mailbox the agents write to
     country: PE
     city: Lima
-    lang: es_PE
+    lang: en_US
     receipts: {on_time_share: 0.60, late_share: 0.30, partial_share: 0.10, late_days_max: 10}
   alternate:
     name: Hidráulica Alterna SAC
-    email: null            # no mailbox yet: no agent writes to it (phase 11 S4 decides)
+    email: ventas.hidraulica.sc+alterna@gmail.com      # an alias of the demo mailbox: the demo answers for it
     country: PE
     city: Arequipa
-    lang: es_PE
+    lang: en_US
     receipts: {on_time_share: 0.85, late_share: 0.10, partial_share: 0.05, late_days_max: 5}
   importer:
     name: Importadora del Sur SAC
-    email: null            # cheapest, slowest, minimum quantities; no mailbox
+    email: ventas.hidraulica.sc+importadora@gmail.com  # cheapest, slowest, minimum quantities; same demo mailbox
     country: PE
     city: Callao
-    lang: es_PE
+    lang: en_US
     receipts: {on_time_share: 0.35, late_share: 0.50, partial_share: 0.15, late_days_max: 25}
 
 customers:
@@ -97,8 +97,8 @@ rules:
 products:
   # --- Cartuchos (12) ------------------------------------------------------------
   - code: CBEA-LHN
-    name: "Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Counterbalance valve 3:1, standard setting, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 168.00
     cost_ratio: 0.62
     weight_kg: 0.35
@@ -109,8 +109,8 @@ products:
       alternate: {price_ratio: 0.68, delay: 18, min_qty: 1}
       importer: {price_ratio: 0.54, delay: 60, min_qty: 20}
   - code: CBCA-LHN
-    name: "Válvula de contrabalance 3:1, cavidad T-2A"
-    category: Hidráulica / Cartuchos
+    name: "Counterbalance valve 3:1, T-2A cavity"
+    category: Hydraulics / Cartridges
     list_price: 142.00
     cost_ratio: 0.62
     weight_kg: 0.25
@@ -120,8 +120,8 @@ products:
       primary: {price_ratio: 0.62, delay: 30, min_qty: 1}
       alternate: {price_ratio: 0.69, delay: 18, min_qty: 1}
   - code: CBGA-LHN
-    name: "Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
-    category: Hidráulica / Cartuchos
+    name: "Counterbalance valve 3:1, high flow, T-17A cavity"
+    category: Hydraulics / Cartridges
     list_price: 236.00
     cost_ratio: 0.63
     weight_kg: 0.70
@@ -130,8 +130,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.63, delay: 40, min_qty: 1}
   - code: RPEC-LAN
-    name: "Válvula de alivio de acción directa, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Direct-acting relief valve, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 121.00
     cost_ratio: 0.61
     weight_kg: 0.30
@@ -141,8 +141,8 @@ products:
       primary: {price_ratio: 0.61, delay: 30, min_qty: 1}
       alternate: {price_ratio: 0.66, delay: 15, min_qty: 1}
   - code: RDDA-LAN
-    name: "Válvula de alivio de acción directa, cavidad T-10A"
-    category: Hidráulica / Cartuchos
+    name: "Direct-acting relief valve, T-10A cavity"
+    category: Hydraulics / Cartridges
     list_price: 96.00
     cost_ratio: 0.60
     weight_kg: 0.20
@@ -152,8 +152,8 @@ products:
       primary: {price_ratio: 0.60, delay: 28, min_qty: 1}
       alternate: {price_ratio: 0.65, delay: 15, min_qty: 1}
   - code: NFCC-LCN
-    name: "Válvula de aguja, ajuste fino, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Needle valve, fine adjustment, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 88.00
     cost_ratio: 0.60
     weight_kg: 0.25
@@ -162,8 +162,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.60, delay: 28, min_qty: 1}
   - code: FXDA-XAN
-    name: "Control de caudal compensado por presión, cavidad T-2A"
-    category: Hidráulica / Cartuchos
+    name: "Pressure-compensated flow control, T-2A cavity"
+    category: Hydraulics / Cartridges
     list_price: 154.00
     cost_ratio: 0.62
     weight_kg: 0.25
@@ -173,8 +173,8 @@ products:
       primary: {price_ratio: 0.62, delay: 35, min_qty: 1}
       alternate: {price_ratio: 0.70, delay: 20, min_qty: 1}
   - code: CXDA-XCN
-    name: "Válvula check, cavidad T-10A"
-    category: Hidráulica / Cartuchos
+    name: "Check valve, T-10A cavity"
+    category: Hydraulics / Cartridges
     list_price: 47.00
     cost_ratio: 0.58
     weight_kg: 0.15
@@ -185,8 +185,8 @@ products:
       alternate: {price_ratio: 0.63, delay: 15, min_qty: 5}
       importer: {price_ratio: 0.50, delay: 60, min_qty: 50}
   - code: DTDA-MCN
-    name: "Válvula direccional solenoide 2 vías NC, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Solenoid directional valve, 2-way NC, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 189.00
     cost_ratio: 0.63
     weight_kg: 0.45
@@ -196,8 +196,8 @@ products:
       primary: {price_ratio: 0.63, delay: 35, min_qty: 1}
       alternate: {price_ratio: 0.69, delay: 20, min_qty: 1}
   - code: DMDA-MNN
-    name: "Válvula direccional solenoide 3 vías, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Solenoid directional valve, 3-way, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 214.00
     cost_ratio: 0.63
     weight_kg: 0.50
@@ -206,8 +206,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.63, delay: 35, min_qty: 1}
   - code: PBDB-LAN
-    name: "Válvula reductora/aliviadora de presión, cavidad T-2A"
-    category: Hidráulica / Cartuchos
+    name: "Pressure reducing/relieving valve, T-2A cavity"
+    category: Hydraulics / Cartridges
     list_price: 176.00
     cost_ratio: 0.62
     weight_kg: 0.30
@@ -216,8 +216,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.62, delay: 35, min_qty: 1}
   - code: LODC-XDN
-    name: "Elemento lógico 2 vías, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Logic element, 2-way, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 133.00
     cost_ratio: 0.61
     weight_kg: 0.30
@@ -228,8 +228,8 @@ products:
 
   # --- Cuerpos (6) ---------------------------------------------------------------
   - code: AAA-T11A
-    name: "Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
-    category: Hidráulica / Cuerpos
+    name: "Aluminium line body, T-11A cavity, 1/2\" BSPP ports"
+    category: Hydraulics / Bodies
     list_price: 39.00
     cost_ratio: 0.58
     weight_kg: 0.40
@@ -239,8 +239,8 @@ products:
       primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
       alternate: {price_ratio: 0.62, delay: 15, min_qty: 5}
   - code: AAB-T2A
-    name: "Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP"
-    category: Hidráulica / Cuerpos
+    name: "Aluminium line body, T-2A cavity, 3/8\" BSPP ports"
+    category: Hydraulics / Bodies
     list_price: 31.00
     cost_ratio: 0.58
     weight_kg: 0.30
@@ -250,8 +250,8 @@ products:
       primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
       importer: {price_ratio: 0.49, delay: 55, min_qty: 40}
   - code: AAJ-T10A
-    name: "Cuerpo de línea aluminio, cavidad T-10A, puertos 3/8\" BSPP"
-    category: Hidráulica / Cuerpos
+    name: "Aluminium line body, T-10A cavity, 3/8\" BSPP ports"
+    category: Hydraulics / Bodies
     list_price: 33.00
     cost_ratio: 0.58
     weight_kg: 0.30
@@ -260,8 +260,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
   - code: BAA-T11A
-    name: "Cuerpo de línea acero, cavidad T-11A, puertos 1/2\" SAE"
-    category: Hidráulica / Cuerpos
+    name: "Steel line body, T-11A cavity, 1/2\" SAE ports"
+    category: Hydraulics / Bodies
     list_price: 74.00
     cost_ratio: 0.60
     weight_kg: 1.10
@@ -271,8 +271,8 @@ products:
       primary: {price_ratio: 0.60, delay: 35, min_qty: 2}
       alternate: {price_ratio: 0.66, delay: 20, min_qty: 2}
   - code: GAB-T2A-3
-    name: "Manifold aluminio 3 estaciones, cavidad T-2A, serie"
-    category: Hidráulica / Cuerpos
+    name: "Aluminium manifold, 3 stations, T-2A cavity, series"
+    category: Hydraulics / Bodies
     list_price: 118.00
     cost_ratio: 0.60
     weight_kg: 1.40
@@ -281,8 +281,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.60, delay: 40, min_qty: 1}
   - code: ZKC-T11A-2
-    name: "Bloque sándwich 2 cavidades T-11A para válvula CETOP 3"
-    category: Hidráulica / Cuerpos
+    name: "Sandwich block, 2 T-11A cavities, for CETOP 3 valve"
+    category: Hydraulics / Bodies
     list_price: 96.00
     cost_ratio: 0.60
     weight_kg: 1.20
@@ -293,8 +293,8 @@ products:
 
   # --- Bobinas (4) ---------------------------------------------------------------
   - code: 770-212
-    name: "Bobina 12 VDC para válvulas solenoide serie DT"
-    category: Hidráulica / Bobinas
+    name: "Coil 12 VDC for DT series solenoid valves"
+    category: Hydraulics / Coils
     list_price: 58.00
     cost_ratio: 0.60
     weight_kg: 0.30
@@ -304,8 +304,8 @@ products:
       primary: {price_ratio: 0.60, delay: 25, min_qty: 2}
       alternate: {price_ratio: 0.64, delay: 15, min_qty: 2}
   - code: 770-224
-    name: "Bobina 24 VDC para válvulas solenoide serie DT"
-    category: Hidráulica / Bobinas
+    name: "Coil 24 VDC for DT series solenoid valves"
+    category: Hydraulics / Coils
     list_price: 58.00
     cost_ratio: 0.60
     weight_kg: 0.30
@@ -316,8 +316,8 @@ products:
       alternate: {price_ratio: 0.64, delay: 15, min_qty: 2}
       importer: {price_ratio: 0.51, delay: 55, min_qty: 20}
   - code: 770-224-D
-    name: "Bobina 24 VDC conector Deutsch DT04-2P, serie DT"
-    category: Hidráulica / Bobinas
+    name: "Coil 24 VDC, Deutsch DT04-2P connector, DT series"
+    category: Hydraulics / Coils
     list_price: 66.00
     cost_ratio: 0.60
     weight_kg: 0.30
@@ -326,8 +326,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.60, delay: 25, min_qty: 2}
   - code: 770-110
-    name: "Bobina 110 VAC para válvulas solenoide serie DT"
-    category: Hidráulica / Bobinas
+    name: "Coil 110 VAC for DT series solenoid valves"
+    category: Hydraulics / Coils
     list_price: 62.00
     cost_ratio: 0.60
     weight_kg: 0.32
@@ -338,8 +338,8 @@ products:
 
   # --- Kits de sellos (4) --------------------------------------------------------
   - code: 990-011-007
-    name: "Kit de sellos Buna-N para cavidad T-11A"
-    category: Hidráulica / Kits de sellos
+    name: "Buna-N seal kit for T-11A cavity"
+    category: Hydraulics / Seal kits
     list_price: 9.50
     cost_ratio: 0.55
     weight_kg: 0.02
@@ -349,8 +349,8 @@ products:
       primary: {price_ratio: 0.55, delay: 25, min_qty: 5}
       importer: {price_ratio: 0.42, delay: 50, min_qty: 100}
   - code: 990-002-007
-    name: "Kit de sellos Buna-N para cavidad T-2A"
-    category: Hidráulica / Kits de sellos
+    name: "Buna-N seal kit for T-2A cavity"
+    category: Hydraulics / Seal kits
     list_price: 8.90
     cost_ratio: 0.55
     weight_kg: 0.02
@@ -360,8 +360,8 @@ products:
       primary: {price_ratio: 0.55, delay: 25, min_qty: 5}
       importer: {price_ratio: 0.42, delay: 50, min_qty: 100}
   - code: 990-011-008
-    name: "Kit de sellos Viton para cavidad T-11A"
-    category: Hidráulica / Kits de sellos
+    name: "Viton seal kit for T-11A cavity"
+    category: Hydraulics / Seal kits
     list_price: 14.80
     cost_ratio: 0.56
     weight_kg: 0.02
@@ -370,8 +370,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.56, delay: 25, min_qty: 5}
   - code: 990-017-007
-    name: "Kit de sellos Buna-N para cavidad T-17A"
-    category: Hidráulica / Kits de sellos
+    name: "Buna-N seal kit for T-17A cavity"
+    category: Hydraulics / Seal kits
     list_price: 12.40
     cost_ratio: 0.55
     weight_kg: 0.03
@@ -382,8 +382,8 @@ products:
 
   # --- Mangueras y conexiones (4) ------------------------------------------------
   - code: MH-R2-12
-    name: "Manguera hidráulica SAE 100 R2 1/2\", por metro"
-    category: Hidráulica / Mangueras y conexiones
+    name: "Hydraulic hose SAE 100 R2 1/2\", per metre"
+    category: Hydraulics / Hoses and fittings
     list_price: 11.20
     cost_ratio: 0.58
     weight_kg: 0.65
@@ -393,8 +393,8 @@ products:
       primary: {price_ratio: 0.58, delay: 20, min_qty: 50}
       importer: {price_ratio: 0.44, delay: 45, min_qty: 500}
   - code: MH-R2-08
-    name: "Manguera hidráulica SAE 100 R2 1/4\", por metro"
-    category: Hidráulica / Mangueras y conexiones
+    name: "Hydraulic hose SAE 100 R2 1/4\", per metre"
+    category: Hydraulics / Hoses and fittings
     list_price: 7.80
     cost_ratio: 0.58
     weight_kg: 0.35
@@ -403,8 +403,8 @@ products:
     suppliers:
       primary: {price_ratio: 0.58, delay: 20, min_qty: 50}
   - code: CON-JIC-08
-    name: "Conector prensado JIC 37° 1/2\" recto para R2"
-    category: Hidráulica / Mangueras y conexiones
+    name: "Crimped fitting JIC 37° 1/2\" straight, for R2"
+    category: Hydraulics / Hoses and fittings
     list_price: 4.60
     cost_ratio: 0.55
     weight_kg: 0.08
@@ -414,8 +414,8 @@ products:
       primary: {price_ratio: 0.55, delay: 20, min_qty: 100}
       importer: {price_ratio: 0.40, delay: 45, min_qty: 1000}
   - code: ADP-BSPP-12
-    name: "Adaptador BSPP 1/2\" macho a JIC 1/2\" macho"
-    category: Hidráulica / Mangueras y conexiones
+    name: "Adapter BSPP 1/2\" male to JIC 1/2\" male"
+    category: Hydraulics / Hoses and fittings
     list_price: 5.90
     cost_ratio: 0.55
     weight_kg: 0.09

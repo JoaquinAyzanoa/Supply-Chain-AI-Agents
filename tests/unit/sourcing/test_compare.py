@@ -152,3 +152,23 @@ def test_first_time_and_list_price_are_said_in_words() -> None:
         and "first order with this supplier" in quote.reasons
     )
     assert quote.lines[0].landed_unit == 95.256 and quote.total == 952.56
+
+
+def test_the_default_award_per_line_follows_the_recommendation_not_the_cheapest() -> None:
+    """Approving without choosing must give the line to the recommended supplier; the
+    cheapest, slow and unreliable one is named so the buyer can still pick it."""
+    result = compare(
+        round_id=1,
+        basket=[VALVE],
+        offers=[
+            offer(8, "Proven", {1: 104.16}, lead=25, score=75),
+            offer(10, "Cheap and slow", {1: 85.00}, lead=55, score=45),
+        ],
+        weights=Weights(),
+        freight_pct=5.0,
+    )
+    assert result.recommended_partner_id == 8
+    [award] = result.line_awards
+    assert award.partner_id == 8
+    assert award.reasons[0].startswith("best on price, lead time and score")
+    assert award.reasons[1] == "cheapest is Cheap and slow at 89.25"

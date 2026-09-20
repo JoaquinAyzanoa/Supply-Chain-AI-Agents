@@ -74,13 +74,41 @@ def cmd_check(settings: Settings) -> int:
     return asyncio.run(run())
 
 
+def cmd_clear_inbox(settings: Settings) -> int:
+    """Empty the inbox (messages go to Deleted Items).
+
+    After the application database is reset the first sync reads the whole inbox again,
+    and order numbers restart: an old ``[P00077]`` reply would be linked to the new P00077.
+    A fresh stack starts from an empty inbox.
+    """
+    from sc_core.mail.graph import GraphMailClient
+
+    async def run() -> int:
+        removed = 0
+        async with GraphMailClient(_provider(settings)) as graph:
+            page = await graph.inbox_delta(None, page_size=50)  # follows every page
+            for msg in page.messages:
+                await graph.delete_message(msg.id)
+                removed += 1
+        print(f"inbox cleared: {removed} message(s) moved to Deleted Items")
+        return 0
+
+    return asyncio.run(run())
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Microsoft Graph mail session")
-    parser.add_argument("command", choices=["login", "whoami", "logout", "check"])
+    parser.add_argument("command", choices=["login", "whoami", "logout", "check", "clear-inbox"])
     args = parser.parse_args(argv)
     settings = get_settings()
     configure_logging(settings)
-    commands = {"login": cmd_login, "whoami": cmd_whoami, "logout": cmd_logout, "check": cmd_check}
+    commands = {
+        "login": cmd_login,
+        "whoami": cmd_whoami,
+        "logout": cmd_logout,
+        "check": cmd_check,
+        "clear-inbox": cmd_clear_inbox,
+    }
     return commands[args.command](settings)
 
 

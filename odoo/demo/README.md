@@ -10,17 +10,19 @@ nothing else is there (`just odoo-check`) and recreates the agents. Running
 
 What it creates:
 
-- The company (renamed, Spanish `es_PE` installed), one warehouse (`WH`).
-- 30 products in five categories under `Hidráulica / …`: 12 cartridges
+- The company (renamed), one warehouse (`WH`). The dataset is in English (`language: en_US`)
+  and so are the suppliers, so every email the agents write is in English.
+- 30 products in five categories under `Hydraulics / …`: 12 cartridges
   (counterbalance, relief, needle, flow control, check, directional,
   reducing, logic), 6 bodies and manifolds, 4 coils, 4 seal kits, 4 hoses
   and fittings. Part numbers follow Sun's model-code scheme; prices are
   plausible list prices, not quotes.
 - Three suppliers with `product.supplierinfo` terms and different delivery
   behaviour: **Proveedor Hidraulica** (the demo mailbox the agents write to,
-  every product, 60 % on time), **Hidráulica Alterna SAC** (no email, faster
-  and dearer, 85 % on time) and **Importadora del Sur SAC** (no email,
-  cheapest, minimum quantities, 60 days and often late).
+  every product, 60 % on time), **Hidráulica Alterna SAC** (faster and dearer,
+  85 % on time) and **Importadora del Sur SAC** (cheapest, minimum quantities,
+  60 days and often late). The last two use `+alias` addresses of the demo
+  mailbox, so their requests arrive there and the demo can answer for them.
 - Four customers with demand weights.
 - 24 months of demand as delivered sales orders from per-product profiles:
   stable, trending, seasonal (`campaign` peaks before the April and October
