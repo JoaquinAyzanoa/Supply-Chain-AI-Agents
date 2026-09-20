@@ -8,10 +8,9 @@ buy, run quote rounds and negotiate, reconcile receipts, match invoices and scor
 suppliers. A **Director agent** coordinates six specialists, and a web app (the Control
 Tower) is where people see everything and approve what matters.
 
-<!-- Demo video: drag demo-video/demo.mp4 into this file in GitHub's web editor (it uploads
-     the file and inserts a player), or paste the link to the published video here. -->
+**▶ Watch one full day, narrated:** [English (6:44)](video-demo/demo-en.mp4) · [Español (8:00)](video-demo/demo-es.mp4)
 
-![The orders board: every purchase order in Odoo is a card](docs/img/board.jpg)
+[![The orders board: every purchase order in Odoo is a card](docs/img/board.jpg)](video-demo/demo-en.mp4)
 
 ## What makes it different
 
@@ -66,7 +65,8 @@ supplier's replies are real emails; the warehouse and accounting act in Odoo.
 | Odoo stays the system of record; agents work through a bot user with limited rights | |
 
 `just demo-auto` runs the whole day unattended in about four minutes; `just demo-video`
-films it as a narrated, captioned video (English or Spanish).
+films it as a narrated, captioned video (English or Spanish); the two published takes are in
+[`video-demo/`](video-demo/).
 
 ## Architecture
 
@@ -197,14 +197,6 @@ Conventions: conventional commits; every service is built with
 are validated at start-up (`SC__SECTION__FIELD`, see `.env.example`); logs redact secrets and
 never contain email bodies; everything internal is English, and what people read follows
 `SC__AGENTS__LANGUAGE` (`en` or `es`) while emails follow the supplier's language in Odoo.
-
-## Status
-
-This is a working system on a local stack, exercised end to end with real email and a real
-Odoo. Production hardening (application permissions on a shared company mailbox, secrets
-management, deployment) is deliberately out of scope so far. Interested in applying it to
-your operation? Open an issue, or reach me through
-[my GitHub profile](https://github.com/JoaquinAyzanoa).
 
 ## License
 
