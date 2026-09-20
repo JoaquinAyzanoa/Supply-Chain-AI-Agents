@@ -15,9 +15,9 @@ from sc_core.infra.db import Database
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
 from sourcing import __version__
-from sourcing.handler import SourcingHandler, agent_spec
-from sourcing.routers import approvals, rounds
-from sourcing.service import AgentProvider, module_list
+from sourcing.api.handler import SourcingHandler, agent_spec
+from sourcing.api.routers import approvals, rounds
+from sourcing.infra.service import AgentProvider, module_list
 
 settings = Settings(service_name="sourcing")
 

@@ -17,7 +17,7 @@ from director.api import api_router
 from director.api.auth import hash_password
 from director.api.planning import PlanningLineRow, PlanningRunRow
 from director.api.stream import stream
-from director.policies import PoFacts
+from director.orchestration.policies import PoFacts
 from director.testing import MemoryDirectorModule
 from sc_core.a2a import AgentReply
 from sc_core.a2a.testing import FakeAgentCaller

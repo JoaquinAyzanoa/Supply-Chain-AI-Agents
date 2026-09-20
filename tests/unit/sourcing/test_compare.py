@@ -5,8 +5,8 @@ from __future__ import annotations
 import pytest
 
 from sc_core.schema.a2a import QuoteLine
-from sourcing.compare import Offer, Weights, compare, landed
-from sourcing.models import BasketLine
+from sourcing.domain.compare import Offer, Weights, compare, landed
+from sourcing.domain.models import BasketLine
 
 VALVE = BasketLine(product_id=1, product="[CBEA-LHN] Válvula", qty=10, last_paid=100.0)
 HOSE = BasketLine(product_id=2, product="[MANG-12] Manguera", qty=5, last_paid=20.0)

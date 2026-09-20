@@ -13,8 +13,8 @@ from loguru import logger
 from pydantic import SecretStr
 
 from inventory_planning import __version__
-from inventory_planning.graph import Deps
-from inventory_planning.routers import demand
+from inventory_planning.api.routers import demand
+from inventory_planning.graph.builder import Deps
 from inventory_planning.testing import FakeDataPorts, FakeWritePorts, demo_ports
 from sc_core.app import create_application
 from sc_core.graph import ApprovalGateway
@@ -28,8 +28,8 @@ AS_OF = date(2026, 9, 14)
 
 class DepsModule(Module):
     def __init__(self, data: FakeDataPorts) -> None:
-        from inventory_planning.policy import MemoryParamsStore
-        from inventory_planning.runs import MemoryRunStore
+        from inventory_planning.domain.policy import MemoryParamsStore
+        from inventory_planning.infra.runs import MemoryRunStore
 
         self.deps = Deps(
             data=data,

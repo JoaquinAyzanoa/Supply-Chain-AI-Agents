@@ -6,7 +6,7 @@ from loguru import logger
 
 def test_director_app_serves_system_routes_and_wires_the_orchestrator() -> None:
     from director.main import app, settings
-    from director.workflow import Orchestrator
+    from director.orchestration.workflow import Orchestrator
 
     assert settings.service_name == "director"
     with TestClient(app) as c:

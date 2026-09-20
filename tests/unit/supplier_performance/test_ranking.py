@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 from sc_core.schema.a2a import SupplierScore
-from supplier_performance.ranking import rank_suppliers
+from supplier_performance.domain.ranking import rank_suppliers
 from supplier_performance.testing import price_entry
 
 

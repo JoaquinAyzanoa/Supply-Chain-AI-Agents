@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from mail_sync.linker import Linker, referenced_message_ids
+from mail_sync.domain.linker import Linker, referenced_message_ids
 from sc_core.mail.models import EmailAddress, InboundMessage
 
 from .fakes import FakePorts

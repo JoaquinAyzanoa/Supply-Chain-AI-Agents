@@ -9,8 +9,8 @@ from sc_core.llm.testing import ScriptedChatClient
 from sc_core.mail.models import Attachment
 from sc_core.mail.tables import TableData, read_tables
 from sc_core.schema.a2a import QuotationData, SupplierCommsTask
-from supplier_comms.models import InboundMeta
-from supplier_comms.pricelists import build_diff, find_header, parse_number, parse_price_list
+from supplier_comms.domain.models import InboundMeta
+from supplier_comms.domain.pricelists import build_diff, find_header, parse_number, parse_price_list
 from supplier_comms.testing import FakePorts
 from tests.unit.graph.toy import FakeApprovalPorts
 

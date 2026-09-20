@@ -7,11 +7,8 @@ from math import sqrt
 
 import pytest
 
-from inventory_planning.forecasting import ForecastResult
-from inventory_planning.nodes.compute_policy import compute_line, compute_lines
-from inventory_planning.nodes.forecast import daily_rate, forecast_all
-from inventory_planning.nodes.load_data import load_dataset
-from inventory_planning.policy import (
+from inventory_planning.domain.forecasting import ForecastResult
+from inventory_planning.domain.policy import (
     MemoryParamsStore,
     ParamsStore,
     ProductParams,
@@ -23,7 +20,10 @@ from inventory_planning.policy import (
     safety_stock,
     z_for,
 )
-from inventory_planning.policy.params import resolve_params
+from inventory_planning.domain.policy.params import resolve_params
+from inventory_planning.graph.nodes.compute_policy import compute_line, compute_lines
+from inventory_planning.graph.nodes.forecast import daily_rate, forecast_all
+from inventory_planning.graph.nodes.load_data import load_dataset
 from inventory_planning.testing import demo_ports
 
 AS_OF = date(2026, 9, 14)
@@ -179,7 +179,7 @@ async def test_product_without_supplier_has_no_order() -> None:
 
 
 def test_runtime_planning_defaults_replace_class_defaults_but_not_tuned_params() -> None:
-    from inventory_planning.nodes.propose import _runtime_defaults
+    from inventory_planning.graph.nodes.propose import _runtime_defaults
     from sc_core.schema.runtime_settings import RuntimeSettings
 
     untouched = ProductParams.default_for(1, "A")

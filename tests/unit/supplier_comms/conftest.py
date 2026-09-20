@@ -10,8 +10,8 @@ import pytest
 from sc_core.graph import ApprovalGateway, memory_checkpointer
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.testing import ScriptedChatClient
-from supplier_comms.agent import SupplierCommsAgent
-from supplier_comms.graph import Deps, build_graph
+from supplier_comms.graph.builder import Deps, build_graph
+from supplier_comms.graph.runner import SupplierCommsAgent
 from supplier_comms.testing import FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
 

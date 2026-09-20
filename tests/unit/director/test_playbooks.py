@@ -8,12 +8,12 @@ from typing import Any
 
 import pytest
 
-from director.agents import AgentProxy, Agents
-from director.escalation import MemoryEscalator
+from director.orchestration.agents import AgentProxy, Agents
+from director.orchestration.escalation import MemoryEscalator
+from director.orchestration.policies import PoFacts
+from director.orchestration.store import MemoryCaseStore
 from director.playbooks import MemoryPlaybookStore, PlaybookEngine, load_playbooks
 from director.playbooks.model import Playbook
-from director.policies import PoFacts
-from director.store import MemoryCaseStore
 from sc_core.a2a import AgentReply
 from sc_core.a2a.testing import FakeAgentCaller
 

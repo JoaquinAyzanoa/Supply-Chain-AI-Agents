@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from inventory_planning.forecasting import (
+from inventory_planning.domain.forecasting import (
     METHODS,
     croston,
     holt,
@@ -15,7 +15,7 @@ from inventory_planning.forecasting import (
     select_forecast,
     ses,
 )
-from inventory_planning.forecasting.backtest import backtest
+from inventory_planning.domain.forecasting.backtest import backtest
 
 FIXTURE = Path("tests") / "fixtures" / "planning" / "series.json"
 SERIES: dict[str, list[float]] = json.loads(FIXTURE.read_text(encoding="utf-8"))

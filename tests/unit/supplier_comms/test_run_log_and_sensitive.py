@@ -8,7 +8,7 @@ from typing import Any
 from sc_core.graph import SENSITIVE_KEYS, cleared
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
 from sc_core.schema.a2a import Classification, QuotationData, SupplierCommsTask
-from supplier_comms.models import DraftOutput, InboundMeta
+from supplier_comms.domain.models import DraftOutput, InboundMeta
 from supplier_comms.testing import FakePorts
 
 MSG = "AAMk-x"

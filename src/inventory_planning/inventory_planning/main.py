@@ -12,9 +12,9 @@ from fastapi import FastAPI
 from loguru import logger
 
 from inventory_planning import __version__
-from inventory_planning.handler import InventoryPlanningHandler, agent_spec
-from inventory_planning.routers import approvals, demand, risk
-from inventory_planning.service import AgentProvider, module_list
+from inventory_planning.api.handler import InventoryPlanningHandler, agent_spec
+from inventory_planning.api.routers import approvals, demand, risk
+from inventory_planning.infra.service import AgentProvider, module_list
 from sc_core.a2a import mount
 from sc_core.app import create_application
 from sc_core.infra.db import Database

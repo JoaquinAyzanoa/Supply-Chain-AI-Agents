@@ -8,7 +8,7 @@ from sc_core.graph import cleared
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import Classification, SupplierCommsTask
 from sc_core.schema.autonomy import AutonomyPolicy, AutonomyRule, RuleConditions
-from supplier_comms.models import AnswerOutput
+from supplier_comms.domain.models import AnswerOutput
 from supplier_comms.testing import FakePorts
 from tests.unit.graph.toy import FakeApprovalPorts
 

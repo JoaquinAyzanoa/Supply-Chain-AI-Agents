@@ -6,8 +6,8 @@ from typing import Any
 
 import pytest
 
-from inventory_planning.nodes.explain import Explanation
-from inventory_planning.runs import MemoryRunStore
+from inventory_planning.graph.nodes.explain import Explanation
+from inventory_planning.infra.runs import MemoryRunStore
 from inventory_planning.testing import FakePublisher, FakeWritePorts
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import InventoryPlanningTask

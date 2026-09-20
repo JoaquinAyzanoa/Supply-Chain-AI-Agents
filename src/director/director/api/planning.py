@@ -20,9 +20,9 @@ from fastapi_injector import Injected
 from loguru import logger
 from pydantic import Field, ValidationError
 
-from director.agents import Agents
 from director.api.auth import Approver, Principal, Viewer
 from director.api.performance import PerformanceSource
+from director.orchestration.agents import Agents
 from sc_core.infra.db import Database
 from sc_core.schema.a2a import (
     InventoryPlanningResult,

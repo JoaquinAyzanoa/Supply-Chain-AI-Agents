@@ -18,10 +18,10 @@ from sc_core.infra.settings import Settings
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import SourcingTask
 from sc_core.schema.events import BaseEvent
-from sourcing.agent import SourcingAgent
-from sourcing.nodes.negotiate import JustificationText
-from sourcing.routers import approvals
-from sourcing.service import AgentProvider
+from sourcing.api.routers import approvals
+from sourcing.graph.nodes.negotiate import JustificationText
+from sourcing.graph.runner import SourcingAgent
+from sourcing.infra.service import AgentProvider
 from sourcing.testing import FakeSourcingPorts, supplier_reply
 
 from .test_graph import _rfq

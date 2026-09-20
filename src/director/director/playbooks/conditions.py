@@ -11,7 +11,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from director.policies import PoFacts
+from director.orchestration.policies import PoFacts
 
 Condition = Callable[[PoFacts, date], bool]
 

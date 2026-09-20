@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from datetime import date
 
-from director.demo import OdooDemoWorld
+from director.desk.demo import OdooDemoWorld
 from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import (
     AccountMoveRepo,

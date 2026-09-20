@@ -10,7 +10,7 @@ from loguru import logger
 from pydantic import Field
 
 from director.api.auth import Approver, Principal, Viewer
-from director.briefing import Briefing, BriefingJob, BriefingStore
+from director.desk.briefing import Briefing, BriefingJob, BriefingStore
 from sc_core.schema.base import StrictModel
 
 router = APIRouter(prefix="/briefing", tags=["briefing"])

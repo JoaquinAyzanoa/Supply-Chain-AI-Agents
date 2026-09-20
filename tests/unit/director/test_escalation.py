@@ -8,8 +8,8 @@ from typing import Any
 
 import pytest
 
-from director.escalation import EscalationPorts, OdooEscalator
-from director.store import Case, MemoryCaseStore
+from director.orchestration.escalation import EscalationPorts, OdooEscalator
+from director.orchestration.store import Case, MemoryCaseStore
 from sc_core.infra.settings import LangfuseCfg, Settings, reset_settings_cache
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.shared.errors import ExternalServiceError

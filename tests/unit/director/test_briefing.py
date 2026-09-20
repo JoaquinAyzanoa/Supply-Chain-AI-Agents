@@ -13,9 +13,9 @@ from pydantic import SecretStr
 from director import __version__
 from director.api import api_router
 from director.api.auth import hash_password
-from director.autonomy import AutoAction
-from director.briefing import Paragraph, facts_text
-from director.policies import PoFacts
+from director.desk.autonomy import AutoAction
+from director.desk.briefing import Paragraph, facts_text
+from director.orchestration.policies import PoFacts
 from director.testing import MemoryDirectorModule
 from sc_core.app import create_application
 from sc_core.infra.settings import Settings
@@ -264,7 +264,7 @@ async def test_the_briefing_is_emailed_with_links_back_and_never_a_body(
 
 
 def test_facts_text_lists_every_section_with_its_count() -> None:
-    from director.briefing import Briefing, BriefingItem, BriefingSection
+    from director.desk.briefing import Briefing, BriefingItem, BriefingSection
 
     briefing = Briefing(
         day=TODAY,

@@ -9,10 +9,10 @@ from typing import Any
 from sc_core.graph import cleared
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import SourcingTask
-from sourcing.nodes.common import Limits
-from sourcing.nodes.compare import RecommendationText
-from sourcing.nodes.negotiate import JustificationText
-from sourcing.store import is_due
+from sourcing.graph.nodes.common import Limits
+from sourcing.graph.nodes.compare import RecommendationText
+from sourcing.graph.nodes.negotiate import JustificationText
+from sourcing.infra.store import is_due
 from sourcing.testing import (
     ALTERNA,
     HIDRAULICA,
@@ -387,7 +387,7 @@ async def test_a_broken_supplier_agent_marks_the_invitation_failed(
 
 async def _rfq(ports: FakeSourcingPorts, po_id: int) -> Any:
     from sc_core.schema.a2a import QuoteLine
-    from sourcing.models import RfqSnapshot
+    from sourcing.domain.models import RfqSnapshot
 
     order = next(o for o in ports.orders.values() if o.po_id == po_id)
     basket = ports.baskets[order.po_name]

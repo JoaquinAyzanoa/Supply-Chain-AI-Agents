@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from director.policies import FollowUpPolicy
+from director.orchestration.policies import FollowUpPolicy
 from sc_core.infra.runtime_settings import MemoryRuntimeSettingsReader, RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.schema.runtime_settings import RuntimeSettings

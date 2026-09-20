@@ -6,9 +6,9 @@ import json
 from typing import Any
 
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
-from supplier_comms.agent import SupplierCommsAgent
-from supplier_comms.handler import SKILLS, SupplierCommsHandler, agent_spec
-from supplier_comms.models import DraftOutput
+from supplier_comms.api.handler import SKILLS, SupplierCommsHandler, agent_spec
+from supplier_comms.domain.models import DraftOutput
+from supplier_comms.graph.runner import SupplierCommsAgent
 from supplier_comms.testing import FakePorts
 
 

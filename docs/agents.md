@@ -162,12 +162,12 @@ model only explains.
   locations, confirmed purchase lines still to receive, supplier terms
   (delay, MOQ, price) and the current reorder rules. `SC__PLANNING__PRODUCT_CATEGORY`
   limits the run to one category subtree (the demo uses `Hidráulica`).
-- **Forecast** (`forecasting/`, plain Python): weekly buckets, moving
+- **Forecast** (`domain/forecasting/`, plain Python): weekly buckets, moving
   average, simple and Holt exponential smoothing and Croston; a
   rolling-origin backtest picks the method with the lowest WAPE, ties go
   to the simpler one, intermittent series go to Croston, short series get
   a moving average without an error estimate.
-- **Policy** (`policy/formulas.py`): `SS = z·sqrt(LT·σd² + d²·σLT²)`,
+- **Policy** (`domain/policy/formulas.py`): `SS = z·sqrt(LT·σd² + d²·σLT²)`,
   `ROP = d·LT + SS`, order-up-to `d·(LT + R) + SS`, order quantity raised
   to the MOQ; parameters per product in `planning_params` with defaults by
   ABC class (revenue share). Every stored line keeps its inputs, so any
@@ -201,7 +201,7 @@ sourcing agent does the rest. Four tasks: `quote_round`, `compare_quotes`,
   out through the supplier agent, so they follow the same approvals and
   autonomy rules as every other email. A round closes when every supplier
   answered or after `sourcing_deadline_days` (runtime setting, default 5).
-- **Comparison** (`compare.py`, no model): landed unit cost (quote plus the
+- **Comparison** (`domain/compare.py`, no model): landed unit cost (quote plus the
   freight estimate, `sourcing_freight_pct`), lead time from the quote, and the
   supplier's measured score. Each is normalised and weighed
   (`SC__SOURCING__WEIGHT_PRICE` 0.6, `WEIGHT_LEAD_TIME` 0.2, `WEIGHT_SCORE`
@@ -212,7 +212,7 @@ sourcing agent does the rest. Four tasks: `quote_round`, `compare_quotes`,
 - **Award**: always a person's decision (`award` is in the never-automated
   kinds). All lines to one supplier or line by line; the winner's RFQ is
   confirmed in Odoo, the others get a courteous decline and are cancelled.
-- **Counter-offers** (`negotiation.py`, no model): the target is the lowest of
+- **Counter-offers** (`domain/negotiation.py`, no model): the target is the lowest of
   the buyer's target, the last paid price and the best competing quote; the
   offer never goes below the floor (`negotiation_cap_pct`, default 10%) and
   stops after `negotiation_max_rounds` (default 2). Always approved by a
@@ -231,12 +231,12 @@ email from Graph and send a draft) and has its own graph, task and result.
 - **Shipping notices**: when the supplier agent classifies an email as
   `shipping_notice`, the director sends `track_shipment` on the same case.
   The model extracts carrier, tracking number, dispatch and arrival dates
-  (`prompts/extract_shipment.md`); a carrier adapter (`carriers/`, a fake
+  (`prompts/extract_shipment.md`); a carrier adapter (`infra/carriers/`, a fake
   for now) may refine the arrival; the proposal is a `po_change` approval
   with source `tracking`. Approved: the accepted lines, every open receipt
   and the order's ETA fields get the date, and the chatter shows the facts.
 - **Receipts**: a validated receipt (`odoo.receipt_validated`) becomes
-  `reconcile_receipt`. The comparison is arithmetic (`reconcile.py`): counted
+  `reconcile_receipt`. The comparison is arithmetic (`domain/reconcile.py`): counted
   against expected per line, `short` or `over` beyond
   `SC__LOGISTICS__RECEIPT_TOLERANCE_PCT` (default 0, exact), extra move lines
   are `over`. A match leaves a note; a discrepancy becomes an email the model
@@ -260,7 +260,7 @@ received, and never posts an accounting entry.
   copies the numbers as printed; a structured XML e-invoice would skip the
   model through the `parse_xml` hook), or a vendor bill a person typed in
   Odoo (`odoo.bill_created`, already structured, no model call).
-- **Matching** (`matching.py`, no model): the order comes from the task, the
+- **Matching** (`domain/matching.py`, no model): the order comes from the task, the
   invoice's reference, the email text, or the supplier's open orders by
   total (one match, or the case is escalated). Lines map by the product
   code in Odoo's product name, then by description similarity; each line is
@@ -282,7 +282,7 @@ received, and never posts an accounting entry.
 `supplier_performance`, through the director) over the last
 `SC__SUPPLIER_PERFORMANCE__MONTHS` (12) of history per active supplier.
 
-- **Metrics in code** (`metrics.py`): OTIF against the first promise (the
+- **Metrics in code** (`domain/metrics.py`): OTIF against the first promise (the
   confirmation snapshot on the case, else the line's planned date), observed
   lead time (confirmed to received, mean and std, 5% trimmed), promise drift,
   median reply time from the order's emails, receipt problems (the logistics

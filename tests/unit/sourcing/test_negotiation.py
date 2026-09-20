@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from sc_core.shared.errors import ValidationFailed
-from sourcing.negotiation import check_edited_offer, floor_for, plan_offer
+from sourcing.domain.negotiation import check_edited_offer, floor_for, plan_offer
 
 
 def test_target_from_last_paid_within_the_cap() -> None:

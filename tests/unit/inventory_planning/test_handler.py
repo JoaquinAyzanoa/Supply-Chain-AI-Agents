@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from inventory_planning.agent import InventoryPlanningAgent
-from inventory_planning.handler import SKILLS, InventoryPlanningHandler, agent_spec
-from inventory_planning.nodes.explain import Explanation
+from inventory_planning.api.handler import SKILLS, InventoryPlanningHandler, agent_spec
+from inventory_planning.graph.nodes.explain import Explanation
+from inventory_planning.graph.runner import InventoryPlanningAgent
 from sc_core.llm.testing import ScriptedChatClient
 
 

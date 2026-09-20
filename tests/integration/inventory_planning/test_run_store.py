@@ -6,7 +6,7 @@ from datetime import date
 
 import pytest
 
-from inventory_planning.runs import PostgresRunStore
+from inventory_planning.infra.runs import PostgresRunStore
 from sc_core.infra.db import Database
 from sc_core.schema.planning import ReplenishmentLine, ReplenishmentProposal
 

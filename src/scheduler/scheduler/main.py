@@ -21,9 +21,9 @@ from sc_core.infra.module import DbModule
 from sc_core.infra.settings import Settings
 from sc_core.schema.base import StrictModel
 from scheduler import __version__
-from scheduler.jobs import job_table
-from scheduler.runner import JobRunner
-from scheduler.runs import PostgresRunStore, RunRecord, RunStore
+from scheduler.domain.jobs import job_table
+from scheduler.infra.runner import JobRunner
+from scheduler.infra.runs import PostgresRunStore, RunRecord, RunStore
 
 settings = Settings(service_name="scheduler")
 

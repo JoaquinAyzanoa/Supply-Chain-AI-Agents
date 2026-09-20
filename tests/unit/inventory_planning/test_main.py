@@ -16,7 +16,7 @@ def test_inventory_planning_app_serves_system_routes() -> None:
 
 
 def test_callback_accepts_nested_and_flat_details() -> None:
-    from inventory_planning.routers.approvals import ApprovalCallback
+    from inventory_planning.api.routers.approvals import ApprovalCallback
 
     nested = ApprovalCallback.model_validate(
         {

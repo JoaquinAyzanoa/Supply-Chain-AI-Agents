@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from inventory_planning.models import PlanningDataset
-from inventory_planning.nodes.load_data import load_dataset
+from inventory_planning.domain.models import PlanningDataset
+from inventory_planning.graph.nodes.load_data import load_dataset
 from inventory_planning.testing import demo_ports, product
 from sc_core.odoo.models import DailyDemand
 

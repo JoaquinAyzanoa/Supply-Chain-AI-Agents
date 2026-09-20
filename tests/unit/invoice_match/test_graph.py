@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from invoice_match.models import PoCandidate
+from invoice_match.domain.models import PoCandidate
 from invoice_match.testing import FakeInvoicePorts, demo_bill
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import InvoiceData, InvoiceLine, InvoiceMatchTask
@@ -234,7 +234,7 @@ async def test_checking_an_existing_bill_ignores_its_own_quantities(
     make_agent: Any, ports: FakeInvoicePorts, approval_ports: Any
 ) -> None:
     """Odoo already counts a draft bill as invoiced; that must not read as "billed twice"."""
-    from supplier_comms.models import LineView
+    from supplier_comms.domain.models import LineView
 
     from .conftest import received_context
 

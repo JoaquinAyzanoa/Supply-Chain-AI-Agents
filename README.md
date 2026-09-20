@@ -167,6 +167,15 @@ src/                     uv workspace, one member per directory: src/<member>/<m
   director/              orchestrator, cases, playbooks, briefing, assistant, the Control Tower's API
   mail_sync/ scheduler/  deterministic services (no model calls)
   supplier_comms/ inventory_planning/ sourcing/ logistics/ invoice_match/ supplier_performance/
+                         every agent has the same four packages, and only __init__, __main__ and
+                         main.py at its top level:
+                           api/     ways in: the A2A handler and the HTTP routers
+                           graph/   the LangGraph graph: builder, state, nodes, tools, runner
+                           domain/  the agent's own logic in code: no I/O, no model calls
+                           infra/   Odoo, the database and other agents behind ports; the wiring
+                           prompts/ testing/ (in-memory doubles used by the tests)
+                         the director groups by capability: orchestration/, desk/, notifications/,
+                         api/, handlers/, playbooks/
 frontend/control-tower/  React app served by the director
 odoo/                    the sc_agents addon and the demo datasets (English and Spanish)
 migrations/              plain SQL, applied by sc_core.infra.migrate

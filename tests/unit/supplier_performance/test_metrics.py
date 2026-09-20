@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, timedelta
 
 from sc_core.schema.a2a import SupplierScore
-from supplier_performance.metrics import (
+from supplier_performance.domain.metrics import (
     Weights,
     lead_time_days,
     otif,
@@ -17,7 +17,7 @@ from supplier_performance.metrics import (
     trends_against,
     trimmed,
 )
-from supplier_performance.models import MailPair, ReceivedLine, SupplierHistory
+from supplier_performance.domain.models import MailPair, ReceivedLine, SupplierHistory
 from supplier_performance.testing import hidraulica_history
 
 

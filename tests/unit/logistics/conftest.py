@@ -7,14 +7,14 @@ from typing import Any
 
 import pytest
 
-from logistics.agent import LogisticsAgent
-from logistics.carriers import FakeCarrierTracking
-from logistics.graph import Deps, build_graph
+from logistics.graph.builder import Deps, build_graph
+from logistics.graph.runner import LogisticsAgent
+from logistics.infra.carriers import FakeCarrierTracking
 from logistics.testing import FakeLogisticsPorts, demo_context, demo_receipt
 from sc_core.graph import ApprovalGateway, memory_checkpointer
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.testing import ScriptedChatClient
-from supplier_comms.models import InboundMeta
+from supplier_comms.domain.models import InboundMeta
 from tests.unit.graph.toy import FakeApprovalPorts
 
 

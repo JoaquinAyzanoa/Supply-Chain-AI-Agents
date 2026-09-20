@@ -32,9 +32,9 @@ from sc_core.odoo.repositories import (
     SupplierInfoRepo,
 )
 from supplier_comms import AGENT_NAME
-from supplier_comms.agent import SupplierCommsAgent
-from supplier_comms.graph import Deps, build_graph
-from supplier_comms.ports import LivePorts
+from supplier_comms.graph.builder import Deps, build_graph
+from supplier_comms.graph.runner import SupplierCommsAgent
+from supplier_comms.infra.ports import LivePorts
 
 SUPPLIER_EMAIL = "ventas.hidraulica.sc@gmail.com"
 

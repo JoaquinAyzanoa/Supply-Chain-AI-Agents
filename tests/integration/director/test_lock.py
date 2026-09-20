@@ -10,10 +10,10 @@ from typing import Any
 import pytest
 from redis import asyncio as redis_async
 
-from director.concurrency import PoLocks
-from director.inbox import MemoryEventInbox, MemoryEventResults
+from director.orchestration.concurrency import PoLocks
+from director.orchestration.inbox import MemoryEventInbox, MemoryEventResults
+from director.orchestration.workflow import Orchestrator
 from director.testing import memory_deps
-from director.workflow import Orchestrator
 from sc_core.a2a import AgentReply
 from sc_core.infra.locks import RedisLock
 from tests.unit.director.helpers import agent_reply, linked

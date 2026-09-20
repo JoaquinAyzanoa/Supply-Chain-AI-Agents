@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 
-from director.learning import (
+from director.desk.learning import (
     CalibrationJob,
     DecisionFeedback,
     FeedbackRecorder,

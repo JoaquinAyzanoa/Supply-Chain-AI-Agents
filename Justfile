@@ -272,7 +272,7 @@ mail-clear-inbox:
 
 # Run one inbox sync from the host with the same wiring as the service
 sync-once:
-    {{UV}} run --package mail_sync python -m mail_sync.cli sync-once
+    {{UV}} run --package mail_sync python -m mail_sync.api.cli sync-once
 
 # Ask the running scheduler to fire the mail sync job now (POST /jobs/mail_sync/run-now)
 sync-now:

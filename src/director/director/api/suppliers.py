@@ -18,7 +18,7 @@ from loguru import logger
 from director.api.auth import Principal, Viewer
 from director.api.board import BoardOrders
 from director.api.performance import PerformanceSource
-from director.sourcing import SourcingSource
+from director.desk.sourcing import SourcingSource
 from sc_core.odoo.models import MailLink, SupplierInfo
 from sc_core.schema.base import StrictModel
 from sc_core.shared.errors import ScError

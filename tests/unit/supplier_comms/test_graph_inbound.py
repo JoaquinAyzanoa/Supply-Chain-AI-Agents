@@ -8,8 +8,8 @@ from typing import Any
 from sc_core.graph import cleared
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import Classification, QuotationData, QuotedLine, SupplierCommsTask
-from supplier_comms.models import AnswerOutput
-from supplier_comms.nodes.propose import build_proposal
+from supplier_comms.domain.models import AnswerOutput
+from supplier_comms.graph.nodes.propose import build_proposal
 from supplier_comms.testing import FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
 
@@ -316,7 +316,7 @@ async def test_a_split_delivery_gets_a_schedule_and_splits_the_line_on_approval(
 
 def test_split_parts_that_do_not_add_up_are_sent_to_a_person() -> None:
     from sc_core.schema.a2a import DeliverySplit
-    from supplier_comms.nodes.propose import build_proposal
+    from supplier_comms.graph.nodes.propose import build_proposal
 
     data = QuotationData(
         lines=[

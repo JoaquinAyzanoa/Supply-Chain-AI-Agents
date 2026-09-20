@@ -10,9 +10,14 @@ from typing import Any
 
 import pytest
 
-from inventory_planning.nodes.detect_exceptions import detect, detect_all, rule_changes
-from inventory_planning.nodes.explain import Explanation, explain_lines, explain_run, line_facts
-from inventory_planning.policy import ProductParams
+from inventory_planning.domain.policy import ProductParams
+from inventory_planning.graph.nodes.detect_exceptions import detect, detect_all, rule_changes
+from inventory_planning.graph.nodes.explain import (
+    Explanation,
+    explain_lines,
+    explain_run,
+    line_facts,
+)
 from sc_core.infra.settings import LangfuseCfg, Settings, reset_settings_cache
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.planning import ReplenishmentLine

@@ -8,7 +8,7 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
-from mail_sync.sync import SyncRunner, case_id_for
+from mail_sync.domain.sync import SyncRunner, case_id_for
 from sc_core.a2a.events import EventPublisher, MemoryOutbox
 from sc_core.infra.locks import MemoryLock
 from sc_core.infra.settings import EventsCfg, MailSyncCfg
@@ -47,7 +47,7 @@ def world() -> dict[str, Any]:
     ports.add_po("P00015", partner_id=42)
     ports.contacts[SUPPLIER] = 42
     director = Director()
-    from mail_sync.state import MemorySyncState
+    from mail_sync.infra.state import MemorySyncState
 
     state = MemorySyncState()
     lock = MemoryLock()
@@ -187,7 +187,7 @@ async def test_failing_message_keeps_delta_and_retries_next_run(world: dict[str,
 
 
 async def test_system_senders_are_ignored_without_events(world: dict[str, Any]) -> None:
-    from mail_sync.ignore import is_ignored
+    from mail_sync.domain.ignore import is_ignored
 
     assert is_ignored(
         "Account-Security-NoReply@accountprotection.microsoft.com",

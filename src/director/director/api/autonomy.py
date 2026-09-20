@@ -21,7 +21,7 @@ from pydantic import Field
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import Admin, Approver, Principal, Viewer
 from director.api.settings import RuntimeSettingsStore, SettingsVersion
-from director.autonomy import (
+from director.desk.autonomy import (
     AutoAction,
     AutoActionsStore,
     AutonomyChanges,
@@ -29,7 +29,7 @@ from director.autonomy import (
     since_days,
     window_open,
 )
-from director.store import CaseStore
+from director.orchestration.store import CaseStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.odoo.repositories import ApprovalRepo
 from sc_core.schema.autonomy import ActionFacts, AutonomyPolicy, PolicyDecision

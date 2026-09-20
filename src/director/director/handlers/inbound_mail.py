@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from director.router import Dispatch, Route
+from director.orchestration.router import Dispatch, Route
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.events import BaseEvent, InboundMailLinked
 

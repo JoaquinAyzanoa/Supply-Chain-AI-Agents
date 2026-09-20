@@ -5,13 +5,13 @@ from __future__ import annotations
 import json
 from datetime import date
 
-from director.agents import AgentProxy, Agents
-from director.escalation import MemoryEscalator
 from director.handlers.planning import JobDispatcher, PlanningJob
-from director.jobs import NoJobs
-from director.store import MemoryCaseStore
+from director.orchestration.agents import AgentProxy, Agents
+from director.orchestration.escalation import MemoryEscalator
+from director.orchestration.jobs import NoJobs
+from director.orchestration.store import MemoryCaseStore
+from director.orchestration.workflow import outcome_from_reply
 from director.testing import MemoryDirectorModule
-from director.workflow import outcome_from_reply
 from sc_core.a2a import AgentReply
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.schema import events as ev
@@ -112,7 +112,7 @@ async def test_orderpoint_event_reaches_the_planner_through_the_workflow() -> No
 
 
 def test_outcome_from_reply_understands_both_contracts() -> None:
-    from director.store import Case
+    from director.orchestration.store import Case
 
     case = Case(case_id="c", kind="planning", status="open")
     planner = outcome_from_reply(

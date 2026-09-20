@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from invoice_match.matching import build_match, find_po_reference, pick_by_amount, similarity
-from invoice_match.models import PoCandidate
+from invoice_match.domain.matching import build_match, find_po_reference, pick_by_amount, similarity
+from invoice_match.domain.models import PoCandidate
 from sc_core.schema.a2a import InvoiceData, InvoiceLine
-from supplier_comms.models import LineView
+from supplier_comms.domain.models import LineView
 from supplier_comms.testing import demo_context
 
 from .conftest import received_context

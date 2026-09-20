@@ -16,9 +16,9 @@ from sc_core.infra.db import Database
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
 from supplier_comms import __version__
-from supplier_comms.handler import SupplierCommsHandler, agent_spec
-from supplier_comms.routers import approvals
-from supplier_comms.service import AgentProvider, module_list
+from supplier_comms.api.handler import SupplierCommsHandler, agent_spec
+from supplier_comms.api.routers import approvals
+from supplier_comms.infra.service import AgentProvider, module_list
 
 settings = Settings(service_name="supplier_comms")
 

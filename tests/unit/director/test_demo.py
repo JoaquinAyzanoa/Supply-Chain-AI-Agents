@@ -20,8 +20,8 @@ from pydantic import SecretStr
 from director import __version__
 from director.api import api_router
 from director.api.auth import hash_password
-from director.briefing import Paragraph
-from director.demo import STEPS, DemoOrder
+from director.desk.briefing import Paragraph
+from director.desk.demo import STEPS, DemoOrder
 from director.testing import MemoryDirectorModule
 from sc_core.a2a.protocol import AgentReply
 from sc_core.a2a.testing import FakeAgentCaller

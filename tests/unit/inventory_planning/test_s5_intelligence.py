@@ -6,17 +6,17 @@ from __future__ import annotations
 import math
 from datetime import date, timedelta
 
-from inventory_planning.consolidation import FreightTerms, consolidate
-from inventory_planning.forecasting import (
+from inventory_planning.domain.consolidation import FreightTerms, consolidate
+from inventory_planning.domain.forecasting import (
     detect_season,
     holt_winters,
     select_forecast,
     tsb,
 )
-from inventory_planning.forecasting.calendar import adjust_history, forecast_uplift
-from inventory_planning.models import PlanningDataset, ProductData
-from inventory_planning.nodes.forecast import forecast_product
-from inventory_planning.risk import product_risk, risk_report, supplier_risks
+from inventory_planning.domain.forecasting.calendar import adjust_history, forecast_uplift
+from inventory_planning.domain.models import PlanningDataset, ProductData
+from inventory_planning.domain.risk import product_risk, risk_report, supplier_risks
+from inventory_planning.graph.nodes.forecast import forecast_product
 from sc_core.odoo.models import DailyDemand, IncomingLine, SupplierTerms
 from sc_core.schema.calendar import CalendarEvent
 from sc_core.schema.planning import ReplenishmentLine
@@ -65,7 +65,7 @@ def test_holt_winters_without_a_season_is_the_moving_average() -> None:
 def test_tsb_decays_when_demand_stops_and_croston_does_not() -> None:
     dead = intermittent_series(40) + [0.0] * 30
     tsb_rate = tsb(dead, 1).values[0]
-    from inventory_planning.forecasting import croston
+    from inventory_planning.domain.forecasting import croston
 
     croston_rate = croston(dead, 1).values[0]
     assert tsb_rate < 0.3 and croston_rate > 1.0
