@@ -1,0 +1,1716 @@
+{
+ "entries": [
+  {
+   "key": "ff88b77eae5ba91c3186b7cd",
+   "request": {
+    "service": "common",
+    "method": "login",
+    "args": [
+     "scai",
+     "<login>",
+     "<api_key>"
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": 6
+   }
+  },
+  {
+   "key": "ff5069530f433f5af1b5835f",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "email_normalized",
+        "=",
+        "ventas.hidraulica.sc@gmail.com"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": [
+     {
+      "id": 8,
+      "name": "Proveedor Hidraulica",
+      "email": "ventas.hidraulica.sc@gmail.com",
+      "email_normalized": "ventas.hidraulica.sc@gmail.com",
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "2b26883322a7950558833a51",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "state",
+        "in",
+        [
+         "purchase"
+        ]
+       ],
+       [
+        "date_planned",
+        "<",
+        "2026-09-14"
+       ],
+       [
+        "receipt_status",
+        "!=",
+        "full"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "invoice_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_supplier_confirmed",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "order": "date_planned asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": [
+     {
+      "id": 76,
+      "name": "P00076",
+      "state": "purchase",
+      "partner_id": [
+       10,
+       "Importadora del Sur SAC"
+      ],
+      "partner_ref": false,
+      "origin": "SEED/2026-07",
+      "date_order": "2026-07-21 11:00:00",
+      "date_approve": "2026-07-21 11:00:00",
+      "date_planned": "2026-09-04 12:00:00",
+      "amount_untaxed": 4305.0,
+      "amount_total": 4950.75,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       2,
+       "Administrator"
+      ],
+      "receipt_status": "pending",
+      "invoice_status": "no",
+      "order_line": [
+       796,
+       797
+      ],
+      "picking_ids": [
+       6899
+      ],
+      "sc_external_ref": "seed-open-20260912-4",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       6,
+       "sc.approval,6"
+      ]
+     },
+     {
+      "id": 77,
+      "name": "P00077",
+      "state": "purchase",
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "SEED/2026-08",
+      "date_order": "2026-08-02 11:00:00",
+      "date_approve": "2026-08-02 11:00:00",
+      "date_planned": "2026-09-06 12:00:00",
+      "amount_untaxed": 1608.3,
+      "amount_total": 1849.55,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       2,
+       "Administrator"
+      ],
+      "receipt_status": "pending",
+      "invoice_status": "no",
+      "order_line": [
+       798,
+       799
+      ],
+      "picking_ids": [
+       6900
+      ],
+      "sc_external_ref": "seed-open-20260912-5",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": true,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": [
+       27,
+       "sc.approval,27"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "ff5069530f433f5af1b5835f",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "res.partner",
+     "search_read",
+     [
+      [
+       [
+        "email_normalized",
+        "=",
+        "ventas.hidraulica.sc@gmail.com"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "email",
+       "email_normalized",
+       "is_company",
+       "supplier_rank",
+       "parent_id",
+       "commercial_partner_id",
+       "child_ids",
+       "lang",
+       "active"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "result": [
+     {
+      "id": 8,
+      "name": "Proveedor Hidraulica",
+      "email": "ventas.hidraulica.sc@gmail.com",
+      "email_normalized": "ventas.hidraulica.sc@gmail.com",
+      "is_company": true,
+      "supplier_rank": 1,
+      "parent_id": false,
+      "commercial_partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "child_ids": [],
+      "lang": "es_PE",
+      "active": true
+     }
+    ]
+   }
+  },
+  {
+   "key": "a1a7c57dffd79a9473b4634e",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "product.supplierinfo",
+     "search_read",
+     [
+      [
+       [
+        "partner_id",
+        "=",
+        8
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "partner_id",
+       "product_tmpl_id",
+       "product_id",
+       "product_name",
+       "product_code",
+       "min_qty",
+       "price",
+       "currency_id",
+       "delay",
+       "date_start",
+       "date_end",
+       "sequence"
+      ],
+      "offset": 0,
+      "order": "product_tmpl_id asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "result": [
+     {
+      "id": 49,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       30,
+       "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho"
+      ],
+      "product_id": false,
+      "product_name": "Adaptador BSPP 1/2\" macho a JIC 1/2\" macho",
+      "product_code": "ADP-BSPP-12",
+      "min_qty": 50.0,
+      "price": 3.25,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 20,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 30,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       18,
+       "[ZKC-T11A-2] Bloque sándwich 2 cavidades T-11A para válvula CETOP 3"
+      ],
+      "product_id": false,
+      "product_name": "Bloque sándwich 2 cavidades T-11A para válvula CETOP 3",
+      "product_code": "ZKC-T11A-2",
+      "min_qty": 1.0,
+      "price": 57.6,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 40,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 37,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       22,
+       "[770-110] Bobina 110 VAC para válvulas solenoide serie DT"
+      ],
+      "product_id": false,
+      "product_name": "Bobina 110 VAC para válvulas solenoide serie DT",
+      "product_code": "770-110",
+      "min_qty": 2.0,
+      "price": 37.2,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 30,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 31,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       19,
+       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT"
+      ],
+      "product_id": false,
+      "product_name": "Bobina 12 VDC para válvulas solenoide serie DT",
+      "product_code": "770-212",
+      "min_qty": 2.0,
+      "price": 34.8,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 36,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       21,
+       "[770-224-D] Bobina 24 VDC conector Deutsch DT04-2P, serie DT"
+      ],
+      "product_id": false,
+      "product_name": "Bobina 24 VDC conector Deutsch DT04-2P, serie DT",
+      "product_code": "770-224-D",
+      "min_qty": 2.0,
+      "price": 39.6,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 33,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       20,
+       "[770-224] Bobina 24 VDC para válvulas solenoide serie DT"
+      ],
+      "product_id": false,
+      "product_name": "Bobina 24 VDC para válvulas solenoide serie DT",
+      "product_code": "770-224",
+      "min_qty": 2.0,
+      "price": 34.8,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 47,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       29,
+       "[CON-JIC-08] Conector prensado JIC 37° 1/2\" recto para R2"
+      ],
+      "product_id": false,
+      "product_name": "Conector prensado JIC 37° 1/2\" recto para R2",
+      "product_code": "CON-JIC-08",
+      "min_qty": 100.0,
+      "price": 2.53,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 20,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 12,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       7,
+       "[FXDA-XAN] Control de caudal compensado por presión, cavidad T-2A"
+      ],
+      "product_id": false,
+      "product_name": "Control de caudal compensado por presión, cavidad T-2A",
+      "product_code": "FXDA-XAN",
+      "min_qty": 1.0,
+      "price": 95.48,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 35,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 27,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       16,
+       "[BAA-T11A] Cuerpo de línea acero, cavidad T-11A, puertos 1/2\" SAE"
+      ],
+      "product_id": false,
+      "product_name": "Cuerpo de línea acero, cavidad T-11A, puertos 1/2\" SAE",
+      "product_code": "BAA-T11A",
+      "min_qty": 2.0,
+      "price": 44.4,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 35,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 26,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       15,
+       "[AAJ-T10A] Cuerpo de línea aluminio, cavidad T-10A, puertos 3/8\" BSPP"
+      ],
+      "product_id": false,
+      "product_name": "Cuerpo de línea aluminio, cavidad T-10A, puertos 3/8\" BSPP",
+      "product_code": "AAJ-T10A",
+      "min_qty": 5.0,
+      "price": 19.14,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 22,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       13,
+       "[AAA-T11A] Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
+      ],
+      "product_id": false,
+      "product_name": "Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP",
+      "product_code": "AAA-T11A",
+      "min_qty": 5.0,
+      "price": 22.62,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 24,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       14,
+       "[AAB-T2A] Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP"
+      ],
+      "product_id": false,
+      "product_name": "Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP",
+      "product_code": "AAB-T2A",
+      "min_qty": 5.0,
+      "price": 17.98,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 21,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       12,
+       "[LODC-XDN] Elemento lógico 2 vías, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Elemento lógico 2 vías, cavidad T-11A",
+      "product_code": "LODC-XDN",
+      "min_qty": 1.0,
+      "price": 81.13,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 40,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 38,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       23,
+       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Kit de sellos Buna-N para cavidad T-11A",
+      "product_code": "990-011-007",
+      "min_qty": 5.0,
+      "price": 5.23,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 43,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       26,
+       "[990-017-007] Kit de sellos Buna-N para cavidad T-17A"
+      ],
+      "product_id": false,
+      "product_name": "Kit de sellos Buna-N para cavidad T-17A",
+      "product_code": "990-017-007",
+      "min_qty": 5.0,
+      "price": 6.82,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 40,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       24,
+       "[990-002-007] Kit de sellos Buna-N para cavidad T-2A"
+      ],
+      "product_id": false,
+      "product_name": "Kit de sellos Buna-N para cavidad T-2A",
+      "product_code": "990-002-007",
+      "min_qty": 5.0,
+      "price": 4.9,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 42,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       25,
+       "[990-011-008] Kit de sellos Viton para cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Kit de sellos Viton para cavidad T-11A",
+      "product_code": "990-011-008",
+      "min_qty": 5.0,
+      "price": 8.29,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 44,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       27,
+       "[MH-R2-12] Manguera hidráulica SAE 100 R2 1/2\", por metro"
+      ],
+      "product_id": false,
+      "product_name": "Manguera hidráulica SAE 100 R2 1/2\", por metro",
+      "product_code": "MH-R2-12",
+      "min_qty": 50.0,
+      "price": 6.5,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 20,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 46,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       28,
+       "[MH-R2-08] Manguera hidráulica SAE 100 R2 1/4\", por metro"
+      ],
+      "product_id": false,
+      "product_name": "Manguera hidráulica SAE 100 R2 1/4\", por metro",
+      "product_code": "MH-R2-08",
+      "min_qty": 50.0,
+      "price": 4.52,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 20,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 29,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       17,
+       "[GAB-T2A-3] Manifold aluminio 3 estaciones, cavidad T-2A, serie"
+      ],
+      "product_id": false,
+      "product_name": "Manifold aluminio 3 estaciones, cavidad T-2A, serie",
+      "product_code": "GAB-T2A-3",
+      "min_qty": 1.0,
+      "price": 70.8,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 40,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 14,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       8,
+       "[CXDA-XCN] Válvula check, cavidad T-10A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula check, cavidad T-10A",
+      "product_code": "CXDA-XCN",
+      "min_qty": 5.0,
+      "price": 27.26,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 25,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 11,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       6,
+       "[NFCC-LCN] Válvula de aguja, ajuste fino, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de aguja, ajuste fino, cavidad T-11A",
+      "product_code": "NFCC-LCN",
+      "min_qty": 1.0,
+      "price": 52.8,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 28,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 9,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       5,
+       "[RDDA-LAN] Válvula de alivio de acción directa, cavidad T-10A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de alivio de acción directa, cavidad T-10A",
+      "product_code": "RDDA-LAN",
+      "min_qty": 1.0,
+      "price": 57.6,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 28,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 7,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       4,
+       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de alivio de acción directa, cavidad T-11A",
+      "product_code": "RPEC-LAN",
+      "min_qty": 1.0,
+      "price": 73.81,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 30,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 1,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       1,
+       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A",
+      "product_code": "CBEA-LHN",
+      "min_qty": 1.0,
+      "price": 104.16,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 30,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 6,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       3,
+       "[CBGA-LHN] Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de contrabalance 3:1, alto caudal, cavidad T-17A",
+      "product_code": "CBGA-LHN",
+      "min_qty": 1.0,
+      "price": 148.68,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 40,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 4,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       2,
+       "[CBCA-LHN] Válvula de contrabalance 3:1, cavidad T-2A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula de contrabalance 3:1, cavidad T-2A",
+      "product_code": "CBCA-LHN",
+      "min_qty": 1.0,
+      "price": 88.04,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 30,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 17,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       9,
+       "[DTDA-MCN] Válvula direccional solenoide 2 vías NC, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula direccional solenoide 2 vías NC, cavidad T-11A",
+      "product_code": "DTDA-MCN",
+      "min_qty": 1.0,
+      "price": 119.07,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 35,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 19,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       10,
+       "[DMDA-MNN] Válvula direccional solenoide 3 vías, cavidad T-11A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula direccional solenoide 3 vías, cavidad T-11A",
+      "product_code": "DMDA-MNN",
+      "min_qty": 1.0,
+      "price": 134.82,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 35,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     },
+     {
+      "id": 20,
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "product_tmpl_id": [
+       11,
+       "[PBDB-LAN] Válvula reductora/aliviadora de presión, cavidad T-2A"
+      ],
+      "product_id": false,
+      "product_name": "Válvula reductora/aliviadora de presión, cavidad T-2A",
+      "product_code": "PBDB-LAN",
+      "min_qty": 1.0,
+      "price": 109.12,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "delay": 35,
+      "date_start": false,
+      "date_end": false,
+      "sequence": 1
+     }
+    ]
+   }
+  },
+  {
+   "key": "233bc46a91fc52183ed309ba",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "product.product",
+     "search_read",
+     [
+      [
+       [
+        "product_tmpl_id",
+        "in",
+        [
+         18,
+         19,
+         20,
+         21,
+         22,
+         30
+        ]
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "product_tmpl_id"
+      ],
+      "offset": 0,
+      "order": "id asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 6,
+    "result": [
+     {
+      "id": 18,
+      "product_tmpl_id": [
+       18,
+       "[ZKC-T11A-2] Bloque sándwich 2 cavidades T-11A para válvula CETOP 3"
+      ]
+     },
+     {
+      "id": 19,
+      "product_tmpl_id": [
+       19,
+       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT"
+      ]
+     },
+     {
+      "id": 20,
+      "product_tmpl_id": [
+       20,
+       "[770-224] Bobina 24 VDC para válvulas solenoide serie DT"
+      ]
+     },
+     {
+      "id": 21,
+      "product_tmpl_id": [
+       21,
+       "[770-224-D] Bobina 24 VDC conector Deutsch DT04-2P, serie DT"
+      ]
+     },
+     {
+      "id": 22,
+      "product_tmpl_id": [
+       22,
+       "[770-110] Bobina 110 VAC para válvulas solenoide serie DT"
+      ]
+     },
+     {
+      "id": 30,
+      "product_tmpl_id": [
+       30,
+       "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho"
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "key": "184613a31e8be0802078f61f",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "sc_external_ref",
+        "=",
+        "demo-cassette-receipt"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "invoice_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_supplier_confirmed",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 7,
+    "result": []
+   }
+  },
+  {
+   "key": "50cfe3c757cca8d8f2275923",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "create",
+     [
+      {
+       "partner_id": 8,
+       "sc_external_ref": "demo-cassette-receipt",
+       "order_line": [
+        [
+         0,
+         0,
+         {
+          "product_id": 30,
+          "product_qty": 10.0
+         }
+        ],
+        [
+         0,
+         0,
+         {
+          "product_id": 18,
+          "product_qty": 10.0
+         }
+        ]
+       ],
+       "origin": "demo"
+      }
+     ],
+     {
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 8,
+    "result": 93
+   }
+  },
+  {
+   "key": "16d804ef154e191aeab0f4cb",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "read",
+     [
+      [
+       93
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "invoice_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_supplier_confirmed",
+       "sc_pending_approval_id"
+      ],
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 9,
+    "result": [
+     {
+      "id": 93,
+      "name": "P00093",
+      "state": "draft",
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "demo",
+      "date_order": "2026-09-13 22:48:14",
+      "date_approve": false,
+      "date_planned": "2026-10-03 22:48:14",
+      "amount_untaxed": 608.5,
+      "amount_total": 699.78,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       6,
+       "SC Agent Bot"
+      ],
+      "receipt_status": false,
+      "invoice_status": "no",
+      "order_line": [
+       855,
+       856
+      ],
+      "picking_ids": [],
+      "sc_external_ref": "demo-cassette-receipt",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": false
+     }
+    ]
+   }
+  },
+  {
+   "key": "738b6d7db9037f7bd36951f6",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "button_confirm",
+     [
+      [
+       93
+      ]
+     ],
+     {
+      "context": {
+       "tz": "America/Lima",
+       "sc_skip_events": true
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 10,
+    "result": true
+   }
+  },
+  {
+   "key": "16d804ef154e191aeab0f4cb",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "read",
+     [
+      [
+       93
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "invoice_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_supplier_confirmed",
+       "sc_pending_approval_id"
+      ],
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 11,
+    "result": [
+     {
+      "id": 93,
+      "name": "P00093",
+      "state": "purchase",
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "demo",
+      "date_order": "2026-09-13 22:48:14",
+      "date_approve": "2026-09-13 22:48:14",
+      "date_planned": "2026-10-03 22:48:14",
+      "amount_untaxed": 608.5,
+      "amount_total": 699.78,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       6,
+       "SC Agent Bot"
+      ],
+      "receipt_status": "pending",
+      "invoice_status": "no",
+      "order_line": [
+       855,
+       856
+      ],
+      "picking_ids": [
+       6906
+      ],
+      "sc_external_ref": "demo-cassette-receipt",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": false
+     }
+    ]
+   }
+  },
+  {
+   "key": "d963d0dc9f70beee765c0109",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order",
+     "search_read",
+     [
+      [
+       [
+        "name",
+        "=",
+        "P00093"
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "name",
+       "state",
+       "partner_id",
+       "partner_ref",
+       "origin",
+       "date_order",
+       "date_approve",
+       "date_planned",
+       "amount_untaxed",
+       "amount_total",
+       "currency_id",
+       "company_id",
+       "user_id",
+       "receipt_status",
+       "invoice_status",
+       "order_line",
+       "picking_ids",
+       "sc_external_ref",
+       "sc_eta_source",
+       "sc_eta_confidence",
+       "sc_needs_human",
+       "sc_supplier_confirmed",
+       "sc_pending_approval_id"
+      ],
+      "offset": 0,
+      "limit": 1,
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 12,
+    "result": [
+     {
+      "id": 93,
+      "name": "P00093",
+      "state": "purchase",
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "partner_ref": false,
+      "origin": "demo",
+      "date_order": "2026-09-13 22:48:14",
+      "date_approve": "2026-09-13 22:48:14",
+      "date_planned": "2026-10-03 22:48:14",
+      "amount_untaxed": 608.5,
+      "amount_total": 699.78,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "company_id": [
+       1,
+       "Hidráulica Andina SAC"
+      ],
+      "user_id": [
+       6,
+       "SC Agent Bot"
+      ],
+      "receipt_status": "pending",
+      "invoice_status": "no",
+      "order_line": [
+       855,
+       856
+      ],
+      "picking_ids": [
+       6906
+      ],
+      "sc_external_ref": "demo-cassette-receipt",
+      "sc_eta_source": false,
+      "sc_eta_confidence": 0.0,
+      "sc_needs_human": false,
+      "sc_supplier_confirmed": false,
+      "sc_pending_approval_id": false
+     }
+    ]
+   }
+  },
+  {
+   "key": "3fccd4ff7da603f43ec9c2d7",
+   "request": {
+    "service": "object",
+    "method": "execute_kw",
+    "args": [
+     "scai",
+     "<uid>",
+     "<api_key>",
+     "purchase.order.line",
+     "search_read",
+     [
+      [
+       [
+        "order_id",
+        "=",
+        93
+       ]
+      ]
+     ],
+     {
+      "fields": [
+       "order_id",
+       "name",
+       "product_id",
+       "product_qty",
+       "product_uom",
+       "price_unit",
+       "price_subtotal",
+       "currency_id",
+       "date_planned",
+       "qty_received",
+       "qty_invoiced",
+       "qty_to_invoice",
+       "state"
+      ],
+      "offset": 0,
+      "order": "id asc",
+      "context": {
+       "tz": "America/Lima"
+      }
+     }
+    ]
+   },
+   "response": {
+    "jsonrpc": "2.0",
+    "id": 13,
+    "result": [
+     {
+      "id": 855,
+      "order_id": [
+       93,
+       "P00093"
+      ],
+      "name": "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
+      "product_id": [
+       30,
+       "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho"
+      ],
+      "product_qty": 10.0,
+      "product_uom": [
+       1,
+       "Units"
+      ],
+      "price_unit": 3.25,
+      "price_subtotal": 32.5,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "date_planned": "2026-10-03 22:48:14",
+      "qty_received": 0.0,
+      "qty_invoiced": 0.0,
+      "qty_to_invoice": 0.0,
+      "state": "purchase"
+     },
+     {
+      "id": 856,
+      "order_id": [
+       93,
+       "P00093"
+      ],
+      "name": "[ZKC-T11A-2] Bloque sándwich 2 cavidades T-11A para válvula CETOP 3\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
+      "product_id": [
+       18,
+       "[ZKC-T11A-2] Bloque sándwich 2 cavidades T-11A para válvula CETOP 3"
+      ],
+      "product_qty": 10.0,
+      "product_uom": [
+       1,
+       "Units"
+      ],
+      "price_unit": 57.6,
+      "price_subtotal": 576.0,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "date_planned": "2026-10-23 22:48:14",
+      "qty_received": 0.0,
+      "qty_invoiced": 0.0,
+      "qty_to_invoice": 0.0,
+      "state": "purchase"
+     }
+    ]
+   }
+  }
+ ]
+}

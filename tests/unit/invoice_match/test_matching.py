@@ -26,8 +26,12 @@ def invoice(**over: object) -> InvoiceData:
     return InvoiceData(**{**base, **over})  # type: ignore[arg-type]
 
 
-def match(inv: InvoiceData, ctx: object = None, **over: float) -> object:
-    params = {"price_tolerance_pct": 1.0, "qty_tolerance_pct": 0.0, "fuzzy_threshold": 0.6}
+def match(inv: InvoiceData, ctx: object = None, **over: float | str) -> object:
+    params: dict[str, float | str] = {
+        "price_tolerance_pct": 1.0,
+        "qty_tolerance_pct": 0.0,
+        "fuzzy_threshold": 0.6,
+    }
     params.update(over)
     return build_match(inv, ctx or received_context(), **params)  # type: ignore[arg-type]
 
@@ -48,6 +52,14 @@ def test_price_three_percent_up_is_a_variance_one_percent_is_not() -> None:
     assert result.reasons == ["1 line(s) price variance"]  # type: ignore[attr-defined]
     up1 = invoice(lines=[InvoiceLine(description="Bomba hidraulica 2HP", qty=2, unit_price=504.0)])
     assert match(up1).verdict == "clean"  # type: ignore[attr-defined]
+
+
+def test_the_notes_follow_the_language_of_the_person_who_decides() -> None:
+    up3 = invoice(lines=[InvoiceLine(description="Bomba hidraulica 2HP", qty=2, unit_price=515.0)])
+    result = match(up3, language="es")
+    assert result.lines[0].status == "price_variance"  # type: ignore[attr-defined]
+    assert result.lines[0].note == "facturado 515.00, ordenado 500.00 (+15.00)"  # type: ignore[attr-defined]
+    assert result.reasons == ["1 línea(s) con diferencia de precio"]  # type: ignore[attr-defined]
 
 
 def test_billing_more_than_received_is_not_received() -> None:

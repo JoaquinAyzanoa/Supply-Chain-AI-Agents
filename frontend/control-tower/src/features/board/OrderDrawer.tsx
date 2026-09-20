@@ -5,7 +5,7 @@
  * screen and the exceptions board used to spread over three pages.
  */
 import { Link } from "@tanstack/react-router";
-import { CheckCircle2, ExternalLink, X, Zap } from "lucide-react";
+import { CheckCircle2, ExternalLink, Handshake, Scale, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/auth/AuthProvider";
@@ -14,14 +14,19 @@ import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
 import { ErrorBox, Loading } from "@/components/ui/feedback";
 import { Label, Textarea } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useI18n } from "@/i18n";
-import { formatDate, formatMoney } from "@/lib/utils";
+import { formatDate, formatMoney, formatNumber } from "@/lib/utils";
 import { ApprovalDetail } from "@/features/approvals/ApprovalDetail";
 import { useApproval } from "@/features/approvals/api";
 import { CaseEvents } from "@/features/cases/CaseTimeline";
 import { useCase } from "@/features/cases/api";
 import { CaseChat } from "@/features/chat/CaseChat";
+import { PlaybookBadge, PlaybookOutlook } from "@/features/playbooks/PlaybookBadge";
+import type { PlaybookPosition } from "@/features/playbooks/api";
+import { useNegotiate, useStartRound } from "@/features/sourcing/api";
 import { targetsFor, useActNow, useMoveCard, useSupplierConfirmed, type BoardCard, type Column } from "./api";
+import { useOrderDetail } from "./api";
 import { DeliveryBadge } from "./BoardCard";
 
 export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () => void }) {
@@ -82,6 +87,10 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
           ) : null}
         </div>
 
+        {card.playbook ? <PlaybookLine position={card.playbook} /> : null}
+
+        <OrderLines poName={card.po_name} />
+
         {card.pending_approval ? <PendingApproval id={card.pending_approval.id} onBack={onClose} /> : null}
 
         {card.case_id ? (
@@ -100,6 +109,100 @@ export function OrderDrawer({ card, onClose }: { card: BoardCard; onClose: () =>
   );
 }
 
+/** The lines and the origin: the planner's reasoning per product, or the person who typed it. */
+function OrderLines({ poName }: { poName: string }) {
+  const { t, locale } = useI18n();
+  const detail = useOrderDetail(poName);
+  if (detail.isPending) return <Loading />;
+  if (detail.error) return <p className="text-xs text-destructive">{t("board.drawer.lines_unavailable")}</p>;
+  const { lines, origin } = detail.data;
+  const currency = lines.length ? undefined : undefined;
+  return (
+    <div className="flex flex-col gap-2" data-testid="order-lines">
+      <div className="rounded-md bg-muted/50 p-2 text-sm">
+        <span className="font-medium">{t("board.drawer.origin")}: </span>
+        {origin.kind === "planning" ? (
+          <>
+            {t("board.drawer.origin_planning", { date: origin.as_of ? formatDate(origin.as_of, locale) : "—" })}
+            {origin.summary ? ` · ${origin.summary}` : ""}
+            {origin.run_id ? (
+              <>
+                {" · "}
+                <Link to="/planning/$runId" params={{ runId: origin.run_id }} className="text-primary underline">
+                  {t("board.drawer.origin_open_plan")}
+                </Link>
+              </>
+            ) : null}
+            {origin.explanations.length ? (
+              <ul className="mt-1 list-disc pl-5 text-xs text-muted-foreground">
+                {origin.explanations.map((line) => (
+                  <li key={line}>{line}</li>
+                ))}
+              </ul>
+            ) : null}
+          </>
+        ) : (
+          <>
+            {t("board.drawer.origin_odoo", { by: origin.created_by ?? "—" })}
+            {origin.origin ? ` · ${origin.origin}` : ""}
+          </>
+        )}
+      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{t("board.drawer.col.product")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.qty")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.received")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.price")}</TableHead>
+            <TableHead className="text-right">{t("board.drawer.col.subtotal")}</TableHead>
+            <TableHead>{t("board.drawer.col.planned")}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {lines.map((line) => (
+            <TableRow key={line.line_id}>
+              <TableCell className="max-w-[20rem] truncate" title={line.product}>
+                {line.product}
+              </TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.qty, locale, 0)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.qty_received, locale, 0)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.price_unit, locale, 2)}</TableCell>
+              <TableCell className="text-right tabular-nums">{formatNumber(line.subtotal, locale, 2)}</TableCell>
+              <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{line.date_planned ? formatDate(line.date_planned, locale) : "—"}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {currency}
+    </div>
+  );
+}
+
+/** One line: where the order is in its playbook; the steps open only on request. */
+function PlaybookLine({ position }: { position: PlaybookPosition }) {
+  const { t } = useI18n();
+  const [open, setOpen] = useState(false);
+  return (
+    <section aria-label={t("board.drawer.playbook")} className="text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <PlaybookBadge position={position} />
+        <Button variant="ghost" size="sm" onClick={() => setOpen((on) => !on)} aria-expanded={open}>
+          {open ? t("board.drawer.playbook_hide") : t("board.drawer.playbook_show")}
+        </Button>
+        <Link to="/playbooks" className="text-xs text-primary underline">
+          {t("board.drawer.playbooks_page")}
+        </Link>
+      </div>
+      {open ? (
+        <div className="mt-2 rounded-md border p-3">
+          <PlaybookOutlook position={position} />
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 function Fact({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -115,6 +218,8 @@ function Moves({ card }: { card: BoardCard }) {
   const move = useMoveCard();
   const mark = useSupplierConfirmed();
   const act = useActNow();
+  const startRound = useStartRound();
+  const negotiate = useNegotiate();
   const [closing, setClosing] = useState(false);
   const [note, setNote] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -134,7 +239,17 @@ function Moves({ card }: { card: BoardCard }) {
   };
   const showMark = card.column === "confirmed" || card.column === "incoming";
   const canActNow = card.act_kind !== null && card.act_kind !== undefined && card.can_act;
-  if (targets.length === 0 && !showMark && !canActNow) return null;
+  const isRfq = card.column === "proposed" || card.column === "rfq_sent" || card.column === "quote_received";
+  const sourcing = async (what: "round" | "offer") => {
+    setError(null);
+    try {
+      const result = what === "round" ? await startRound.mutateAsync({ po_name: card.po_name }) : await negotiate.mutateAsync({ po_name: card.po_name });
+      setMessage(result.summary);
+    } catch (exc) {
+      setError(exc instanceof Error ? exc.message : String(exc));
+    }
+  };
+  if (targets.length === 0 && !showMark && !canActNow && !isRfq) return null;
   return (
     <section aria-label={t("board.move")} title={showMark && card.receipt_status !== "full" ? t("board.move.receive_in_odoo") : undefined}>
       <div className="flex flex-wrap items-center gap-2">
@@ -169,6 +284,16 @@ function Moves({ card }: { card: BoardCard }) {
             <Zap className="h-4 w-4" />
             {t("board.act_now")}
           </Button>
+        ) : null}
+        {isRfq ? (
+          <>
+            <Button variant="outline" size="sm" disabled={startRound.isPending} onClick={() => void sourcing("round")} title={t("sourcing.drawer.round_hint")}>
+              <Scale className="h-4 w-4" /> {t("sourcing.drawer.round")}
+            </Button>
+            <Button variant="outline" size="sm" disabled={negotiate.isPending} onClick={() => void sourcing("offer")} title={t("sourcing.drawer.offer_hint")}>
+              <Handshake className="h-4 w-4" /> {t("sourcing.drawer.offer")}
+            </Button>
+          </>
         ) : null}
         {showMark ? (
           <Button

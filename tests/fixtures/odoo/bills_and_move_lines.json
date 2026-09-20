@@ -14,11 +14,11 @@
    "response": {
     "jsonrpc": "2.0",
     "id": 1,
-    "result": 8
+    "result": 6
    }
   },
   {
-   "key": "707a7efb38e28731ddba86bc",
+   "key": "56705da411c626ceb533203e",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -31,9 +31,9 @@
      [
       [
        [
-        "name",
+        "sc_external_ref",
         "=",
-        "P00016"
+        "seed-open-20260912-6"
        ]
       ]
      ],
@@ -76,20 +76,20 @@
     "id": 2,
     "result": [
      {
-      "id": 16,
-      "name": "P00016",
+      "id": 78,
+      "name": "P00078",
       "state": "purchase",
       "partner_id": [
-       45,
+       8,
        "Proveedor Hidraulica"
       ],
       "partner_ref": false,
-      "origin": "SEED/2024-07",
-      "date_order": "2024-07-22 11:00:00",
-      "date_approve": "2024-07-22 11:00:00",
-      "date_planned": "2024-08-31 12:00:00",
-      "amount_untaxed": 14681.28,
-      "amount_total": 16883.49,
+      "origin": "SEED/2026-08",
+      "date_order": "2026-08-13 11:00:00",
+      "date_approve": "2026-08-13 11:00:00",
+      "date_planned": "2026-09-10 12:00:00",
+      "amount_untaxed": 1523.64,
+      "amount_total": 1752.19,
       "currency_id": [
        1,
        "USD"
@@ -100,44 +100,31 @@
       ],
       "user_id": [
        2,
-       "Mitchell Admin"
+       "Administrator"
       ],
       "receipt_status": "full",
       "invoice_status": "invoiced",
       "order_line": [
-       28,
-       29,
-       30,
-       31,
-       32,
-       33,
-       34,
-       35,
-       36,
-       37,
-       38,
-       39,
-       40,
-       41
+       800,
+       801,
+       802,
+       803
       ],
       "picking_ids": [
-       18
+       6901
       ],
-      "sc_external_ref": "seed-po-20260912-24-1",
+      "sc_external_ref": "seed-open-20260912-6",
       "sc_eta_source": false,
       "sc_eta_confidence": 0.0,
-      "sc_needs_human": true,
+      "sc_needs_human": false,
       "sc_supplier_confirmed": false,
-      "sc_pending_approval_id": [
-       28,
-       "sc.approval,28"
-      ]
+      "sc_pending_approval_id": false
      }
     ]
    }
   },
   {
-   "key": "fd99cec7e9841e1723a1c49b",
+   "key": "974a872c436e549882f14609",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -152,7 +139,7 @@
        [
         "move_id.purchase_line_id.order_id",
         "=",
-        16
+        78
        ],
        [
         "picking_id.picking_type_code",
@@ -191,304 +178,94 @@
     "id": 3,
     "result": [
      {
-      "id": 49,
+      "id": 7714,
       "product_id": [
-       49,
-       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
-      ],
-      "move_id": [
-       54,
-       "P00016/CBEA-LHN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 13.0,
-      "quantity_product_uom": 13.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 50,
-      "product_id": [
-       50,
-       "[CBCA-LHN] Válvula de contrabalance 3:1, cavidad T-2A"
-      ],
-      "move_id": [
-       55,
-       "P00016/CBCA-LHN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 8.0,
-      "quantity_product_uom": 8.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 51,
-      "product_id": [
-       51,
-       "[CBGA-LHN] Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
-      ],
-      "move_id": [
-       56,
-       "P00016/CBGA-LHN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 10.0,
-      "quantity_product_uom": 10.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 52,
-      "product_id": [
-       52,
-       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A"
-      ],
-      "move_id": [
-       57,
-       "P00016/RPEC-LAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 31.0,
-      "quantity_product_uom": 31.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 53,
-      "product_id": [
-       53,
-       "[RDDA-LAN] Válvula de alivio de acción directa, cavidad T-10A"
-      ],
-      "move_id": [
-       58,
-       "P00016/RDDA-LAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 10.0,
-      "quantity_product_uom": 10.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 54,
-      "product_id": [
-       54,
+       6,
        "[NFCC-LCN] Válvula de aguja, ajuste fino, cavidad T-11A"
       ],
       "move_id": [
-       59,
-       "P00016/NFCC-LCN: Vendors>Stock"
+       7714,
+       "P00078/NFCC-LCN: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 17.0,
-      "quantity_product_uom": 17.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 55,
-      "product_id": [
-       55,
-       "[FXDA-XAN] Control de caudal compensado por presión, cavidad T-2A"
-      ],
-      "move_id": [
-       60,
-       "P00016/FXDA-XAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 10.0,
-      "quantity_product_uom": 10.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 56,
-      "product_id": [
-       56,
-       "[CXDA-XCN] Válvula check, cavidad T-10A"
-      ],
-      "move_id": [
-       61,
-       "P00016/CXDA-XCN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 30.0,
-      "quantity_product_uom": 30.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 57,
-      "product_id": [
-       57,
-       "[DTDA-MCN] Válvula direccional solenoide 2 vías NC, cavidad T-11A"
-      ],
-      "move_id": [
-       62,
-       "P00016/DTDA-MCN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 16.0,
-      "quantity_product_uom": 16.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 58,
-      "product_id": [
-       58,
-       "[PBDB-LAN] Válvula reductora/aliviadora de presión, cavidad T-2A"
-      ],
-      "move_id": [
-       63,
-       "P00016/PBDB-LAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
       "quantity": 12.0,
       "quantity_product_uom": 12.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      },
      {
-      "id": 59,
+      "id": 7715,
       "product_id": [
-       59,
-       "[LODC-XDN] Elemento lógico 2 vías, cavidad T-11A"
+       14,
+       "[AAB-T2A] Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP"
       ],
       "move_id": [
-       64,
-       "P00016/LODC-XDN: Vendors>Stock"
+       7715,
+       "P00078/AAB-T2A: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
-      "quantity": 7.0,
-      "quantity_product_uom": 7.0,
+      "quantity": 18.0,
+      "quantity_product_uom": 18.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      },
      {
-      "id": 60,
+      "id": 7716,
       "product_id": [
-       60,
-       "[AAA-T11A] Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
+       24,
+       "[990-002-007] Kit de sellos Buna-N para cavidad T-2A"
       ],
       "move_id": [
-       65,
-       "P00016/AAA-T11A: Vendors>Stock"
+       7716,
+       "P00078/990-002-007: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
-      "quantity": 45.0,
-      "quantity_product_uom": 45.0,
+      "quantity": 36.0,
+      "quantity_product_uom": 36.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      },
      {
-      "id": 61,
+      "id": 7717,
       "product_id": [
-       61,
-       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT"
+       30,
+       "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho"
       ],
       "move_id": [
-       66,
-       "P00016/770-212: Vendors>Stock"
+       7717,
+       "P00078/ADP-BSPP-12: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
-      "quantity": 8.0,
-      "quantity_product_uom": 8.0,
+      "quantity": 120.0,
+      "quantity_product_uom": 120.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 62,
-      "product_id": [
-       62,
-       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A"
-      ],
-      "move_id": [
-       67,
-       "P00016/990-011-007: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 100.0,
-      "quantity_product_uom": 100.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      }
     ]
    }
   },
   {
-   "key": "465e98945dc3d3e4a22c14c7",
+   "key": "62fb3571b9a7b6f6ac7f494e",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -503,7 +280,7 @@
        [
         "picking_id",
         "=",
-        18
+        6901
        ]
       ]
      ],
@@ -532,304 +309,94 @@
     "id": 4,
     "result": [
      {
-      "id": 49,
+      "id": 7714,
       "product_id": [
-       49,
-       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
-      ],
-      "move_id": [
-       54,
-       "P00016/CBEA-LHN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 13.0,
-      "quantity_product_uom": 13.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 50,
-      "product_id": [
-       50,
-       "[CBCA-LHN] Válvula de contrabalance 3:1, cavidad T-2A"
-      ],
-      "move_id": [
-       55,
-       "P00016/CBCA-LHN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 8.0,
-      "quantity_product_uom": 8.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 51,
-      "product_id": [
-       51,
-       "[CBGA-LHN] Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
-      ],
-      "move_id": [
-       56,
-       "P00016/CBGA-LHN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 10.0,
-      "quantity_product_uom": 10.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 52,
-      "product_id": [
-       52,
-       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A"
-      ],
-      "move_id": [
-       57,
-       "P00016/RPEC-LAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 31.0,
-      "quantity_product_uom": 31.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 53,
-      "product_id": [
-       53,
-       "[RDDA-LAN] Válvula de alivio de acción directa, cavidad T-10A"
-      ],
-      "move_id": [
-       58,
-       "P00016/RDDA-LAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 10.0,
-      "quantity_product_uom": 10.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 54,
-      "product_id": [
-       54,
+       6,
        "[NFCC-LCN] Válvula de aguja, ajuste fino, cavidad T-11A"
       ],
       "move_id": [
-       59,
-       "P00016/NFCC-LCN: Vendors>Stock"
+       7714,
+       "P00078/NFCC-LCN: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 17.0,
-      "quantity_product_uom": 17.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 55,
-      "product_id": [
-       55,
-       "[FXDA-XAN] Control de caudal compensado por presión, cavidad T-2A"
-      ],
-      "move_id": [
-       60,
-       "P00016/FXDA-XAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 10.0,
-      "quantity_product_uom": 10.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 56,
-      "product_id": [
-       56,
-       "[CXDA-XCN] Válvula check, cavidad T-10A"
-      ],
-      "move_id": [
-       61,
-       "P00016/CXDA-XCN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 30.0,
-      "quantity_product_uom": 30.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 57,
-      "product_id": [
-       57,
-       "[DTDA-MCN] Válvula direccional solenoide 2 vías NC, cavidad T-11A"
-      ],
-      "move_id": [
-       62,
-       "P00016/DTDA-MCN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 16.0,
-      "quantity_product_uom": 16.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 58,
-      "product_id": [
-       58,
-       "[PBDB-LAN] Válvula reductora/aliviadora de presión, cavidad T-2A"
-      ],
-      "move_id": [
-       63,
-       "P00016/PBDB-LAN: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
       "quantity": 12.0,
       "quantity_product_uom": 12.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      },
      {
-      "id": 59,
+      "id": 7715,
       "product_id": [
-       59,
-       "[LODC-XDN] Elemento lógico 2 vías, cavidad T-11A"
+       14,
+       "[AAB-T2A] Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP"
       ],
       "move_id": [
-       64,
-       "P00016/LODC-XDN: Vendors>Stock"
+       7715,
+       "P00078/AAB-T2A: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
-      "quantity": 7.0,
-      "quantity_product_uom": 7.0,
+      "quantity": 18.0,
+      "quantity_product_uom": 18.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      },
      {
-      "id": 60,
+      "id": 7716,
       "product_id": [
-       60,
-       "[AAA-T11A] Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
+       24,
+       "[990-002-007] Kit de sellos Buna-N para cavidad T-2A"
       ],
       "move_id": [
-       65,
-       "P00016/AAA-T11A: Vendors>Stock"
+       7716,
+       "P00078/990-002-007: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
-      "quantity": 45.0,
-      "quantity_product_uom": 45.0,
+      "quantity": 36.0,
+      "quantity_product_uom": 36.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      },
      {
-      "id": 61,
+      "id": 7717,
       "product_id": [
-       61,
-       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT"
+       30,
+       "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho"
       ],
       "move_id": [
-       66,
-       "P00016/770-212: Vendors>Stock"
+       7717,
+       "P00078/ADP-BSPP-12: Vendors>Stock"
       ],
       "picking_id": [
-       18,
-       "WH/IN/00007"
+       6901,
+       "WH/IN/00086"
       ],
-      "quantity": 8.0,
-      "quantity_product_uom": 8.0,
+      "quantity": 120.0,
+      "quantity_product_uom": 120.0,
       "picked": true,
       "state": "done",
-      "date": "2024-08-30 15:00:00",
-      "lot_id": false
-     },
-     {
-      "id": 62,
-      "product_id": [
-       62,
-       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A"
-      ],
-      "move_id": [
-       67,
-       "P00016/990-011-007: Vendors>Stock"
-      ],
-      "picking_id": [
-       18,
-       "WH/IN/00007"
-      ],
-      "quantity": 100.0,
-      "quantity_product_uom": 100.0,
-      "picked": true,
-      "state": "done",
-      "date": "2024-08-30 15:00:00",
+      "date": "2026-09-11 15:00:00",
       "lot_id": false
      }
     ]
    }
   },
   {
-   "key": "017c46be9d151b6ecbfcc97d",
+   "key": "55d8b15ed18a1a555db7ca62",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -852,7 +419,7 @@
        [
         "invoice_line_ids.purchase_line_id.order_id",
         "=",
-        16
+        78
        ],
        [
         "state",
@@ -900,22 +467,22 @@
     "id": 5,
     "result": [
      {
-      "id": 49,
+      "id": 1,
       "name": false,
       "move_type": "in_invoice",
       "state": "draft",
       "partner_id": [
-       45,
+       8,
        "Proveedor Hidraulica"
       ],
-      "invoice_date": "2024-09-02",
-      "invoice_date_due": "2026-09-12",
-      "ref": "F001-000123",
+      "invoice_date": "2026-09-12",
+      "invoice_date_due": "2026-09-13",
+      "ref": "F001-000201",
       "payment_reference": false,
-      "invoice_origin": "P00016",
-      "amount_untaxed": 14681.28,
-      "amount_total": 16883.49,
-      "amount_residual": 16883.49,
+      "invoice_origin": "P00078",
+      "amount_untaxed": 1523.64,
+      "amount_total": 1752.19,
+      "amount_residual": 1752.19,
       "currency_id": [
        1,
        "USD"
@@ -923,32 +490,25 @@
       "payment_state": "not_paid",
       "purchase_id": false,
       "invoice_line_ids": [
-       115,
-       116,
-       117,
-       118,
-       119,
-       120,
-       121,
-       122,
-       123,
-       124,
-       125,
-       126,
-       127,
-       128
+       1,
+       2,
+       3,
+       4
       ],
-      "create_date": "2026-09-12 23:47:11",
-      "sc_match_verdict": false,
-      "sc_matched_po_id": false,
-      "sc_match_summary": false,
-      "sc_checked_at": false
+      "create_date": "2026-09-13 12:41:08",
+      "sc_match_verdict": "clean",
+      "sc_matched_po_id": [
+       78,
+       "P00078"
+      ],
+      "sc_match_summary": "All 4 line(s) match the order and the receipts.",
+      "sc_checked_at": "2026-09-13 12:47:54"
      }
     ]
    }
   },
   {
-   "key": "017c46be9d151b6ecbfcc97d",
+   "key": "55d8b15ed18a1a555db7ca62",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -971,7 +531,7 @@
        [
         "invoice_line_ids.purchase_line_id.order_id",
         "=",
-        16
+        78
        ],
        [
         "state",
@@ -1019,22 +579,22 @@
     "id": 6,
     "result": [
      {
-      "id": 49,
+      "id": 1,
       "name": false,
       "move_type": "in_invoice",
       "state": "draft",
       "partner_id": [
-       45,
+       8,
        "Proveedor Hidraulica"
       ],
-      "invoice_date": "2024-09-02",
-      "invoice_date_due": "2026-09-12",
-      "ref": "F001-000123",
+      "invoice_date": "2026-09-12",
+      "invoice_date_due": "2026-09-13",
+      "ref": "F001-000201",
       "payment_reference": false,
-      "invoice_origin": "P00016",
-      "amount_untaxed": 14681.28,
-      "amount_total": 16883.49,
-      "amount_residual": 16883.49,
+      "invoice_origin": "P00078",
+      "amount_untaxed": 1523.64,
+      "amount_total": 1752.19,
+      "amount_residual": 1752.19,
       "currency_id": [
        1,
        "USD"
@@ -1042,32 +602,25 @@
       "payment_state": "not_paid",
       "purchase_id": false,
       "invoice_line_ids": [
-       115,
-       116,
-       117,
-       118,
-       119,
-       120,
-       121,
-       122,
-       123,
-       124,
-       125,
-       126,
-       127,
-       128
+       1,
+       2,
+       3,
+       4
       ],
-      "create_date": "2026-09-12 23:47:11",
-      "sc_match_verdict": false,
-      "sc_matched_po_id": false,
-      "sc_match_summary": false,
-      "sc_checked_at": false
+      "create_date": "2026-09-13 12:41:08",
+      "sc_match_verdict": "clean",
+      "sc_matched_po_id": [
+       78,
+       "P00078"
+      ],
+      "sc_match_summary": "All 4 line(s) match the order and the receipts.",
+      "sc_checked_at": "2026-09-13 12:47:54"
      }
     ]
    }
   },
   {
-   "key": "d8a8a5dacf382fd993cc13ca",
+   "key": "c003d47788e28dab55cdf736",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -1082,7 +635,7 @@
        [
         "move_id",
         "=",
-        49
+        1
        ],
        [
         "display_type",
@@ -1117,310 +670,90 @@
     "id": 7,
     "result": [
      {
-      "id": 115,
+      "id": 1,
       "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
+       1,
+       "Draft Bill (F001-000201)"
       ],
       "product_id": [
-       49,
-       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
-      ],
-      "name": "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 13.0,
-      "price_unit": 104.16,
-      "discount": 0.0,
-      "price_subtotal": 1354.08,
-      "price_total": 1557.19,
-      "purchase_line_id": [
-       28,
-       "[CBEA-LHN] Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 116,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       50,
-       "[CBCA-LHN] Válvula de contrabalance 3:1, cavidad T-2A"
-      ],
-      "name": "[CBCA-LHN] Válvula de contrabalance 3:1, cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 8.0,
-      "price_unit": 88.04,
-      "discount": 0.0,
-      "price_subtotal": 704.32,
-      "price_total": 809.97,
-      "purchase_line_id": [
-       29,
-       "[CBCA-LHN] Válvula de contrabalance 3:1, cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 117,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       51,
-       "[CBGA-LHN] Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
-      ],
-      "name": "[CBGA-LHN] Válvula de contrabalance 3:1, alto caudal, cavidad T-17A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 10.0,
-      "price_unit": 148.68,
-      "discount": 0.0,
-      "price_subtotal": 1486.8,
-      "price_total": 1709.82,
-      "purchase_line_id": [
-       30,
-       "[CBGA-LHN] Válvula de contrabalance 3:1, alto caudal, cavidad T-17A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 118,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       52,
-       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A"
-      ],
-      "name": "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 31.0,
-      "price_unit": 73.81,
-      "discount": 0.0,
-      "price_subtotal": 2288.11,
-      "price_total": 2631.33,
-      "purchase_line_id": [
-       31,
-       "[RPEC-LAN] Válvula de alivio de acción directa, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 119,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       53,
-       "[RDDA-LAN] Válvula de alivio de acción directa, cavidad T-10A"
-      ],
-      "name": "[RDDA-LAN] Válvula de alivio de acción directa, cavidad T-10A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 10.0,
-      "price_unit": 57.6,
-      "discount": 0.0,
-      "price_subtotal": 576.0,
-      "price_total": 662.4,
-      "purchase_line_id": [
-       32,
-       "[RDDA-LAN] Válvula de alivio de acción directa, cavidad T-10A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 120,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       54,
+       6,
        "[NFCC-LCN] Válvula de aguja, ajuste fino, cavidad T-11A"
       ],
       "name": "[NFCC-LCN] Válvula de aguja, ajuste fino, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 17.0,
+      "quantity": 12.0,
       "price_unit": 52.8,
       "discount": 0.0,
-      "price_subtotal": 897.6,
-      "price_total": 1032.24,
+      "price_subtotal": 633.6,
+      "price_total": 728.64,
       "purchase_line_id": [
-       33,
+       800,
        "[NFCC-LCN] Válvula de aguja, ajuste fino, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
       ],
       "display_type": "product"
      },
      {
-      "id": 121,
+      "id": 2,
       "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
+       1,
+       "Draft Bill (F001-000201)"
       ],
       "product_id": [
-       55,
-       "[FXDA-XAN] Control de caudal compensado por presión, cavidad T-2A"
+       14,
+       "[AAB-T2A] Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP"
       ],
-      "name": "[FXDA-XAN] Control de caudal compensado por presión, cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 10.0,
-      "price_unit": 95.48,
+      "name": "[AAB-T2A] Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
+      "quantity": 18.0,
+      "price_unit": 17.98,
       "discount": 0.0,
-      "price_subtotal": 954.8,
-      "price_total": 1098.02,
+      "price_subtotal": 323.64,
+      "price_total": 372.19,
       "purchase_line_id": [
-       34,
-       "[FXDA-XAN] Control de caudal compensado por presión, cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
+       801,
+       "[AAB-T2A] Cuerpo de línea aluminio, cavidad T-2A, puertos 3/8\" BSPP\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
       ],
       "display_type": "product"
      },
      {
-      "id": 122,
+      "id": 3,
       "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
+       1,
+       "Draft Bill (F001-000201)"
       ],
       "product_id": [
-       56,
-       "[CXDA-XCN] Válvula check, cavidad T-10A"
+       24,
+       "[990-002-007] Kit de sellos Buna-N para cavidad T-2A"
       ],
-      "name": "[CXDA-XCN] Válvula check, cavidad T-10A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 30.0,
-      "price_unit": 27.26,
+      "name": "[990-002-007] Kit de sellos Buna-N para cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
+      "quantity": 36.0,
+      "price_unit": 4.9,
       "discount": 0.0,
-      "price_subtotal": 817.8,
-      "price_total": 940.47,
+      "price_subtotal": 176.4,
+      "price_total": 202.86,
       "purchase_line_id": [
-       35,
-       "[CXDA-XCN] Válvula check, cavidad T-10A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
+       802,
+       "[990-002-007] Kit de sellos Buna-N para cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
       ],
       "display_type": "product"
      },
      {
-      "id": 123,
+      "id": 4,
       "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
+       1,
+       "Draft Bill (F001-000201)"
       ],
       "product_id": [
-       57,
-       "[DTDA-MCN] Válvula direccional solenoide 2 vías NC, cavidad T-11A"
+       30,
+       "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho"
       ],
-      "name": "[DTDA-MCN] Válvula direccional solenoide 2 vías NC, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 16.0,
-      "price_unit": 119.07,
+      "name": "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
+      "quantity": 120.0,
+      "price_unit": 3.25,
       "discount": 0.0,
-      "price_subtotal": 1905.12,
-      "price_total": 2190.89,
+      "price_subtotal": 390.0,
+      "price_total": 448.5,
       "purchase_line_id": [
-       36,
-       "[DTDA-MCN] Válvula direccional solenoide 2 vías NC, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 124,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       58,
-       "[PBDB-LAN] Válvula reductora/aliviadora de presión, cavidad T-2A"
-      ],
-      "name": "[PBDB-LAN] Válvula reductora/aliviadora de presión, cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 12.0,
-      "price_unit": 109.12,
-      "discount": 0.0,
-      "price_subtotal": 1309.44,
-      "price_total": 1505.86,
-      "purchase_line_id": [
-       37,
-       "[PBDB-LAN] Válvula reductora/aliviadora de presión, cavidad T-2A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 125,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       59,
-       "[LODC-XDN] Elemento lógico 2 vías, cavidad T-11A"
-      ],
-      "name": "[LODC-XDN] Elemento lógico 2 vías, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 7.0,
-      "price_unit": 81.13,
-      "discount": 0.0,
-      "price_subtotal": 567.91,
-      "price_total": 653.1,
-      "purchase_line_id": [
-       38,
-       "[LODC-XDN] Elemento lógico 2 vías, cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 126,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       60,
-       "[AAA-T11A] Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
-      ],
-      "name": "[AAA-T11A] Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 45.0,
-      "price_unit": 22.62,
-      "discount": 0.0,
-      "price_subtotal": 1017.9,
-      "price_total": 1170.59,
-      "purchase_line_id": [
-       39,
-       "[AAA-T11A] Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 127,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       61,
-       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT"
-      ],
-      "name": "[770-212] Bobina 12 VDC para válvulas solenoide serie DT\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 8.0,
-      "price_unit": 34.8,
-      "discount": 0.0,
-      "price_subtotal": 278.4,
-      "price_total": 320.16,
-      "purchase_line_id": [
-       40,
-       "[770-212] Bobina 12 VDC para válvulas solenoide serie DT\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
-      ],
-      "display_type": "product"
-     },
-     {
-      "id": 128,
-      "move_id": [
-       49,
-       "Draft Bill (F001-000123)"
-      ],
-      "product_id": [
-       62,
-       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A"
-      ],
-      "name": "[990-011-007] Kit de sellos Buna-N para cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización.",
-      "quantity": 100.0,
-      "price_unit": 5.23,
-      "discount": 0.0,
-      "price_subtotal": 523.0,
-      "price_total": 601.45,
-      "purchase_line_id": [
-       41,
-       "[990-011-007] Kit de sellos Buna-N para cavidad T-11A\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
+       803,
+       "[ADP-BSPP-12] Adaptador BSPP 1/2\" macho a JIC 1/2\" macho\nMarca Sun Hydraulics. Indicar número de parte en la cotización."
       ],
       "display_type": "product"
      }
@@ -1428,7 +761,7 @@
    }
   },
   {
-   "key": "51d6e9da6a47129ddcffd8e2",
+   "key": "919c5599df28c0c8602cce3c",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -1451,12 +784,12 @@
        [
         "partner_id",
         "=",
-        45
+        8
        ],
        [
         "ref",
         "=",
-        "F001-000123"
+        "F001-000201"
        ]
       ]
      ],
@@ -1497,22 +830,22 @@
     "id": 8,
     "result": [
      {
-      "id": 49,
+      "id": 1,
       "name": false,
       "move_type": "in_invoice",
       "state": "draft",
       "partner_id": [
-       45,
+       8,
        "Proveedor Hidraulica"
       ],
-      "invoice_date": "2024-09-02",
-      "invoice_date_due": "2026-09-12",
-      "ref": "F001-000123",
+      "invoice_date": "2026-09-12",
+      "invoice_date_due": "2026-09-13",
+      "ref": "F001-000201",
       "payment_reference": false,
-      "invoice_origin": "P00016",
-      "amount_untaxed": 14681.28,
-      "amount_total": 16883.49,
-      "amount_residual": 16883.49,
+      "invoice_origin": "P00078",
+      "amount_untaxed": 1523.64,
+      "amount_total": 1752.19,
+      "amount_residual": 1752.19,
       "currency_id": [
        1,
        "USD"
@@ -1520,32 +853,25 @@
       "payment_state": "not_paid",
       "purchase_id": false,
       "invoice_line_ids": [
-       115,
-       116,
-       117,
-       118,
-       119,
-       120,
-       121,
-       122,
-       123,
-       124,
-       125,
-       126,
-       127,
-       128
+       1,
+       2,
+       3,
+       4
       ],
-      "create_date": "2026-09-12 23:47:11",
-      "sc_match_verdict": false,
-      "sc_matched_po_id": false,
-      "sc_match_summary": false,
-      "sc_checked_at": false
+      "create_date": "2026-09-13 12:41:08",
+      "sc_match_verdict": "clean",
+      "sc_matched_po_id": [
+       78,
+       "P00078"
+      ],
+      "sc_match_summary": "All 4 line(s) match the order and the receipts.",
+      "sc_checked_at": "2026-09-13 12:47:54"
      }
     ]
    }
   },
   {
-   "key": "df27bc177f02f7ac0d067f89",
+   "key": "9e6d1968e6599a962526a6ba",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -1568,7 +894,7 @@
        [
         "invoice_line_ids.purchase_line_id.order_id",
         "=",
-        16
+        78
        ]
       ]
      ],
@@ -1609,22 +935,22 @@
     "id": 9,
     "result": [
      {
-      "id": 49,
+      "id": 1,
       "name": false,
       "move_type": "in_invoice",
       "state": "draft",
       "partner_id": [
-       45,
+       8,
        "Proveedor Hidraulica"
       ],
-      "invoice_date": "2024-09-02",
-      "invoice_date_due": "2026-09-12",
-      "ref": "F001-000123",
+      "invoice_date": "2026-09-12",
+      "invoice_date_due": "2026-09-13",
+      "ref": "F001-000201",
       "payment_reference": false,
-      "invoice_origin": "P00016",
-      "amount_untaxed": 14681.28,
-      "amount_total": 16883.49,
-      "amount_residual": 16883.49,
+      "invoice_origin": "P00078",
+      "amount_untaxed": 1523.64,
+      "amount_total": 1752.19,
+      "amount_residual": 1752.19,
       "currency_id": [
        1,
        "USD"
@@ -1632,32 +958,25 @@
       "payment_state": "not_paid",
       "purchase_id": false,
       "invoice_line_ids": [
-       115,
-       116,
-       117,
-       118,
-       119,
-       120,
-       121,
-       122,
-       123,
-       124,
-       125,
-       126,
-       127,
-       128
+       1,
+       2,
+       3,
+       4
       ],
-      "create_date": "2026-09-12 23:47:11",
-      "sc_match_verdict": false,
-      "sc_matched_po_id": false,
-      "sc_match_summary": false,
-      "sc_checked_at": false
+      "create_date": "2026-09-13 12:41:08",
+      "sc_match_verdict": "clean",
+      "sc_matched_po_id": [
+       78,
+       "P00078"
+      ],
+      "sc_match_summary": "All 4 line(s) match the order and the receipts.",
+      "sc_checked_at": "2026-09-13 12:47:54"
      }
     ]
    }
   },
   {
-   "key": "70a87a5fbc63f014f3b4a89f",
+   "key": "4e9f8f66c5529f88d9113a64",
    "request": {
     "service": "object",
     "method": "execute_kw",
@@ -1680,7 +999,7 @@
        [
         "partner_id",
         "=",
-        45
+        8
        ]
       ]
      ],
@@ -1722,22 +1041,22 @@
     "id": 10,
     "result": [
      {
-      "id": 49,
+      "id": 2,
       "name": false,
       "move_type": "in_invoice",
       "state": "draft",
       "partner_id": [
-       45,
+       8,
        "Proveedor Hidraulica"
       ],
-      "invoice_date": "2024-09-02",
-      "invoice_date_due": "2026-09-12",
-      "ref": "F001-000123",
+      "invoice_date": "2026-09-12",
+      "invoice_date_due": "2026-09-13",
+      "ref": "F001-000198",
       "payment_reference": false,
-      "invoice_origin": "P00016",
-      "amount_untaxed": 14681.28,
-      "amount_total": 16883.49,
-      "amount_residual": 16883.49,
+      "invoice_origin": "P00079",
+      "amount_untaxed": 1368.28,
+      "amount_total": 1573.53,
+      "amount_residual": 1573.53,
       "currency_id": [
        1,
        "USD"
@@ -1745,26 +1064,56 @@
       "payment_state": "not_paid",
       "purchase_id": false,
       "invoice_line_ids": [
-       115,
-       116,
-       117,
-       118,
-       119,
-       120,
-       121,
-       122,
-       123,
-       124,
-       125,
-       126,
-       127,
-       128
+       7,
+       8,
+       9
       ],
-      "create_date": "2026-09-12 23:47:11",
-      "sc_match_verdict": false,
-      "sc_matched_po_id": false,
-      "sc_match_summary": false,
-      "sc_checked_at": false
+      "create_date": "2026-09-13 12:41:09",
+      "sc_match_verdict": "hold",
+      "sc_matched_po_id": [
+       79,
+       "P00079"
+      ],
+      "sc_match_summary": "Held: 1 line(s) price variance.",
+      "sc_checked_at": "2026-09-13 12:47:54"
+     },
+     {
+      "id": 1,
+      "name": false,
+      "move_type": "in_invoice",
+      "state": "draft",
+      "partner_id": [
+       8,
+       "Proveedor Hidraulica"
+      ],
+      "invoice_date": "2026-09-12",
+      "invoice_date_due": "2026-09-13",
+      "ref": "F001-000201",
+      "payment_reference": false,
+      "invoice_origin": "P00078",
+      "amount_untaxed": 1523.64,
+      "amount_total": 1752.19,
+      "amount_residual": 1752.19,
+      "currency_id": [
+       1,
+       "USD"
+      ],
+      "payment_state": "not_paid",
+      "purchase_id": false,
+      "invoice_line_ids": [
+       1,
+       2,
+       3,
+       4
+      ],
+      "create_date": "2026-09-13 12:41:08",
+      "sc_match_verdict": "clean",
+      "sc_matched_po_id": [
+       78,
+       "P00078"
+      ],
+      "sc_match_summary": "All 4 line(s) match the order and the receipts.",
+      "sc_checked_at": "2026-09-13 12:47:54"
      }
     ]
    }

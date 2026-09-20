@@ -1,0 +1,31 @@
+# A receipt that did not match the order: the report went out; now get an answer.
+name: receipt_variance
+title: Receipt discrepancy
+description: >
+  The logistics agent reported the difference. Wait three days for the
+  supplier's answer, chase once, then escalate so a buyer settles it (credit
+  note, replacement or acceptance).
+trigger: discrepancy
+case_kind: receipt
+done_when: reply_received
+done_reason: The supplier answered about the receipt difference; a person reads the answer.
+steps:
+  - id: wait_answer
+    label: Wait three days for the supplier's answer
+    wait_days: 3
+    until: reply_received
+  - id: chase
+    label: Chase the answer
+    when: no_reply
+    agent: supplier_comms
+    task: follow_up
+    notes: "We reported a difference on the receipt and need your answer: replacement, credit note or explanation."
+  - id: wait_again
+    label: Wait three more days
+    when: no_reply
+    wait_days: 3
+    until: reply_received
+  - id: settle
+    label: A buyer settles it
+    action: escalate
+    reason: "The receipt difference needs a decision: credit note, replacement or acceptance."

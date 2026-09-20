@@ -8,6 +8,7 @@ import pytest
 
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
 from sc_core.schema.a2a import SupplierCommsTask
+from sc_core.schema.autonomy import AutonomyPolicy, AutonomyRule, RuleConditions
 from supplier_comms.models import DraftOutput
 from supplier_comms.routers.approvals import ApprovalCallback
 from supplier_comms.testing import SUPPLIER_EMAIL, FakePorts, demo_context
@@ -17,6 +18,20 @@ DRAFT = DraftOutput(
     subject="Solicitud de cotización",
     html_body="<p>Estimados, solicitamos cotización de la orden.</p><p>Equipo de Compras</p>",
 )
+
+
+def trusted(partner_id: int) -> Any:
+    """A policy that lets every email to ``partner_id`` go out alone."""
+    return AutonomyPolicy(
+        rules=[
+            AutonomyRule(
+                id="trusted",
+                kind="send_email",
+                when=RuleConditions(partner_ids=[partner_id]),
+                level="auto_notice",
+            )
+        ]
+    ).provider()
 
 
 def _script_draft(chat: ScriptedChatClient) -> None:
@@ -76,6 +91,7 @@ async def test_send_rfq_pauses_on_approval_then_sends(
     }
     assert "Open in Outlook" in ports.notes[-1][1]
     assert sent.outbound is not None and sent.outbound.sent_message_id == "sent1"
+    assert ports.rfqs_marked_sent == [7]  # Odoo shows the RFQ as sent
     assert len(approval_ports.created) == 1  # no second approval on resume
 
 
@@ -134,7 +150,7 @@ async def test_auto_send_partner_skips_approval(
     make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
 ) -> None:
     _script_draft(chat)
-    agent = make_agent(auto_send_partner_ids=frozenset({42}))
+    agent = make_agent(policy=trusted(42))
     result = await agent.run(SupplierCommsTask(kind="request_eta", case_id="c3", po_name="P00015"))
     assert result.status == "sent" and approval_ports.created == []
     assert ports.sent_ids == ["draft1"]
@@ -144,7 +160,7 @@ async def test_resume_after_finish_is_idempotent(
     make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
 ) -> None:
     _script_draft(chat)
-    agent = make_agent(auto_send_partner_ids=frozenset({42}))
+    agent = make_agent(policy=trusted(42))
     first = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c4", po_name="P00015"))
     again = await agent.resume("c4", {"approval_id": 0, "status": "approved"})
     assert again.status == first.status == "sent" and ports.sent_ids == ["draft1"]
@@ -167,7 +183,7 @@ async def test_sent_copy_lookup_retries_then_falls_back(
 ) -> None:
     _script_draft(chat)
     ports.find_sent_misses = 99
-    agent = make_agent(auto_send_partner_ids=frozenset({42}))
+    agent = make_agent(policy=trusted(42))
     result = await agent.run(SupplierCommsTask(kind="send_rfq", case_id="c7", po_name="P00015"))
     assert result.status == "sent"
     assert ports.outbound_records[0]["graph_message_id"] == "draft1"  # fell back to the draft ids
@@ -206,11 +222,15 @@ async def test_a_crashing_run_is_logged_as_failed(
 async def test_auto_send_by_kind_skips_approval_for_that_kind_only(
     make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
 ) -> None:
+    from sc_core.graph import policy_from
     from sc_core.infra.runtime_settings import MemoryRuntimeSettingsReader
     from sc_core.schema.runtime_settings import RuntimeSettings
 
-    runtime = MemoryRuntimeSettingsReader(RuntimeSettings(auto_send_kinds=["request_eta"]))
-    agent = make_agent(runtime=runtime)
+    # the phase 5 setting, as the Control Tower migrates it: a rule on the email kind
+    runtime = MemoryRuntimeSettingsReader(
+        RuntimeSettings(autonomy=AutonomyPolicy.from_legacy(auto_send_kinds=["request_eta"]))
+    )
+    agent = make_agent(policy=policy_from(runtime))
     _script_draft(chat)
     eta = await agent.run(SupplierCommsTask(kind="request_eta", case_id="c5", po_name="P00015"))
     assert eta.status == "sent" and approval_ports.created == [] and ports.sent_ids == ["draft1"]
@@ -239,3 +259,30 @@ def test_style_tables_gives_bare_tables_borders() -> None:
     assert styled.startswith("<p>Hola</p><table style=")
     assert style_tables('<td style="color:red">x</td>') == '<td style="color:red">x</td>'
     assert style_tables("<p>no table</p>") == "<p>no table</p>"
+
+
+async def test_the_supplier_profile_shapes_the_draft(
+    make_agent: Any, ports: FakePorts, chat: ScriptedChatClient
+) -> None:
+    """What the buyers wrote about the supplier is in the prompt; agent facts are not."""
+    from sc_core.schema.profiles import SupplierProfile
+
+    ports.profiles[42] = SupplierProfile(
+        partner_id=42,
+        formality="formal",
+        greeting="Estimados señores de Hidraulica",
+        sign_off="Atentamente",
+        contacts=["Carla Reyes"],
+        notes="Copy Carla on urgent orders.",
+        facts={"reply_hours_median": 2.8},
+    )
+    _script_draft(chat)
+    result = await make_agent().run(
+        SupplierCommsTask(kind="send_rfq", case_id="profile_1", po_name="P00015")
+    )
+    assert result.status == "awaiting_approval"
+    context = chat.calls[0].messages[1]["contents"][0]["text"]
+    assert "Supplier profile (follow it):" in context
+    assert "Greeting to use: Estimados señores de Hidraulica" in context
+    assert "Contacts: Carla Reyes" in context and "Copy Carla on urgent orders." in context
+    assert "reply_hours_median" not in context  # facts are for the Control Tower, not the prompt

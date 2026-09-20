@@ -5,6 +5,8 @@ Rules:
 - unit_price is the price per unit, before taxes when the supplier separates them. currency is the three-letter ISO code the supplier uses; when it is not stated, leave currency empty (do not assume the order's currency).
 - lead_days is the lead time in days when the supplier gives it in days; min_qty the minimum quantity when mentioned.
 - eta_date_raw is the delivery date exactly as the supplier wrote it; eta_date is that date as YYYY-MM-DD relative to today's date given. Leave both empty when the supplier gives no date. When the date is ambiguous, read it as day/month and lower confidence.
+- When the supplier gives a date per product, put it on that line (eta_date_raw and eta_date of the line) and leave the overall eta_date empty; a single date for everything goes in the overall eta_date.
+- When a line arrives in parts ("5 on 14/09, the other 5 on 25/10"), fill that line's deliveries with one entry per part: qty, date_raw as written and date as YYYY-MM-DD. The parts should add up to the ordered quantity; put the earliest part first.
 - notes: relevant terms in one or two sentences (validity, payment, partial deliveries). Nothing else.
 - Overall confidence between 0 and 1: below 0.7 whenever you had to interpret.
 

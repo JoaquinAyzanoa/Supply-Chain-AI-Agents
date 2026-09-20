@@ -31,6 +31,12 @@ APPROVAL_KINDS = [
     ("escalation", "Escalation"),
     ("vendor_bill", "Vendor bill"),
     ("supplier_score", "Supplier scorecards"),
+    ("autonomy_change", "Autonomy change"),
+    ("award", "Quote round award"),
+    ("negotiation_offer", "Counter-offer"),
+    ("partner_create", "New supplier"),
+    ("internal_request", "Internal request"),
+    ("price_list_update", "Price list update"),
 ]
 APPROVAL_STATUSES = [
     ("pending", "Pending"),

@@ -38,15 +38,18 @@ from director.inbox import EventInbox, EventResults
 from director.jobs import JobRunner
 from director.router import Dispatch, Route, UnroutableEvent, route
 from director.store import Case, CaseStatus, CaseStore
+from director.teams import ApprovalNotifier
 from sc_core.infra import tracing
 from sc_core.odoo.models import PurchaseOrder
 from sc_core.schema.a2a import (
     InventoryPlanningResult,
+    InvitedRfq,
     InvoiceMatchResult,
     InvoiceMatchTask,
     LogisticsResult,
     LogisticsTask,
     OutcomeStatus,
+    SourcingResult,
     SupplierCommsResult,
     SupplierCommsTask,
     SupplierPerformanceResult,
@@ -80,6 +83,7 @@ class TaskEnvelope(StrictModel):
     case: Case
     event_id: str
     dispatch: Dispatch
+    web_link: str | None = None  # the email the task is about, for the timeline
 
 
 class AgentOutcome(StrictModel):
@@ -94,11 +98,17 @@ class AgentOutcome(StrictModel):
     run_id: str | None = None
     approval_id: int | None = None
     sent_message_id: str | None = None
+    web_link: str | None = None  # Outlook link to the email sent, for the timeline
     error: dict[str, Any] | None = None
     classification: str | None = None
     """What the supplier agent made of an inbound email (routes a shipping notice on)."""
     follow_on: Dispatch | None = None
     """A second task another agent must run once this outcome is recorded."""
+    invited: list[InvitedRfq] = []
+    """A quote round's invitations: each RFQ gets a case of its own on the board."""
+    round_id: int | None = None
+    po_names: list[str] = []
+    """The RFQs an internal request became (phase 11 S6): each starts a playbook."""
 
 
 class RecordOnly(StrictModel):
@@ -145,6 +155,23 @@ class Deps:
     escalator: Escalator
     jobs: JobRunner
     conversations: ConversationLookup
+    autonomy: AutonomyApplier | None = None  # applies an approved autonomy change
+    feedback: FeedbackHook | None = None  # records decisions made in Odoo
+    notifier: ApprovalNotifier | None = None  # mirrors new approvals to Teams (phase 11 S6)
+
+
+class PlaybookNudge(Protocol):
+    async def on_po_event(self, po_name: str) -> list[int]: ...
+
+    async def on_request(self, po_names: list[str]) -> list[int]: ...
+
+
+class AutonomyApplier(Protocol):
+    async def apply_approval(self, approval_id: int, *, by: str) -> Any: ...
+
+
+class FeedbackHook(Protocol):
+    async def record_from_odoo(self, approval_id: int, *, status: str, by: str | None) -> None: ...
 
 
 # --- status mapping -----------------------------------------------------------------
@@ -179,7 +206,12 @@ class RouteExecutor(Executor):
             return
         for dispatch in item.route.dispatches:
             await ctx.send_message(
-                TaskEnvelope(case=item.case, event_id=item.event.event_id, dispatch=dispatch)
+                TaskEnvelope(
+                    case=item.case,
+                    event_id=item.event.event_id,
+                    dispatch=dispatch,
+                    web_link=getattr(item.event, "web_link", None),
+                )
             )
 
 
@@ -206,6 +238,7 @@ class AgentProxyExecutor(Executor):
                 "thread_id": task.case_id,
                 "po_name": getattr(task, "po_name", None),
                 "event_id": envelope.event_id,
+                "web_link": envelope.web_link,
             },
         )
         proxy = self._deps.agents.for_name(self._agent)
@@ -318,11 +351,14 @@ def outcome_from_reply(
             approval_id=result.outcome.approval_id,
         )
     outbound = getattr(result, "outbound", None)
+    invited = list(result.invited) if isinstance(result, SourcingResult) else []
+    round_id = result.round_id if isinstance(result, SourcingResult) else None
     classification = (
         result.classification.kind
         if isinstance(result, SupplierCommsResult) and result.classification
         else None
     )
+    po_names = list(result.po_names) if isinstance(result, SupplierCommsResult) else []
     return AgentOutcome(
         case=case,
         agent=agent,
@@ -333,7 +369,11 @@ def outcome_from_reply(
         run_id=result.run_id,
         approval_id=result.outcome.approval_id,
         sent_message_id=outbound.sent_message_id if outbound else None,
+        web_link=outbound.web_link if outbound else None,
         classification=classification,
+        invited=invited,
+        round_id=round_id,
+        po_names=po_names,
     )
 
 
@@ -343,6 +383,7 @@ AgentResult = (
     | LogisticsResult
     | InvoiceMatchResult
     | SupplierPerformanceResult
+    | SourcingResult
 )
 _ALL_RESULTS: tuple[type[AgentResult], ...] = (
     SupplierCommsResult,
@@ -350,6 +391,7 @@ _ALL_RESULTS: tuple[type[AgentResult], ...] = (
     LogisticsResult,
     InvoiceMatchResult,
     SupplierPerformanceResult,
+    SourcingResult,
 )
 _FIRST_CONTRACT: dict[str, type[AgentResult]] = {
     "supplier_comms": SupplierCommsResult,
@@ -357,6 +399,7 @@ _FIRST_CONTRACT: dict[str, type[AgentResult]] = {
     "logistics": LogisticsResult,
     "invoice_match": InvoiceMatchResult,
     "supplier_performance": SupplierPerformanceResult,
+    "sourcing": SourcingResult,
 }
 _CONTRACTS: dict[str, tuple[type[AgentResult], ...]] = {
     name: (first, *[c for c in _ALL_RESULTS if c is not first])
@@ -389,6 +432,7 @@ class ConsolidateExecutor(Executor):
         await ctx.yield_output(
             await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
         )
+        await _announce(deps, outcome)
         if outcome.follow_on is not None:
             await ctx.yield_output(await self._follow_on(outcome.case, outcome.follow_on))
 
@@ -416,7 +460,9 @@ class ConsolidateExecutor(Executor):
             )
         else:
             outcome = outcome_from_reply(case, dispatch.agent, task.kind, task.case_id, reply)
-        return await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
+        update = await consolidate_outcome(deps.cases, deps.escalator, deps.conversations, outcome)
+        await _announce(deps, outcome)
+        return update
 
     @handler
     async def record(self, item: RecordOnly, ctx: WorkflowContext[Any, CaseUpdate]) -> None:
@@ -436,15 +482,29 @@ class ConsolidateExecutor(Executor):
             )
             return
         note = decided.note or f"{item.event.type} recorded"
-        await cases.add_event(case.case_id, "note", {"text": note, "event_type": item.event.type})
+        await cases.add_event(
+            case.case_id,
+            "note",
+            {"text": note, "event_type": item.event.type, **event_facts(item.event)},
+        )
         status = case.status
+        detail: dict[str, Any] = {}
         if isinstance(item.event, OdooApprovalResolved):
             status = await self._approval_resolved(case, item.event, note)
         elif isinstance(item.event, AgentRunFinished):
             status = await self._run_finished(case, item.event, note)
+            # what the resumed run did, so the orchestrator can start what follows it
+            detail = {
+                "agent": item.event.agent,
+                "task": item.event.task_kind,
+                "status": item.event.status,
+                "po_names": list(item.event.po_names),
+            }
         elif case.status == "open" and not await _has_agent_work(cases, case.case_id):
             status = (await cases.update(case.case_id, status="done", summary=note)).status
-        await ctx.yield_output(CaseUpdate(case_id=case.case_id, status=status, kind="note"))
+        await ctx.yield_output(
+            CaseUpdate(case_id=case.case_id, status=status, kind="note", detail=detail)
+        )
 
     async def _approval_resolved(
         self, case: Case, event: OdooApprovalResolved, note: str
@@ -453,6 +513,23 @@ class ConsolidateExecutor(Executor):
         agent's business (its own completion event follows), except an expiry, which
         nobody answered and therefore needs a person."""
         cases = self._deps.cases
+        if event.resolved_via != "api" and self._deps.feedback is not None:
+            await self._deps.feedback.record_from_odoo(
+                event.approval_id,
+                status=event.status,
+                by=event.resolved_by_name or event.resolved_by,
+            )
+        if event.kind == "autonomy_change":
+            # resolved from the Control Tower: the approvals API applied it already
+            if (
+                event.status == "approved"
+                and event.resolved_via != "api"
+                and self._deps.autonomy is not None
+            ):
+                await self._deps.autonomy.apply_approval(
+                    event.approval_id, by=event.resolved_by_name or event.resolved_by or "odoo"
+                )
+            return (await cases.update(case.case_id, status="done", summary=note)).status
         if event.kind == "escalation":
             if event.status == "approved":
                 return (await cases.update(case.case_id, status="done", summary=note)).status
@@ -480,6 +557,38 @@ class ConsolidateExecutor(Executor):
         return await escalate_case(
             self._deps.cases, self._deps.escalator, case, reason=reason, details=details
         )
+
+
+async def _announce(deps: Deps, outcome: AgentOutcome) -> None:
+    """A new approval is mirrored to the chat channel when one is configured."""
+    if deps.notifier is None or outcome.approval_id is None:
+        return
+    try:
+        await deps.notifier.approval_requested(
+            approval_id=outcome.approval_id,
+            kind="escalation" if outcome.status == "escalated" else _approval_kind(outcome),
+            summary=outcome.summary,
+            po_name=outcome.case.po_name,
+            case_code=outcome.case.code,
+            agent=outcome.agent,
+        )
+    except Exception as exc:  # noqa: BLE001 - a mirror must never break the flow
+        logger.bind(approval_id=outcome.approval_id).warning("notifier failed: {}", exc)
+
+
+def _approval_kind(outcome: AgentOutcome) -> str:
+    """The approval kind a task usually ends in, for the notification's label."""
+    by_task = {
+        "handle_inbound": "po_change",
+        "resolve_unlinked": "unlinked_mail",
+        "daily_plan": "planning_run",
+        "match_bill": "vendor_bill",
+        "weekly_scorecard": "supplier_score",
+        "compare_quotes": "award",
+        "counter_offer": "negotiation_offer",
+        "internal_request": "internal_request",
+    }
+    return by_task.get(outcome.task_kind, "send_email")
 
 
 async def _has_agent_work(cases: CaseStore, case_id: str) -> bool:
@@ -546,8 +655,12 @@ async def consolidate_outcome(
             "summary": outcome.summary,
             "approval_id": outcome.approval_id,
             "error": outcome.error,
+            "sent_message_id": outcome.sent_message_id,
+            "web_link": outcome.web_link,
         },
     )
+    for rfq in outcome.invited:
+        await _open_invited_case(cases, outcome, rfq)
     conversation = None
     if outcome.sent_message_id:
         conversation = await conversations.conversation_for(outcome.sent_message_id)
@@ -583,8 +696,57 @@ async def consolidate_outcome(
             "status": outcome.status,
             "summary": outcome.summary,
             "approval_id": outcome.approval_id,
+            "po_names": outcome.po_names,
         },
     )
+
+
+async def _open_invited_case(cases: CaseStore, outcome: AgentOutcome, rfq: InvitedRfq) -> None:
+    """One card per invited supplier: the RFQ's case carries the round, the send task
+    (so the supplier agent's result and approval land on it) and the invitation note."""
+    if not rfq.po_name:
+        return
+    case, _ = await cases.attach_or_create(
+        kind="rfq", po_name=rfq.po_name, partner_id=rfq.partner_id, agent="sourcing"
+    )
+    thread_id = f"{outcome.thread_id}_rfq{rfq.partner_id}"
+    await cases.add_event(
+        case.case_id,
+        "note",
+        {
+            "text": f"Invited in quote round #{outcome.round_id}"
+            if outcome.round_id
+            else "Invited in a quote round",
+            "round_id": outcome.round_id,
+            "round_case_id": outcome.case.case_id,
+        },
+    )
+    if rfq.status in ("sent", "awaiting_approval", "failed"):
+        await cases.add_event(
+            case.case_id,
+            "task_sent",
+            {
+                "agent": "supplier_comms",
+                "task": "send_rfq",
+                "thread_id": thread_id,
+                "po_name": rfq.po_name,
+                "round_id": outcome.round_id,
+            },
+        )
+    status = {
+        "sent": "done",
+        "awaiting_approval": "awaiting_approval",
+        "failed": "failed",
+        "no_email": "escalated",
+    }.get(rfq.status, "open")
+    summary = {
+        "sent": "request for quotation sent",
+        "awaiting_approval": "request for quotation waiting for approval",
+        "failed": "the request for quotation could not be sent",
+        "no_email": "the supplier has no email in Odoo; the request was not sent",
+        "created": "request for quotation drafted",
+    }.get(rfq.status, rfq.status)
+    await cases.update(case.case_id, status=status, summary=summary)  # type: ignore[arg-type]
 
 
 # --- building and running -----------------------------------------------------------
@@ -595,6 +757,7 @@ AGENT_NAMES = (
     "logistics",
     "invoice_match",
     "supplier_performance",
+    "sourcing",
 )
 
 
@@ -630,6 +793,7 @@ class Orchestrator:
         results: EventResults,
         *,
         inbox: EventInbox | None = None,
+        playbooks: PlaybookNudge | None = None,
         locks: PoLocks | None = None,
         orders: ConfirmedOrders | None = None,
         reconcile_since_days: int = 3,
@@ -637,6 +801,7 @@ class Orchestrator:
         self._deps = deps
         self._results = results
         self._inbox = inbox
+        self._playbooks = playbooks
         self._locks = locks or PoLocks(None)
         self._orders = orders
         self._reconcile_since_days = reconcile_since_days
@@ -747,8 +912,37 @@ class Orchestrator:
                 result = {"case_id": case.case_id, "status": "failed", "error": str(exc)[:500]}
                 await self._deps.cases.update(case.case_id, status="failed", summary=str(exc)[:500])
         await self._results.record(event.event_id, result)
+        if self._playbooks is not None:
+            await self._start_request_playbooks(result)
+        if self._playbooks is not None and decided.po_name and not isinstance(event, ScheduledTick):
+            try:
+                moved = await self._playbooks.on_po_event(decided.po_name)
+            except Exception as exc:  # noqa: BLE001 - a plan must not break event handling
+                log.opt(exception=True).warning("playbook nudge failed: {}", exc)
+            else:
+                if moved:
+                    result["playbooks_moved"] = moved
         log.bind(case_id=case.case_id).info("event handled")
         return result
+
+    async def _start_request_playbooks(self, result: dict[str, Any]) -> None:
+        """The RFQs an internal request became each get the playbook that keeps the
+        requester informed (phase 11 S6)."""
+        assert self._playbooks is not None
+        for update in result.get("updates") or []:
+            detail = update.get("detail") or {}
+            names = detail.get("po_names") or []
+            if detail.get("task") != "internal_request" or detail.get("status") != "applied":
+                continue
+            if not names:
+                continue
+            try:
+                started = await self._playbooks.on_request(list(names))
+            except Exception as exc:  # noqa: BLE001 - a plan must not break event handling
+                logger.opt(exception=True).warning("request playbook failed: {}", exc)
+            else:
+                if started:
+                    result["playbooks_started"] = started
 
     async def _case_for(self, event: BaseEvent, decided: Route) -> Case:
         thread_id = getattr(event, "thread_id", None)

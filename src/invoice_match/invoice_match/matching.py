@@ -71,6 +71,37 @@ def pick_by_amount(
     return None, ["no order of this supplier has the invoice's total"]
 
 
+# What the person deciding on the bill reads, in the instance's language.
+WORDS: dict[str, dict[str, str]] = {
+    "en": {
+        "unmatched": "no order line looks like this one",
+        "price": "billed {billed:.2f}, ordered {ordered:.2f} ({diff:+.2f})",
+        "not_received": "billed {billed:g}, received and not yet billed {billable:g}",
+        "nothing_received": "billed {billed:g}, nothing received yet",
+        "qty": "billed {billed:g}, ordered {ordered:g}",
+        "partial": "partial: {billed:g} of {billable:g} billable",
+        "count": "{n} line(s) {what}",
+        "currency": "invoice in {invoice}, order in {order}",
+        "no_lines": "no lines could be read from the invoice",
+    },
+    "es": {
+        "unmatched": "ninguna línea de la orden se parece a esta",
+        "price": "facturado {billed:.2f}, ordenado {ordered:.2f} ({diff:+.2f})",
+        "not_received": "facturado {billed:g}, recibido y aún sin facturar {billable:g}",
+        "nothing_received": "facturado {billed:g}, aún no se recibió nada",
+        "qty": "facturado {billed:g}, ordenado {ordered:g}",
+        "partial": "parcial: {billed:g} de {billable:g} por facturar",
+        "count": "{n} línea(s) con {what}",
+        "status.price_variance": "diferencia de precio",
+        "status.qty_variance": "diferencia de cantidad",
+        "status.not_received": "mercadería no recibida",
+        "status.unmatched": "sin línea de orden",
+        "currency": "factura en {invoice}, orden en {order}",
+        "no_lines": "no se pudo leer ninguna línea de la factura",
+    },
+}
+
+
 def match_lines(
     invoice: InvoiceData,
     ctx: PoContext,
@@ -78,7 +109,9 @@ def match_lines(
     price_tolerance_pct: float,
     qty_tolerance_pct: float,
     fuzzy_threshold: float,
+    language: str = "en",
 ) -> list[MatchLine]:
+    words = WORDS.get(language, WORDS["en"])
     unused = list(ctx.lines)
     out: list[MatchLine] = []
     for inv in invoice.lines:
@@ -92,13 +125,13 @@ def match_lines(
                     invoice_qty=inv.qty,
                     invoice_price=inv.unit_price,
                     status="unmatched",
-                    note="no order line looks like this one",
+                    note=words["unmatched"],
                     similarity=score,
                 )
             )
             continue
         unused.remove(line)
-        status, note = _compare(inv, line, price_tolerance_pct, qty_tolerance_pct)
+        status, note = _compare(inv, line, price_tolerance_pct, qty_tolerance_pct, words)
         out.append(
             MatchLine(
                 po_line_id=line.id,
@@ -138,39 +171,42 @@ def _best_line(
 
 
 def _compare(
-    inv: InvoiceLine, line: LineView, price_tol: float, qty_tol: float
+    inv: InvoiceLine, line: LineView, price_tol: float, qty_tol: float, words: dict[str, str]
 ) -> tuple[MatchStatus, str | None]:
     if inv.unit_price is not None:
         allowed = abs(line.price_unit) * price_tol / 100.0
         diff = inv.unit_price - line.price_unit
         if abs(diff) > allowed + EPSILON:
-            return "price_variance", (
-                f"billed {inv.unit_price:.2f}, ordered {line.price_unit:.2f} ({diff:+.2f})"
+            return "price_variance", words["price"].format(
+                billed=inv.unit_price, ordered=line.price_unit, diff=diff
             )
     if inv.qty is not None:
         billable = max(line.qty_received - line.qty_invoiced, 0.0)
         allowed_qty = abs(billable) * qty_tol / 100.0
         if inv.qty > billable + allowed_qty + EPSILON:
             return "not_received", (
-                f"billed {inv.qty:g}, received and not yet billed {billable:g}"
+                words["not_received"].format(billed=inv.qty, billable=billable)
                 if line.qty_received > 0
-                else f"billed {inv.qty:g}, nothing received yet"
+                else words["nothing_received"].format(billed=inv.qty)
             )
         if inv.qty > line.qty + EPSILON:
-            return "qty_variance", f"billed {inv.qty:g}, ordered {line.qty:g}"
+            return "qty_variance", words["qty"].format(billed=inv.qty, ordered=line.qty)
         if inv.qty + EPSILON < billable:
-            return "ok", f"partial: {inv.qty:g} of {billable:g} billable"
+            return "ok", words["partial"].format(billed=inv.qty, billable=billable)
     return "ok", None
 
 
-def verdict_for(lines: list[MatchLine]) -> tuple[str, list[str]]:
+def verdict_for(lines: list[MatchLine], language: str = "en") -> tuple[str, list[str]]:
+    words = WORDS.get(language, WORDS["en"])
     reasons: list[str] = []
     counts: dict[str, int] = {}
     for line in lines:
         if line.status != "ok":
             counts[line.status] = counts.get(line.status, 0) + 1
     for status, n in counts.items():
-        reasons.append(f"{n} line(s) {status.replace('_', ' ')}")
+        reasons.append(
+            words["count"].format(n=n, what=words.get(f"status.{status}", status.replace("_", " ")))
+        )
     return ("clean" if not counts else "hold"), reasons
 
 
@@ -181,24 +217,27 @@ def build_match(
     price_tolerance_pct: float,
     qty_tolerance_pct: float,
     fuzzy_threshold: float,
+    language: str = "en",
 ) -> BillMatch:
+    words = WORDS.get(language, WORDS["en"])
     lines = match_lines(
         invoice,
         ctx,
         price_tolerance_pct=price_tolerance_pct,
         qty_tolerance_pct=qty_tolerance_pct,
         fuzzy_threshold=fuzzy_threshold,
+        language=language,
     )
-    verdict, reasons = verdict_for(lines)
+    verdict, reasons = verdict_for(lines, language)
     expected = sum(
         (m.invoice_qty or 0.0) * (m.po_price or 0.0) for m in lines if m.po_line_id is not None
     )
     if invoice.currency and ctx.currency and invoice.currency.upper() != ctx.currency.upper():
         verdict = "hold"
-        reasons.append(f"invoice in {invoice.currency}, order in {ctx.currency}")
+        reasons.append(words["currency"].format(invoice=invoice.currency, order=ctx.currency))
     if not invoice.lines:
         verdict = "hold"
-        reasons.append("no lines could be read from the invoice")
+        reasons.append(words["no_lines"])
     return BillMatch(
         po_name=ctx.name,
         verdict=verdict,  # type: ignore[arg-type]

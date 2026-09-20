@@ -1,0 +1,216 @@
+# The ten-minute demo
+
+A scripted day in the purchasing department, run on the live stack against the
+demo supplier **Proveedor Hidraulica**. The department side is the real thing:
+the same agents, approvals, Odoo events and emails as any other day. The world
+side (the supplier answering, the warehouse receiving, accounting typing a bill)
+is played by the demo so nobody has to leave the room.
+
+Everything below assumes `just up`, a seeded Odoo (`just odoo-fresh`), a signed-in
+bot mailbox (`just mail-login`) and a Control Tower approver.
+
+## Before the room fills
+
+1. **The supplier's mailbox.** The supplier's replies are sent by SMTP from the
+   Hidraulica Gmail account. Create an app password for it and put, in `.env`:
+
+   ```
+   SC__DEMO__SMTP_USER=ventas.hidraulica.sc@gmail.com
+   SC__DEMO__SMTP_PASSWORD=<app password>
+   ```
+
+   Without it, steps 2, 4 and 5 report what is missing instead of sending.
+2. **The warehouse login.** The bot cannot validate receipts or type bills on
+   purpose. The demo uses a second Odoo login for those two steps (locally the
+   administrator):
+
+   ```
+   SC__DEMO__ODOO_LOGIN=admin
+   SC__DEMO__ODOO_API_KEY=<that user's API key or password>
+   ```
+
+3. Restart the director (`docker compose ... up -d --no-deps director`) so it
+   reads the new settings, then open **Demo** in the Control Tower. The page
+   says what is still missing.
+4. **On a fresh stack** (`just odoo-fresh`), run `just mail-clear-inbox` before the rebuild (order
+   numbers restart, and an old `[P00077]` reply would be linked to the new P00077) and
+   `just demo-prepare` after it: it runs the scorecard and planning jobs and approves the
+   scorecards, so suppliers have scores and the risk radar has products.
+5. **Reset.** Click *Reset* on the Demo page (or `just demo-reset`). The late
+   order goes back to its original date, the last round's RFQs are cancelled,
+   the run's pending approvals are rejected, and a fresh order is confirmed for
+   the receipt and the bill (a received order cannot be un-received).
+6. Have four tabs open: Home, Board, Approvals, Demo. On a phone, the PWA with
+   the Approvals inbox.
+
+Two ways to drive it:
+
+- **From the Demo page.** Tick *Decide the approvals for me* if you want the
+  page to approve what each step raises; leave it off to decide live in the
+  inbox (the better show). Press *Next* for each step; a step that is still
+  waiting for the mailbox says so and can be pressed again.
+- **From a terminal.** `just demo-pace` waits for Enter before each step and
+  prints what to say; `just demo-auto` runs the whole thing unattended and
+  decides the approvals itself (the rehearsal, and the timing check).
+
+Every step's outcome is a line with links into the place where it shows.
+
+## The script
+
+Say the lines in your own words. *Look* is where the audience's eyes should be.
+
+### 1. A late order gets a delivery-date request (about 1 min)
+
+**Say.** "Proveedor Hidraulica is late on an order. Nobody in the department
+noticed, because there is no department; the director did. It writes to the
+supplier asking for a firm date, in the supplier's language, with the order's
+own facts."
+
+**Look.** Approvals: the email waits for a person. Open it: the draft, the
+*Why* panel with the facts, the rule and the confidence. Approve it, or show
+the Autonomy page where a rule would let reminders go alone.
+
+### 2. The supplier answers with a new date (about 1.5 min)
+
+**Say.** "The supplier replies from its own mailbox. The agent reads the date,
+checks it against the order and proposes to move it. Odoo only changes after a
+decision."
+
+**Look.** Approvals: the order change with the old and the new date. Approve
+it; on the Board the card leaves *late*. On the order panel: the email, linked,
+opens in Outlook.
+
+The reply takes a moment to travel from Gmail to the bot's inbox; the step
+polls the mailbox for up to two and a half minutes and says "run the step
+again" if it is slower.
+
+### 3. A stockout risk starts a quote round (about 1 min)
+
+**Say.** "Meanwhile the planner sees a product running out inside its lead
+time with nothing on order. One click asks every supplier who lists it for a
+quote: one RFQ per supplier, grouped as alternatives in Odoo, each on its own
+case."
+
+**Look.** Risk: the product at the top with its 30-day odds. Board: the RFQs.
+Approvals: the RFQ emails (approve them, or let a rule send RFQs alone).
+
+### 4. A quote above target gets a counter-offer (about 1.5 min)
+
+**Say.** "Hidraulica quotes twelve percent above what we last paid. The
+sourcing agent proposes a counter-offer within the buyer's cap, with the
+evidence: the last price, the best competing price. A person approves it
+before it goes."
+
+**Look.** Approvals: the counter-offer card, then the email it becomes.
+
+### 5. The supplier accepts and the round is awarded (about 1.5 min)
+
+**Say.** "The supplier accepts. The comparison weighs landed cost, lead time
+and the supplier's score, recommends, and a person awards. Odoo confirms the
+order and the order goes out, with the PDF."
+
+**Look.** Approvals: the award with the comparison table. Board: the order
+confirmed. Supplier 360: the round in the supplier's history.
+
+### 6. A short receipt gets a discrepancy report (about 1 min)
+
+**Say.** "The warehouse receives the demo order, but fewer units than ordered.
+The logistics agent reconciles the receipt against the order and drafts the
+discrepancy for the supplier."
+
+**Look.** Board: the receipt card with the discrepancy. Approvals: the report.
+
+### 7. An invoice with a price variance (about 1 min)
+
+**Say.** "Accounting types the supplier's bill. One line is three percent above
+the order. The matching agent finds it against the order and the receipt, and
+asks before anything is posted."
+
+**Look.** Approvals: the vendor bill with the variance per line.
+
+### 8. The briefing the next morning (about 1 min)
+
+**Say.** "Every morning at 07:30 the director writes what happened, what ran
+alone and what needs a decision, with the facts behind every line, and emails
+it. Ask it anything about the desk."
+
+**Look.** Briefing: the paragraph and the sections. Home: the day at a glance,
+the AI performance page for the automation rate of the day. Assistant: one
+question, with citations that open the records.
+
+## A recorded version
+
+`just demo-video` films the same scenario without a presenter, in English (`just demo-video es`
+for Spanish, below). Every step runs
+through the demo API while a browser tours the product, and the captions tell the story:
+
+- the board explained column by column, Supplier 360, Autonomy, Planning, Playbooks, Runs;
+- who wrote what: each supplier email is shown as the supplier sent it (rebuilt from the
+  run's records by `GET /api/demo/emails`, never stored), and every draft carries a badge
+  with the agent that wrote it;
+- the chat typed live, on an order and for the whole department;
+- the order's history with its emails, the order in Odoo with the agent's audit note, the
+  request for quotation and the purchase order as Odoo prints them, the draft vendor bill;
+- how a supplier is chosen: three suppliers quote (the two rivals are aliases of the demo
+  mailbox and the demo answers in character: one fast and dearer, one cheap and slow), and
+  the award's comparison is walked through: landed cost, lead time, score, weights;
+- a trace in Langfuse: what the model was given and what it answered;
+- approvals decided on screen (`leave` on `POST /api/demo/next` keeps the counter-offer and
+  the award for the person in front of the camera).
+
+The take is kept as `demo-video/demo-raw.webm` with `demo-timeline.json`, which marks the
+seconds meant to be read and the seconds spent waiting for real email. ffmpeg (the
+`ffmpeg-static` dev dependency) re-times it into `demo-video/demo.mp4`: reading at 2x,
+waiting at 10x. `just demo-video-recut en 1.5` re-times the same take at another speed.
+**Narration.** Every caption is also spoken, by a neural voice from the free `edge-tts` library
+(run through `uv`, no key; an unofficial route to Microsoft's voices, so check the terms before
+publishing, or swap in a licensed service). Lines are cached in `demo-video/voice/` by their
+words. While a line is spoken the footage plays in real time and holds exactly as long as the
+audio; silent stretches keep their fast-forward. The cut builds the audio track from PCM pieces
+matched to each part's frame count, so the voice cannot drift. Where a caption would sound wrong
+read aloud (a list behind a colon, a clock time) the `SPOKEN` table in the script says what the
+voice says instead. `--voice off` films the silent version; `--voice en-GB-RyanNeural` (any
+edge-tts voice) and `--rate +10%` change the narrator.
+
+Title cards are not filmed: they are marks in the timeline (`card: {title, text, seconds}`) that the
+cut renders as clips of their own. The film therefore opens on the card (nothing filmed before the
+first card is kept), and a card's words can be edited in `demo-timeline.json` and re-cut.
+**In Spanish.** The whole film can be Spanish: the interface, what the agents write, the emails
+in both directions, the captions and the voice. Nothing is dubbed, so the stack itself has to be
+Spanish when it is filmed:
+
+1. in `.env`: `SC__AGENTS__LANGUAGE=es` (what people read: summaries, explanations, briefing, chat),
+   `SC__DEMO__LANGUAGE=es` (what the demo's suppliers write) and
+   `SC__PLANNING__PRODUCT_CATEGORY=Hidráulica` (the Spanish dataset's category);
+2. `just mail-clear-inbox`, then rebuild on the Spanish dataset:
+   `uv run python scripts/odoo_fresh.py --yes --dataset odoo/demo/sun_hydraulics.es.yaml`
+   (suppliers are `es_PE`, so the agents' emails to them are Spanish), then `just demo-prepare`;
+3. `just demo-video es` films `demo-video/demo-es.mp4` (take and timeline are `demo-es-*`, the
+   English ones stay). The script reads its selectors from `src/i18n/messages.es.json`, its words
+   from the `ES` table (a line without a translation is logged, never silently English) and
+   speaks with `es-PE-AlexNeural`; `SPOKEN_ES` holds what the voice says where a caption would
+   read badly aloud.
+
+Back to English: remove the three `.env` lines, rebuild the images' containers (`just up`) and run
+`just odoo-fresh` with the default dataset.
+
+The folder is git-ignored. Each take creates real records, like any other run of the demo;
+before filming, stale pending approvals on the late order are retired.
+
+## When something does not go to plan
+
+- A step says **waiting**: the mailbox or an agent has not answered yet. Press
+  it again; nothing is resent. Check `just mail-check` and the Runs page.
+- A step says **failed** with a setting name: see *Before the room fills*.
+- The approvals a step raised are listed on its outcome; decide them in the
+  inbox and press the step again if it stopped there.
+- `just demo-reset` at any point returns to the start; what Odoo cannot undo
+  (a validated receipt) is replaced by a fresh demo order.
+
+## What is real and what is not
+
+Real: every email the department sends (they reach the Hidraulica mailbox),
+every Odoo record, every agent run and its cost, every approval and its
+reasoning. Played: the supplier's three replies (sent from its real mailbox by
+the demo), the receipt and the bill (typed through Odoo with a warehouse login).
+No email text is stored anywhere by the demo; the outcomes keep ids and links.

@@ -1,0 +1,14 @@
+# A supplier we have never bought from quoted something we buy.
+name: new_supplier_onboarding
+title: New supplier
+description: >
+  A buyer confirms the partner, the sourcing agent brings the quote into the
+  round, and the first order is watched more closely. Until the sourcing
+  agent is deployed (phase 11 S4) the steps escalate to a buyer.
+trigger: manual
+case_kind: rfq
+steps:
+  - id: confirm_partner
+    label: A buyer confirms the new supplier
+    action: escalate
+    reason: A supplier we have not bought from sent a quotation; confirm the partner before any order.

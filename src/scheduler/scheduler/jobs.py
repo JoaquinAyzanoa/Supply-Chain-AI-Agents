@@ -63,6 +63,30 @@ def job_table(settings: Settings) -> list[Job]:
             target=f"{director}/jobs/supplier-performance",
             timeout_seconds=1800,
         ),
+        Job(
+            id="sourcing_rounds",
+            cron=s.sourcing_rounds_cron,
+            target=f"{director}/jobs/sourcing-rounds",
+            timeout_seconds=900,
+        ),
+        Job(
+            id="calibration",
+            cron=s.calibration_cron,
+            target=f"{director}/jobs/calibration",
+            timeout_seconds=600,
+        ),
+        Job(
+            id="playbooks",
+            cron=s.playbooks_cron,
+            target=f"{director}/jobs/playbooks",
+            timeout_seconds=900,
+        ),
+        Job(
+            id="briefing",
+            cron=s.briefing_cron,
+            target=f"{director}/jobs/briefing",
+            timeout_seconds=600,
+        ),
     ]
     for job in jobs:  # fail at startup, not at the first firing
         job.trigger(settings.timezone)

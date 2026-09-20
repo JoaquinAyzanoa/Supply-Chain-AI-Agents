@@ -13,7 +13,7 @@ export type RunRanking = Schemas["RunRanking"];
 export type LineRanking = Schemas["LineRanking"];
 export type RankedSupplier = Schemas["RankedSupplier"];
 
-export const ACTIONABLE = new Set(["update_rule", "create_rfq", "update_rule_and_rfq"]);
+export const ACTIONABLE = new Set(["update_rule", "create_rfq", "update_rule_and_rfq", "consolidate"]);
 
 export function usePlanningRuns() {
   return useQuery({

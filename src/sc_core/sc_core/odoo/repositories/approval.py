@@ -14,6 +14,17 @@ from sc_core.odoo.models import Approval, ApprovalKind, ApprovalStatus
 from sc_core.odoo.repositories.base import Repo
 from sc_core.shared.errors import ValidationFailed
 
+NO_RECORD_KINDS = (
+    "unlinked_mail",
+    "escalation",
+    "supplier_score",
+    "autonomy_change",
+    "award",
+    "partner_create",
+    "internal_request",
+    "price_list_update",
+)
+
 
 class ApprovalRepo(Repo[Approval]):
     model = Approval
@@ -34,14 +45,11 @@ class ApprovalRepo(Repo[Approval]):
         callback_url: str | None = None,
         callback_secret: str | None = None,
     ) -> Approval:
-        # Escalations about mail nobody could link, and the weekly supplier scorecards
-        # (about every supplier at once), have no single record to hang on; their
+        # Escalations about mail nobody could link, the weekly supplier scorecards
+        # (about every supplier at once), a quote round award (several RFQs) and a
+        # supplier that does not exist yet have no single record to hang on; their
         # To-Do goes on the approval itself.
-        if (
-            po_id is None
-            and not (res_model and res_id)
-            and kind not in ("unlinked_mail", "escalation", "supplier_score")
-        ):
+        if po_id is None and not (res_model and res_id) and kind not in NO_RECORD_KINDS:
             raise ValidationFailed("an approval needs a purchase order or a record reference")
         values: dict[str, Any] = {
             "kind": kind,

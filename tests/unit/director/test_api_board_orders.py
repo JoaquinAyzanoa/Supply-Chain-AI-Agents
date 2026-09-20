@@ -14,12 +14,14 @@ from pydantic import SecretStr
 from director import __version__
 from director.api import api_router
 from director.api.auth import hash_password
+from director.api.planning import PlanningLineRow, PlanningRunRow
 from director.policies import PoFacts
 from director.testing import MemoryDirectorModule
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.app import create_application
 from sc_core.infra.settings import Settings
-from sc_core.odoo.models import PurchaseOrder, Ref
+from sc_core.odoo.models import PurchaseOrder, PurchaseOrderLine, Ref
+from sc_core.schema.planning import ReplenishmentLine
 from sc_core.shared.time import local_today
 
 from .helpers import agent_reply
@@ -315,3 +317,125 @@ async def test_supplier_confirmed_is_a_manual_mark(
     )
     board = client.get("/api/board", headers=approver).json()
     assert next(c for c in board["cards"] if c["po_name"] == "P00004")["supplier_confirmed"] is True
+
+
+def _line(
+    po: PurchaseOrder, line_id: int, product_id: int, name: str, qty: float
+) -> PurchaseOrderLine:
+    return PurchaseOrderLine(
+        id=line_id,
+        order_id=Ref(id=po.id, name=po.name),
+        name=name,
+        product_id=Ref(id=product_id, name=name),
+        product_qty=qty,
+        price_unit=104.16,
+        price_subtotal=qty * 104.16,
+        qty_received=0.0,
+        date_planned=po.date_planned,
+    )
+
+
+async def test_order_detail_shows_lines_and_where_the_order_came_from(
+    client: TestClient, module: MemoryDirectorModule
+) -> None:
+    await _users(module)
+    viewer = _token(client, "vic@x.com")
+    b = module.board_orders
+    planned = b.add(
+        _po(
+            21,
+            "P00021",
+            "draft",
+            planned_in=20,
+            sc_external_ref="plan:run_1:7:1",
+            origin="Plan 2026-09-13",
+        )
+    )
+    typed = b.add(_po(22, "P00022", "draft", planned_in=15, origin="SEED/RFQ"))
+    b.lines_by_po[21] = [
+        _line(planned, 1, 101, "[CBEA-LHN] Válvula", 12),
+        _line(planned, 2, 102, "[CXDA-XCN] Check", 40),
+    ]
+    b.lines_by_po[22] = [_line(typed, 3, 103, "[RDDA-LAN] Alivio", 14)]
+    now = datetime.now(UTC)
+    module.planning.rows["run_1"] = PlanningRunRow(
+        run_id="run_1",
+        case_id="plan_1",
+        kind="daily_plan",
+        as_of=local_today(),
+        warehouse_id=1,
+        status="awaiting_approval",
+        approval_id=3,
+        summary="17 RFQs, 30 rules",
+        created_at=now,
+        updated_at=now,
+    )
+    base: dict[str, Any] = {
+        "warehouse_id": 1,
+        "on_hand": 10,
+        "incoming": 0,
+        "position": 10,
+        "forecast_daily": 2.0,
+        "forecast_method": "ses",
+        "sigma_daily": 0.5,
+        "history_periods": 52,
+        "lead_time_days": 30,
+        "sigma_lead_time_days": 7.5,
+        "service_level": 0.95,
+        "review_period_days": 7,
+        "abc_class": "A",
+        "ss": 5,
+        "rop": 19,
+        "order_up_to": 33,
+        "coverage_days": 5,
+        "proposed_min": 19,
+        "proposed_max": 33,
+        "order_qty": 12,
+        "action": "create_rfq",
+    }
+    module.planning.line_rows["run_1"] = [
+        PlanningLineRow(
+            line=ReplenishmentLine(
+                line_id="run_1:101",
+                product_id=101,
+                product_ref="CBEA-LHN",
+                explanation="Below the reorder point with 11 on hand.",
+                **base,
+            )
+        ),
+        PlanningLineRow(
+            line=ReplenishmentLine(
+                line_id="run_1:102", product_id=102, product_ref="CXDA-XCN", **base
+            )
+        ),
+        PlanningLineRow(
+            line=ReplenishmentLine(
+                line_id="run_1:999",
+                product_id=999,
+                product_ref="OTHER",
+                explanation="not on this order",
+                **base,
+            )
+        ),
+    ]
+
+    detail = client.get("/api/board/P00021/detail", headers=viewer).json()
+    assert [ln["product"] for ln in detail["lines"]] == ["[CBEA-LHN] Válvula", "[CXDA-XCN] Check"]
+    assert detail["lines"][0]["qty"] == 12 and detail["lines"][0]["subtotal"] == 12 * 104.16
+    assert detail["origin"]["kind"] == "planning" and detail["origin"]["run_id"] == "run_1"
+    assert detail["origin"]["summary"] == "17 RFQs, 30 rules"
+    assert detail["origin"]["explanations"] == [
+        "CBEA-LHN: Below the reorder point with 11 on hand."
+    ]
+
+    typed_detail = client.get("/api/board/P00022/detail", headers=viewer).json()
+    assert typed_detail["origin"] == {
+        "kind": "odoo",
+        "run_id": None,
+        "as_of": None,
+        "summary": None,
+        "explanations": [],
+        "created_by": "Mitchell Admin",
+        "origin": "SEED/RFQ",
+    }
+    assert client.get("/api/board/P09999/detail", headers=viewer).status_code == 404

@@ -16,6 +16,7 @@ const USERS: Record<string, { name: string; role: Role; password: string }> = {
 const EMAIL_HTML = "<p>Dear supplier,</p><img src=\"https://tracker.example/pixel.gif\"><p>Please confirm the delivery date.</p>";
 
 export function makeState() {
+  const bulk: { ids: number[]; status: string }[] = [];
   const approvals = [
     {
       id: 1,
@@ -105,6 +106,7 @@ export function makeState() {
   };
   return {
     approvals,
+    bulk,
     run,
     lines: [{ line: line(101) }, { line: line(102, { action: "update_rule", order_qty: 0, exception: "stockout_risk", explanation: "Demand doubled." }) }, { line: line(103, { action: "none" }) }],
     board: {
@@ -236,6 +238,8 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
       return json(route, 200, { id, status: body.status, resolved_by: user.name, callback_status: "sent" });
     }
     if (path === "/api/board") return json(route, 200, state.board);
+    if (path.startsWith("/api/board/") && path.endsWith("/detail"))
+      return json(route, 200, { po_name: "P00015", lines: [{ line_id: 1, product: "[CBEA-LHN] Válvula", qty: 12, qty_received: 0, qty_invoiced: 0, price_unit: 104.16, subtotal: 1249.92, date_planned: null }], origin: { kind: "odoo", run_id: null, as_of: null, summary: null, explanations: [], created_by: "Administrator", origin: null } });
     if (path === "/api/performance/scores") return json(route, 200, []);
     if (path === "/api/mailbox/sync") return json(route, 200, { status: "ok", fetched: 0, linked: 0, unlinked: 0, ignored: 0, errors: 0, linked_po_names: [], message: "no new emails" });
     const move = path.match(/^\/api\/board\/(\w+)\/move$/);
@@ -255,14 +259,42 @@ export async function mockApi(page: Page, state: ApiState): Promise<void> {
     if (path.endsWith("/chat") && request.method() === "GET") return json(route, 200, []);
     if (path === "/api/exceptions") return json(route, 200, { as_of: "2026-09-14", late_pos: [], rfqs_no_reply: [], unlinked_mails: [], failed_runs: [], stale_approvals: [] });
     if (path === "/api/planning/runs") return json(route, 200, [state.run]);
+    if (path === "/api/planning/calendar" && request.method() === "GET") return json(route, 200, []);
+    if (path === "/api/planning/calendar" && request.method() === "POST") return json(route, 403, { detail: "approver role required" });
+    if (path === "/api/risk") return json(route, 200, { as_of: "2026-09-14", warehouse_code: "WH", products: [], suppliers: [], cash_exposure: 0, at_risk_30: 0 });
+    if (path === "/api/briefing") return json(route, 404, { detail: "no briefing yet" });
+    if (path === "/api/demo") return json(route, 200, { steps: [{ key: "late_order_eta", title: "A late order gets a delivery-date request", say: "The department noticed.", click: "Approvals.", needs: "none" }, { key: "supplier_eta_reply", title: "The supplier answers with a new date", say: "From its own mailbox.", click: "Approvals; Board.", needs: "mailbox" }], position: 0, started_at: null, finished: false, next: { key: "late_order_eta", title: "A late order gets a delivery-date request", say: "The department noticed.", click: "Approvals.", needs: "none" }, outcomes: [], records: {}, ready: { mailbox: false, world: true, notes: ["SC__DEMO__SMTP_USER / SMTP_PASSWORD not set: the supplier's replies (steps 2, 4 and 5) cannot be sent"] } });
+    if (path === "/api/home") return json(route, 200, { as_of: "2026-09-14", kpis: [{ key: "service_level", value: 70, previous: null, unit: "pct", currency: null, detail: "2 scored supplier(s)" }, { key: "late_orders", value: 1, unit: "count" }, { key: "pending_approvals", value: state.approvals.filter((a) => a.status === "pending").length, unit: "count" }, { key: "spend_month", value: 6514.44, previous: 500, unit: "money", currency: "USD" }, { key: "ai_cost_month", value: 0.08, previous: 0.1, unit: "usd" }, { key: "automated_week", value: 2, unit: "count" }], needs_you: state.approvals.filter((a) => a.status === "pending").map((a) => ({ text: `#${a.id} ${a.kind}: ${a.summary}`, path: `/approvals?id=${a.id}` })), pending: state.approvals.filter((a) => a.status === "pending").length, late: 1, silent: 0, automated_week: 2 });
+    if (path === "/api/ai") return json(route, 200, { days: 30, since: "2026-08-15T00:00:00Z", automation: [{ kind: "send_email", automated: 3, decided: 1, rate: 0.75 }], automation_rate: 0.75, decisions: 1, turnaround_hours_median: 1.2, edit_rate: 0.5, rejection_rate: 0, eta_error_days: 4, wape_by_class: [{ abc_class: "A", wape: 0.16, lines: 2 }], invoices_first_time: 2, invoices_total: 2, invoices_first_time_rate: 1, negotiation_savings: null, runs: 2, cost_usd: 0.08, cases_with_runs: 1, cost_per_case_usd: 0.08, by_agent: [{ agent: "sourcing", runs: 1, cost_usd: 0.06 }] });
+    if (path === "/api/suppliers/45") return json(route, 200, { partner_id: 45, partner_name: "Proveedor Hidraulica", score: { partner_id: 45, partner_name: "Proveedor Hidraulica", score: 75.5, otif: 0.5, lead_time_mean_days: 42.3 }, orders: [{ po_id: 15, po_name: "P00015", state: "sent", date_planned: "2026-09-20", amount_total: 1250, currency: "USD", receipt_status: null }], prices: [{ product_id: 1, product: "[CBEA-LHN] Valvula", supplier_code: null, price: 104.16, currency: "USD", min_qty: 1, lead_days: 28, valid_from: null }], rounds: [], emails: [{ po_name: "P00015", direction: "out", at: "2026-09-12T09:00:00Z", web_link: "https://outlook/out", confidence: "exact" }], products: [{ product_id: 1, product: "[CBEA-LHN] Valvula", rank: 1, suppliers: 2, best_partner_name: "Proveedor Hidraulica", best_score: 75.5 }] });
+    if (path === "/api/push/key") return json(route, 200, { enabled: false, public_key: null });
+    if (path === "/api/approvals/bulk" && request.method() === "POST") {
+      const body = request.postDataJSON() as { ids: number[]; status: string };
+      state.bulk.push(body);
+      state.approvals = state.approvals.map((a) => (body.ids.includes(a.id) ? { ...a, status: body.status } : a));
+      return json(route, 200, { resolved: body.ids.length, results: body.ids.map((id) => ({ id, status: body.status, error: null })) });
+    }
+    if (path === "/api/briefing/history") return json(route, 200, []);
+    if (path === "/api/assistant" && request.method() === "GET") return json(route, 200, []);
     if (path === "/api/planning/runs/run_1") return json(route, 200, { run: state.run, lines: state.lines });
     if (path === "/api/planning/runs/run_1/ranking") return json(route, 200, { run_id: "run_1", better_count: 0, lines: [] });
     if (path.startsWith("/api/planning/runs/run_1/lines/")) return json(route, 200, { line_id: "run_1:102", product_id: 102, forecast_daily: 2, sigma_daily: 0.5, days: [{ day: "2026-09-13", ordered: 3, delivered: 3 }] });
     if (path === "/api/runs") return json(route, 200, []);
     if (path === "/api/runs/scheduler") return json(route, 200, []);
     if (path === "/api/settings" && request.method() === "GET")
-      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], ignored_senders: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null } });
+      return json(route, 200, { version: 0, changed_by: "environment", changed_at: "2026-09-14T00:00:00Z", settings: { model_by_agent: {}, rfq_no_reply_days: [3, 7], po_eta_request_before_days: 5, po_late_days: [1, 4], approval_stale_days: 2, approval_expire_days: 7, max_actions_per_run: 20, auto_send_partner_ids: [], auto_send_kinds: [], ignored_senders: [], internal_senders: [], briefing_recipients: [], planning_service_level: null, planning_review_period_days: null, planning_max_coverage_days: null, holding_cost_pct_year: 20, sourcing_top_n: 3, sourcing_deadline_days: 5, sourcing_freight_pct: 5, negotiation_cap_pct: 10, negotiation_max_rounds: 2 } });
     if (path === "/api/settings/models") return json(route, 200, []);
+    if (path === "/api/autonomy" && request.method() === "GET") return json(route, 200, { version: 0, changed_by: "environment", changed_at: null, policy: { rules: [] }, pending: null });
+    if (path === "/api/autonomy/actions") return json(route, 200, []);
+    if (path === "/api/playbooks" && request.method() === "GET")
+      return json(route, 200, [{ name: "late_order", title: "Late order", description: "Ask, wait, chase.", trigger: "po_late", active_runs: 0, steps: [{ id: "ask_eta", label: "Ask the supplier for a new delivery date", kind: "agent", when: "not_received", agent: "supplier_comms", task: "request_eta", wait_days: null, until: null, action: null, active_runs: 0 }] }]);
+    if (path === "/api/playbooks/runs" && request.method() === "GET") return json(route, 200, []);
+    if (path === "/api/playbooks/runs" && request.method() === "POST") return json(route, 403, { detail: "approver role required" });
+    if (path === "/api/sourcing/rounds" && request.method() === "GET") return json(route, 200, []);
+    if (path.startsWith("/api/sourcing/") && request.method() === "POST") return json(route, 403, { detail: "approver role required" });
+    if (path === "/api/learning/suggestions") return json(route, 200, []);
+    if (path === "/api/learning/stats") return json(route, 200, { days: 90, total: 0, unchanged: 0, edited: 0, rejected: 0, expired: 0, by_kind: [], by_supplier: [] });
+    if (path.startsWith("/api/learning/profiles/")) return json(route, 200, { partner_id: 45, language: null, formality: null, greeting: null, sign_off: null, contacts: [], notes: "", facts: {}, updated_at: null, updated_by: null });
     if (path === "/api/settings/history") return json(route, 200, []);
     return json(route, 404, { detail: `unhandled ${request.method()} ${path}` });
   });

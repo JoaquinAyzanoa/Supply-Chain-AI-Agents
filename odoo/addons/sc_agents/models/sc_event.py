@@ -74,6 +74,10 @@ class ScEventEmitter(models.AbstractModel):
         event id is derived from them so retries never duplicate work.
         Returns the event id, or ``False`` when the director is not configured.
         """
+        if self.env.context.get("sc_skip_events"):
+            # Bulk loads (the demo seed) replay years of history; the director
+            # must not treat every old receipt or confirmation as news.
+            return False
         params = self.env["ir.config_parameter"].sudo()
         url = (params.get_param(PARAM_URL) or "").strip().rstrip("/")
         secret = (params.get_param(PARAM_SECRET) or "").strip()

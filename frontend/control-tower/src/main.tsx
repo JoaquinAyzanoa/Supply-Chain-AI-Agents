@@ -12,3 +12,11 @@ createRoot(root).render(
     <App />
   </StrictMode>,
 );
+
+// The service worker makes the Control Tower installable and shows push notifications
+// for approvals; it caches nothing, so the desk is always live.
+if ("serviceWorker" in navigator && !import.meta.env.DEV) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch((error: unknown) => console.warn("service worker not registered", error));
+  });
+}

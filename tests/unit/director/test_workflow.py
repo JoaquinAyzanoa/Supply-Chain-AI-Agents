@@ -196,13 +196,13 @@ async def test_unknown_sender_escalates_without_calling_an_agent(
     escalator: MemoryEscalator,
 ) -> None:
     event = ev.InboundMailUnlinked(
-        source="mail_sync", case_id="case_msg3", graph_message_id="AAMk3", sender_address="a@b.c"
+        source="mail_sync", case_id="case_msg3", graph_message_id="AAMk3"
     )
     await orchestrator.handle(event)
     assert agent.sent == []
     [case] = cases.cases.values()
     assert case.kind == "unlinked" and case.status == "escalated" and case.po_name is None
-    assert len(escalator.calls) == 1 and "unknown sender" in escalator.calls[0]["reason"]
+    assert len(escalator.calls) == 1 and "without a sender" in escalator.calls[0]["reason"]
 
 
 async def test_record_only_event_closes_a_fresh_case(
@@ -512,3 +512,75 @@ async def test_shipping_notice_goes_on_to_the_logistics_agent(
     updates = results.results[event.event_id]["updates"]
     assert [u["detail"]["agent"] for u in updates] == ["supplier_comms", "logistics"]
     assert escalator.calls == []
+
+
+class RecordingNudge:
+    """The playbook engine as the orchestrator sees it: what it was asked to start or move."""
+
+    def __init__(self) -> None:
+        self.requests: list[list[str]] = []
+        self.moved: list[str] = []
+
+    async def on_po_event(self, po_name: str) -> list[int]:
+        self.moved.append(po_name)
+        return []
+
+    async def on_request(self, po_names: list[str]) -> list[int]:
+        self.requests.append(list(po_names))
+        return [len(self.requests)]
+
+
+async def test_an_internal_request_that_became_rfqs_starts_its_playbook(
+    cases: MemoryCaseStore,
+    agent: FakeAgentCaller,
+    escalator: MemoryEscalator,
+    results: MemoryEventResults,
+    conversations: MemoryConversationLookup,
+) -> None:
+    nudge = RecordingNudge()
+    deps = memory_deps(
+        cases=cases, supplier_comms=agent, escalator=escalator, conversations=conversations
+    )
+    orchestrator = Orchestrator(deps, results, playbooks=nudge)
+    colleague = ev.InboundMailUnlinked(
+        source="mail_sync",
+        case_id="case_int1",
+        graph_message_id="AAMk-int",
+        sender_address="ana@empresa.com",
+        internal=True,
+    )
+    agent.replies.append(
+        agent_reply(
+            "internal_request",
+            "case_int1",
+            "awaiting_approval",
+            "read",
+            approval_id=9,
+            po_name=None,
+        )
+    )
+    await orchestrator.handle(colleague)
+    assert nudge.requests == []  # nothing ordered yet
+    # the approval callback resumed the agent elsewhere; its completion names the RFQs
+    finished = ev.AgentRunFinished(
+        source="supplier_comms",
+        case_id="case_int1",
+        agent="supplier_comms",
+        thread_id="case_int1",
+        run_id="run_1",
+        task_kind="internal_request",
+        status="applied",
+        summary="2 RFQs created",
+        po_name="P00089",
+        approval_id=9,
+        po_names=["P00089", "P00090"],
+    )
+    result = await orchestrator.handle(finished)
+    assert nudge.requests == [["P00089", "P00090"]]
+    assert result.get("playbooks_started") == [1]
+    # a rejected request starts nothing
+    rejected = finished.model_copy(
+        update={"event_id": "evt_rej", "status": "rejected", "po_names": [], "run_id": "run_2"}
+    )
+    await orchestrator.handle(rejected)
+    assert nudge.requests == [["P00089", "P00090"]]

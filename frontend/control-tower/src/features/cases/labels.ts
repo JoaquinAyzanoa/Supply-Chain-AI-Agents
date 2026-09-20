@@ -7,10 +7,17 @@ import type { MessageKey } from "@/i18n";
 
 type T = (key: MessageKey | string, values?: Record<string, string | number>) => string;
 
-export function labelFor(t: T, prefix: "event" | "task" | "agent" | "source" | "approval", value: string): string {
+export function labelFor(t: T, prefix: "event" | "task" | "agent" | "source" | "approval" | "playbook", value: string): string {
   const key = `${prefix}.${value}`;
   const label = t(key);
   return label === key ? value.replace(/[._]/g, " ") : label;
+}
+
+/** ``awaiting_approval`` -> "awaiting approval" / "espera aprobación"; unknown statuses spaced out. */
+export function statusLabel(t: T, status: string): string {
+  const key = `status.${status}`;
+  const label = t(key);
+  return label === key ? status.replace(/_/g, " ") : label;
 }
 
 /** ``supplier_comms`` -> "Supplier agent"; unknown agents keep their identifier spaced out. */

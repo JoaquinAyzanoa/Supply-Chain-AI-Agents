@@ -7,6 +7,7 @@ import { useI18n } from "@/i18n";
 import { formatDate, formatDateTime, formatNumber } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
 import { usePlanningRuns } from "./api";
+import { DemandCalendar } from "./DemandCalendar";
 
 export function PlanningPage() {
   const { t, locale } = useI18n();
@@ -57,6 +58,9 @@ export function PlanningPage() {
           </TableBody>
         </Table>
       ) : null}
+      <div className="p-4">
+        <DemandCalendar />
+      </div>
     </div>
   );
 }

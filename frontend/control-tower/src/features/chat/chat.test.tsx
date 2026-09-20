@@ -22,6 +22,7 @@ const DETAIL: CaseDetail = {
     updated_at: "2026-09-12T10:00:00Z",
   },
   events: [],
+  auto_actions: [],
   runs: [],
 };
 

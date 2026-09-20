@@ -12,13 +12,13 @@ from __future__ import annotations
 
 import json
 from datetime import date, datetime
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Literal, Protocol, runtime_checkable
 
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from fastapi_injector import Injected
 from loguru import logger
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 
 from director.agents import Agents
 from director.api.auth import Approver, Principal, Viewer
@@ -35,6 +35,7 @@ from sc_core.schema.base import StrictModel
 from sc_core.schema.planning import ReplenishmentLine
 from sc_core.shared.errors import ScError
 from sc_core.shared.idempotency import new_id
+from sc_core.shared.stats import stockout_probability
 
 router = APIRouter(prefix="/planning", tags=["planning"])
 
@@ -73,6 +74,29 @@ class WhatIfRequest(StrictModel):
 class WhatIfResponse(StrictModel):
     baseline: ReplenishmentLine
     simulated: ReplenishmentLine
+    run_id: str
+
+
+class ClassWhatIfRequest(StrictModel):
+    abc_class: Literal["A", "B", "C"]
+    overrides: PlanningOverrides
+
+
+class PortfolioTotals(StrictModel):
+    """A whole class at a glance: what it would cost and what it would risk."""
+
+    lines: int
+    orders: int = Field(description="lines that order something")
+    spend: float = Field(description="order quantities at the reference price")
+    stock_value: float = Field(description="order-up-to levels at the reference price")
+    expected_stockouts: float = Field(description="sum of 30-day stockout probabilities")
+    service_level: float | None = None
+
+
+class ClassWhatIfResponse(StrictModel):
+    abc_class: str
+    baseline: PortfolioTotals
+    simulated: PortfolioTotals
     run_id: str
 
 
@@ -308,6 +332,71 @@ async def what_if(
         raise HTTPException(status_code=502, detail=result.outcome.summary)
     return WhatIfResponse(
         baseline=baseline, simulated=result.proposal.lines[0], run_id=result.run_id
+    )
+
+
+def portfolio_totals(lines: list[ReplenishmentLine]) -> PortfolioTotals:
+    ordering = [ln for ln in lines if ln.order_qty > 0]
+    stockouts = sum(
+        stockout_probability(
+            position=ln.position,
+            incoming_within=0.0,
+            daily_mean=ln.forecast_daily,
+            daily_sigma=ln.sigma_daily,
+            days=30,
+        )
+        for ln in lines
+    )
+    levels = [ln.service_level for ln in lines]
+    return PortfolioTotals(
+        lines=len(lines),
+        orders=len(ordering),
+        spend=round(sum(ln.order_value for ln in ordering), 2),
+        stock_value=round(sum(ln.order_up_to * (ln.unit_price or 0.0) for ln in lines), 2),
+        expected_stockouts=round(stockouts, 2),
+        service_level=round(sum(levels) / len(levels), 3) if levels else None,
+    )
+
+
+@router.post("/runs/{run_id}/what-if-class", response_model=ClassWhatIfResponse)
+async def what_if_class(
+    run_id: str,
+    body: ClassWhatIfRequest,
+    _: Principal = Approver,
+    store: PlanningReadStore = Injected(PlanningReadStore),  # type: ignore[type-abstract]
+    agents: Agents = Injected(Agents),
+) -> ClassWhatIfResponse:
+    """Recompute every product of one ABC class with other parameters; nothing is written."""
+    run = await store.run(run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"planning run {run_id} not found")
+    baseline = [r.line for r in await store.lines(run_id) if r.line.abc_class == body.abc_class]
+    if not baseline:
+        raise HTTPException(
+            status_code=404, detail=f"no class {body.abc_class} lines in run {run_id}"
+        )
+    task = InventoryPlanningTask(
+        kind="what_if",
+        case_id=new_id("whatif"),
+        product_ids=[ln.product_id for ln in baseline],
+        as_of=run.as_of,
+        overrides=body.overrides,
+    )
+    try:
+        reply = await agents.for_name("inventory_planning").send(
+            task.model_dump_json(), case_id=task.case_id
+        )
+        result = InventoryPlanningResult.model_validate_json(reply.text)
+    except (ScError, ValidationError, LookupError) as exc:
+        logger.warning("class what-if failed: {}", exc)
+        raise HTTPException(status_code=502, detail="the planner could not simulate") from exc
+    if result.proposal is None:
+        raise HTTPException(status_code=502, detail=result.outcome.summary)
+    return ClassWhatIfResponse(
+        abc_class=body.abc_class,
+        baseline=portfolio_totals(baseline),
+        simulated=portfolio_totals(result.proposal.lines),
+        run_id=result.run_id,
     )
 
 

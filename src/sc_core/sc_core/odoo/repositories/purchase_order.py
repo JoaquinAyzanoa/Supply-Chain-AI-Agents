@@ -16,10 +16,17 @@ from sc_core.odoo.models import (
     to_odoo_datetime,
 )
 from sc_core.odoo.repositories.base import Repo
-from sc_core.shared.errors import ExternalServiceError, ValidationFailed
+from sc_core.shared.errors import ExternalServiceError, NotFound, ValidationFailed
 
 OPEN_STATES = ["purchase"]
 RFQ_STATES = ["draft", "sent", "to approve"]
+
+
+def _ref_id(value: Any) -> int | None:
+    """A many2one as Odoo returns it (``[id, name]``) or an id; ``False`` is None."""
+    if isinstance(value, list | tuple):
+        return int(value[0]) if value else None
+    return int(value) if value else None
 
 
 class PurchaseOrderRepo(Repo[PurchaseOrder]):
@@ -159,6 +166,12 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         """Lock a received order (``button_done`` through the addon)."""
         await self._c.call(self._name, "sc_mark_done", [po_id])
 
+    async def mark_rfq_sent(self, po_id: int) -> None:
+        """A draft RFQ whose email left: state ``sent``, as Odoo's own send button does."""
+        po = await self.get(po_id)
+        if po.state == "draft":
+            await self._write([po_id], {"state": "sent"})
+
     async def set_supplier_confirmed(self, po_id: int, value: bool) -> None:
         await self._c.call(self._name, "sc_set_supplier_confirmed", [po_id], value=value)
 
@@ -166,6 +179,10 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         """RFQ -> purchase order (``button_confirm``)."""
         await self._c.call(self._name, "button_confirm", [po_id])
         return await self.get(po_id)
+
+    async def set_line_price(self, line_id: int, price: float) -> None:
+        """The unit price a supplier quoted for a line (RFQs: what we would pay)."""
+        await self._c.write(PurchaseOrderLine.ODOO_MODEL, [line_id], {"price_unit": price})
 
     async def set_line_date_planned(
         self, line_id: int, new_date: datetime, *, source: EtaSource, run_id: str
@@ -181,6 +198,57 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
             source=source,
             run_id=run_id,
         )
+
+    async def split_line(
+        self,
+        line_id: int,
+        parts: list[tuple[float, datetime]],
+        *,
+        source: EtaSource,
+        run_id: str,
+    ) -> list[int]:
+        """A partial delivery: the line keeps the first part and its date; the other parts
+        become new lines of the same product and price with their own dates. Odoo adjusts
+        the receipt moves of a confirmed order by itself. Returns the ids of the new lines."""
+        if len(parts) < 2:
+            raise ValidationFailed("a split needs at least two parts")
+        rows = await self._c.read(
+            PurchaseOrderLine.ODOO_MODEL,
+            [line_id],
+            ["order_id", "product_id", "name", "product_uom", "price_unit", "taxes_id", "sequence"],
+        )
+        if not rows:
+            raise NotFound(f"purchase order line {line_id} not found")
+        row = rows[0]
+        first_qty, first_date = parts[0]
+        await self._c.write(
+            PurchaseOrderLine.ODOO_MODEL,
+            [line_id],
+            {"product_qty": first_qty, "date_planned": to_odoo_datetime(first_date)},
+        )
+        await self._c.call(
+            PurchaseOrderLine.ODOO_MODEL,
+            "sc_log_eta_change",
+            [line_id],
+            source=source,
+            run_id=run_id,
+        )
+        created: list[int] = []
+        for qty, when in parts[1:]:
+            values: dict[str, Any] = {
+                "order_id": _ref_id(row.get("order_id")),
+                "product_id": _ref_id(row.get("product_id")),
+                "name": row.get("name"),
+                "product_uom": _ref_id(row.get("product_uom")),
+                "price_unit": row.get("price_unit"),
+                "product_qty": qty,
+                "date_planned": to_odoo_datetime(when),
+                "sequence": row.get("sequence") or 10,
+            }
+            if row.get("taxes_id"):
+                values["taxes_id"] = [(6, 0, list(row["taxes_id"]))]
+            created.append(int(await self._c.create(PurchaseOrderLine.ODOO_MODEL, values)))
+        return created
 
     async def set_eta_meta(self, po_id: int, *, source: EtaSource, confidence: float) -> None:
         if not 0.0 <= confidence <= 1.0:
@@ -198,6 +266,24 @@ class PurchaseOrderRepo(Repo[PurchaseOrder]):
         """
         result = await self._c.call(self._name, "sc_post_note", [po_id], body=body_html)
         return int(result[0] if isinstance(result, list) else result)
+
+    async def group_alternatives(self, po_ids: Sequence[int]) -> int:
+        """Link RFQs as alternatives of one another (``purchase.order.group``): Odoo
+        shows them side by side and a buyer can compare their lines."""
+        group_id = await self._c.create(
+            "purchase.order.group", {"order_ids": [(6, 0, list(po_ids))]}
+        )
+        return int(group_id)
+
+    async def alternatives_of(self, po_id: int) -> list[PurchaseOrder]:
+        row = await self._c.search_read(
+            self._name, [["id", "=", po_id]], ["alternative_po_ids"], limit=1
+        )
+        ids = list(row[0].get("alternative_po_ids") or []) if row else []
+        return await self.get_many(ids) if ids else []
+
+    async def set_partner_ref(self, po_id: int, value: str) -> None:
+        await self._write([po_id], {"partner_ref": value})
 
     async def cancel(self, po_id: int) -> None:
         await self._c.call(self._name, "button_cancel", [po_id])

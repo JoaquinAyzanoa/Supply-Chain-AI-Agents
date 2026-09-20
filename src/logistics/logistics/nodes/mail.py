@@ -16,6 +16,7 @@ from sc_core.graph import ApprovalRequest, decision_for
 from sc_core.i18n import Language, t
 from sc_core.mail import po_token
 from sc_core.mail.models import MessageIds, OutboundMessage
+from sc_core.schema.autonomy import ActionFacts
 
 Sleep = Callable[[float], Awaitable[None]]
 
@@ -69,6 +70,13 @@ def make_send_approval(
                 "reconciliation": state.get("reconciliation"),
             },
             po_id=ctx.id,
+            facts=ActionFacts(
+                partner_id=ctx.partner_id,
+                partner_name=ctx.partner_name,
+                amount=ctx.amount_total,
+                currency=ctx.currency,
+                email_kind="discrepancy",
+            ),
         )
 
     return build

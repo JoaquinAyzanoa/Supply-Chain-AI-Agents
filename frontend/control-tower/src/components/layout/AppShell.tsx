@@ -4,26 +4,39 @@
  * bottom bar on phones.
  */
 import { Link, Outlet, useRouterState } from "@tanstack/react-router";
-import { Activity, CalendarClock, ClipboardCheck, History, Kanban, LogOut, Settings, Truck } from "lucide-react";
+import { Activity, Bot, CalendarClock, ClipboardCheck, Gauge, History, Kanban, ListChecks, LogOut, Presentation, Settings, ShieldCheck, Siren, Sparkles, Sunrise, Truck } from "lucide-react";
 
 import { useAuth } from "@/auth/AuthProvider";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { CommandPalette } from "@/components/CommandPalette";
 import { useApprovals } from "@/features/approvals/api";
+import { PushToggle } from "@/features/push/PushToggle";
 import { NotificationsBell } from "./NotificationsBell";
 import { LANGUAGES, useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { useStream } from "@/realtime/useStream";
 
 const NAV = [
-  { to: "/", key: "nav.board", icon: Kanban, role: "viewer" },
+  { to: "/", key: "nav.home", icon: Gauge, role: "viewer" },
+  { to: "/board", key: "nav.board", icon: Kanban, role: "viewer" },
+  { to: "/briefing", key: "nav.briefing", icon: Sunrise, role: "viewer" },
   { to: "/approvals", key: "nav.approvals", icon: ClipboardCheck, role: "viewer" },
   { to: "/cases", key: "nav.cases", icon: History, role: "viewer" },
   { to: "/planning", key: "nav.planning", icon: CalendarClock, role: "viewer" },
+  { to: "/risk", key: "nav.risk", icon: Siren, role: "viewer" },
   { to: "/suppliers", key: "nav.suppliers", icon: Truck, role: "viewer" },
+  { to: "/autonomy", key: "nav.autonomy", icon: ShieldCheck, role: "viewer" },
+  { to: "/playbooks", key: "nav.playbooks", icon: ListChecks, role: "viewer" },
+  { to: "/assistant", key: "nav.assistant", icon: Bot, role: "viewer" },
+  { to: "/ai", key: "nav.ai", icon: Sparkles, role: "viewer" },
   { to: "/runs", key: "nav.runs", icon: Activity, role: "viewer" },
+  { to: "/demo", key: "nav.demo", icon: Presentation, role: "viewer" },
   { to: "/settings", key: "nav.settings", icon: Settings, role: "admin" },
 ] as const;
+
+// The phone's bottom bar keeps the five places a buyer works from; the rest is in the palette.
+const PHONE_NAV = new Set(["/", "/board", "/approvals", "/assistant", "/risk"]);
 
 export function AppShell() {
   const { session, logout, hasRole } = useAuth();
@@ -53,6 +66,7 @@ export function AppShell() {
         </nav>
         <div className="mt-auto flex flex-col gap-2 px-2 pt-4 text-xs text-muted-foreground">
           <NotificationsBell />
+          <PushToggle />
           <LiveDot status={status} label={status === "open" ? t("app.live") : t("app.offline")} />
           <div className="truncate" title={session?.user.email}>
             {session?.user.name} · {t(`role.${session?.user.role ?? "viewer"}`)}
@@ -68,6 +82,7 @@ export function AppShell() {
         <span className="font-semibold">{t("app.title")}</span>
         <div className="flex items-center gap-2">
           <NotificationsBell compact />
+          <PushToggle compact />
           <LiveDot status={status} label="" />
           <LanguageSwitch language={language} setLanguage={setLanguage} label={t("app.language")} compact />
           <Button variant="ghost" size="icon" aria-label={t("app.signout")} onClick={logout}>
@@ -79,9 +94,10 @@ export function AppShell() {
       <main className="flex-1 pb-16 sm:pb-0">
         <Outlet />
       </main>
+      <CommandPalette />
 
-      <nav className="fixed inset-x-0 bottom-0 flex justify-around border-t bg-card py-1 sm:hidden" aria-label="main">
-        {items.map((item) => (
+      <nav className="fixed inset-x-0 bottom-0 flex justify-around overflow-x-auto border-t bg-card py-1 sm:hidden" aria-label="main">
+        {items.filter((item) => PHONE_NAV.has(item.to)).map((item) => (
           <Link
             key={item.to}
             to={item.to}

@@ -24,6 +24,48 @@
       "title": "ChangeProposal",
       "type": "object"
     },
+    "DeliverySplit": {
+      "additionalProperties": false,
+      "description": "Part of a line the supplier delivers on its own date.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "date_raw": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "as the supplier wrote it",
+          "title": "Date Raw"
+        },
+        "qty": {
+          "exclusiveMinimum": 0,
+          "title": "Qty",
+          "type": "number"
+        }
+      },
+      "required": [
+        "qty"
+      ],
+      "title": "DeliverySplit",
+      "type": "object"
+    },
     "OutboundSummary": {
       "additionalProperties": false,
       "properties": {
@@ -54,7 +96,12 @@
             "follow_up",
             "send_po",
             "reply",
-            "discrepancy"
+            "discrepancy",
+            "decline",
+            "counter_offer",
+            "answer",
+            "ack",
+            "status"
           ],
           "title": "Kind",
           "type": "string"
@@ -202,6 +249,14 @@
           ],
           "default": null,
           "title": "Review Reason"
+        },
+        "schedule": {
+          "description": "a split delivery: the parts behind the first date",
+          "items": {
+            "$ref": "#/$defs/DeliverySplit"
+          },
+          "title": "Schedule",
+          "type": "array"
         },
         "source": {
           "default": "supplier",

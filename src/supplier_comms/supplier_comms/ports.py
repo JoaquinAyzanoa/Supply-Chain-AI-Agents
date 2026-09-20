@@ -12,12 +12,15 @@ from collections.abc import Sequence
 from datetime import UTC, date, datetime
 from typing import Any, Protocol, cast
 
+from sc_core.infra.internal_requests import InternalRequest, InternalRequestStore
+from sc_core.infra.profiles import ProfileReader
 from sc_core.mail import normalize, pdf, po_token
 from sc_core.mail.models import Attachment, MessageIds, OutboundMessage
 from sc_core.mail.outbound import OutboundMailStore
 from sc_core.mail.protocol import MailClient
+from sc_core.mail.tables import TableData, read_tables
 from sc_core.odoo.client import OdooClient
-from sc_core.odoo.models import RunStatus
+from sc_core.odoo.models import NewOrderLine, RunStatus
 from sc_core.odoo.repositories import (
     AgentRunRepo,
     MailLinkRepo,
@@ -25,6 +28,7 @@ from sc_core.odoo.repositories import (
     PurchaseOrderRepo,
     SupplierInfoRepo,
 )
+from sc_core.schema.profiles import SupplierProfile
 from sc_core.shared.time import utc_now
 from supplier_comms import AGENT_NAME
 from supplier_comms.models import InboundMeta, LineView, PoContext
@@ -47,6 +51,26 @@ class AgentPorts(Protocol):
     async def inbound_meta(self, message_id: str) -> InboundMeta: ...
 
     async def partner_by_email(self, address: str) -> int | None: ...
+
+    async def attachment_tables(self, message_id: str) -> list[TableData]: ...
+
+    async def thread_anchor(self, po_id: int) -> str | None: ...
+
+    async def po_terms(self, po_id: int) -> dict[str, Any]: ...
+
+    async def search_products(self, query: str, *, limit: int = 8) -> list[dict[str, Any]]: ...
+
+    async def reference_supplier(self, product_id: int) -> dict[str, Any] | None: ...
+
+    async def product_template_id(self, product_id: int) -> int | None: ...
+
+    async def currency_id_for(self, code: str) -> int | None: ...
+
+    async def save_internal_request(self, request: InternalRequest) -> InternalRequest: ...
+
+    async def internal_request_for(self, po_name: str) -> InternalRequest | None: ...
+
+    async def finish_internal_request(self, request_id: int, status: str) -> None: ...
 
     # --- mail ----------------------------------------------------------------------
     async def create_draft(self, message: OutboundMessage) -> MessageIds: ...
@@ -79,7 +103,26 @@ class AgentPorts(Protocol):
     # --- writes to Odoo (after approval only) -------------------------------------
     async def post_note(self, po_id: int, html: str) -> None: ...
 
+    async def mark_rfq_sent(self, po_id: int) -> None: ...
+
+    async def supplier_profile(self, partner_id: int) -> SupplierProfile | None: ...
+
+    # --- a new supplier (phase 11, after a partner_create approval) ---------------
+    async def create_supplier(self, name: str, email: str | None) -> tuple[int, str]: ...
+
+    async def product_by_code(self, code: str) -> tuple[int, str] | None: ...
+
+    async def create_rfq(
+        self, partner_id: int, lines: list[dict[str, Any]], *, external_ref: str, origin: str
+    ) -> tuple[int, str]: ...
+
     async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None: ...
+
+    async def set_line_price(self, line_id: int, price: float, *, run_id: str) -> None: ...
+
+    async def split_line(
+        self, line_id: int, parts: list[tuple[float, date]], *, run_id: str
+    ) -> list[int]: ...
 
     async def upsert_price(
         self,
@@ -125,7 +168,11 @@ class LivePorts:
         outbound: OutboundMailStore,
         pdf_max_pages: int = 20,
         pdf_max_bytes: int = 10_000_000,
+        profiles: ProfileReader | None = None,
+        requests: InternalRequestStore | None = None,
     ) -> None:
+        self._profiles = profiles
+        self._requests = requests
         self._odoo = odoo
         self._runs = agent_runs
         self._pos = purchase_orders
@@ -206,6 +253,8 @@ class LivePorts:
                 {
                     "product": row.product_name
                     or (row.product_id.name if row.product_id else None),
+                    "product_id": row.product_id.id if row.product_id else None,
+                    "product_code": row.product_code,
                     "price": row.price,
                     "currency": row.currency_id.name if row.currency_id else None,
                     "min_qty": row.min_qty,
@@ -241,6 +290,114 @@ class LivePorts:
             if text:
                 texts.append(f"[{attachment.name}]\n{text[:max_chars]}")
         return texts
+
+    async def attachment_tables(self, message_id: str) -> list[TableData]:
+        """Spreadsheets attached to the message (price lists), as rows of strings."""
+        tables: list[TableData] = []
+        for attachment in await self._graph.attachments(message_id):
+            tables.extend(read_tables(attachment))
+        return tables
+
+    async def thread_anchor(self, po_id: int) -> str | None:
+        """The latest message linked to the order: outbound mail replies in its thread."""
+        links = await self._links.for_po(po_id)
+        dated = [ln for ln in links if ln.received_at is not None]
+        if not dated:
+            return links[-1].graph_message_id if links else None
+        return max(dated, key=lambda ln: ln.received_at or utc_now()).graph_message_id
+
+    async def po_terms(self, po_id: int) -> dict[str, Any]:
+        """Payment terms, incoterm, buyer and the delivery address of an order."""
+        rows = await self._odoo.read(
+            "purchase.order",
+            [po_id],
+            ["payment_term_id", "incoterm_id", "user_id", "date_order", "picking_type_id"],
+        )
+        if not rows:
+            return {}
+        row = rows[0]
+        terms: dict[str, Any] = {
+            "payment_terms": _name(row.get("payment_term_id")),
+            "incoterm": _name(row.get("incoterm_id")),
+            "buyer": _name(row.get("user_id")),
+            "date_order": row.get("date_order"),
+        }
+        picking_type = row.get("picking_type_id")
+        if isinstance(picking_type, list | tuple) and picking_type:
+            types = await self._odoo.read(
+                "stock.picking.type", [int(picking_type[0])], ["warehouse_id"]
+            )
+            warehouse = types[0].get("warehouse_id") if types else None
+            if isinstance(warehouse, list | tuple) and warehouse:
+                wh = await self._odoo.read("stock.warehouse", [int(warehouse[0])], ["partner_id"])
+                partner = wh[0].get("partner_id") if wh else None
+                if isinstance(partner, list | tuple) and partner:
+                    addr = await self._odoo.read(
+                        "res.partner", [int(partner[0])], ["contact_address"]
+                    )
+                    if addr:
+                        terms["delivery_address"] = " ".join(
+                            str(addr[0].get("contact_address") or "").split()
+                        )
+        return terms
+
+    async def search_products(self, query: str, *, limit: int = 8) -> list[dict[str, Any]]:
+        words = [w for w in query.split() if len(w) > 2][:4]
+        domain: list[Any] = [["purchase_ok", "=", True]]
+        if words:
+            domain += ["|"] * (len(words) * 2 - 1)
+            for word in words:
+                domain += ["|", ["default_code", "ilike", word], ["name", "ilike", word]]
+        rows = await self._odoo.search_read(
+            "product.product", domain, ["default_code", "display_name"], limit=limit
+        )
+        return [
+            {
+                "id": int(r["id"]),
+                "code": r.get("default_code") or None,
+                "name": str(r.get("display_name") or ""),
+            }
+            for r in rows
+        ]
+
+    async def reference_supplier(self, product_id: int) -> dict[str, Any] | None:
+        rows = await self._supplier_info.for_product(product_id)
+        if not rows:
+            return None
+        first = rows[0]
+        return {
+            "partner_id": first.partner_id.id,
+            "partner_name": first.partner_id.name,
+            "price": first.price,
+            "currency": first.currency_id.name if first.currency_id else None,
+            "currency_id": first.currency_id.id if first.currency_id else None,
+            "lead_days": first.delay,
+        }
+
+    async def product_template_id(self, product_id: int) -> int | None:
+        return (await self._templates_of([product_id])).get(product_id)
+
+    async def currency_id_for(self, code: str) -> int | None:
+        if not code:
+            return None
+        rows = await self._odoo.search_read(
+            "res.currency", [["name", "=", code.upper()]], ["id"], limit=1
+        )
+        return int(rows[0]["id"]) if rows else None
+
+    async def save_internal_request(self, request: InternalRequest) -> InternalRequest:
+        if self._requests is None:
+            return request
+        return await self._requests.save(request)
+
+    async def internal_request_for(self, po_name: str) -> InternalRequest | None:
+        if self._requests is None:
+            return None
+        return await self._requests.for_po(po_name)
+
+    async def finish_internal_request(self, request_id: int, status: str) -> None:
+        if self._requests is not None:
+            await self._requests.set_status(request_id, status)
 
     # --- mail ----------------------------------------------------------------------
 
@@ -297,12 +454,33 @@ class LivePorts:
 
     # --- writes to Odoo -----------------------------------------------------------
 
+    async def mark_rfq_sent(self, po_id: int) -> None:
+        await self._pos.mark_rfq_sent(po_id)
+
     async def post_note(self, po_id: int, html: str) -> None:
         await self._pos.post_note(po_id, html)
+
+    async def supplier_profile(self, partner_id: int) -> SupplierProfile | None:
+        if self._profiles is None:
+            return None
+        return await self._profiles.get(partner_id)
 
     async def set_line_date(self, line_id: int, new_date: date, *, run_id: str) -> None:
         when = datetime(new_date.year, new_date.month, new_date.day, 12, 0, tzinfo=UTC)
         await self._pos.set_line_date_planned(line_id, when, source="supplier", run_id=run_id)
+
+    async def set_line_price(self, line_id: int, price: float, *, run_id: str) -> None:
+        await self._pos.set_line_price(line_id, price)
+
+    async def split_line(
+        self, line_id: int, parts: list[tuple[float, date]], *, run_id: str
+    ) -> list[int]:
+        return await self._pos.split_line(
+            line_id,
+            [(qty, datetime(d.year, d.month, d.day, 12, 0, tzinfo=UTC)) for qty, d in parts],
+            source="supplier",
+            run_id=run_id,
+        )
 
     async def upsert_price(
         self,
@@ -368,6 +546,32 @@ class LivePorts:
             internet_message_id=message.internet_message_id,
         )
 
+    async def create_supplier(self, name: str, email: str | None) -> tuple[int, str]:
+        partner = await self._partners.create_supplier(name=name, email=email)
+        return partner.id, partner.name
+
+    async def product_by_code(self, code: str) -> tuple[int, str] | None:
+        rows = await self._odoo.search_read(
+            "product.product",
+            [["default_code", "=", code.strip()], ["purchase_ok", "=", True]],
+            ["display_name"],
+            limit=1,
+        )
+        if not rows:
+            return None
+        return int(rows[0]["id"]), str(rows[0].get("display_name") or code)
+
+    async def create_rfq(
+        self, partner_id: int, lines: list[dict[str, Any]], *, external_ref: str, origin: str
+    ) -> tuple[int, str]:
+        po = await self._pos.create_rfq(
+            partner_id,
+            [NewOrderLine.model_validate(line) for line in lines],
+            external_ref=external_ref,
+            origin=origin,
+        )
+        return po.id, po.name
+
     async def partner_by_email(self, address: str) -> int | None:
         partner = await self._partners.find_by_email(address)
         if partner is None:
@@ -386,3 +590,9 @@ class LivePorts:
             case_id=case_id,
             confidence="agent",
         )
+
+
+def _name(ref: Any) -> str | None:
+    if isinstance(ref, list | tuple) and len(ref) > 1:
+        return str(ref[1])
+    return None

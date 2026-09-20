@@ -79,6 +79,12 @@ class NoApprovals:
         return None
 
 
+class PlaybookStarter(Protocol):
+    async def start(
+        self, name: str, *, po_name: str, partner_id: int | None, started_by: str | None = None
+    ) -> Any: ...
+
+
 class FollowUpJob:
     """``JobRunner`` for ``po_followups`` (other job ids are recorded as not implemented)."""
 
@@ -96,8 +102,10 @@ class FollowUpJob:
         today: Callable[[], date] = local_today,
         language: Language = "en",
         runtime: RuntimeSettingsReader | None = None,
+        playbooks: PlaybookStarter | None = None,
     ) -> None:
         self._language = language
+        self._playbooks = playbooks
         self._base_policy = policy
         self._policy = policy
         self._runtime = runtime
@@ -126,6 +134,7 @@ class FollowUpJob:
         sent = escalated = 0
         outcomes: list[dict[str, Any]] = []
         skipped: list[str] = []
+        started: list[dict[str, Any]] = []
         for decision in decisions:
             # Every action is a model run and an email or an escalation: cap them per run.
             # What is skipped is not recorded on the case, so it fires on the next run.
@@ -133,6 +142,18 @@ class FollowUpJob:
                 skipped.append(decision.po_name)
                 continue
             fact = next(f for f in facts if f.po_name == decision.po_name)
+            if self._playbooks is not None and not decision.escalate:
+                # phase 11: the playbook carries the order through the whole story
+                name = "silent_rfq" if fact.is_rfq else "late_order"
+                run = await self._playbooks.start(
+                    name,
+                    po_name=fact.po_name,
+                    partner_id=fact.partner_id,
+                    started_by="po_followups",
+                )
+                started.append({"po_name": fact.po_name, "playbook": name, "run_id": run.id})
+                sent += 1
+                continue
             outcome = await self.act(decision, fact, tick, today)
             outcomes.append(outcome)
             sent += outcome.get("task") is not None
@@ -152,6 +173,7 @@ class FollowUpJob:
             "tasks_sent": sent,
             "escalated": escalated,
             "decisions": outcomes,
+            "playbooks": started,
             "skipped": skipped,
             "approvals": reviewed,
         }
@@ -220,30 +242,55 @@ class FollowUpJob:
         missing = [name for name in contacts if name not in orders]
         for po in await self._orders.by_names(missing) if missing else []:
             orders.setdefault(po.name, po)
-        facts: list[PoFacts] = []
-        for name, po in sorted(orders.items()):
-            last_out, last_in = contacts.get(name, (None, None))
-            open_cases = await self._cases.open_for_po(name)
-            facts.append(
-                PoFacts(
-                    po_id=po.id,
-                    po_name=name,
-                    partner_id=po.partner_id.id,
-                    state=po.state,
-                    date_planned=po.date_planned.date() if po.date_planned else None,
-                    receipt_status=po.receipt_status,
-                    last_outbound_at=last_out,
-                    last_inbound_at=last_in,
-                    rules_fired=await self._cases.rules_fired(name),
-                    # a person has it, or put it on hold until a later date (chat: hold_until)
-                    awaiting_human=any(
-                        c.status in ("awaiting_approval", "escalated")
-                        or (c.next_action_at is not None and c.next_action_at.date() > today)
-                        for c in open_cases
-                    ),
-                )
-            )
-        return facts
+        return [
+            await self._facts_of(name, po, contacts, today) for name, po in sorted(orders.items())
+        ]
+
+    async def _facts_of(
+        self,
+        name: str,
+        po: PurchaseOrder,
+        contacts: dict[str, tuple[date | None, date | None]],
+        today: date,
+    ) -> PoFacts:
+        last_out, last_in = contacts.get(name, (None, None))
+        open_cases = await self._cases.open_for_po(name)
+        return PoFacts(
+            po_id=po.id,
+            po_name=name,
+            partner_id=po.partner_id.id,
+            state=po.state,
+            date_planned=po.date_planned.date() if po.date_planned else None,
+            receipt_status=po.receipt_status,
+            last_outbound_at=last_out,
+            last_inbound_at=last_in,
+            rules_fired=await self._cases.rules_fired(name),
+            # a person has it, or put it on hold until a later date (chat: hold_until)
+            awaiting_human=any(
+                c.status in ("awaiting_approval", "escalated")
+                or (c.next_action_at is not None and c.next_action_at.date() > today)
+                for c in open_cases
+            ),
+        )
+
+    def attach_playbooks(self, playbooks: PlaybookStarter) -> None:
+        """Wired after construction: the engine reads facts from this job."""
+        self._playbooks = playbooks
+
+    async def facts_for(self, po_name: str, today: date) -> PoFacts | None:
+        """One order's facts, as the playbook engine's conditions read them.
+
+        The daily gather only lists orders worth chasing; a playbook may run on any order
+        (an internal request's fresh RFQ, for one), so an order the gather does not know is
+        read by name.
+        """
+        found = next((f for f in await self.gather(today) if f.po_name == po_name), None)
+        if found is not None:
+            return found
+        orders = await self._orders.by_names([po_name])
+        if not orders:
+            return None
+        return await self._facts_of(po_name, orders[0], await self._mail.contacts(), today)
 
     async def act_now(
         self, po_name: str, *, requested_by: str, today: date | None = None

@@ -6,7 +6,7 @@ from typing import Any
 
 from sc_core.graph import cleared
 from sc_core.llm.testing import ScriptedChatClient
-from sc_core.schema.a2a import Classification, SupplierCommsTask
+from sc_core.schema.a2a import Classification, QuotationData, SupplierCommsTask
 from supplier_comms.models import InboundMeta, UnlinkedResolution
 from supplier_comms.testing import SUPPLIER_EMAIL, FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
@@ -93,13 +93,15 @@ async def test_low_confidence_pick_is_not_trusted(
     assert approval_ports.created[0]["kind"] == "unlinked_mail"
 
 
-async def test_unknown_sender_without_candidates_escalates_without_model_call(
+async def test_unknown_sender_without_candidates_escalates_when_nothing_is_quoted(
     make_agent: Any, ports: FakePorts, chat: ScriptedChatClient, approval_ports: FakeApprovalPorts
 ) -> None:
     ports.inbound[MSG] = "Hola, ¿tienen stock de válvulas?"
     ports.metas[MSG] = InboundMeta(graph_message_id=MSG, sender_address="nobody@example.com")
+    # the mail is read once as a possible quotation; a question carries no priced line
+    chat.responses.append(QuotationData(lines=[], confidence=0.9))
     result = await make_agent().run(_task("case_u4", []))
-    assert result.status == "escalated" and chat.calls == []
+    assert result.status == "escalated" and len(chat.calls) == 1
     created = approval_ports.created[0]
     assert created["res_id"] is None and created["payload"]["candidates"] == []
     assert approval_ports.reviews == []  # nothing to hang an activity on

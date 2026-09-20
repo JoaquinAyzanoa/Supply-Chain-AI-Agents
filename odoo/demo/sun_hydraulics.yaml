@@ -1,13 +1,22 @@
 # Demo dataset: a small Peruvian distributor of Sun Hydraulics components.
-# Loaded by `just odoo-seed` (scripts/odoo_seed.py). Everything here is
+# Loaded by `just odoo-seed` (scripts/odoo_seed.py) into an Odoo created
+# WITHOUT Odoo's own demo data (`just odoo-fresh`). Everything here is
 # illustrative: part numbers follow Sun's model-code scheme, prices are
 # plausible list prices, customers and suppliers are fictional.
 #
 # The history (demand, purchases, receipts) is GENERATED from the profiles
-# below with the RNG seed, so two machines produce the same two years.
+# below with the RNG seed, so two machines produce the same two years and,
+# from an empty database, the same record ids.
+#
+# Day one is designed to create work: about a dozen products sit below their
+# reorder point (`stock.today_weeks`), two of them at zero inside the lead
+# time, one seasonal product is entering its season, two reorder rules are
+# deliberately wrong, three RFQs and five confirmed orders are open at every
+# board stage, and two received orders carry a draft vendor bill (one clean,
+# one with a price variance).
 
 seed: 20260912
-language: es_PE
+language: en_US   # the demo runs in English end to end (emails follow the partner's language)
 
 company:
   name: Hidráulica Andina SAC
@@ -21,31 +30,45 @@ company:
 warehouse: WH
 
 categories:
-  - Hidráulica
-  - Hidráulica / Cartuchos
-  - Hidráulica / Cuerpos
-  - Hidráulica / Bobinas
-  - Hidráulica / Kits de sellos
+  - Hydraulics
+  - Hydraulics / Cartridges
+  - Hydraulics / Bodies
+  - Hydraulics / Coils
+  - Hydraulics / Seal kits
+  - Hydraulics / Hoses and fittings
 
 # Seasonality: 12 monthly factors (Jan..Dec), mean 1.0. Mining maintenance
 # peaks in April-May and October-November; December and January are quiet.
+# `campaign` is the same rhythm, much stronger (consumables bought per shutdown).
 seasonality_profiles:
-  mining: [0.80, 0.85, 0.95, 1.20, 1.25, 1.00, 0.95, 0.95, 1.00, 1.20, 1.15, 0.70]
-  flat:   [0.95, 0.95, 1.00, 1.05, 1.05, 1.00, 1.00, 1.00, 1.00, 1.05, 1.00, 0.95]
+  mining:   [0.80, 0.85, 0.95, 1.20, 1.25, 1.00, 0.95, 0.95, 1.00, 1.20, 1.15, 0.70]
+  flat:     [0.95, 0.95, 1.00, 1.05, 1.05, 1.00, 1.00, 1.00, 1.00, 1.05, 1.00, 0.95]
+  campaign: [0.55, 0.60, 0.80, 1.60, 1.70, 0.95, 0.80, 0.70, 0.90, 1.75, 1.50, 0.45]
 
+# Three suppliers that deliver differently. Receipt shares: on time, late
+# (1..late_days_max days), partial (half now, the rest a week later).
 suppliers:
   primary:
     name: Proveedor Hidraulica
-    email: ventas.hidraulica.sc@gmail.com
+    email: ventas.hidraulica.sc@gmail.com     # the demo mailbox the agents write to
     country: PE
     city: Lima
-    lang: es_PE
+    lang: en_US
+    receipts: {on_time_share: 0.60, late_share: 0.30, partial_share: 0.10, late_days_max: 10}
   alternate:
-    name: Sun Hydraulics Distribuidor Alterno
-    email: null            # no mailbox on purpose: no agent ever writes to it
+    name: Hidráulica Alterna SAC
+    email: ventas.hidraulica.sc+alterna@gmail.com      # an alias of the demo mailbox: the demo answers for it
     country: PE
     city: Arequipa
-    lang: es_PE
+    lang: en_US
+    receipts: {on_time_share: 0.85, late_share: 0.10, partial_share: 0.05, late_days_max: 5}
+  importer:
+    name: Importadora del Sur SAC
+    email: ventas.hidraulica.sc+importadora@gmail.com  # cheapest, slowest, minimum quantities; same demo mailbox
+    country: PE
+    city: Callao
+    lang: en_US
+    receipts: {on_time_share: 0.35, late_share: 0.50, partial_share: 0.15, late_days_max: 25}
 
 customers:
   - name: Minera Los Andes SAC
@@ -61,159 +84,346 @@ customers:
     city: Huancayo
     weight: 0.15
 
+# Reorder rules only for the products that make the top share of revenue
+# (Odoo's class A), plus the flawed ones below; the planner proposes the rest.
+rules:
+  top_revenue_share: 0.60
+
 # Per product: catalogue data, demand profile (weekly mean and coefficient of
-# variation, yearly trend, seasonality profile), stock targets in weeks of
-# demand, and supplier terms as a ratio of the list price plus lead days.
+# variation, yearly trend, seasonality profile; `pattern: intermittent` sells
+# in `hit_rate` of the weeks; `since_months` for a product launched recently),
+# stock targets in weeks of demand (`today_weeks` is what is on hand on day
+# one), and supplier terms as a ratio of the list price plus lead days.
 products:
+  # --- Cartuchos (12) ------------------------------------------------------------
   - code: CBEA-LHN
-    name: "Válvula de contrabalance 3:1, ajuste estándar, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Counterbalance valve 3:1, standard setting, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 168.00
     cost_ratio: 0.62
     weight_kg: 0.35
     demand: {mean_weekly: 7.0, cv: 0.35, trend_per_year: 0.08, seasonality: mining}
-    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 8}
+    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 8, today_weeks: 1.5}   # below ROP
     suppliers:
       primary: {price_ratio: 0.62, delay: 30, min_qty: 1}
       alternate: {price_ratio: 0.68, delay: 18, min_qty: 1}
+      importer: {price_ratio: 0.54, delay: 60, min_qty: 20}
   - code: CBCA-LHN
-    name: "Válvula de contrabalance 3:1, cavidad T-2A"
-    category: Hidráulica / Cartuchos
+    name: "Counterbalance valve 3:1, T-2A cavity"
+    category: Hydraulics / Cartridges
     list_price: 142.00
     cost_ratio: 0.62
     weight_kg: 0.25
     demand: {mean_weekly: 4.0, cv: 0.40, trend_per_year: 0.05, seasonality: mining}
-    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8, today_weeks: 9}
     suppliers:
       primary: {price_ratio: 0.62, delay: 30, min_qty: 1}
       alternate: {price_ratio: 0.69, delay: 18, min_qty: 1}
   - code: CBGA-LHN
-    name: "Válvula de contrabalance 3:1, alto caudal, cavidad T-17A"
-    category: Hidráulica / Cartuchos
+    name: "Counterbalance valve 3:1, high flow, T-17A cavity"
+    category: Hydraulics / Cartridges
     list_price: 236.00
     cost_ratio: 0.63
     weight_kg: 0.70
-    demand: {mean_weekly: 1.5, cv: 0.60, trend_per_year: 0.10, seasonality: mining}
-    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10}
+    demand: {mean_weekly: 1.5, cv: 0.60, trend_per_year: 0.10, seasonality: mining, pattern: intermittent, hit_rate: 0.45}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10, today_weeks: 2}     # below ROP
     suppliers:
       primary: {price_ratio: 0.63, delay: 40, min_qty: 1}
   - code: RPEC-LAN
-    name: "Válvula de alivio de acción directa, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Direct-acting relief valve, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 121.00
     cost_ratio: 0.61
     weight_kg: 0.30
     demand: {mean_weekly: 5.0, cv: 0.35, trend_per_year: 0.03, seasonality: mining}
-    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8, today_weeks: 0}      # stockout inside the lead time
     suppliers:
       primary: {price_ratio: 0.61, delay: 30, min_qty: 1}
       alternate: {price_ratio: 0.66, delay: 15, min_qty: 1}
   - code: RDDA-LAN
-    name: "Válvula de alivio de acción directa, cavidad T-10A"
-    category: Hidráulica / Cartuchos
+    name: "Direct-acting relief valve, T-10A cavity"
+    category: Hydraulics / Cartridges
     list_price: 96.00
     cost_ratio: 0.60
     weight_kg: 0.20
     demand: {mean_weekly: 3.5, cv: 0.40, trend_per_year: 0.00, seasonality: flat}
-    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 7}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 7, today_weeks: 8}
     suppliers:
       primary: {price_ratio: 0.60, delay: 28, min_qty: 1}
       alternate: {price_ratio: 0.65, delay: 15, min_qty: 1}
   - code: NFCC-LCN
-    name: "Válvula de aguja, ajuste fino, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Needle valve, fine adjustment, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 88.00
     cost_ratio: 0.60
     weight_kg: 0.25
     demand: {mean_weekly: 3.0, cv: 0.45, trend_per_year: 0.02, seasonality: flat}
-    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 7}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 7, today_weeks: 1}      # below ROP
     suppliers:
       primary: {price_ratio: 0.60, delay: 28, min_qty: 1}
   - code: FXDA-XAN
-    name: "Control de caudal compensado por presión, cavidad T-2A"
-    category: Hidráulica / Cartuchos
+    name: "Pressure-compensated flow control, T-2A cavity"
+    category: Hydraulics / Cartridges
     list_price: 154.00
     cost_ratio: 0.62
     weight_kg: 0.25
     demand: {mean_weekly: 2.0, cv: 0.50, trend_per_year: 0.04, seasonality: flat}
-    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 9}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 9, today_weeks: 10}
     suppliers:
       primary: {price_ratio: 0.62, delay: 35, min_qty: 1}
       alternate: {price_ratio: 0.70, delay: 20, min_qty: 1}
   - code: CXDA-XCN
-    name: "Válvula check, cavidad T-10A"
-    category: Hidráulica / Cartuchos
+    name: "Check valve, T-10A cavity"
+    category: Hydraulics / Cartridges
     list_price: 47.00
     cost_ratio: 0.58
     weight_kg: 0.15
     demand: {mean_weekly: 9.0, cv: 0.30, trend_per_year: 0.02, seasonality: flat}
-    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 8}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 8, today_weeks: 2}      # below ROP
     suppliers:
       primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
       alternate: {price_ratio: 0.63, delay: 15, min_qty: 5}
+      importer: {price_ratio: 0.50, delay: 60, min_qty: 50}
   - code: DTDA-MCN
-    name: "Válvula direccional solenoide 2 vías NC, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Solenoid directional valve, 2-way NC, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 189.00
     cost_ratio: 0.63
     weight_kg: 0.45
     demand: {mean_weekly: 2.5, cv: 0.45, trend_per_year: 0.12, seasonality: mining}
-    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 9}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 9, today_weeks: 3}      # trending up, below ROP
     suppliers:
       primary: {price_ratio: 0.63, delay: 35, min_qty: 1}
       alternate: {price_ratio: 0.69, delay: 20, min_qty: 1}
+  - code: DMDA-MNN
+    name: "Solenoid directional valve, 3-way, T-11A cavity"
+    category: Hydraulics / Cartridges
+    list_price: 214.00
+    cost_ratio: 0.63
+    weight_kg: 0.50
+    demand: {mean_weekly: 1.6, cv: 0.50, trend_per_year: 0.06, seasonality: mining}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10, today_weeks: 11}
+    suppliers:
+      primary: {price_ratio: 0.63, delay: 35, min_qty: 1}
   - code: PBDB-LAN
-    name: "Válvula reductora/aliviadora de presión, cavidad T-2A"
-    category: Hidráulica / Cartuchos
+    name: "Pressure reducing/relieving valve, T-2A cavity"
+    category: Hydraulics / Cartridges
     list_price: 176.00
     cost_ratio: 0.62
     weight_kg: 0.30
-    demand: {mean_weekly: 1.8, cv: 0.55, trend_per_year: 0.00, seasonality: flat}
-    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10}
+    demand: {mean_weekly: 1.8, cv: 0.55, trend_per_year: 0.00, seasonality: flat, pattern: intermittent, hit_rate: 0.5}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10, today_weeks: 12}
     suppliers:
       primary: {price_ratio: 0.62, delay: 35, min_qty: 1}
   - code: LODC-XDN
-    name: "Elemento lógico 2 vías, cavidad T-11A"
-    category: Hidráulica / Cartuchos
+    name: "Logic element, 2-way, T-11A cavity"
+    category: Hydraulics / Cartridges
     list_price: 133.00
     cost_ratio: 0.61
     weight_kg: 0.30
-    demand: {mean_weekly: 1.2, cv: 0.65, trend_per_year: 0.05, seasonality: mining}
-    stock: {weeks_on_hand: 9, min_weeks: 4, max_weeks: 10}
+    demand: {mean_weekly: 1.2, cv: 0.65, trend_per_year: 0.05, seasonality: mining, pattern: intermittent, hit_rate: 0.4}
+    stock: {weeks_on_hand: 9, min_weeks: 4, max_weeks: 10, today_weeks: 2}     # no rule, below ROP
     suppliers:
       primary: {price_ratio: 0.61, delay: 40, min_qty: 1}
+
+  # --- Cuerpos (6) ---------------------------------------------------------------
   - code: AAA-T11A
-    name: "Cuerpo de línea aluminio, cavidad T-11A, puertos 1/2\" BSPP"
-    category: Hidráulica / Cuerpos
+    name: "Aluminium line body, T-11A cavity, 1/2\" BSPP ports"
+    category: Hydraulics / Bodies
     list_price: 39.00
     cost_ratio: 0.58
     weight_kg: 0.40
     demand: {mean_weekly: 6.0, cv: 0.35, trend_per_year: 0.03, seasonality: flat}
-    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 9}
+    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 9, today_weeks: 9}
     suppliers:
       primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
       alternate: {price_ratio: 0.62, delay: 15, min_qty: 5}
+  - code: AAB-T2A
+    name: "Aluminium line body, T-2A cavity, 3/8\" BSPP ports"
+    category: Hydraulics / Bodies
+    list_price: 31.00
+    cost_ratio: 0.58
+    weight_kg: 0.30
+    demand: {mean_weekly: 4.5, cv: 0.40, trend_per_year: 0.02, seasonality: flat}
+    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 9, today_weeks: 1.5}    # below ROP
+    suppliers:
+      primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
+      importer: {price_ratio: 0.49, delay: 55, min_qty: 40}
+  - code: AAJ-T10A
+    name: "Aluminium line body, T-10A cavity, 3/8\" BSPP ports"
+    category: Hydraulics / Bodies
+    list_price: 33.00
+    cost_ratio: 0.58
+    weight_kg: 0.30
+    demand: {mean_weekly: 3.0, cv: 0.40, trend_per_year: 0.00, seasonality: flat}
+    stock: {weeks_on_hand: 8, min_weeks: 3, max_weeks: 9, today_weeks: 10}
+    suppliers:
+      primary: {price_ratio: 0.58, delay: 25, min_qty: 5}
+  - code: BAA-T11A
+    name: "Steel line body, T-11A cavity, 1/2\" SAE ports"
+    category: Hydraulics / Bodies
+    list_price: 74.00
+    cost_ratio: 0.60
+    weight_kg: 1.10
+    demand: {mean_weekly: 1.4, cv: 0.55, trend_per_year: 0.04, seasonality: mining, pattern: intermittent, hit_rate: 0.5}
+    stock: {weeks_on_hand: 9, min_weeks: 4, max_weeks: 10, today_weeks: 11}
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 35, min_qty: 2}
+      alternate: {price_ratio: 0.66, delay: 20, min_qty: 2}
+  - code: GAB-T2A-3
+    name: "Aluminium manifold, 3 stations, T-2A cavity, series"
+    category: Hydraulics / Bodies
+    list_price: 118.00
+    cost_ratio: 0.60
+    weight_kg: 1.40
+    demand: {mean_weekly: 0.8, cv: 0.70, trend_per_year: 0.05, seasonality: mining, pattern: intermittent, hit_rate: 0.3}
+    stock: {weeks_on_hand: 10, min_weeks: 5, max_weeks: 12, today_weeks: 12}
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 40, min_qty: 1}
+  - code: ZKC-T11A-2
+    name: "Sandwich block, 2 T-11A cavities, for CETOP 3 valve"
+    category: Hydraulics / Bodies
+    list_price: 96.00
+    cost_ratio: 0.60
+    weight_kg: 1.20
+    demand: {mean_weekly: 1.0, cv: 0.60, trend_per_year: 0.10, seasonality: mining, pattern: intermittent, hit_rate: 0.4}
+    stock: {weeks_on_hand: 10, min_weeks: 5, max_weeks: 12, today_weeks: 0}    # stockout inside the lead time
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 40, min_qty: 1}
+
+  # --- Bobinas (4) ---------------------------------------------------------------
   - code: 770-212
-    name: "Bobina 12 VDC para válvulas solenoide serie DT"
-    category: Hidráulica / Bobinas
+    name: "Coil 12 VDC for DT series solenoid valves"
+    category: Hydraulics / Coils
     list_price: 58.00
     cost_ratio: 0.60
     weight_kg: 0.30
     demand: {mean_weekly: 3.0, cv: 0.45, trend_per_year: 0.12, seasonality: mining}
-    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8, today_weeks: 8}
     suppliers:
       primary: {price_ratio: 0.60, delay: 25, min_qty: 2}
       alternate: {price_ratio: 0.64, delay: 15, min_qty: 2}
+  - code: 770-224
+    name: "Coil 24 VDC for DT series solenoid valves"
+    category: Hydraulics / Coils
+    list_price: 58.00
+    cost_ratio: 0.60
+    weight_kg: 0.30
+    demand: {mean_weekly: 4.5, cv: 0.40, trend_per_year: 0.08, seasonality: mining}
+    stock: {weeks_on_hand: 7, min_weeks: 3, max_weeks: 8, today_weeks: 1.5}    # below ROP
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 25, min_qty: 2}
+      alternate: {price_ratio: 0.64, delay: 15, min_qty: 2}
+      importer: {price_ratio: 0.51, delay: 55, min_qty: 20}
+  - code: 770-224-D
+    name: "Coil 24 VDC, Deutsch DT04-2P connector, DT series"
+    category: Hydraulics / Coils
+    list_price: 66.00
+    cost_ratio: 0.60
+    weight_kg: 0.30
+    demand: {mean_weekly: 2.0, cv: 0.50, trend_per_year: 0.30, seasonality: mining, since_months: 4}   # launched this year
+    stock: {weeks_on_hand: 4, min_weeks: 3, max_weeks: 8, today_weeks: 2}      # new, below ROP
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 25, min_qty: 2}
+  - code: 770-110
+    name: "Coil 110 VAC for DT series solenoid valves"
+    category: Hydraulics / Coils
+    list_price: 62.00
+    cost_ratio: 0.60
+    weight_kg: 0.32
+    demand: {mean_weekly: 0.6, cv: 0.80, trend_per_year: -0.10, seasonality: flat, pattern: intermittent, hit_rate: 0.25}
+    stock: {weeks_on_hand: 12, min_weeks: 6, max_weeks: 14, today_weeks: 20}   # slow mover, overstocked
+    suppliers:
+      primary: {price_ratio: 0.60, delay: 30, min_qty: 2}
+
+  # --- Kits de sellos (4) --------------------------------------------------------
   - code: 990-011-007
-    name: "Kit de sellos Buna-N para cavidad T-11A"
-    category: Hidráulica / Kits de sellos
+    name: "Buna-N seal kit for T-11A cavity"
+    category: Hydraulics / Seal kits
     list_price: 9.50
     cost_ratio: 0.55
     weight_kg: 0.02
-    demand: {mean_weekly: 14.0, cv: 0.30, trend_per_year: 0.02, seasonality: mining}
-    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10}
+    demand: {mean_weekly: 14.0, cv: 0.30, trend_per_year: 0.02, seasonality: campaign}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10, today_weeks: 3}     # entering the October season
     suppliers:
       primary: {price_ratio: 0.55, delay: 25, min_qty: 5}
+      importer: {price_ratio: 0.42, delay: 50, min_qty: 100}
+  - code: 990-002-007
+    name: "Buna-N seal kit for T-2A cavity"
+    category: Hydraulics / Seal kits
+    list_price: 8.90
+    cost_ratio: 0.55
+    weight_kg: 0.02
+    demand: {mean_weekly: 9.0, cv: 0.35, trend_per_year: 0.02, seasonality: campaign}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10, today_weeks: 2}     # entering the season, below ROP
+    suppliers:
+      primary: {price_ratio: 0.55, delay: 25, min_qty: 5}
+      importer: {price_ratio: 0.42, delay: 50, min_qty: 100}
+  - code: 990-011-008
+    name: "Viton seal kit for T-11A cavity"
+    category: Hydraulics / Seal kits
+    list_price: 14.80
+    cost_ratio: 0.56
+    weight_kg: 0.02
+    demand: {mean_weekly: 4.0, cv: 0.45, trend_per_year: 0.05, seasonality: campaign}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10, today_weeks: 9}
+    suppliers:
+      primary: {price_ratio: 0.56, delay: 25, min_qty: 5}
+  - code: 990-017-007
+    name: "Buna-N seal kit for T-17A cavity"
+    category: Hydraulics / Seal kits
+    list_price: 12.40
+    cost_ratio: 0.55
+    weight_kg: 0.03
+    demand: {mean_weekly: 3.0, cv: 0.50, trend_per_year: 0.04, seasonality: campaign}
+    stock: {weeks_on_hand: 8, min_weeks: 4, max_weeks: 10, today_weeks: 8}
+    suppliers:
+      primary: {price_ratio: 0.55, delay: 25, min_qty: 5}
+
+  # --- Mangueras y conexiones (4) ------------------------------------------------
+  - code: MH-R2-12
+    name: "Hydraulic hose SAE 100 R2 1/2\", per metre"
+    category: Hydraulics / Hoses and fittings
+    list_price: 11.20
+    cost_ratio: 0.58
+    weight_kg: 0.65
+    demand: {mean_weekly: 40.0, cv: 0.35, trend_per_year: 0.05, seasonality: mining}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 8, today_weeks: 2}      # below ROP
+    suppliers:
+      primary: {price_ratio: 0.58, delay: 20, min_qty: 50}
+      importer: {price_ratio: 0.44, delay: 45, min_qty: 500}
+  - code: MH-R2-08
+    name: "Hydraulic hose SAE 100 R2 1/4\", per metre"
+    category: Hydraulics / Hoses and fittings
+    list_price: 7.80
+    cost_ratio: 0.58
+    weight_kg: 0.35
+    demand: {mean_weekly: 25.0, cv: 0.40, trend_per_year: 0.40, seasonality: mining, since_months: 5}   # launched this year
+    stock: {weeks_on_hand: 4, min_weeks: 3, max_weeks: 8, today_weeks: 6}
+    suppliers:
+      primary: {price_ratio: 0.58, delay: 20, min_qty: 50}
+  - code: CON-JIC-08
+    name: "Crimped fitting JIC 37° 1/2\" straight, for R2"
+    category: Hydraulics / Hoses and fittings
+    list_price: 4.60
+    cost_ratio: 0.55
+    weight_kg: 0.08
+    demand: {mean_weekly: 60.0, cv: 0.35, trend_per_year: 0.05, seasonality: mining}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 8, today_weeks: 7}
+    suppliers:
+      primary: {price_ratio: 0.55, delay: 20, min_qty: 100}
+      importer: {price_ratio: 0.40, delay: 45, min_qty: 1000}
+  - code: ADP-BSPP-12
+    name: "Adapter BSPP 1/2\" male to JIC 1/2\" male"
+    category: Hydraulics / Hoses and fittings
+    list_price: 5.90
+    cost_ratio: 0.55
+    weight_kg: 0.09
+    demand: {mean_weekly: 30.0, cv: 0.40, trend_per_year: 0.03, seasonality: flat}
+    stock: {weeks_on_hand: 6, min_weeks: 3, max_weeks: 8, today_weeks: 1}      # below ROP
+    suppliers:
+      primary: {price_ratio: 0.55, delay: 20, min_qty: 50}
+      alternate: {price_ratio: 0.60, delay: 10, min_qty: 50}
 
 # Reorder rules deliberately wrong, so the planning agent has exceptions to find.
 rule_flaws:
@@ -224,14 +434,30 @@ rule_flaws:
 history:
   months: 24
   backorder_share: 0.03               # sales orders left partially delivered
-  receipts:
+  receipts:                           # default when a supplier has no `receipts` of its own
     on_time_share: 0.60
-    late_share: 0.30                  # 1..late_days_max days late
-    partial_share: 0.10               # first receipt partial, rest a week later
+    late_share: 0.30
+    partial_share: 0.10
     late_days_max: 10
 
-# Confirmed purchase orders still open today (incoming supply).
+# Purchase orders still open today, one per board stage. `days_ahead` is the
+# planned date relative to today; `received: full` validates the receipt on
+# `received_days_ago` so the order waits for its invoice; `bill` creates a
+# draft vendor bill on it (clean, or with a +3 % price on the first line).
 open_supply:
-  - {supplier: primary, days_ahead: 12, products: [CBEA-LHN, RPEC-LAN, 990-011-007]}
-  - {supplier: alternate, days_ahead: 5, products: [CXDA-XCN, AAA-T11A]}
-  - {supplier: primary, days_ahead: -7, products: [DTDA-MCN, 770-212]}   # already late
+  - {supplier: primary,   days_ahead: 40, products: [CBCA-LHN, FXDA-XAN, DMDA-MNN]}                  # confirmed
+  - {supplier: primary,   days_ahead: 12, products: [CBEA-LHN, RPEC-LAN, 990-011-007]}               # incoming
+  - {supplier: alternate, days_ahead: 4,  products: [CXDA-XCN, AAA-T11A, 770-224]}                   # incoming, due soon
+  - {supplier: importer,  days_ahead: -9, products: [MH-R2-12, CON-JIC-08]}                          # late
+  - {supplier: primary,   days_ahead: -7, products: [DTDA-MCN, 770-212]}                             # late
+  - {supplier: primary,   days_ahead: -3, products: [NFCC-LCN, AAB-T2A, 990-002-007, ADP-BSPP-12],
+     received: full, received_days_ago: 2, bill: clean, bill_ref: F001-000201}                        # received, clean bill
+  - {supplier: primary,   days_ahead: -6, products: [CBGA-LHN, 770-224-D, 990-011-008],
+     received: full, received_days_ago: 5, bill: variance, bill_ref: F001-000198}                    # received, bill +3 %
+
+# Requests for quotation open today: `draft` shows as proposed on the board,
+# `sent` as RFQ sent (dated `days_ago`, so the follow-up job has work).
+open_rfqs:
+  - {supplier: primary,   state: sent,  days_ago: 6, products: [ZKC-T11A-2, LODC-XDN]}
+  - {supplier: primary,   state: draft, days_ago: 0, products: [MH-R2-08, CON-JIC-08]}
+  - {supplier: alternate, state: draft, days_ago: 1, products: [RDDA-LAN, BAA-T11A]}

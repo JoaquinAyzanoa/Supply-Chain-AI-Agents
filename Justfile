@@ -184,10 +184,18 @@ image member="director":
 ODOO_DB := "scai"
 ODOO_MODULES := "base,contacts,mail,product,purchase,stock,purchase_stock,sale_management,purchase_requisition,base_automation,account,sc_agents"
 
-# Create the Odoo database with demo data and install the modules (idempotent)
+# Create the Odoo database WITHOUT Odoo's demo data and install the modules (idempotent)
 odoo-init:
-    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{ODOO_MODULES}} --stop-after-init
+    {{COMPOSE}} run --rm odoo odoo -d {{ODOO_DB}} -i {{ODOO_MODULES}} --without-demo=all --stop-after-init
     {{COMPOSE}} up -d odoo
+
+# Rebuild the whole local stack from zero: Odoo without demo data, empty app database, our dataset (destructive, asks first)
+odoo-fresh *args:
+    {{UV}} run python scripts/odoo_fresh.py {{args}}
+
+# Assert the local Odoo holds only our dataset (no Odoo demo partners or products)
+odoo-check:
+    {{UV}} run python scripts/odoo_check_clean.py
 
 # Install one Odoo module into the existing database
 odoo-install module="sc_agents":
@@ -228,6 +236,14 @@ odoo-reset:
     {{COMPOSE}} rm -sfv odoo odoo-db
     docker volume rm scai_odoo-db-data scai_odoo-web-data
 
+# Delete the application database (cases, approvals, planning, users) and flush Redis, then migrate again (destructive)
+db-reset:
+    {{COMPOSE}} rm -sfv app-db
+    docker volume rm scai_app-db-data
+    {{COMPOSE}} up -d app-db redis
+    {{COMPOSE}} exec -T redis redis-cli FLUSHALL
+    {{UV}} run python -m sc_core.infra.migrate
+
 # --------------------------------------------------------------------
 # Mail (Microsoft Graph)
 
@@ -247,6 +263,10 @@ mail-logout:
 mail-check:
     {{UV}} run python -m sc_core.mail.cli check
 
+# Empty the bot's inbox (to Deleted Items): a fresh stack re-reads the inbox and order numbers restart
+mail-clear-inbox:
+    {{UV}} run python -m sc_core.mail.cli clear-inbox
+
 # --------------------------------------------------------------------
 # Mail sync and scheduler
 
@@ -258,9 +278,39 @@ sync-once:
 sync-now:
     {{UV}} run python scripts/run_job.py mail_sync
 
-# Fire any scheduler job by id (mail_sync, po_followups, inventory_planning, supplier_performance)
+# Fire any scheduler job by id (mail_sync, po_followups, inventory_planning, supplier_performance,
+# calibration, playbooks, sourcing_rounds)
 run-job job="mail_sync":
     {{UV}} run python scripts/run_job.py {{job}}
+
+# --------------------------------------------------------------------
+# Demo mode (phase 11 S9; needs SC_UI_PASSWORD, see docs/demo.md)
+
+# Run the ten-minute scenario unattended on the live stack, deciding approvals as the presenter
+demo-auto:
+    {{UV}} run python scripts/demo_day.py --auto
+
+# Run the scenario step by step: Enter before each step, decisions in the inbox
+demo-pace:
+    {{UV}} run python scripts/demo_day.py --pace
+
+# After `just odoo-fresh`: run the scorecard and planning jobs, approve the scorecards, check readiness
+demo-prepare:
+    {{UV}} run python scripts/demo_prepare.py
+
+# Put the demo orders back to their start state
+demo-reset:
+    {{UV}} run python scripts/demo_day.py --reset
+
+# Film the demo day into demo-video/demo.mp4: narrated, captions, Odoo, Langfuse, approvals on screen
+# (live stack; voice="off" for the silent version, or any edge-tts voice name). lang="es" films
+# demo-video/demo-es.mp4 on a Spanish stack (see docs/demo.md) with a Spanish voice.
+demo-video lang="en" voice="":
+    cd {{UI}} && node scripts/demo-video.mjs --lang {{lang}} {{ if voice != "" { "--voice " + voice } else { "" } }}
+
+# Re-time the last take without filming again (demo-video/demo[-es]-raw.webm + its timeline)
+demo-video-recut lang="en" speed="2":
+    cd {{UI}} && node scripts/demo-video.mjs --lang {{lang}} --recut --speed {{speed}}
 
 # --------------------------------------------------------------------
 # Packaging & cleaning

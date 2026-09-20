@@ -36,6 +36,19 @@ export function useApproval(id: number | undefined) {
 
 export type ResolveInput = { id: number } & Schemas["ResolveRequest"];
 
+/** Decide many at once (S8); every approvals query refetches when the server answers. */
+export function useBulkResolve() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: Schemas["BulkRequest"]) => unwrap(await api.POST("/api/approvals/bulk", { body })),
+    onSettled: () => {
+      void queryClient.invalidateQueries({ queryKey: ["approvals"] });
+      void queryClient.invalidateQueries({ queryKey: ["board"] });
+      void queryClient.invalidateQueries({ queryKey: ["home"] });
+    },
+  });
+}
+
 /**
  * Resolve an approval. The pending list drops the row at once (optimistic) and
  * every approvals query refetches when the server answers; the SSE

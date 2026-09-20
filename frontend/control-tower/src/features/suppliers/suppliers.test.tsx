@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Routed } from "@/App";
@@ -16,6 +17,8 @@ async function fakeFetch(input: RequestInfo | URL, init?: RequestInit): Promise<
   const url = new URL(request.url);
   if (url.pathname === "/api/auth/me") return jsonResponse(200, { email: "vic@x.com", name: "Vic", role: "viewer" });
   if (url.pathname === "/api/approvals") return jsonResponse(200, []);
+  if (url.pathname === "/api/learning/profiles/45" && request.method === "GET")
+    return jsonResponse(200, { partner_id: 45, language: "es_PE", formality: "formal", greeting: "Estimados señores", sign_off: null, contacts: ["Carla Reyes"], notes: "Copy Carla on urgent orders.", facts: { reply_hours_median: 2.8 }, updated_at: null, updated_by: null });
   if (url.pathname === "/api/performance/scores")
     return jsonResponse(200, [
       {
@@ -63,5 +66,11 @@ describe("suppliers page", () => {
     expect(row).toHaveTextContent("140 lines received");
     expect(row).toHaveTextContent("50%");
     expect(screen.getAllByRole("link", { name: /Suppliers/ }).length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole("button", { name: "Proveedor Hidraulica" }));
+    const editor = await screen.findByTestId("profile-45");
+    expect(within(editor).getByLabelText("Greeting")).toHaveValue("Estimados señores");
+    expect(within(editor).getByLabelText("Contacts")).toHaveValue("Carla Reyes");
+    expect(editor).toHaveTextContent("reply_hours_median 2.8");
+    expect(within(editor).getByLabelText("Greeting")).toBeDisabled(); // a viewer reads only
   });
 });

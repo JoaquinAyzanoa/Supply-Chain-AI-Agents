@@ -7,8 +7,11 @@ import { useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Link } from "@tanstack/react-router";
+
 import { useI18n } from "@/i18n";
 import { cn, formatNumber } from "@/lib/utils";
+import { SupplierProfileEditor } from "./SupplierProfileEditor";
 
 export interface SupplierScoreRow {
   partner_id: number;
@@ -26,7 +29,7 @@ export interface SupplierScoreRow {
   trends?: string[];
 }
 
-export function SupplierScoreTable({ rows }: { rows: SupplierScoreRow[] }) {
+export function SupplierScoreTable({ rows, withProfile = false }: { rows: SupplierScoreRow[]; withProfile?: boolean }) {
   const { t, locale } = useI18n();
   const [open, setOpen] = useState<number | null>(null);
   const pct = (value: number | null | undefined) => (value === null || value === undefined ? "—" : `${Math.round(value * 100)}%`);
@@ -46,7 +49,7 @@ export function SupplierScoreTable({ rows }: { rows: SupplierScoreRow[] }) {
       </TableHeader>
       <TableBody>
         {rows.map((row) => (
-          <Row key={row.partner_id} row={row} open={open === row.partner_id} onToggle={() => setOpen(open === row.partner_id ? null : row.partner_id)} pct={pct} days={days} />
+          <Row key={row.partner_id} row={row} withProfile={withProfile} open={open === row.partner_id} onToggle={() => setOpen(open === row.partner_id ? null : row.partner_id)} pct={pct} days={days} />
         ))}
       </TableBody>
     </Table>
@@ -55,12 +58,14 @@ export function SupplierScoreTable({ rows }: { rows: SupplierScoreRow[] }) {
 
 function Row({
   row,
+  withProfile,
   open,
   onToggle,
   pct,
   days,
 }: {
   row: SupplierScoreRow;
+  withProfile: boolean;
   open: boolean;
   onToggle: () => void;
   pct: (v: number | null | undefined) => string;
@@ -75,6 +80,9 @@ function Row({
           <button type="button" className="text-left font-medium text-primary underline" onClick={onToggle} aria-expanded={open}>
             {row.partner_name}
           </button>
+          <Link to="/suppliers/$partnerId" params={{ partnerId: String(row.partner_id) }} className="ml-2 text-xs text-primary underline">
+            {t("supplier.open_360")}
+          </Link>
           {row.samples?.lines !== undefined ? <div className="text-xs text-muted-foreground">{t("suppliers.lines", { n: row.samples.lines })}</div> : null}
         </TableCell>
         <TableCell>
@@ -110,6 +118,12 @@ function Row({
         <TableRow>
           <TableCell colSpan={7} className="bg-muted/30 text-sm">
             {row.scorecard ? <p className="whitespace-pre-line">{row.scorecard}</p> : <p className="text-muted-foreground">{t("suppliers.no_scorecard")}</p>}
+            {withProfile ? (
+              <div className="mt-3 border-t pt-3">
+                <h3 className="mb-2 text-xs font-medium uppercase text-muted-foreground">{t("suppliers.profile.title")}</h3>
+                <SupplierProfileEditor partnerId={row.partner_id} />
+              </div>
+            ) : null}
             <dl className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-4">
               <div>
                 <dt>{t("suppliers.drift")}</dt>

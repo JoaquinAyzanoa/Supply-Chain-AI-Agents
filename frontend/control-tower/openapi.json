@@ -47,6 +47,38 @@
         "title": "Accepted",
         "type": "object"
       },
+      "ActRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the late order to source elsewhere",
+            "title": "Po Name"
+          },
+          "qty": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "override the suggested quantity",
+            "title": "Qty"
+          }
+        },
+        "title": "ActRequest",
+        "type": "object"
+      },
       "ActResponse": {
         "additionalProperties": false,
         "properties": {
@@ -69,6 +101,165 @@
           "message"
         ],
         "title": "ActResponse",
+        "type": "object"
+      },
+      "ActionFacts": {
+        "additionalProperties": false,
+        "description": "What the agent knows about the action it proposes; the rules test these.",
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "money involved",
+            "title": "Amount"
+          },
+          "change_days": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "date move, in days",
+            "title": "Change Days"
+          },
+          "change_pct": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "price or quantity move",
+            "title": "Change Pct"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the agent's own",
+            "title": "Confidence"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "days_late": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Late"
+          },
+          "email_kind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Kind"
+          },
+          "first_time_supplier": {
+            "default": false,
+            "title": "First Time Supplier",
+            "type": "boolean"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
+          "supplier_score": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Score"
+          }
+        },
+        "title": "ActionFacts",
+        "type": "object"
+      },
+      "AgentCost": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "runs": {
+            "title": "Runs",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "agent",
+          "runs",
+          "cost_usd"
+        ],
+        "title": "AgentCost",
         "type": "object"
       },
       "AgentRunView": {
@@ -216,6 +407,168 @@
         "title": "AgentRunView",
         "type": "object"
       },
+      "AiPerformance": {
+        "additionalProperties": false,
+        "properties": {
+          "automation": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AutomationView"
+            },
+            "title": "Automation",
+            "type": "array"
+          },
+          "automation_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Automation Rate"
+          },
+          "by_agent": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AgentCost"
+            },
+            "title": "By Agent",
+            "type": "array"
+          },
+          "cases_with_runs": {
+            "default": 0,
+            "title": "Cases With Runs",
+            "type": "integer"
+          },
+          "cost_per_case_usd": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cost Per Case Usd"
+          },
+          "cost_usd": {
+            "default": 0.0,
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "decisions": {
+            "default": 0,
+            "title": "Decisions",
+            "type": "integer"
+          },
+          "edit_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edit Rate"
+          },
+          "eta_error_days": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Eta Error Days"
+          },
+          "invoices_first_time": {
+            "default": 0,
+            "title": "Invoices First Time",
+            "type": "integer"
+          },
+          "invoices_first_time_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoices First Time Rate"
+          },
+          "invoices_total": {
+            "default": 0,
+            "title": "Invoices Total",
+            "type": "integer"
+          },
+          "negotiation_savings": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Negotiation Savings"
+          },
+          "rejection_rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Rate"
+          },
+          "runs": {
+            "default": 0,
+            "title": "Runs",
+            "type": "integer"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          },
+          "turnaround_hours_median": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Turnaround Hours Median"
+          },
+          "wape_by_class": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ClassWape"
+            },
+            "title": "Wape By Class",
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "since"
+        ],
+        "title": "AiPerformance",
+        "type": "object"
+      },
       "ApprovalLinks": {
         "additionalProperties": false,
         "properties": {
@@ -322,6 +675,16 @@
             "title": "Payload",
             "type": "object"
           },
+          "playbook": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaybookPosition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "po_id": {
             "anyOf": [
               {
@@ -354,6 +717,17 @@
               }
             ],
             "title": "Reason"
+          },
+          "reasoning": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Reasoning"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "facts, rule or step, confidence, alternatives, counterfactual"
           },
           "requested_by": {
             "anyOf": [
@@ -430,6 +804,385 @@
         "title": "ApprovalView",
         "type": "object"
       },
+      "AskRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "text": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "AskRequest",
+        "type": "object"
+      },
+      "AssistantMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "By"
+          },
+          "citations": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Citation"
+            },
+            "title": "Citations",
+            "type": "array"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "outcome": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Outcome"
+          },
+          "plan": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Plan"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "plan_status": {
+            "anyOf": [
+              {
+                "enum": [
+                  "proposed",
+                  "confirmed",
+                  "dismissed"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Plan Status"
+          },
+          "role": {
+            "enum": [
+              "user",
+              "director"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "at",
+          "role",
+          "text"
+        ],
+        "title": "AssistantMessage",
+        "type": "object"
+      },
+      "AssistantTurn": {
+        "additionalProperties": false,
+        "properties": {
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantMessage"
+            },
+            "title": "Messages",
+            "type": "array"
+          }
+        },
+        "required": [
+          "messages"
+        ],
+        "title": "AssistantTurn",
+        "type": "object"
+      },
+      "AutoActionView": {
+        "additionalProperties": false,
+        "properties": {
+          "agent": {
+            "title": "Agent",
+            "type": "string"
+          },
+          "case_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Id"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Payload",
+            "type": "object"
+          },
+          "po_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Id"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Name"
+          },
+          "revert_until": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Revert Until"
+          },
+          "reverted_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted At"
+          },
+          "reverted_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reverted By"
+          },
+          "revertible": {
+            "title": "Revertible",
+            "type": "boolean"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "agent",
+          "kind",
+          "level",
+          "summary",
+          "revertible"
+        ],
+        "title": "AutoActionView",
+        "type": "object"
+      },
+      "AutomationView": {
+        "additionalProperties": false,
+        "properties": {
+          "automated": {
+            "title": "Automated",
+            "type": "integer"
+          },
+          "decided": {
+            "title": "Decided",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "rate": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate"
+          }
+        },
+        "required": [
+          "kind",
+          "automated",
+          "decided",
+          "rate"
+        ],
+        "title": "AutomationView",
+        "type": "object"
+      },
+      "AutonomyPolicy": {
+        "additionalProperties": false,
+        "properties": {
+          "rules": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AutonomyRule"
+            },
+            "title": "Rules",
+            "type": "array"
+          }
+        },
+        "title": "AutonomyPolicy",
+        "type": "object"
+      },
+      "AutonomyRule": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "id": {
+            "maxLength": 60,
+            "minLength": 1,
+            "pattern": "^[a-z0-9][a-z0-9_-]*$",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "default": "*",
+            "title": "Kind",
+            "type": "string"
+          },
+          "level": {
+            "default": "approve",
+            "enum": [
+              "approve",
+              "auto_notice",
+              "auto"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Note",
+            "type": "string"
+          },
+          "revert_hours": {
+            "default": 24,
+            "maximum": 720.0,
+            "minimum": 0.0,
+            "title": "Revert Hours",
+            "type": "integer"
+          },
+          "when": {
+            "$ref": "#/components/schemas/RuleConditions"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "AutonomyRule",
+        "type": "object"
+      },
       "Board": {
         "additionalProperties": false,
         "properties": {
@@ -493,6 +1246,11 @@
               }
             ],
             "title": "Act Kind"
+          },
+          "age_days": {
+            "default": 0,
+            "title": "Age Days",
+            "type": "integer"
           },
           "amount_total": {
             "default": 0.0,
@@ -600,6 +1358,17 @@
               }
             ],
             "title": "Days Silent"
+          },
+          "delay_confidence": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Delay Confidence"
           },
           "delivery": {
             "default": "none",
@@ -725,6 +1494,16 @@
               }
             ]
           },
+          "playbook": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlaybookPosition"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "po_id": {
             "title": "Po Id",
             "type": "integer"
@@ -732,6 +1511,17 @@
           "po_name": {
             "title": "Po Name",
             "type": "string"
+          },
+          "predicted_delay_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Predicted Delay Days"
           },
           "receipt_status": {
             "anyOf": [
@@ -777,9 +1567,416 @@
         "title": "BoardCard",
         "type": "object"
       },
+      "Briefing": {
+        "additionalProperties": false,
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "default": {},
+            "title": "Counts",
+            "type": "object"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "emailed_to": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Emailed To",
+            "type": "array"
+          },
+          "language": {
+            "default": "en",
+            "title": "Language",
+            "type": "string"
+          },
+          "paragraph": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Paragraph"
+          },
+          "sections": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BriefingSection"
+            },
+            "title": "Sections",
+            "type": "array"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "day",
+          "since"
+        ],
+        "title": "Briefing",
+        "type": "object"
+      },
+      "BriefingItem": {
+        "additionalProperties": false,
+        "properties": {
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days"
+          },
+          "path": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "where to open it in the Control Tower",
+            "title": "Path"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Name"
+          },
+          "probability": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Probability"
+          },
+          "text": {
+            "maxLength": 300,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "BriefingItem",
+        "type": "object"
+      },
+      "BriefingSection": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "default": 0,
+            "title": "Count",
+            "type": "integer"
+          },
+          "items": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BriefingItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "key": {
+            "enum": [
+              "overnight",
+              "ran_alone",
+              "needs_you",
+              "risks",
+              "late",
+              "playbooks"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title"
+        ],
+        "title": "BriefingSection",
+        "type": "object"
+      },
+      "BulkRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "ids": {
+            "items": {
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "title": "Ids",
+            "type": "array"
+          },
+          "reason": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reason"
+          },
+          "status": {
+            "enum": [
+              "approved",
+              "rejected"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ids",
+          "status"
+        ],
+        "title": "BulkRequest",
+        "type": "object"
+      },
+      "BulkResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "resolved": {
+            "title": "Resolved",
+            "type": "integer"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BulkResult"
+            },
+            "title": "Results",
+            "type": "array"
+          }
+        },
+        "required": [
+          "resolved",
+          "results"
+        ],
+        "title": "BulkResponse",
+        "type": "object"
+      },
+      "BulkResult": {
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "title": "BulkResult",
+        "type": "object"
+      },
+      "CalendarEvent": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "a category path; empty = everything",
+            "title": "Category"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "end_date": {
+            "format": "date",
+            "title": "End Date",
+            "type": "string"
+          },
+          "factor": {
+            "default": 1.0,
+            "description": "demand multiplier while it runs",
+            "exclusiveMinimum": 0.0,
+            "maximum": 10.0,
+            "title": "Factor",
+            "type": "number"
+          },
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "kind": {
+            "enum": [
+              "promotion",
+              "holiday",
+              "project"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "note": {
+            "default": "",
+            "maxLength": 500,
+            "title": "Note",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "one product; empty = see category",
+            "title": "Product Id"
+          },
+          "quantity": {
+            "default": 0.0,
+            "description": "project: units over the period",
+            "minimum": 0.0,
+            "title": "Quantity",
+            "type": "number"
+          },
+          "start_date": {
+            "format": "date",
+            "title": "Start Date",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "name",
+          "start_date",
+          "end_date"
+        ],
+        "title": "CalendarEvent",
+        "type": "object"
+      },
       "CaseDetail": {
         "additionalProperties": false,
         "properties": {
+          "auto_actions": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/AutoActionView"
+            },
+            "title": "Auto Actions",
+            "type": "array"
+          },
           "case": {
             "$ref": "#/components/schemas/CaseView"
           },
@@ -884,7 +2081,8 @@
               "unlinked",
               "receipt",
               "planning",
-              "invoice"
+              "invoice",
+              "sourcing"
             ],
             "title": "Kind",
             "type": "string"
@@ -1125,6 +2323,182 @@
         "title": "CheckStatus",
         "type": "string"
       },
+      "Citation": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "ref": {
+            "title": "Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "label",
+          "path"
+        ],
+        "title": "Citation",
+        "type": "object"
+      },
+      "ClassWape": {
+        "additionalProperties": false,
+        "properties": {
+          "abc_class": {
+            "title": "Abc Class",
+            "type": "string"
+          },
+          "lines": {
+            "title": "Lines",
+            "type": "integer"
+          },
+          "wape": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wape"
+          }
+        },
+        "required": [
+          "abc_class",
+          "wape",
+          "lines"
+        ],
+        "title": "ClassWape",
+        "type": "object"
+      },
+      "ClassWhatIfRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "abc_class": {
+            "enum": [
+              "A",
+              "B",
+              "C"
+            ],
+            "title": "Abc Class",
+            "type": "string"
+          },
+          "overrides": {
+            "$ref": "#/components/schemas/PlanningOverrides"
+          }
+        },
+        "required": [
+          "abc_class",
+          "overrides"
+        ],
+        "title": "ClassWhatIfRequest",
+        "type": "object"
+      },
+      "ClassWhatIfResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "abc_class": {
+            "title": "Abc Class",
+            "type": "string"
+          },
+          "baseline": {
+            "$ref": "#/components/schemas/PortfolioTotals"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "simulated": {
+            "$ref": "#/components/schemas/PortfolioTotals"
+          }
+        },
+        "required": [
+          "abc_class",
+          "baseline",
+          "simulated",
+          "run_id"
+        ],
+        "title": "ClassWhatIfResponse",
+        "type": "object"
+      },
+      "ConsolidationNote": {
+        "additionalProperties": false,
+        "description": "Why a line is bought early: the freight it saves against the stock it costs.",
+        "properties": {
+          "days_early": {
+            "minimum": 0.0,
+            "title": "Days Early",
+            "type": "number"
+          },
+          "freight_saved": {
+            "minimum": 0.0,
+            "title": "Freight Saved",
+            "type": "number"
+          },
+          "stock_cost": {
+            "minimum": 0.0,
+            "title": "Stock Cost",
+            "type": "number"
+          },
+          "supplier_id": {
+            "title": "Supplier Id",
+            "type": "integer"
+          },
+          "supplier_name": {
+            "default": "",
+            "title": "Supplier Name",
+            "type": "string"
+          },
+          "threshold": {
+            "minimum": 0.0,
+            "title": "Threshold",
+            "type": "number"
+          }
+        },
+        "required": [
+          "supplier_id",
+          "freight_saved",
+          "stock_cost",
+          "days_early",
+          "threshold"
+        ],
+        "title": "ConsolidationNote",
+        "type": "object"
+      },
+      "DecideRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "facts": {
+            "$ref": "#/components/schemas/ActionFacts"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AutonomyPolicy"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "DecideRequest",
+        "type": "object"
+      },
       "DemandDay": {
         "additionalProperties": false,
         "properties": {
@@ -1148,6 +2522,209 @@
           "delivered"
         ],
         "title": "DemandDay",
+        "type": "object"
+      },
+      "DemoLink": {
+        "additionalProperties": false,
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "path"
+        ],
+        "title": "DemoLink",
+        "type": "object"
+      },
+      "DemoReadiness": {
+        "additionalProperties": false,
+        "properties": {
+          "mailbox": {
+            "title": "Mailbox",
+            "type": "boolean"
+          },
+          "notes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "world": {
+            "title": "World",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "mailbox",
+          "world"
+        ],
+        "title": "DemoReadiness",
+        "type": "object"
+      },
+      "DemoStep": {
+        "additionalProperties": false,
+        "properties": {
+          "click": {
+            "description": "where the audience looks in the Control Tower",
+            "title": "Click",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "needs": {
+            "default": "none",
+            "enum": [
+              "none",
+              "mailbox",
+              "world"
+            ],
+            "title": "Needs",
+            "type": "string"
+          },
+          "say": {
+            "description": "what the presenter says while it runs",
+            "title": "Say",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "say",
+          "click"
+        ],
+        "title": "DemoStep",
+        "type": "object"
+      },
+      "DemoStepOutcome": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_ids": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Approval Ids",
+            "type": "array"
+          },
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/DemoLink"
+            },
+            "title": "Links",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "done",
+              "waiting",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "status",
+          "summary"
+        ],
+        "title": "DemoStepOutcome",
+        "type": "object"
+      },
+      "DemoView": {
+        "additionalProperties": false,
+        "properties": {
+          "finished": {
+            "title": "Finished",
+            "type": "boolean"
+          },
+          "next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DemoStep"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "outcomes": {
+            "items": {
+              "$ref": "#/components/schemas/DemoStepOutcome"
+            },
+            "title": "Outcomes",
+            "type": "array"
+          },
+          "position": {
+            "title": "Position",
+            "type": "integer"
+          },
+          "ready": {
+            "$ref": "#/components/schemas/DemoReadiness"
+          },
+          "records": {
+            "additionalProperties": true,
+            "title": "Records",
+            "type": "object"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/DemoStep"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "steps",
+          "position",
+          "started_at",
+          "finished",
+          "next",
+          "outcomes",
+          "records",
+          "ready"
+        ],
+        "title": "DemoView",
         "type": "object"
       },
       "DiscoveryResponse": {
@@ -1184,6 +2761,95 @@
           "routes"
         ],
         "title": "DiscoveryResponse",
+        "type": "object"
+      },
+      "DispatchResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "case_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Case Code"
+          },
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          },
+          "thread_id": {
+            "title": "Thread Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "thread_id",
+          "status",
+          "summary"
+        ],
+        "title": "DispatchResponse",
+        "type": "object"
+      },
+      "EmailRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "to": {
+            "description": "recipients; empty means the ones in Settings",
+            "items": {
+              "type": "string"
+            },
+            "title": "To",
+            "type": "array"
+          }
+        },
+        "title": "EmailRequest",
+        "type": "object"
+      },
+      "EmailResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "day": {
+            "format": "date",
+            "title": "Day",
+            "type": "string"
+          },
+          "sent_to": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Sent To",
+            "type": "array"
+          }
+        },
+        "required": [
+          "day",
+          "sent_to"
+        ],
+        "title": "EmailResponse",
         "type": "object"
       },
       "ExceptionItem": {
@@ -1382,6 +3048,133 @@
         "title": "ExceptionsBoard",
         "type": "object"
       },
+      "FeedbackStats": {
+        "additionalProperties": false,
+        "properties": {
+          "edited": {
+            "title": "Edited",
+            "type": "integer"
+          },
+          "expired": {
+            "title": "Expired",
+            "type": "integer"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "median_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Median Minutes"
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Name"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "kind",
+          "n",
+          "unchanged",
+          "edited",
+          "rejected",
+          "expired"
+        ],
+        "title": "FeedbackStats",
+        "type": "object"
+      },
+      "FeedbackSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "by_kind": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackStats"
+            },
+            "title": "By Kind",
+            "type": "array"
+          },
+          "by_supplier": {
+            "items": {
+              "$ref": "#/components/schemas/FeedbackStats"
+            },
+            "title": "By Supplier",
+            "type": "array"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "edited": {
+            "title": "Edited",
+            "type": "integer"
+          },
+          "expired": {
+            "title": "Expired",
+            "type": "integer"
+          },
+          "rejected": {
+            "title": "Rejected",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "unchanged": {
+            "title": "Unchanged",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "total",
+          "unchanged",
+          "edited",
+          "rejected",
+          "expired",
+          "by_kind",
+          "by_supplier"
+        ],
+        "title": "FeedbackSummary",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1423,6 +3216,120 @@
           "checks"
         ],
         "title": "HealthReport",
+        "type": "object"
+      },
+      "HomeView": {
+        "additionalProperties": false,
+        "properties": {
+          "as_of": {
+            "format": "date",
+            "title": "As Of",
+            "type": "string"
+          },
+          "automated_week": {
+            "default": 0,
+            "title": "Automated Week",
+            "type": "integer"
+          },
+          "kpis": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/Kpi"
+            },
+            "title": "Kpis",
+            "type": "array"
+          },
+          "late": {
+            "default": 0,
+            "title": "Late",
+            "type": "integer"
+          },
+          "needs_you": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/BriefingItem"
+            },
+            "title": "Needs You",
+            "type": "array"
+          },
+          "pending": {
+            "default": 0,
+            "title": "Pending",
+            "type": "integer"
+          },
+          "silent": {
+            "default": 0,
+            "title": "Silent",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "as_of"
+        ],
+        "title": "HomeView",
+        "type": "object"
+      },
+      "Kpi": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "detail": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Detail"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "previous": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Previous"
+          },
+          "unit": {
+            "default": "count",
+            "title": "Unit",
+            "type": "string"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "Kpi",
         "type": "object"
       },
       "LineDemand": {
@@ -1621,6 +3528,59 @@
         "title": "LoginResponse",
         "type": "object"
       },
+      "MailRow": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "direction": {
+            "title": "Direction",
+            "type": "string"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          },
+          "web_link": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Web Link"
+          }
+        },
+        "required": [
+          "po_name",
+          "direction"
+        ],
+        "title": "MailRow",
+        "type": "object"
+      },
       "MailboxReport": {
         "additionalProperties": false,
         "properties": {
@@ -1783,6 +3743,297 @@
         "title": "MoveResponse",
         "type": "object"
       },
+      "NegotiateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "po_name": {
+            "minLength": 1,
+            "title": "Po Name",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "target_price": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Price"
+          }
+        },
+        "required": [
+          "po_name"
+        ],
+        "title": "NegotiateRequest",
+        "type": "object"
+      },
+      "NextRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "approve": {
+            "default": false,
+            "description": "decide the approvals this step raises, as the presenter",
+            "title": "Approve",
+            "type": "boolean"
+          },
+          "step": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "run this step instead of the next one",
+            "title": "Step"
+          }
+        },
+        "title": "NextRequest",
+        "type": "object"
+      },
+      "OrderDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "lines": {
+            "items": {
+              "$ref": "#/components/schemas/OrderLineView"
+            },
+            "title": "Lines",
+            "type": "array"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/OrderOrigin"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "po_name",
+          "lines",
+          "origin"
+        ],
+        "title": "OrderDetail",
+        "type": "object"
+      },
+      "OrderLineView": {
+        "additionalProperties": false,
+        "properties": {
+          "date_planned": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Planned"
+          },
+          "line_id": {
+            "title": "Line Id",
+            "type": "integer"
+          },
+          "price_unit": {
+            "title": "Price Unit",
+            "type": "number"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "qty": {
+            "title": "Qty",
+            "type": "number"
+          },
+          "qty_invoiced": {
+            "title": "Qty Invoiced",
+            "type": "number"
+          },
+          "qty_received": {
+            "title": "Qty Received",
+            "type": "number"
+          },
+          "subtotal": {
+            "title": "Subtotal",
+            "type": "number"
+          }
+        },
+        "required": [
+          "line_id",
+          "product",
+          "qty",
+          "qty_received",
+          "qty_invoiced",
+          "price_unit",
+          "subtotal"
+        ],
+        "title": "OrderLineView",
+        "type": "object"
+      },
+      "OrderOrigin": {
+        "additionalProperties": false,
+        "description": "Where the order came from: the planner (with its reasoning) or a person in Odoo.",
+        "properties": {
+          "as_of": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "As Of"
+          },
+          "created_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created By"
+          },
+          "explanations": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Explanations",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "planning",
+              "odoo"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "required": [
+          "kind"
+        ],
+        "title": "OrderOrigin",
+        "type": "object"
+      },
+      "OrderRow": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_total": {
+            "default": 0.0,
+            "title": "Amount Total",
+            "type": "number"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "date_planned": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date Planned"
+          },
+          "po_id": {
+            "title": "Po Id",
+            "type": "integer"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          },
+          "receipt_status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Receipt Status"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "po_id",
+          "po_name",
+          "state"
+        ],
+        "title": "OrderRow",
+        "type": "object"
+      },
       "OverallStatus": {
         "enum": [
           "ok",
@@ -1825,6 +4076,193 @@
           "summary"
         ],
         "title": "PendingApproval",
+        "type": "object"
+      },
+      "PendingChange": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "integer"
+          },
+          "requested_by": {
+            "title": "Requested By",
+            "type": "string"
+          },
+          "widened": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Widened",
+            "type": "array"
+          }
+        },
+        "required": [
+          "approval_id",
+          "requested_by",
+          "widened"
+        ],
+        "title": "PendingChange",
+        "type": "object"
+      },
+      "Plan": {
+        "additionalProperties": false,
+        "properties": {
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/PlanStep"
+            },
+            "maxItems": 8,
+            "minItems": 1,
+            "title": "Steps",
+            "type": "array"
+          },
+          "summary": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "summary",
+          "steps"
+        ],
+        "title": "Plan",
+        "type": "object"
+      },
+      "PlanStep": {
+        "additionalProperties": false,
+        "properties": {
+          "deadline_days": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline Days"
+          },
+          "explanation": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "quote_round",
+              "alternate_source",
+              "request_eta",
+              "follow_up",
+              "hold_until",
+              "close_case",
+              "start_playbook"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "partner_ids": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Partner Ids",
+            "type": "array"
+          },
+          "playbook": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Playbook"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "maxLength": 32,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Name"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "product_ref": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Ref"
+          },
+          "qty": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qty"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          }
+        },
+        "required": [
+          "kind",
+          "explanation"
+        ],
+        "title": "PlanStep",
         "type": "object"
       },
       "PlanningLineRow": {
@@ -2077,6 +4515,667 @@
         "title": "PlanningRunRow",
         "type": "object"
       },
+      "PlaybookPosition": {
+        "additionalProperties": false,
+        "description": "Where a run is, in words the UI shows on cards, drawers and approvals.",
+        "properties": {
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "if_rejected": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "If Rejected"
+          },
+          "next_steps": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Next Steps",
+            "type": "array"
+          },
+          "playbook": {
+            "title": "Playbook",
+            "type": "string"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "integer"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Id"
+          },
+          "step_index": {
+            "default": 0,
+            "title": "Step Index",
+            "type": "integer"
+          },
+          "step_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Step Label"
+          },
+          "steps_total": {
+            "default": 0,
+            "title": "Steps Total",
+            "type": "integer"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "playbook",
+          "title",
+          "status"
+        ],
+        "title": "PlaybookPosition",
+        "type": "object"
+      },
+      "PlaybookRun": {
+        "additionalProperties": false,
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "due_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Due At"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "playbook": {
+            "title": "Playbook",
+            "type": "string"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Po Name"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "started_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started By"
+          },
+          "status": {
+            "default": "running",
+            "enum": [
+              "running",
+              "waiting",
+              "waiting_approval",
+              "done",
+              "failed",
+              "cancelled"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "step_index": {
+            "default": 0,
+            "title": "Step Index",
+            "type": "integer"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "waiting_for": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Waiting For"
+          }
+        },
+        "required": [
+          "id",
+          "playbook",
+          "case_id",
+          "started_at",
+          "updated_at"
+        ],
+        "title": "PlaybookRun",
+        "type": "object"
+      },
+      "PlaybookView": {
+        "additionalProperties": false,
+        "properties": {
+          "active_runs": {
+            "default": 0,
+            "title": "Active Runs",
+            "type": "integer"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepView"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "trigger": {
+            "title": "Trigger",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "title",
+          "description",
+          "trigger",
+          "steps"
+        ],
+        "title": "PlaybookView",
+        "type": "object"
+      },
+      "PolicyDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "level": {
+            "enum": [
+              "approve",
+              "auto_notice",
+              "auto"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          }
+        },
+        "required": [
+          "level",
+          "reason"
+        ],
+        "title": "PolicyDecision",
+        "type": "object"
+      },
+      "PolicyUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "note": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Note"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
+          }
+        },
+        "required": [
+          "policy"
+        ],
+        "title": "PolicyUpdate",
+        "type": "object"
+      },
+      "PolicyUpdateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "saved": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SettingsVersion"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "widened": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Widened",
+            "type": "array"
+          }
+        },
+        "title": "PolicyUpdateResponse",
+        "type": "object"
+      },
+      "PolicyView": {
+        "additionalProperties": false,
+        "properties": {
+          "changed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed At"
+          },
+          "changed_by": {
+            "title": "Changed By",
+            "type": "string"
+          },
+          "pending": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PendingChange"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version",
+          "changed_by",
+          "policy"
+        ],
+        "title": "PolicyView",
+        "type": "object"
+      },
+      "PortfolioTotals": {
+        "additionalProperties": false,
+        "description": "A whole class at a glance: what it would cost and what it would risk.",
+        "properties": {
+          "expected_stockouts": {
+            "description": "sum of 30-day stockout probabilities",
+            "title": "Expected Stockouts",
+            "type": "number"
+          },
+          "lines": {
+            "title": "Lines",
+            "type": "integer"
+          },
+          "orders": {
+            "description": "lines that order something",
+            "title": "Orders",
+            "type": "integer"
+          },
+          "service_level": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Level"
+          },
+          "spend": {
+            "description": "order quantities at the reference price",
+            "title": "Spend",
+            "type": "number"
+          },
+          "stock_value": {
+            "description": "order-up-to levels at the reference price",
+            "title": "Stock Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "lines",
+          "orders",
+          "spend",
+          "stock_value",
+          "expected_stockouts"
+        ],
+        "title": "PortfolioTotals",
+        "type": "object"
+      },
+      "PreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "days": {
+            "default": 30,
+            "maximum": 365.0,
+            "minimum": 1.0,
+            "title": "Days",
+            "type": "integer"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
+          }
+        },
+        "required": [
+          "policy"
+        ],
+        "title": "PreviewRequest",
+        "type": "object"
+      },
+      "PreviewResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "by_kind": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "integer"
+              },
+              "type": "object"
+            },
+            "title": "By Kind",
+            "type": "object"
+          },
+          "by_rule": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "By Rule",
+            "type": "object"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/PreviewRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          },
+          "would_run_alone": {
+            "title": "Would Run Alone",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "days",
+          "total",
+          "would_run_alone",
+          "by_rule",
+          "by_kind",
+          "rows"
+        ],
+        "title": "PreviewResponse",
+        "type": "object"
+      },
+      "PreviewRow": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "title": "Approval Id",
+            "type": "integer"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "rule_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rule Id"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "approval_id",
+          "kind",
+          "summary",
+          "status",
+          "level"
+        ],
+        "title": "PreviewRow",
+        "type": "object"
+      },
+      "PriceRow": {
+        "additionalProperties": false,
+        "properties": {
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "lead_days": {
+            "default": 0,
+            "title": "Lead Days",
+            "type": "integer"
+          },
+          "min_qty": {
+            "default": 0.0,
+            "title": "Min Qty",
+            "type": "number"
+          },
+          "price": {
+            "title": "Price",
+            "type": "number"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "supplier_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Code"
+          },
+          "valid_from": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Valid From"
+          }
+        },
+        "required": [
+          "product",
+          "price"
+        ],
+        "title": "PriceRow",
+        "type": "object"
+      },
       "Principal": {
         "additionalProperties": false,
         "description": "Who is calling, as decoded from the token.",
@@ -2105,6 +5204,153 @@
           "role"
         ],
         "title": "Principal",
+        "type": "object"
+      },
+      "ProductRank": {
+        "additionalProperties": false,
+        "properties": {
+          "best_partner_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Partner Name"
+          },
+          "best_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Score"
+          },
+          "product": {
+            "title": "Product",
+            "type": "string"
+          },
+          "product_id": {
+            "title": "Product Id",
+            "type": "integer"
+          },
+          "rank": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rank"
+          },
+          "suppliers": {
+            "default": 0,
+            "title": "Suppliers",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "product_id",
+          "product"
+        ],
+        "title": "ProductRank",
+        "type": "object"
+      },
+      "ProfileUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "formality": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formality"
+          },
+          "free_freight_over": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "order value from which the supplier ships free",
+            "title": "Free Freight Over"
+          },
+          "freight_cost": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "freight charged below that value",
+            "title": "Freight Cost"
+          },
+          "greeting": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Greeting"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "notes": {
+            "default": "",
+            "title": "Notes",
+            "type": "string"
+          },
+          "sign_off": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sign Off"
+          }
+        },
+        "title": "ProfileUpdate",
         "type": "object"
       },
       "ProposedAction": {
@@ -2173,6 +5419,31 @@
           "explanation"
         ],
         "title": "ProposedAction",
+        "type": "object"
+      },
+      "PushKey": {
+        "additionalProperties": false,
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "public_key": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Public Key"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "PushKey",
         "type": "object"
       },
       "RankedSupplier": {
@@ -2276,6 +5547,67 @@
         "title": "RankedSupplier",
         "type": "object"
       },
+      "Reasoning": {
+        "additionalProperties": false,
+        "description": "Why an action was proposed, for the person who decides (phase 11 S7).",
+        "properties": {
+          "alternatives": {
+            "description": "what else the person can do",
+            "items": {
+              "type": "string"
+            },
+            "title": "Alternatives",
+            "type": "array"
+          },
+          "confidence": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence"
+          },
+          "counterfactual": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "what would have let it run alone, or why it never will",
+            "title": "Counterfactual"
+          },
+          "facts": {
+            "description": "what the agent knew, in words",
+            "items": {
+              "type": "string"
+            },
+            "title": "Facts",
+            "type": "array"
+          },
+          "rule": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "the rule or the playbook step behind it",
+            "title": "Rule"
+          }
+        },
+        "title": "Reasoning",
+        "type": "object"
+      },
       "ReplenishmentLine": {
         "additionalProperties": false,
         "properties": {
@@ -2291,10 +5623,21 @@
               "update_rule_and_rfq",
               "hold",
               "manual_review",
+              "consolidate",
               "none"
             ],
             "title": "Action",
             "type": "string"
+          },
+          "consolidation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ConsolidationNote"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "coverage_days": {
             "anyOf": [
@@ -2378,6 +5721,18 @@
           "forecast_method": {
             "title": "Forecast Method",
             "type": "string"
+          },
+          "held_until": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Held Until"
           },
           "history_periods": {
             "minimum": 0.0,
@@ -2644,6 +5999,31 @@
         "title": "ResolveResponse",
         "type": "object"
       },
+      "RevertResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "integer"
+          },
+          "note": {
+            "title": "Note",
+            "type": "string"
+          },
+          "reverted_at": {
+            "format": "date-time",
+            "title": "Reverted At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "reverted_at",
+          "note"
+        ],
+        "title": "RevertResponse",
+        "type": "object"
+      },
       "RouteInfo": {
         "properties": {
           "methods": {
@@ -2668,6 +6048,115 @@
           "name"
         ],
         "title": "RouteInfo",
+        "type": "object"
+      },
+      "RuleConditions": {
+        "additionalProperties": false,
+        "description": "Every set condition must hold. Lists match any member; empty lists match all.",
+        "properties": {
+          "amount_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Max"
+          },
+          "change_days_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Days Max"
+          },
+          "change_pct_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Change Pct Max"
+          },
+          "confidence_min": {
+            "anyOf": [
+              {
+                "maximum": 1.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Min"
+          },
+          "days_late_max": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Days Late Max"
+          },
+          "email_kinds": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Email Kinds",
+            "type": "array"
+          },
+          "first_time_supplier": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "First Time Supplier"
+          },
+          "partner_ids": {
+            "default": [],
+            "items": {
+              "type": "integer"
+            },
+            "title": "Partner Ids",
+            "type": "array"
+          },
+          "supplier_score_min": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Supplier Score Min"
+          }
+        },
+        "title": "RuleConditions",
         "type": "object"
       },
       "RunRanking": {
@@ -2697,6 +6186,31 @@
         "title": "RunRanking",
         "type": "object"
       },
+      "RunView": {
+        "additionalProperties": false,
+        "properties": {
+          "position": {
+            "$ref": "#/components/schemas/PlaybookPosition"
+          },
+          "run": {
+            "$ref": "#/components/schemas/PlaybookRun"
+          },
+          "steps": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/StepRecord"
+            },
+            "title": "Steps",
+            "type": "array"
+          }
+        },
+        "required": [
+          "run",
+          "position"
+        ],
+        "title": "RunView",
+        "type": "object"
+      },
       "RuntimeSettings": {
         "additionalProperties": false,
         "properties": {
@@ -2720,7 +6234,10 @@
                 "send_po",
                 "follow_up",
                 "request_eta",
-                "reply"
+                "reply",
+                "decline",
+                "counter_offer",
+                "answer"
               ],
               "type": "string"
             },
@@ -2735,6 +6252,24 @@
             "title": "Auto Send Partner Ids",
             "type": "array"
           },
+          "autonomy": {
+            "$ref": "#/components/schemas/AutonomyPolicy"
+          },
+          "briefing_recipients": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Briefing Recipients",
+            "type": "array"
+          },
+          "holding_cost_pct_year": {
+            "default": 20.0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Holding Cost Pct Year",
+            "type": "number"
+          },
           "ignored_senders": {
             "default": [],
             "items": {
@@ -2742,6 +6277,27 @@
             },
             "title": "Ignored Senders",
             "type": "array"
+          },
+          "internal_senders": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Internal Senders",
+            "type": "array"
+          },
+          "invoice_price_tolerance_pct": {
+            "anyOf": [
+              {
+                "maximum": 20.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invoice Price Tolerance Pct"
           },
           "max_actions_per_run": {
             "default": 20,
@@ -2756,6 +6312,20 @@
             "description": "agent name -> model name from the registry",
             "title": "Model By Agent",
             "type": "object"
+          },
+          "negotiation_cap_pct": {
+            "default": 10.0,
+            "maximum": 50.0,
+            "minimum": 0.0,
+            "title": "Negotiation Cap Pct",
+            "type": "number"
+          },
+          "negotiation_max_rounds": {
+            "default": 2,
+            "maximum": 5.0,
+            "minimum": 1.0,
+            "title": "Negotiation Max Rounds",
+            "type": "integer"
           },
           "planning_max_coverage_days": {
             "anyOf": [
@@ -2821,6 +6391,27 @@
             },
             "title": "Rfq No Reply Days",
             "type": "array"
+          },
+          "sourcing_deadline_days": {
+            "default": 5,
+            "maximum": 60.0,
+            "minimum": 1.0,
+            "title": "Sourcing Deadline Days",
+            "type": "integer"
+          },
+          "sourcing_freight_pct": {
+            "default": 5.0,
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Sourcing Freight Pct",
+            "type": "number"
+          },
+          "sourcing_top_n": {
+            "default": 3,
+            "maximum": 10.0,
+            "minimum": 1.0,
+            "title": "Sourcing Top N",
+            "type": "integer"
           }
         },
         "title": "RuntimeSettings",
@@ -2971,6 +6562,484 @@
         "title": "SettingsVersion",
         "type": "object"
       },
+      "StartRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "partner_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Partner Id"
+          },
+          "playbook": {
+            "title": "Playbook",
+            "type": "string"
+          },
+          "po_name": {
+            "minLength": 1,
+            "title": "Po Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "playbook",
+          "po_name"
+        ],
+        "title": "StartRequest",
+        "type": "object"
+      },
+      "StartRoundRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "deadline_days": {
+            "anyOf": [
+              {
+                "maximum": 60.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deadline Days"
+          },
+          "max_suppliers": {
+            "anyOf": [
+              {
+                "maximum": 10.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Max Suppliers"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "maxLength": 2000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "partner_ids": {
+            "description": "invite these as well",
+            "items": {
+              "type": "integer"
+            },
+            "title": "Partner Ids",
+            "type": "array"
+          },
+          "po_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "requote this order's lines",
+            "title": "Po Name"
+          },
+          "product_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Product Id"
+          },
+          "qty": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qty"
+          }
+        },
+        "title": "StartRoundRequest",
+        "type": "object"
+      },
+      "StepRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "at": {
+            "format": "date-time",
+            "title": "At",
+            "type": "string"
+          },
+          "detail": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Detail",
+            "type": "object"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "step_id": {
+            "title": "Step Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step_id",
+          "status",
+          "at"
+        ],
+        "title": "StepRecord",
+        "type": "object"
+      },
+      "StepView": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Action"
+          },
+          "active_runs": {
+            "default": 0,
+            "title": "Active Runs",
+            "type": "integer"
+          },
+          "agent": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Agent"
+          },
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "task": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Task"
+          },
+          "until": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Until"
+          },
+          "wait_days": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wait Days"
+          },
+          "when": {
+            "title": "When",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "kind",
+          "when"
+        ],
+        "title": "StepView",
+        "type": "object"
+      },
+      "SubscribeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Endpoint",
+            "type": "string"
+          },
+          "keys": {
+            "$ref": "#/components/schemas/SubscriptionKeys"
+          }
+        },
+        "required": [
+          "endpoint",
+          "keys"
+        ],
+        "title": "SubscribeRequest",
+        "type": "object"
+      },
+      "SubscriptionKeys": {
+        "additionalProperties": false,
+        "properties": {
+          "auth": {
+            "minLength": 1,
+            "title": "Auth",
+            "type": "string"
+          },
+          "p256dh": {
+            "minLength": 1,
+            "title": "P256Dh",
+            "type": "string"
+          }
+        },
+        "required": [
+          "p256dh",
+          "auth"
+        ],
+        "title": "SubscriptionKeys",
+        "type": "object"
+      },
+      "Suggestion": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "detail": {
+            "title": "Detail",
+            "type": "string"
+          },
+          "evidence": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Evidence",
+            "type": "object"
+          },
+          "id": {
+            "default": 0,
+            "title": "Id",
+            "type": "integer"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "autonomy_rule",
+              "setting",
+              "attention"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "proposal": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Proposal",
+            "type": "object"
+          },
+          "resolved_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved At"
+          },
+          "resolved_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved By"
+          },
+          "status": {
+            "default": "open",
+            "title": "Status",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "kind",
+          "title",
+          "detail"
+        ],
+        "title": "Suggestion",
+        "type": "object"
+      },
+      "SuggestionAction": {
+        "additionalProperties": false,
+        "properties": {
+          "approval_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Approval Id"
+          },
+          "saved_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Saved Version"
+          },
+          "suggestion": {
+            "$ref": "#/components/schemas/Suggestion"
+          }
+        },
+        "required": [
+          "suggestion"
+        ],
+        "title": "SuggestionAction",
+        "type": "object"
+      },
+      "Supplier360": {
+        "additionalProperties": false,
+        "properties": {
+          "emails": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MailRow"
+            },
+            "title": "Emails",
+            "type": "array"
+          },
+          "orders": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/OrderRow"
+            },
+            "title": "Orders",
+            "type": "array"
+          },
+          "partner_id": {
+            "title": "Partner Id",
+            "type": "integer"
+          },
+          "partner_name": {
+            "title": "Partner Name",
+            "type": "string"
+          },
+          "prices": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/PriceRow"
+            },
+            "title": "Prices",
+            "type": "array"
+          },
+          "products": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/ProductRank"
+            },
+            "title": "Products",
+            "type": "array"
+          },
+          "rounds": {
+            "default": [],
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Rounds",
+            "type": "array"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          }
+        },
+        "required": [
+          "partner_id",
+          "partner_name"
+        ],
+        "title": "Supplier360",
+        "type": "object"
+      },
       "SupplierConfirmedRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2983,6 +7052,114 @@
           "value"
         ],
         "title": "SupplierConfirmedRequest",
+        "type": "object"
+      },
+      "SupplierProfile": {
+        "additionalProperties": false,
+        "properties": {
+          "contacts": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Contacts",
+            "type": "array"
+          },
+          "facts": {
+            "additionalProperties": true,
+            "default": {},
+            "title": "Facts",
+            "type": "object"
+          },
+          "formality": {
+            "anyOf": [
+              {
+                "enum": [
+                  "formal",
+                  "neutral",
+                  "informal"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Formality"
+          },
+          "greeting": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Greeting"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "notes": {
+            "default": "",
+            "maxLength": 2000,
+            "title": "Notes",
+            "type": "string"
+          },
+          "partner_id": {
+            "title": "Partner Id",
+            "type": "integer"
+          },
+          "sign_off": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sign Off"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "updated_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated By"
+          }
+        },
+        "required": [
+          "partner_id"
+        ],
+        "title": "SupplierProfile",
         "type": "object"
       },
       "SupplierRanking": {
@@ -3157,6 +7334,22 @@
         "title": "SupplierScore",
         "type": "object"
       },
+      "UnsubscribeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "endpoint": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Endpoint",
+            "type": "string"
+          }
+        },
+        "required": [
+          "endpoint"
+        ],
+        "title": "UnsubscribeRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -3251,6 +7444,56 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/ai": {
+      "get": {
+        "operationId": "ai_performance_api_ai_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiPerformance"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ai Performance",
+        "tags": [
+          "ai"
+        ]
+      }
+    },
     "/api/approvals": {
       "get": {
         "operationId": "list_approvals_api_approvals_get",
@@ -3337,6 +7580,53 @@
           }
         ],
         "summary": "List Approvals",
+        "tags": [
+          "approvals"
+        ]
+      }
+    },
+    "/api/approvals/bulk": {
+      "post": {
+        "description": "Decide many at once (S8): each one goes through the same path as a single\ndecision; the ones that cannot be decided are reported, not skipped silently.",
+        "operationId": "resolve_many_api_approvals_bulk_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BulkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BulkResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Resolve Many",
         "tags": [
           "approvals"
         ]
@@ -3446,6 +7736,174 @@
         ]
       }
     },
+    "/api/assistant": {
+      "get": {
+        "operationId": "read_conversation_api_assistant_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssistantMessage"
+                  },
+                  "title": "Response Read Conversation Api Assistant Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Conversation",
+        "tags": [
+          "assistant"
+        ]
+      },
+      "post": {
+        "operationId": "ask_api_assistant_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantTurn"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Ask",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
+    "/api/assistant/{message_id}/confirm": {
+      "post": {
+        "operationId": "confirm_plan_api_assistant__message_id__confirm_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "title": "Message Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantMessage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Confirm Plan",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
+    "/api/assistant/{message_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_plan_api_assistant__message_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "message_id",
+            "required": true,
+            "schema": {
+              "title": "Message Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantMessage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dismiss Plan",
+        "tags": [
+          "assistant"
+        ]
+      }
+    },
     "/api/auth/login": {
       "post": {
         "operationId": "login_api_auth_login_post",
@@ -3513,6 +7971,272 @@
         ]
       }
     },
+    "/api/autonomy": {
+      "get": {
+        "operationId": "get_policy_api_autonomy_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Policy",
+        "tags": [
+          "autonomy"
+        ]
+      },
+      "put": {
+        "operationId": "put_policy_api_autonomy_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PolicyUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyUpdateResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Policy",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/actions": {
+      "get": {
+        "description": "The \"done automatically\" feed, newest first.",
+        "operationId": "list_actions_api_autonomy_actions_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 7,
+              "maximum": 90,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AutoActionView"
+                  },
+                  "title": "Response List Actions Api Autonomy Actions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Actions",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/actions/{action_id}/revert": {
+      "post": {
+        "operationId": "revert_action_api_autonomy_actions__action_id__revert_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action_id",
+            "required": true,
+            "schema": {
+              "title": "Action Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevertResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Revert Action",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/decide": {
+      "post": {
+        "description": "What the policy (current, or the draft given) says about one action.",
+        "operationId": "decide_api_autonomy_decide_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecideRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PolicyDecision"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Decide",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
+    "/api/autonomy/preview": {
+      "post": {
+        "description": "Replay the last ``days`` of approvals against a draft policy: how many would\nhave run alone, by rule and by kind, and the list.",
+        "operationId": "preview_api_autonomy_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PreviewResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Preview",
+        "tags": [
+          "autonomy"
+        ]
+      }
+    },
     "/api/board": {
       "get": {
         "operationId": "board_api_board_get",
@@ -3558,6 +8282,54 @@
           }
         ],
         "summary": "Board",
+        "tags": [
+          "board"
+        ]
+      }
+    },
+    "/api/board/{po_name}/detail": {
+      "get": {
+        "description": "The order's lines and where it came from, for the drawer.",
+        "operationId": "order_detail_api_board__po_name__detail_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "po_name",
+            "required": true,
+            "schema": {
+              "title": "Po Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderDetail"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Order Detail",
         "tags": [
           "board"
         ]
@@ -3677,6 +8449,190 @@
         ]
       }
     },
+    "/api/briefing": {
+      "get": {
+        "operationId": "read_briefing_api_briefing_get",
+        "parameters": [
+          {
+            "description": "a past day; default: the latest",
+            "in": "query",
+            "name": "day",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "a past day; default: the latest",
+              "title": "Day"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Briefing"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Briefing",
+        "tags": [
+          "briefing"
+        ]
+      }
+    },
+    "/api/briefing/email": {
+      "post": {
+        "operationId": "email_briefing_api_briefing_email_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmailResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Email Briefing",
+        "tags": [
+          "briefing"
+        ]
+      }
+    },
+    "/api/briefing/history": {
+      "get": {
+        "operationId": "history_api_briefing_history_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 14,
+              "maximum": 60,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Briefing"
+                  },
+                  "title": "Response History Api Briefing History Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "History",
+        "tags": [
+          "briefing"
+        ]
+      }
+    },
+    "/api/briefing/run": {
+      "post": {
+        "description": "Build today's briefing now (the 07:30 job does the same).",
+        "operationId": "run_now_api_briefing_run_post",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Briefing"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Run Now",
+        "tags": [
+          "briefing"
+        ]
+      }
+    },
     "/api/cases": {
       "get": {
         "operationId": "list_cases_api_cases_get",
@@ -3735,7 +8691,8 @@
                     "unlinked",
                     "receipt",
                     "planning",
-                    "invoice"
+                    "invoice",
+                    "sourcing"
                   ],
                   "type": "string"
                 },
@@ -4080,6 +9037,104 @@
         ]
       }
     },
+    "/api/demo": {
+      "get": {
+        "operationId": "read_demo_api_demo_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Read Demo",
+        "tags": [
+          "demo"
+        ]
+      }
+    },
+    "/api/demo/next": {
+      "post": {
+        "operationId": "next_step_api_demo_next_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Next Step",
+        "tags": [
+          "demo"
+        ]
+      }
+    },
+    "/api/demo/reset": {
+      "post": {
+        "operationId": "reset_demo_api_demo_reset_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Reset Demo",
+        "tags": [
+          "demo"
+        ]
+      }
+    },
     "/api/exceptions": {
       "get": {
         "operationId": "exceptions_board_api_exceptions_get",
@@ -4167,6 +9222,309 @@
         "summary": "Act Now",
         "tags": [
           "exceptions"
+        ]
+      }
+    },
+    "/api/home": {
+      "get": {
+        "operationId": "home_api_home_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HomeView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Home",
+        "tags": [
+          "home"
+        ]
+      }
+    },
+    "/api/learning/profiles/{partner_id}": {
+      "get": {
+        "operationId": "get_profile_api_learning_profiles__partner_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "partner_id",
+            "required": true,
+            "schema": {
+              "title": "Partner Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Profile",
+        "tags": [
+          "learning"
+        ]
+      },
+      "put": {
+        "operationId": "put_profile_api_learning_profiles__partner_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "partner_id",
+            "required": true,
+            "schema": {
+              "title": "Partner Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProfileUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplierProfile"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Put Profile",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/stats": {
+      "get": {
+        "operationId": "feedback_stats_api_learning_stats_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 90,
+              "maximum": 365,
+              "minimum": 1,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FeedbackSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Feedback Stats",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/suggestions": {
+      "get": {
+        "operationId": "list_suggestions_api_learning_suggestions_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Suggestion"
+                  },
+                  "title": "Response List Suggestions Api Learning Suggestions Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Suggestions",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/suggestions/{suggestion_id}/accept": {
+      "post": {
+        "description": "Apply what the suggestion proposes: a rule goes through the autonomy change (a\nsecond person confirms), a setting is saved at once.",
+        "operationId": "accept_suggestion_api_learning_suggestions__suggestion_id__accept_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionAction"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Accept Suggestion",
+        "tags": [
+          "learning"
+        ]
+      }
+    },
+    "/api/learning/suggestions/{suggestion_id}/dismiss": {
+      "post": {
+        "operationId": "dismiss_suggestion_api_learning_suggestions__suggestion_id__dismiss_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "suggestion_id",
+            "required": true,
+            "schema": {
+              "title": "Suggestion Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Suggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Dismiss Suggestion",
+        "tags": [
+          "learning"
         ]
       }
     },
@@ -4270,6 +9628,151 @@
         "summary": "Supplier Scores",
         "tags": [
           "performance"
+        ]
+      }
+    },
+    "/api/planning/calendar": {
+      "get": {
+        "operationId": "list_events_api_planning_calendar_get",
+        "parameters": [
+          {
+            "description": "events ending on or after this day",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "events ending on or after this day",
+              "title": "Since"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEvent"
+                  },
+                  "title": "Response List Events Api Planning Calendar Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Events",
+        "tags": [
+          "planning"
+        ]
+      },
+      "post": {
+        "operationId": "add_event_api_planning_calendar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalendarEvent"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CalendarEvent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Add Event",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
+    "/api/planning/calendar/{event_id}": {
+      "delete": {
+        "operationId": "remove_event_api_planning_calendar__event_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "event_id",
+            "required": true,
+            "schema": {
+              "title": "Event Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Remove Event",
+        "tags": [
+          "planning"
         ]
       }
     },
@@ -4546,6 +10049,553 @@
         "summary": "What If",
         "tags": [
           "planning"
+        ]
+      }
+    },
+    "/api/planning/runs/{run_id}/what-if-class": {
+      "post": {
+        "description": "Recompute every product of one ABC class with other parameters; nothing is written.",
+        "operationId": "what_if_class_api_planning_runs__run_id__what_if_class_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClassWhatIfRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassWhatIfResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "What If Class",
+        "tags": [
+          "planning"
+        ]
+      }
+    },
+    "/api/playbooks": {
+      "get": {
+        "operationId": "list_playbooks_api_playbooks_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlaybookView"
+                  },
+                  "title": "Response List Playbooks Api Playbooks Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Playbooks",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/runs": {
+      "get": {
+        "operationId": "list_runs_api_playbooks_runs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "default": true,
+              "title": "Active",
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RunView"
+                  },
+                  "title": "Response List Runs Api Playbooks Runs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Runs",
+        "tags": [
+          "playbooks"
+        ]
+      },
+      "post": {
+        "description": "Start a playbook on an order by hand (the daily job starts the usual ones).",
+        "operationId": "start_run_api_playbooks_runs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Run",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/runs/{run_id}": {
+      "get": {
+        "operationId": "get_run_api_playbooks_runs__run_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Run",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/runs/{run_id}/cancel": {
+      "post": {
+        "operationId": "cancel_run_api_playbooks_runs__run_id__cancel_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "run_id",
+            "required": true,
+            "schema": {
+              "title": "Run Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Cancel Run",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/playbooks/tick": {
+      "post": {
+        "description": "Move every active run now (the hourly job does the same).",
+        "operationId": "tick_api_playbooks_tick_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Tick Api Playbooks Tick Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Tick",
+        "tags": [
+          "playbooks"
+        ]
+      }
+    },
+    "/api/push/key": {
+      "get": {
+        "operationId": "push_key_api_push_key_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PushKey"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Push Key",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/push/subscriptions": {
+      "delete": {
+        "operationId": "unsubscribe_api_push_subscriptions_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnsubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Unsubscribe",
+        "tags": [
+          "push"
+        ]
+      },
+      "post": {
+        "operationId": "subscribe_api_push_subscriptions_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Subscribe Api Push Subscriptions Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Subscribe",
+        "tags": [
+          "push"
+        ]
+      }
+    },
+    "/api/risk": {
+      "get": {
+        "operationId": "risk_radar_api_risk_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "warehouse_code",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Warehouse Code"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Risk Radar Api Risk Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Risk Radar",
+        "tags": [
+          "risk"
+        ]
+      }
+    },
+    "/api/risk/{product_id}/act": {
+      "post": {
+        "description": "One click: an alternative source for the order behind the risk, or a quote round.",
+        "operationId": "act_on_risk_api_risk__product_id__act_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "schema": {
+              "title": "Product Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Act On Risk",
+        "tags": [
+          "risk"
         ]
       }
     },
@@ -4869,6 +10919,322 @@
         ]
       }
     },
+    "/api/sourcing/negotiate": {
+      "post": {
+        "description": "Ask the sourcing agent for a counter-offer on a quoted line; a person approves it.",
+        "operationId": "negotiate_api_sourcing_negotiate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NegotiateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Negotiate",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/negotiations": {
+      "get": {
+        "operationId": "negotiations_api_sourcing_negotiations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "po_name",
+            "required": true,
+            "schema": {
+              "title": "Po Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Negotiations Api Sourcing Negotiations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Negotiations",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/rounds": {
+      "get": {
+        "operationId": "rounds_api_sourcing_rounds_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "partner_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Partner Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  "title": "Response Rounds Api Sourcing Rounds Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Rounds",
+        "tags": [
+          "sourcing"
+        ]
+      },
+      "post": {
+        "description": "Start a quote round by hand; the invitations go through the supplier agent.",
+        "operationId": "start_round_api_sourcing_rounds_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRoundRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Round",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/rounds/{round_id}": {
+      "get": {
+        "operationId": "get_round_api_sourcing_rounds__round_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "round_id",
+            "required": true,
+            "schema": {
+              "title": "Round Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Round Api Sourcing Rounds  Round Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Round",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
+    "/api/sourcing/rounds/{round_id}/compare": {
+      "post": {
+        "description": "Compare the quotes now instead of waiting for the deadline.",
+        "operationId": "compare_round_api_sourcing_rounds__round_id__compare_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "round_id",
+            "required": true,
+            "schema": {
+              "title": "Round Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DispatchResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Compare Round",
+        "tags": [
+          "sourcing"
+        ]
+      }
+    },
     "/api/stream": {
       "get": {
         "operationId": "stream_api_stream_get",
@@ -4909,6 +11275,53 @@
         "summary": "Stream",
         "tags": [
           "stream"
+        ]
+      }
+    },
+    "/api/suppliers/{partner_id}": {
+      "get": {
+        "operationId": "supplier_360_api_suppliers__partner_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "partner_id",
+            "required": true,
+            "schema": {
+              "title": "Partner Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Supplier360"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Supplier 360",
+        "tags": [
+          "suppliers"
         ]
       }
     }

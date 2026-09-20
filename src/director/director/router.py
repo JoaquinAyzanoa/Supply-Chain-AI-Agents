@@ -22,6 +22,7 @@ from sc_core.schema.a2a import (
     InventoryPlanningTask,
     InvoiceMatchTask,
     LogisticsTask,
+    SourcingTask,
     SupplierCommsTask,
     SupplierPerformanceTask,
 )
@@ -29,7 +30,12 @@ from sc_core.schema.base import StrictModel
 from sc_core.schema.events import BaseEvent
 
 AgentName = Literal[
-    "supplier_comms", "inventory_planning", "logistics", "invoice_match", "supplier_performance"
+    "supplier_comms",
+    "inventory_planning",
+    "logistics",
+    "invoice_match",
+    "supplier_performance",
+    "sourcing",
 ]
 
 # Phase 9 adds the logistics task; the union keeps ``Route.dispatches`` typed
@@ -40,6 +46,7 @@ AgentTask = (
     | LogisticsTask
     | InvoiceMatchTask
     | SupplierPerformanceTask
+    | SourcingTask
 )
 
 
@@ -99,6 +106,7 @@ def _build_routes() -> dict[type[BaseEvent], Handler]:
         ev.OdooApprovalResolved: odoo_events.on_approval_resolved,
         ev.AgentRunFinished: agent_events.on_run_finished,
         ev.RfqDrafted: agent_events.on_rfq_drafted,
+        ev.NeedsProposed: agent_events.on_needs_proposed,
     }
 
 

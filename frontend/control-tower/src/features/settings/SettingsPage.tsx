@@ -1,10 +1,11 @@
 /**
  * Runtime settings (admins): the model per agent from the registry, the
- * follow-up policy, the suppliers whose emails go out without approval and
- * the planning defaults. Every save is a new version the services pick up
+ * follow-up policy and the planning defaults. What runs without approval is
+ * the autonomy policy, on its own page. Every save is a new version the services pick up
  * within a minute; the history shows who changed what and when.
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 import { Save } from "lucide-react";
 import { useEffect, useState, type FormEvent } from "react";
 
@@ -24,8 +25,6 @@ type RuntimeSettings = Schemas["RuntimeSettings"];
 type ModelOption = Schemas["ModelOption"];
 
 const AGENTS = ["supplier_comms", "inventory_planning", "director"] as const;
-const EMAIL_KINDS = ["follow_up", "request_eta", "reply", "rfq", "send_po"] as const;
-type EmailKind = (typeof EMAIL_KINDS)[number];
 
 export function useSettings() {
   return useQuery({ queryKey: ["settings", "current"], queryFn: async () => unwrap(await api.GET("/api/settings")) });
@@ -48,12 +47,18 @@ interface Draft {
   approval_stale_days: string;
   approval_expire_days: string;
   max_actions_per_run: string;
-  auto_send_partner_ids: string;
-  auto_send_kinds: EmailKind[];
   ignored_senders: string;
+  internal_senders: string;
+  briefing_recipients: string;
   planning_service_level: string;
   planning_review_period_days: string;
   planning_max_coverage_days: string;
+  holding_cost_pct_year: string;
+  sourcing_top_n: string;
+  sourcing_deadline_days: string;
+  sourcing_freight_pct: string;
+  negotiation_cap_pct: string;
+  negotiation_max_rounds: string;
 }
 
 function toDraft(settings: RuntimeSettings): Draft {
@@ -65,12 +70,18 @@ function toDraft(settings: RuntimeSettings): Draft {
     approval_stale_days: String(settings.approval_stale_days),
     approval_expire_days: String(settings.approval_expire_days),
     max_actions_per_run: String(settings.max_actions_per_run),
-    auto_send_partner_ids: settings.auto_send_partner_ids.join(", "),
-    auto_send_kinds: [...(settings.auto_send_kinds ?? [])],
     ignored_senders: (settings.ignored_senders ?? []).join(", "),
+    internal_senders: (settings.internal_senders ?? []).join(", "),
+    briefing_recipients: (settings.briefing_recipients ?? []).join(", "),
     planning_service_level: settings.planning_service_level === null || settings.planning_service_level === undefined ? "" : String(settings.planning_service_level),
     planning_review_period_days: settings.planning_review_period_days === null || settings.planning_review_period_days === undefined ? "" : String(settings.planning_review_period_days),
     planning_max_coverage_days: settings.planning_max_coverage_days === null || settings.planning_max_coverage_days === undefined ? "" : String(settings.planning_max_coverage_days),
+    holding_cost_pct_year: String(settings.holding_cost_pct_year ?? 20),
+    sourcing_top_n: String(settings.sourcing_top_n ?? 3),
+    sourcing_deadline_days: String(settings.sourcing_deadline_days ?? 5),
+    sourcing_freight_pct: String(settings.sourcing_freight_pct ?? 5),
+    negotiation_cap_pct: String(settings.negotiation_cap_pct ?? 10),
+    negotiation_max_rounds: String(settings.negotiation_max_rounds ?? 2),
   };
 }
 
@@ -81,8 +92,11 @@ const ints = (text: string): number[] =>
     .map((v) => Number(v));
 const intOrNull = (text: string): number | null => (text.trim() === "" ? null : Number(text));
 
-export function fromDraft(draft: Draft): RuntimeSettings {
+/** The edited fields on top of the current settings, so fields this form does not
+ *  show (the autonomy policy, older lists) survive a save unchanged. */
+export function fromDraft(draft: Draft, base: RuntimeSettings): RuntimeSettings {
   return {
+    ...base,
     model_by_agent: Object.fromEntries(Object.entries(draft.model_by_agent).filter(([, v]) => v)),
     rfq_no_reply_days: ints(draft.rfq_no_reply_days),
     po_eta_request_before_days: Number(draft.po_eta_request_before_days),
@@ -90,15 +104,27 @@ export function fromDraft(draft: Draft): RuntimeSettings {
     approval_stale_days: Number(draft.approval_stale_days),
     approval_expire_days: Number(draft.approval_expire_days),
     max_actions_per_run: Number(draft.max_actions_per_run),
-    auto_send_partner_ids: ints(draft.auto_send_partner_ids),
-    auto_send_kinds: EMAIL_KINDS.filter((kind) => draft.auto_send_kinds.includes(kind)),
     ignored_senders: draft.ignored_senders
+      .split(/[,\s]+/)
+      .map((v) => v.trim())
+      .filter(Boolean),
+    internal_senders: draft.internal_senders
+      .split(/[,\s]+/)
+      .map((v) => v.trim())
+      .filter(Boolean),
+    briefing_recipients: draft.briefing_recipients
       .split(/[,\s]+/)
       .map((v) => v.trim())
       .filter(Boolean),
     planning_service_level: intOrNull(draft.planning_service_level),
     planning_review_period_days: intOrNull(draft.planning_review_period_days),
     planning_max_coverage_days: intOrNull(draft.planning_max_coverage_days),
+    holding_cost_pct_year: Number(draft.holding_cost_pct_year),
+    sourcing_top_n: Number(draft.sourcing_top_n),
+    sourcing_deadline_days: Number(draft.sourcing_deadline_days),
+    sourcing_freight_pct: Number(draft.sourcing_freight_pct),
+    negotiation_cap_pct: Number(draft.negotiation_cap_pct),
+    negotiation_max_rounds: Number(draft.negotiation_max_rounds),
   };
 }
 
@@ -133,7 +159,7 @@ export function SettingsPage() {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setMessage(null);
-    save.mutate(fromDraft(draft));
+    save.mutate(fromDraft(draft, current.data.settings));
   };
   const field = (key: Exclude<keyof Draft, "model_by_agent">, label: string, hint?: string, type = "text") => (
     <div className="flex flex-col gap-1">
@@ -186,32 +212,16 @@ export function SettingsPage() {
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.auto_send")}</h2>
-          {field("auto_send_partner_ids", t("settings.f.auto_send_partner_ids"), t("settings.h.auto_send_partner_ids"))}
-          <fieldset className="flex flex-col gap-1">
-            <legend className="text-sm font-medium">{t("settings.auto_kinds")}</legend>
-            <p className="text-xs text-muted-foreground">{t("settings.auto_kinds_hint")}</p>
-            {EMAIL_KINDS.map((kind) => (
-              <label key={kind} className="flex items-center gap-2 text-sm">
-                <input
-                  type="checkbox"
-                  checked={draft.auto_send_kinds.includes(kind)}
-                  onChange={(e) =>
-                    setDraft({
-                      ...draft,
-                      auto_send_kinds: e.target.checked
-                        ? [...draft.auto_send_kinds, kind]
-                        : draft.auto_send_kinds.filter((k) => k !== kind),
-                    })
-                  }
-                />
-                {t(`settings.kind.${kind}`)}
-              </label>
-            ))}
-          </fieldset>
+          <p className="text-xs text-muted-foreground">{t("settings.auto_send_moved")}</p>
+          <Link to="/autonomy" className="text-sm text-primary underline">
+            {t("nav.autonomy")}
+          </Link>
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.mailbox")}</h2>
           {field("ignored_senders", t("settings.f.ignored_senders"), t("settings.h.ignored_senders"))}
+          {field("internal_senders", t("settings.f.internal_senders"), t("settings.h.internal_senders"))}
+          {field("briefing_recipients", t("settings.f.briefing_recipients"), t("settings.h.briefing_recipients"))}
         </section>
         <section className="flex flex-col gap-3">
           <h2 className="text-sm font-semibold">{t("settings.planning")}</h2>
@@ -219,6 +229,16 @@ export function SettingsPage() {
           {field("planning_service_level", t("settings.f.planning_service_level"))}
           {field("planning_review_period_days", t("settings.f.planning_review_period_days"))}
           {field("planning_max_coverage_days", t("settings.f.planning_max_coverage_days"))}
+          {field("holding_cost_pct_year", t("settings.f.holding_cost_pct_year"), t("settings.h.holding_cost_pct_year"), "number")}
+        </section>
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-semibold">{t("settings.sourcing")}</h2>
+          <p className="text-xs text-muted-foreground">{t("settings.sourcing_hint")}</p>
+          {field("sourcing_top_n", t("settings.f.sourcing_top_n"), undefined, "number")}
+          {field("sourcing_deadline_days", t("settings.f.sourcing_deadline_days"), undefined, "number")}
+          {field("sourcing_freight_pct", t("settings.f.sourcing_freight_pct"), undefined, "number")}
+          {field("negotiation_cap_pct", t("settings.f.negotiation_cap_pct"), t("settings.h.negotiation_cap_pct"), "number")}
+          {field("negotiation_max_rounds", t("settings.f.negotiation_max_rounds"), undefined, "number")}
         </section>
         <div className="flex flex-wrap items-end gap-3 lg:col-span-2">
           <div className="flex min-w-64 flex-1 flex-col gap-1">

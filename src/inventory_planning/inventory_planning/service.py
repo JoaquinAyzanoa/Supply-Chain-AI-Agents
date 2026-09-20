@@ -15,13 +15,21 @@ from injector import Module, provider, singleton
 from inventory_planning import AGENT_NAME
 from inventory_planning.agent import InventoryPlanningAgent
 from inventory_planning.graph import Deps, build_graph
-from inventory_planning.policy import PostgresParamsStore
+from inventory_planning.policy import PostgresHoldStore, PostgresParamsStore
 from inventory_planning.ports import LiveDataPorts, LiveWritePorts
 from inventory_planning.runs import PostgresRunStore
 from sc_core.a2a.events import EventPublisher, PostgresOutbox
-from sc_core.graph import ApprovalGateway, OdooApprovalPorts, build_checkpointer
+from sc_core.graph import (
+    ApprovalGateway,
+    OdooApprovalPorts,
+    PostgresAutoActions,
+    build_checkpointer,
+    policy_from,
+)
+from sc_core.infra.calendar import PostgresCalendarStore
 from sc_core.infra.db import Database
 from sc_core.infra.module import ChatClientFactory
+from sc_core.infra.profiles import PostgresProfileStore
 from sc_core.infra.runtime_settings import RuntimeSettingsReader
 from sc_core.infra.settings import Settings
 from sc_core.llm import default_budget
@@ -79,11 +87,14 @@ class InventoryPlanningModule(Module):
             deadline_days=settings.agents.approval_deadline_days,
             language=settings.agents.language,
             control_tower_url=settings.ui.public_url,
+            policy=policy_from(runtime),
+            auto_actions=PostgresAutoActions(db),
         )
         return Deps(
             data=LiveDataPorts(odoo),
             writes=LiveWritePorts(odoo),
             params=PostgresParamsStore(db),
+            holds=PostgresHoldStore(db),
             runs=PostgresRunStore(db),
             chat=chats.for_agent(AGENT_NAME),
             approvals=gateway,
@@ -92,6 +103,8 @@ class InventoryPlanningModule(Module):
             language=settings.agents.language,
             publish=publisher.publish,
             langfuse=settings.langfuse,
+            calendar=PostgresCalendarStore(db),
+            profiles=PostgresProfileStore(db),
         )
 
     @provider

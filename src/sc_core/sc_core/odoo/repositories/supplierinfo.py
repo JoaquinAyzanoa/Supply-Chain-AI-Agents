@@ -36,6 +36,24 @@ class SupplierInfoRepo(Repo[SupplierInfo]):
     async def for_partner(self, partner_id: int) -> list[SupplierInfo]:
         return await self.find([["partner_id", "=", partner_id]], order="product_tmpl_id asc")
 
+    async def variant_ids(self, template_ids: list[int]) -> dict[int, int]:
+        """The first variant of each template: price rows sit on the template, rankings
+        and plans on the variant."""
+        if not template_ids:
+            return {}
+        rows = await self._c.search_read(
+            Product.ODOO_MODEL,
+            [["product_tmpl_id", "in", sorted(set(template_ids))]],
+            ["product_tmpl_id"],
+            order="id asc",
+        )
+        variants: dict[int, int] = {}
+        for row in rows:
+            template = row.get("product_tmpl_id")
+            template_id = int(template[0]) if isinstance(template, list) else int(template or 0)
+            variants.setdefault(template_id, int(row["id"]))
+        return variants
+
     async def upsert_price(
         self,
         *,

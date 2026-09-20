@@ -121,7 +121,15 @@ export function ChangesCard({
                 </TableCell>
                 <TableCell>{t(`approvals.changes.field.${change.field}`)}</TableCell>
                 <TableCell className="text-muted-foreground">{formatValue(change.field, change.before, locale)}</TableCell>
-                <TableCell className="font-medium">{formatValue(change.field, change.after, locale)}</TableCell>
+                <TableCell className="font-medium">
+                  {formatValue(change.field, change.after, locale)}
+                  {change.schedule.length ? (
+                    <div className="text-xs font-normal text-muted-foreground" data-testid="split-schedule">
+                      {t("approvals.changes.split")}:{" "}
+                      {change.schedule.map((part) => `${formatNumber(part.qty, locale, 2)} × ${part.date ? formatDate(part.date, locale) : (part.date_raw ?? "?")}`).join(" · ")}
+                    </div>
+                  ) : null}
+                </TableCell>
                 <TableCell>
                   <span className="flex items-center gap-1">
                     {change.source ?? ""}

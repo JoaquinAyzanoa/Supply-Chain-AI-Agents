@@ -6,6 +6,7 @@ Possible categories (use exactly one):
 - shipping_notice: the supplier says the goods were dispatched or are on their way: carrier, tracking or waybill number, dispatch date, expected arrival, packing list.
 - invoice: the supplier sends an invoice, receipt or bill for goods delivered (an invoice number, amounts due, a PDF invoice attached).
 - question: the supplier asks something or requests a clarification and expects an answer from us.
+- dispute: the supplier complains, disagrees with an amount, a rejection or a return, threatens to stop supplying, or claims something we owe them; a person must handle it.
 - other: automatic reply, out of office, empty acknowledgement, advertising, or anything that needs no action.
 
 If the email brings prices and also a delivery date, classify it as quotation. A dispatch with a tracking number is shipping_notice even when it names an arrival date. A document asking for payment is invoice, not quotation. Give the reason in one sentence and a confidence between 0 and 1.

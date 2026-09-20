@@ -7,6 +7,8 @@ them so the table stays complete and testable.
 
 from __future__ import annotations
 
+from typing import Any
+
 from director.router import Route
 from director.store import CaseKind
 from sc_core.schema.events import BaseEvent, ScheduledTick
@@ -15,6 +17,10 @@ JOB_KINDS: dict[str, CaseKind] = {
     "po_followups": "eta",
     "inventory_planning": "planning",
     "supplier_performance": "receipt",
+    "calibration": "planning",  # no case of its own; the suggestions land on the Autonomy page
+    "playbooks": "eta",  # the hourly nudge of every active playbook run
+    "sourcing_rounds": "sourcing",  # rounds past their deadline get compared
+    "briefing": "planning",  # no case of its own; the briefing lands on its page and by email
 }
 
 
@@ -24,3 +30,45 @@ def dispatch(event: BaseEvent) -> Route:
     if kind is None:
         return Route(case_kind="planning", note=f"unknown scheduler job {event.job_id!r}")
     return Route(case_kind=kind, job=event.job_id)
+
+
+class SourcingJob:
+    """Every hour: rounds past their deadline (or fully answered) are compared and the
+    award goes to a person."""
+
+    def __init__(self, source: Any, dispatcher: Any) -> None:
+        self._source = source
+        self._dispatcher = dispatcher
+
+    async def run(self, job_id: str, tick: ScheduledTick) -> dict[str, Any]:
+        if job_id != "sourcing_rounds":
+            return {"job": job_id, "status": "not_implemented"}
+        from sc_core.schema.a2a import SourcingTask
+
+        compared: list[dict[str, Any]] = []
+        for found in await self._source.due_rounds():
+            task = SourcingTask(
+                kind="compare_quotes",
+                case_id=f"{found['case_id']}_cmp_{tick.run_id}",  # its own thread
+                round_id=int(found["id"]),
+                po_name=found.get("source_po_name"),
+                reason=f"deadline reached (job {tick.run_id})",
+            )
+            result = await self._dispatcher.run(
+                task, requested_by="sourcing_rounds", run_id=tick.run_id
+            )
+            compared.append({"round_id": found["id"], **result})
+        return {"job": job_id, "status": "ok", "compared": compared}
+
+
+class PlaybooksJob:
+    """The hourly tick: every active playbook run gets a chance to move."""
+
+    def __init__(self, engine: Any) -> None:
+        self._engine = engine
+
+    async def run(self, job_id: str, tick: ScheduledTick) -> dict[str, Any]:
+        if job_id != "playbooks":
+            return {"job": job_id, "status": "not_implemented"}
+        result = await self._engine.tick()
+        return {"job": job_id, "status": "ok", **result}

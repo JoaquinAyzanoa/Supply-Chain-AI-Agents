@@ -23,6 +23,10 @@ from odoo_seed_lib.plan import Delivery, Plan, Purchase, build_plan, product_del
 SO_REF = "SEED-SO-{seed}-{months}-{n}"
 PO_REF = "seed-po-{seed}-{months}-{n}"
 OPEN_REF = "seed-open-{seed}-{n}"
+RFQ_REF = "seed-rfq-{seed}-{n}"
+# The addon's automations stay quiet for seeded writes; day one's receipts and
+# bills are announced explicitly at the end (see ``announce_today``).
+QUIET: dict[str, Any] = {"sc_skip_events": True}
 
 
 def stamp(day: date, hour: int = 10) -> str:
@@ -67,8 +71,12 @@ async def run(
         await chronological(client, ds, plan, products, suppliers, customers, wh, stages)
     if "supply" in stages:
         await open_supply(client, ds, plan, products, suppliers, wh)
+        await settle_today_stock(client, ds, products, wh)
+        await open_rfqs(client, ds, plan, products, suppliers)
     if "demand" in stages or "supply" in stages:
         await repair_open_pickings(client)
+    if "announce" in stages:
+        await announce_today(client, ds)
     return plan
 
 
@@ -112,10 +120,12 @@ async def opening_stock(
 async def reorder_rules(
     client: SeedClient, ds: Dataset, plan: Plan, products: dict[str, ProductIds], wh: Warehouse
 ) -> None:
+    """Rules for the class A products (top revenue share) and the flawed ones only."""
+    ruled = ds.ruled_codes()
     for p in ds.products:
-        flaw = ds.rule_flaws.get(p.code)
-        if flaw is not None and flaw.no_rule:
+        if p.code not in ruled:
             continue
+        flaw = ds.rule_flaws.get(p.code)
         min_weeks = flaw.min_weeks if flaw and flaw.min_weeks is not None else p.stock.min_weeks
         max_weeks = flaw.max_weeks if flaw and flaw.max_weeks is not None else p.stock.max_weeks
         values = {
@@ -256,13 +266,34 @@ async def purchase(
 ) -> None:
     odoo = client.odoo
     ref = PO_REF.format(seed=ds.seed, months=ds.history.months, n=p.index)
-    if await client.find_id("purchase.order", [["sc_external_ref", "=", ref]]):
+    po_id = await client.find_id("purchase.order", [["sc_external_ref", "=", ref]])
+    if po_id is not None:
         client.found["purchase.order"] = client.found.get("purchase.order", 0) + 1
-        return
-    po_id = await _create_confirmed_po(
-        client, ds, p.supplier, suppliers[p.supplier], p.lines, products, p.ordered, p.planned, ref
+        # an earlier run may have died between confirming and receiving: finish it
+        pending = await odoo.search(
+            "stock.picking",
+            [["purchase_id", "=", po_id], ["state", "not in", ["done", "cancel"]]],
+            limit=1,
+        )
+        if not pending:
+            return
+    else:
+        po_id = await _create_confirmed_po(
+            client,
+            ds,
+            p.supplier,
+            suppliers[p.supplier],
+            p.lines,
+            products,
+            p.ordered,
+            p.planned,
+            ref,
+        )
+    pickings = await odoo.search(
+        "stock.picking",
+        [["purchase_id", "=", po_id], ["state", "not in", ["done", "cancel"]]],
+        order="id asc",
     )
-    pickings = await odoo.search("stock.picking", [["purchase_id", "=", po_id]], order="id asc")
     if not pickings:
         return
     quantities = {products[code].product_id: qty for code, qty in p.lines}
@@ -321,7 +352,7 @@ async def _create_confirmed_po(
             "order_line": order_lines,
         },
     )
-    await odoo.call("purchase.order", "button_confirm", [po_id])
+    await odoo.call("purchase.order", "button_confirm", [po_id], context=QUIET)
     await odoo.write(
         "purchase.order",
         [po_id],
@@ -362,7 +393,7 @@ async def validate(client: SeedClient, picking_ids: list[int], *, backorder: boo
     not received (``backorder=True``) or none at all when the picking is in
     ``picking_ids_not_to_backorder``.
     """
-    context: dict[str, Any] = {"skip_backorder": True}
+    context: dict[str, Any] = {"skip_backorder": True, **QUIET}
     if not backorder:
         context["picking_ids_not_to_backorder"] = picking_ids
     await client.odoo.call("stock.picking", "button_validate", picking_ids, context=context)
@@ -440,29 +471,212 @@ async def open_supply(
     suppliers: dict[str, int],
     wh: Warehouse,
 ) -> None:
+    """Confirmed orders at every board stage: far, due soon, late, received, billed."""
+    odoo = client.odoo
     for n, entry in enumerate(ds.open_supply, 1):
         ref = OPEN_REF.format(seed=ds.seed, n=n)
-        if await client.find_id("purchase.order", [["sc_external_ref", "=", ref]]):
-            client.found["purchase.order"] = client.found.get("purchase.order", 0) + 1
-            continue
+        po_id = await client.find_id("purchase.order", [["sc_external_ref", "=", ref]])
         lines = []
         for code in entry.products:
             product = ds.product(code)
             terms = product.suppliers.get(entry.supplier) or product.suppliers["primary"]
             qty = max(math.ceil(product.demand.mean_weekly * 4), terms.min_qty)
             lines.append((code, int(qty)))
-        planned = plan.end + timedelta(days=entry.days_ahead)
-        delay = product_delay(ds, entry.supplier, lines)
-        ordered = planned - timedelta(days=delay)
-        await _create_confirmed_po(
-            client,
-            ds,
-            entry.supplier,
-            suppliers[entry.supplier],
-            lines,
-            products,
-            ordered,
-            planned,
-            ref,
+        if po_id is not None:
+            client.found["purchase.order"] = client.found.get("purchase.order", 0) + 1
+        else:
+            planned = plan.end + timedelta(days=entry.days_ahead)
+            delay = product_delay(ds, entry.supplier, lines)
+            ordered = planned - timedelta(days=delay)
+            po_id = await _create_confirmed_po(
+                client,
+                ds,
+                entry.supplier,
+                suppliers[entry.supplier],
+                lines,
+                products,
+                ordered,
+                planned,
+                ref,
+            )
+            client.created["purchase.order"] = client.created.get("purchase.order", 0) + 1
+        if entry.received == "full":
+            pending = await odoo.search(
+                "stock.picking",
+                [["purchase_id", "=", po_id], ["state", "not in", ["done", "cancel"]]],
+                order="id asc",
+            )
+            if pending:
+                quantities = {products[code].product_id: qty for code, qty in lines}
+                day = plan.end - timedelta(days=entry.received_days_ago)
+                await _validate_picking(client, pending[0], quantities, day)
+        if entry.bill is not None:
+            await draft_bill(client, po_id, entry.bill, entry.bill_ref or "", plan.end)
+
+
+async def announce_today(client: SeedClient, ds: Dataset) -> None:
+    """Emit the events the quiet seed withheld, for day one only: the received
+    orders (the logistics agent reconciles them) and the draft bills (the invoice
+    agent checks them).
+
+    Its own stage (``--only announce``) so it can run once the agents are up
+    with their API key. Event ids are deterministic, so a second run is a no-op
+    for the director.
+    """
+    odoo = client.odoo
+    pickings: list[int] = []
+    bills: list[int] = []
+    for n, entry in enumerate(ds.open_supply, 1):
+        po_id = await client.find_id(
+            "purchase.order", [["sc_external_ref", "=", OPEN_REF.format(seed=ds.seed, n=n)]]
         )
-        client.created["purchase.order"] = client.created.get("purchase.order", 0) + 1
+        if po_id is None:
+            continue
+        if entry.received == "full":
+            pickings += await odoo.search(
+                "stock.picking", [["purchase_id", "=", po_id], ["state", "=", "done"]]
+            )
+        if entry.bill_ref:
+            bill_id = await client.find_id(
+                "account.move", [["ref", "=", entry.bill_ref], ["move_type", "=", "in_invoice"]]
+            )
+            if bill_id is not None:
+                bills.append(bill_id)
+    if pickings:
+        await odoo.call("stock.picking", "sc_emit_receipt_validated", pickings)
+    if bills:
+        await odoo.call("account.move", "sc_emit_bill_created", bills)
+    print(f"  announced to the director: {len(pickings)} receipt(s), {len(bills)} bill(s)")
+
+
+async def draft_bill(client: SeedClient, po_id: int, kind: str, ref: str, today: date) -> int:
+    """A draft vendor bill on a received order, through Odoo's own action (never posted).
+
+    ``variance`` bills the first line 3 % above the order, so the invoice agent
+    has something to hold. Idempotent on the supplier's invoice number.
+    """
+    odoo = client.odoo
+    existing = await client.find_id(
+        "account.move", [["ref", "=", ref], ["move_type", "=", "in_invoice"]]
+    )
+    if existing is not None:
+        client.found["account.move"] = client.found.get("account.move", 0) + 1
+        return existing
+    await odoo.call("purchase.order", "action_create_invoice", [po_id], context=QUIET)
+    bills = await odoo.search(
+        "account.move",
+        [["invoice_line_ids.purchase_line_id.order_id", "=", po_id], ["state", "=", "draft"]],
+        order="id desc",
+        limit=1,
+    )
+    if not bills:
+        raise RuntimeError(f"Odoo created no draft bill for purchase order {po_id}")
+    bill_id = int(bills[0])
+    await odoo.write(
+        "account.move",
+        [bill_id],
+        {"ref": ref, "invoice_date": (today - timedelta(days=1)).isoformat()},
+    )
+    if kind == "variance":
+        lines = await odoo.search_read(
+            "account.move.line",
+            [["move_id", "=", bill_id], ["display_type", "=", "product"]],
+            ["id", "price_unit"],
+            order="id asc",
+            limit=1,
+        )
+        if lines:
+            dearer = round(float(lines[0]["price_unit"]) * 1.03, 2)
+            await odoo.write("account.move.line", [int(lines[0]["id"])], {"price_unit": dearer})
+    client.created["account.move"] = client.created.get("account.move", 0) + 1
+    return bill_id
+
+
+async def settle_today_stock(
+    client: SeedClient, ds: Dataset, products: dict[str, ProductIds], wh: Warehouse
+) -> None:
+    """Bring each product with ``today_weeks`` to that level with an inventory
+    adjustment dated today, after the history and the open receipts."""
+    odoo = client.odoo
+    adjusted = 0
+    for p in ds.products:
+        if p.stock.today_weeks is None:
+            continue
+        target = math.ceil(p.demand.mean_weekly * p.stock.today_weeks)
+        product_id = products[p.code].product_id
+        quants = await odoo.search_read(
+            "stock.quant",
+            [["product_id", "=", product_id], ["location_id", "=", wh.stock_location_id]],
+            ["quantity"],
+            order="id asc",
+        )
+        current = sum(float(q["quantity"]) for q in quants)
+        if abs(current - target) < 0.5:
+            continue
+        if quants:
+            # count the existing quant(s) to the target; a new quant would be added on top
+            ids = [int(q["id"]) for q in quants]
+            await odoo.write("stock.quant", ids[:1], {"inventory_quantity": target})
+            if ids[1:]:
+                await odoo.write("stock.quant", ids[1:], {"inventory_quantity": 0})
+            await odoo.call("stock.quant", "action_apply_inventory", ids)
+        else:
+            quant_id = await odoo.create(
+                "stock.quant",
+                {
+                    "product_id": product_id,
+                    "location_id": wh.stock_location_id,
+                    "inventory_quantity": target,
+                },
+            )
+            await odoo.call("stock.quant", "action_apply_inventory", [quant_id])
+        adjusted += 1
+    if adjusted:
+        client.created["stock.quant (today)"] = adjusted
+
+
+async def open_rfqs(
+    client: SeedClient,
+    ds: Dataset,
+    plan: Plan,
+    products: dict[str, ProductIds],
+    suppliers: dict[str, int],
+) -> None:
+    """Requests for quotation open today: draft (proposed) or sent (RFQ sent, dated back)."""
+    odoo = client.odoo
+    for n, entry in enumerate(ds.open_rfqs, 1):
+        ref = RFQ_REF.format(seed=ds.seed, n=n)
+        if await client.find_id("purchase.order", [["sc_external_ref", "=", ref]]):
+            client.found["purchase.order"] = client.found.get("purchase.order", 0) + 1
+            continue
+        ordered = plan.end - timedelta(days=entry.days_ago)
+        order_lines = []
+        for code in entry.products:
+            product = ds.product(code)
+            terms = product.suppliers[entry.supplier]
+            qty = max(math.ceil(product.demand.mean_weekly * 4), terms.min_qty)
+            order_lines.append(
+                (
+                    0,
+                    0,
+                    {
+                        "product_id": products[code].product_id,
+                        "product_qty": int(qty),
+                        "price_unit": round(product.list_price * terms.price_ratio, 2),
+                        "date_planned": stamp(ordered + timedelta(days=terms.delay), 12),
+                    },
+                )
+            )
+        po_id = await odoo.create(
+            "purchase.order",
+            {
+                "partner_id": suppliers[entry.supplier],
+                "date_order": stamp(ordered, 10),
+                "origin": "SEED/RFQ",
+                "sc_external_ref": ref,
+                "order_line": order_lines,
+            },
+        )
+        if entry.state == "sent":
+            await odoo.execute("purchase.order", "write", [po_id], {"state": "sent"}, context=QUIET)
+        client.created["purchase.order (rfq)"] = client.created.get("purchase.order (rfq)", 0) + 1
