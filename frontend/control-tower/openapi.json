@@ -3790,6 +3790,14 @@
             "title": "Approve",
             "type": "boolean"
           },
+          "leave": {
+            "description": "approval kinds to leave pending even with approve, to decide them on screen",
+            "items": {
+              "type": "string"
+            },
+            "title": "Leave",
+            "type": "array"
+          },
           "step": {
             "anyOf": [
               {
@@ -7054,6 +7062,46 @@
         "title": "SupplierConfirmedRequest",
         "type": "object"
       },
+      "SupplierEmail": {
+        "additionalProperties": false,
+        "description": "One email the demo sent for a supplier, rebuilt for the presenter to read.",
+        "properties": {
+          "from_email": {
+            "title": "From Email",
+            "type": "string"
+          },
+          "from_name": {
+            "title": "From Name",
+            "type": "string"
+          },
+          "po_name": {
+            "title": "Po Name",
+            "type": "string"
+          },
+          "step": {
+            "title": "Step",
+            "type": "string"
+          },
+          "subject": {
+            "title": "Subject",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "step",
+          "po_name",
+          "from_name",
+          "from_email",
+          "subject",
+          "text"
+        ],
+        "title": "SupplierEmail",
+        "type": "object"
+      },
       "SupplierProfile": {
         "additionalProperties": false,
         "properties": {
@@ -9058,6 +9106,37 @@
           }
         ],
         "summary": "Read Demo",
+        "tags": [
+          "demo"
+        ]
+      }
+    },
+    "/api/demo/emails": {
+      "get": {
+        "description": "What the demo wrote for the suppliers in this run (rebuilt, never stored).",
+        "operationId": "supplier_emails_api_demo_emails_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SupplierEmail"
+                  },
+                  "title": "Response Supplier Emails Api Demo Emails Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Supplier Emails",
         "tags": [
           "demo"
         ]

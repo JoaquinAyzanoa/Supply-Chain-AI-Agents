@@ -520,6 +520,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/demo/emails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Supplier Emails
+         * @description What the demo wrote for the suppliers in this run (rebuilt, never stored).
+         */
+        get: operations["supplier_emails_api_demo_emails_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/demo/next": {
         parameters: {
             query?: never;
@@ -2670,6 +2690,11 @@ export interface components {
              */
             approve: boolean;
             /**
+             * Leave
+             * @description approval kinds to leave pending even with approve, to decide them on screen
+             */
+            leave?: string[];
+            /**
              * Step
              * @description run this step instead of the next one
              */
@@ -3848,6 +3873,24 @@ export interface components {
             /** Value */
             value: boolean;
         };
+        /**
+         * SupplierEmail
+         * @description One email the demo sent for a supplier, rebuilt for the presenter to read.
+         */
+        SupplierEmail: {
+            /** From Email */
+            from_email: string;
+            /** From Name */
+            from_name: string;
+            /** Po Name */
+            po_name: string;
+            /** Step */
+            step: string;
+            /** Subject */
+            subject: string;
+            /** Text */
+            text: string;
+        };
         /** SupplierProfile */
         SupplierProfile: {
             /**
@@ -4946,6 +4989,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DemoView"];
+                };
+            };
+        };
+    };
+    supplier_emails_api_demo_emails_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SupplierEmail"][];
                 };
             };
         };
