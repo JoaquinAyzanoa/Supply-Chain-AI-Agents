@@ -157,6 +157,9 @@ The take is kept as `demo-video/demo-raw.webm` with `demo-timeline.json`, which 
 seconds meant to be read and the seconds spent waiting for real email. ffmpeg (the
 `ffmpeg-static` dev dependency) re-times it into `demo-video/demo.mp4`: reading at 2x,
 waiting at 10x. `just demo-video-recut 1.5` re-times the same take at another speed.
+Title cards are not filmed: they are marks in the timeline (`card: {title, text, seconds}`) that the
+cut renders as clips of their own. The film therefore opens on the card (nothing filmed before the
+first card is kept), and a card's words can be edited in `demo-timeline.json` and re-cut.
 The folder is git-ignored. Each take creates real records, like any other run of the demo;
 before filming, stale pending approvals on the late order are retired.
 

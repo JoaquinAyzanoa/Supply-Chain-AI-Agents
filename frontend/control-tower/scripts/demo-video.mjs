@@ -69,6 +69,8 @@ let filmStart = 0;
 const timeline = []; // [{ at: seconds, speed }]
 function pace(speed) {
   const at = (Date.now() - filmStart) / 1000;
+  // until the opening card, everything is preparation and stays out of the film
+  if (!timeline.some((mark) => mark.card)) speed = 0;
   if (timeline.length && timeline[timeline.length - 1].speed === speed) return;
   timeline.push({ at, speed });
 }
@@ -251,24 +253,21 @@ async function clearSpotlight() {
   await page.evaluate(() => document.querySelectorAll(".demo-box,.demo-box-label").forEach((el) => el.remove())).catch(() => undefined);
 }
 
-async function card(title, text, seconds) {
-  pace(SPEED);
-  await page.evaluate(
-    ([heading, body]) => {
-      const el = document.createElement("div");
-      el.id = "demo-card";
-      el.style.cssText =
-        "position:fixed;inset:0;z-index:2147483647;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;" +
-        "background:#0b1020;color:#fff;font-family:Inter,Segoe UI,system-ui,sans-serif;text-align:center;padding:0 140px";
-      el.innerHTML = `<div style="font-size:54px;font-weight:700;line-height:1.15"></div><div style="font-size:25px;color:#cbd5e1;line-height:1.4;max-width:1150px"></div>`;
-      el.children[0].textContent = heading;
-      el.children[1].textContent = body;
-      document.body.appendChild(el);
-    },
-    [title, text],
-  );
-  await sleep(seconds * 1000 * SPEED);
-  await page.evaluate(() => document.getElementById("demo-card")?.remove());
+/** A title card: a mark in the timeline that the cut renders as a clip of its own, so the
+ *  film can open on it (nothing filmed before the first card is kept) and its words can be
+ *  changed in demo-timeline.json and re-cut without filming again. */
+function card(title, text, seconds) {
+  const at = (Date.now() - filmStart) / 1000;
+  const last = timeline[timeline.length - 1];
+  timeline.push({ at, speed: 0, card: { title, text, seconds } });
+  timeline.push({ at, speed: last?.speed || SPEED });
+}
+
+function cardHtml({ title, text }) {
+  const esc = (v) => v.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  return `<body style="margin:0;width:${SIZE.width}px;height:${SIZE.height}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#0b1020;color:#fff;font-family:Inter,'Segoe UI',system-ui,sans-serif;text-align:center;padding:0 140px;box-sizing:border-box">
+<div style="font-size:54px;font-weight:700;line-height:1.15">${esc(title)}</div>
+<div style="font-size:25px;color:#cbd5e1;line-height:1.4;max-width:1150px">${esc(text)}</div></body>`;
 }
 
 /** Show an email a supplier sent, as the supplier sent it. */
@@ -431,13 +430,13 @@ async function main() {
   );
   page = await context.newPage();
   filmStart = Date.now();
-  pace(WAIT_SPEED * 4); // signing in to Odoo and Langfuse is not part of the story
+  pace(0); // signing in to Odoo and Langfuse is not part of the story: cut out
   await odooLogin();
   await langfuseLogin();
 
   // --- opening ---------------------------------------------------------------------------------
   await go("/");
-  await card("A purchasing department run by AI agents", "Live on Odoo, a real mailbox and real emails. Agents do the work. People decide. The model never writes to the ERP.", 6);
+  card("Your inbound supply chain, run by AI agents", "Live on Odoo, a real mailbox and real emails. Agents do the work. People decide. Every step is auditable.", 6);
   await say("The desk", "Home: service level, late orders, approvals waiting, spend, and what the AI cost this month.");
   await spotlight(page.getByRole("region", { name: "Needs you" }), "What needs a person today");
   await say("The desk", "The Director agent coordinates six specialist agents. What needs a person is one list.");
@@ -756,8 +755,8 @@ async function main() {
   await go("/ai");
   await say("The numbers", "AI performance: automation rate by decision, how fast people answer, forecast error, and cost per case.");
   await go("/");
-  await say("The desk", "One day of purchasing: eight situations handled, every decision explained, for a few cents of AI.");
-  await card("Every email was real. Every Odoo record is real.", "Agents do the work. Approvals and rules people set keep them in check.", 6);
+  await say("The desk", "One day of your inbound supply chain: eight situations handled, every decision explained, for a few cents of AI.");
+  card("Every email was real. Every Odoo record is real.", "Agents do the work. Approvals and rules people set keep them in check.", 6);
 
   const video = page.video();
   await context.close();
@@ -768,13 +767,13 @@ async function main() {
   timeline.push({ at: seconds, speed: 0 });
   writeFileSync(resolve(OUT_DIR, "demo-timeline.json"), JSON.stringify(timeline, null, 1));
   log(`raw take: ${raw} (${Math.floor(seconds / 60)}m${String(Math.round(seconds % 60)).padStart(2, "0")}s)`);
-  cut(raw, timeline, resolve(OUT_DIR, "demo.mp4"));
+  await cut(raw, timeline, resolve(OUT_DIR, "demo.mp4"));
 }
 
 /** Re-time the take with ffmpeg: each stretch of the timeline plays at its own speed.
  *  One stretch at a time, then a stream-copy join: a single filter graph over the whole
  *  take decodes it once per stretch and runs a laptop out of memory. */
-function cut(raw, marks, target) {
+async function cut(raw, marks, target) {
   let ffmpeg = process.env.FFMPEG_PATH;
   if (!ffmpeg) {
     try {
@@ -783,35 +782,45 @@ function cut(raw, marks, target) {
       ffmpeg = "ffmpeg";
     }
   }
-  const parts = [];
-  for (let i = 0; i + 1 < marks.length; i += 1) {
-    const [a, b, speed] = [marks[i].at, marks[i + 1].at, marks[i].speed];
-    if (b - a < 0.2 || !speed) continue;
-    parts.push({ a, b, speed });
-  }
   const dir = resolve(OUT_DIR, "parts");
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
+  const encode = ["-an", "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p", "-r", "30", "-video_track_timescale", "15360", "-threads", "2"];
   const names = [];
-  for (const [i, p] of parts.entries()) {
+  let length = 0;
+  let painter = null;
+  for (let i = 0; i < marks.length; i += 1) {
+    const mark = marks[i];
     const name = `part_${String(i).padStart(3, "0")}.mp4`;
-    const result = spawnSync(
-      ffmpeg,
-      ["-v", "error", "-y", "-ss", p.a.toFixed(2), "-t", (p.b - p.a).toFixed(2), "-i", raw, "-vf", `setpts=(PTS-STARTPTS)/${p.speed},fps=30`, "-an",
-        "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p", "-threads", "2", resolve(dir, name)],
-      { stdio: "inherit" },
-    );
+    let inputs = null;
+    if (mark.card) {
+      painter ??= await chromium.launch();
+      const sheet = await painter.newPage({ viewport: SIZE });
+      await sheet.setContent(cardHtml(mark.card));
+      const png = resolve(dir, `card_${i}.png`);
+      await sheet.screenshot({ path: png });
+      await sheet.close();
+      inputs = ["-loop", "1", "-t", String(mark.card.seconds), "-i", png, "-vf", `scale=${SIZE.width}:${SIZE.height},fps=30`];
+      length += mark.card.seconds;
+    } else if (i + 1 < marks.length && mark.speed && marks[i + 1].at - mark.at >= 0.2) {
+      const [a, b] = [mark.at, marks[i + 1].at];
+      inputs = ["-ss", a.toFixed(2), "-t", (b - a).toFixed(2), "-i", raw, "-vf", `setpts=(PTS-STARTPTS)/${mark.speed},fps=30`];
+      length += (b - a) / mark.speed;
+    }
+    if (!inputs) continue;
+    const result = spawnSync(ffmpeg, ["-v", "error", "-y", ...inputs, ...encode, resolve(dir, name)], { stdio: "inherit" });
     if (result.status !== 0) {
       log(`ffmpeg did not run (${ffmpeg}); the raw take and demo-timeline.json are in ${OUT_DIR}`);
+      await painter?.close();
       return;
     }
     names.push(name);
   }
+  await painter?.close();
   writeFileSync(resolve(dir, "list.txt"), names.map((n) => `file '${n}'`).join("\n"));
   const joined = spawnSync(ffmpeg, ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", resolve(dir, "list.txt"), "-c", "copy", "-movflags", "+faststart", target], { stdio: "inherit" });
   if (joined.status === 0 && existsSync(target)) {
     rmSync(dir, { recursive: true, force: true });
-    const length = parts.reduce((sum, p) => sum + (p.b - p.a) / p.speed, 0);
     log(`video: ${target} (${Math.floor(length / 60)}m${String(Math.round(length % 60)).padStart(2, "0")}s)`);
   } else log(`ffmpeg could not join the parts in ${dir}`);
 }
@@ -819,7 +828,7 @@ function cut(raw, marks, target) {
 if (args.includes("--recut")) {
   // the take was filmed for 2x; another --speed scales every stretch by the same ratio
   const marks = JSON.parse(readFileSync(resolve(OUT_DIR, "demo-timeline.json"), "utf8")).map((m) => ({ ...m, speed: (m.speed * SPEED) / 2 }));
-  cut(resolve(OUT_DIR, "demo-raw.webm"), marks, resolve(OUT_DIR, "demo.mp4"));
+  await cut(resolve(OUT_DIR, "demo-raw.webm"), marks, resolve(OUT_DIR, "demo.mp4"));
 } else {
   main().catch((error) => {
     console.error(error);
