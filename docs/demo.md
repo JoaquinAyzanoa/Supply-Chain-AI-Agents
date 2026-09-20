@@ -32,11 +32,15 @@ bot mailbox (`just mail-login`) and a Control Tower approver.
 3. Restart the director (`docker compose ... up -d --no-deps director`) so it
    reads the new settings, then open **Demo** in the Control Tower. The page
    says what is still missing.
-4. **Reset.** Click *Reset* on the Demo page (or `just demo-reset`). The late
+4. **On a fresh stack** (`just odoo-fresh`), run `just mail-clear-inbox` before the rebuild (order
+   numbers restart, and an old `[P00077]` reply would be linked to the new P00077) and
+   `just demo-prepare` after it: it runs the scorecard and planning jobs and approves the
+   scorecards, so suppliers have scores and the risk radar has products.
+5. **Reset.** Click *Reset* on the Demo page (or `just demo-reset`). The late
    order goes back to its original date, the last round's RFQs are cancelled,
    the run's pending approvals are rejected, and a fresh order is confirmed for
    the receipt and the bill (a received order cannot be un-received).
-5. Have four tabs open: Home, Board, Approvals, Demo. On a phone, the PWA with
+6. Have four tabs open: Home, Board, Approvals, Demo. On a phone, the PWA with
    the Approvals inbox.
 
 Two ways to drive it:
@@ -157,6 +161,16 @@ The take is kept as `demo-video/demo-raw.webm` with `demo-timeline.json`, which 
 seconds meant to be read and the seconds spent waiting for real email. ffmpeg (the
 `ffmpeg-static` dev dependency) re-times it into `demo-video/demo.mp4`: reading at 2x,
 waiting at 10x. `just demo-video-recut 1.5` re-times the same take at another speed.
+**Narration.** Every caption is also spoken, by a neural voice from the free `edge-tts` library
+(run through `uv`, no key; an unofficial route to Microsoft's voices, so check the terms before
+publishing, or swap in a licensed service). Lines are cached in `demo-video/voice/` by their
+words. While a line is spoken the footage plays in real time and holds exactly as long as the
+audio; silent stretches keep their fast-forward. The cut builds the audio track from PCM pieces
+matched to each part's frame count, so the voice cannot drift. Where a caption would sound wrong
+read aloud (a list behind a colon, a clock time) the `SPOKEN` table in the script says what the
+voice says instead. `--voice off` films the silent version; `--voice en-GB-RyanNeural` (any
+edge-tts voice) and `--rate +10%` change the narrator.
+
 Title cards are not filmed: they are marks in the timeline (`card: {title, text, seconds}`) that the
 cut renders as clips of their own. The film therefore opens on the card (nothing filmed before the
 first card is kept), and a card's words can be edited in `demo-timeline.json` and re-cut.

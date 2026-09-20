@@ -1,7 +1,7 @@
 /**
  * Record the demo day as a captioned video, on the live stack (English).
  *
- *   SC_UI_PASSWORD=... node scripts/demo-video.mjs [--out ../../demo-video] [--speed 2]
+ *   SC_UI_PASSWORD=... node scripts/demo-video.mjs [--out ../../demo-video] [--speed 2] [--voice off|<edge-tts voice>]
  *
  * The scenario is the Director agent's own (POST /api/demo/next, see docs/demo.md): each step
  * runs through the API while the browser tours the screens that matter, so the time a real
@@ -12,6 +12,7 @@
  * are fast-forwarded harder than the parts meant to be read; ffmpeg then writes the .mp4.
  */
 import { spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -23,7 +24,7 @@ const flag = (name, fallback) => {
   const index = args.indexOf(`--${name}`);
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 };
-const BASE = (process.env.SC_DIRECTOR_URL ?? "http://localhost:8010").replace(/\/$/, "");
+const BASE = (process.env.SC_DIRECTOR_URL ?? "http://127.0.0.1:8010").replace(/\/$/, "");
 const ODOO = (process.env.SC_ODOO_URL ?? "http://localhost:8069").replace(/\/$/, "");
 const LANGFUSE = (process.env.SC_LANGFUSE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const USER = process.env.SC_DEMO_USER ?? "admin@scai.dev";
@@ -36,6 +37,13 @@ const OUT_DIR = resolve(flag("out", "../../demo-video"));
 const SPEED = Number(flag("speed", "2")); // what is meant to be read plays at this speed
 const WAIT_SPEED = SPEED * 5; // waiting for a real email plays much faster
 const SIZE = { width: 1600, height: 900 };
+// Narration: a neural voice through the free `edge-tts` library (run with uv, no key). It is an
+// unofficial route to Microsoft's voices: fine for a draft, check the terms before publishing.
+// `--voice off` films the silent version; any other value is an edge-tts voice name.
+const VOICE = flag("voice", "en-US-AndrewNeural");
+const VOICE_RATE = flag("rate", "+6%");
+const VOICE_DIR = resolve(OUT_DIR, "voice");
+const NARRATED = VOICE !== "off";
 const APPROVE_BUTTON = /^Approve( \d+ line\(s\)| with edits)?$|^(Award|Send the counter-offer)$/;
 
 // --- the director's API ---------------------------------------------------------------------------
@@ -51,8 +59,9 @@ async function api(path, method = "GET", body) {
       });
       break;
     } catch (error) {
-      // a dropped keep-alive connection: reads are safe to repeat, writes are not
-      if (attempt >= 3 || method !== "GET") throw error;
+      // a dropped connection: reads are safe to repeat, and so is a demo step (it remembers
+      // what it already sent); other writes are not
+      if (attempt >= 3 || (method !== "GET" && path !== "/api/demo/next")) throw error;
       await new Promise((done) => setTimeout(done, 1500));
     }
   }
@@ -177,11 +186,77 @@ const WHO = {
   langfuse: "system|LANGFUSE · WHAT THE MODEL SAW AND ANSWERED",
 };
 
-/** Caption the screen and hold it for as long as the text takes to read. */
+/** Captions are written for the eye. Where one would sound wrong read aloud (a list behind a
+ *  colon, a clock time), this is what the voice says instead. */
+const SPOKEN = {
+  "Home: service level, late orders, approvals waiting, spend, and what the AI cost this month.":
+    "This is the home screen: service level, late orders, approvals waiting, spend, and what the A.I. cost this month.",
+  "Supplier 360: scorecard, orders, prices with the supplier's rank, quote rounds and emails, on one page.":
+    "Supplier three sixty puts everything about a supplier on one page: scorecard, orders, prices with the supplier's rank, quote rounds and emails.",
+  "Autonomy: what may run without a person is a rule people set, with a 30-day preview before saving.":
+    "On the autonomy page, people set the rules for what may run without them, with a thirty day preview before saving.",
+  "The risk radar: the odds of running out in 30 and 60 days per product, with the cash at stake.":
+    "The risk radar shows the odds of running out in thirty and sixty days, per product, with the cash at stake.",
+  "Planning: every morning the Planning agent proposes what to buy from two years of demand.":
+    "Every morning, the Planning agent proposes what to buy, based on two years of demand.",
+  "Playbooks: multi-step plans that run for days. Remind, ask for a date, escalate, find another source.":
+    "Playbooks are multi-step plans that run for days: remind, ask for a date, escalate, find another source.",
+  "Runs: every agent run with its model, tokens, cost in dollars, duration and a link to its trace.":
+    "Every agent run is on record, with its model, its tokens, its cost in dollars, its duration, and a link to its trace.",
+  "Weights: 60% price, 20% lead time, 20% score. Each quote gets one composite number, and they are ranked.":
+    "The weights are sixty percent price, twenty percent lead time, and twenty percent score. Each quote gets one composite number, and they are ranked.",
+  "At 07:30 the Director agent writes the briefing from the facts of the day.":
+    "At seven thirty, the Director agent writes the briefing from the facts of the day.",
+  "AI performance: automation rate by decision, how fast people answer, forecast error, and cost per case.":
+    "The A.I. performance page shows the automation rate by decision, how fast people answer, forecast error, and cost per case.",
+  "One day of your inbound supply chain: eight situations handled, every decision explained, for a few cents of AI.":
+    "One day of your inbound supply chain: eight situations handled, every decision explained, for a few cents of A.I.",
+  "Your inbound supply chain, run by AI agents":
+    "Your inbound supply chain, run by A.I. agents. Live on Odoo, with a real mailbox and real emails. Agents do the work. People decide. And every step is auditable.",
+  "Every email was real. Every Odoo record is real.":
+    "Every email was real. Every Odoo record is real. Agents do the work. Approvals, and rules people set, keep them in check.",
+};
+const spoken = (text) => SPOKEN[text] ?? text.replace(/\bP\d{5}\b/g, "this order").replace(/\bAI\b/g, "A.I.");
+
+function ffmpegPath() {
+  if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
+  try {
+    return createRequire(import.meta.url)("ffmpeg-static");
+  } catch {
+    return "ffmpeg";
+  }
+}
+
+/** Speak a line into demo-video/voice (cached by its words): `{ file, seconds }`, or null when
+ *  narration is off or the voice service cannot be reached (the film then holds as if silent). */
+function narrate(text) {
+  if (!NARRATED) return null;
+  const words = spoken(text);
+  mkdirSync(VOICE_DIR, { recursive: true });
+  const file = resolve(VOICE_DIR, `${createHash("sha1").update(`${VOICE}|${VOICE_RATE}|${words}`).digest("hex").slice(0, 16)}.mp3`);
+  if (!existsSync(file)) {
+    const made = spawnSync("uv", ["run", "--quiet", "--no-project", "--with", "edge-tts", "edge-tts", "--voice", VOICE, `--rate=${VOICE_RATE}`, "--text", words, "--write-media", file], { stdio: "ignore" });
+    if (made.status !== 0 || !existsSync(file)) {
+      log(`  no voice for "${words.slice(0, 50)}…" (edge-tts did not answer)`);
+      return null;
+    }
+  }
+  const probe = spawnSync(ffmpegPath(), ["-i", file], { encoding: "utf8" });
+  const found = /Duration: (\d+):(\d+):(\d+\.\d+)/.exec(probe.stderr ?? "");
+  if (!found) return null;
+  return { file, seconds: Number(found[1]) * 3600 + Number(found[2]) * 60 + Number(found[3]) };
+}
+
+/** Caption the screen and hold it while the line is spoken (or for as long as it takes to read). */
 async function say(chapter, text, { who = "", extraMs = 0 } = {}) {
+  pace(0); // the moment it takes to fetch the voice is not part of the film
+  const voice = narrate(text);
   current = { chapter, text, who };
   await overlay();
-  await read(text.split(/\s+/).length, extraMs);
+  if (!voice) return read(text.split(/\s+/).length, extraMs);
+  // real time while someone speaks: the cut lays this audio over exactly this stretch
+  timeline.push({ at: (Date.now() - filmStart) / 1000, speed: 1, voice: voice.file });
+  await sleep((voice.seconds + 0.55) * 1000 + extraMs / 2);
 }
 
 async function go(url, { settle = 1200 } = {}) {
@@ -197,6 +272,24 @@ async function go(url, { settle = 1200 } = {}) {
     }
   }
   await sleep(settle);
+  // A dropped request can leave the Control Tower without its stylesheet: never film that.
+  if (target.startsWith(BASE)) {
+    for (let attempt = 0; attempt < 4; attempt += 1) {
+      // Tailwind hides its rules inside layers, so ask the page itself: `main` grows (flex-1)
+      // only when the stylesheet arrived.
+      const styled = await page
+        .evaluate(() => {
+          const main = document.querySelector("main");
+          const broken = [...document.querySelectorAll('[role="alert"]')].some((el) => /fetch|network|load failed/i.test(el.textContent ?? ""));
+          return !!main && getComputedStyle(main).flexGrow === "1" && !broken;
+        })
+        .catch(() => false);
+      if (styled) break;
+      log(`  ${url} came up unstyled or empty, reloading`);
+      await page.reload({ waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => undefined);
+      await sleep(2500);
+    }
+  }
   await page
     .waitForFunction(() => !/Loading…|Loading\.\.\./.test(document.querySelector("main")?.innerText ?? ""), null, { timeout: 20000 })
     .catch(() => undefined);
@@ -259,7 +352,9 @@ async function clearSpotlight() {
 function card(title, text, seconds) {
   const at = (Date.now() - filmStart) / 1000;
   const last = timeline[timeline.length - 1];
-  timeline.push({ at, speed: 0, card: { title, text, seconds } });
+  const voice = narrate(title);
+  if (voice) seconds = Math.max(seconds, Math.ceil(voice.seconds + 1.2));
+  timeline.push({ at, speed: 0, card: { title, text, seconds }, ...(voice ? { voice: voice.file } : {}) });
   timeline.push({ at, speed: last?.speed || SPEED });
 }
 
@@ -334,6 +429,7 @@ async function openApproval(id) {
 /** Click the approve button of the open approval, on screen. */
 async function decide(id, chapter, text) {
   if ((await approvalRow(id)).status !== "pending") return;
+  if (NARRATED) await say(chapter, text, { who: WHO.person });
   current = { chapter, text, who: WHO.person };
   await overlay();
   try {
@@ -350,7 +446,7 @@ async function decide(id, chapter, text) {
     if ((await approvalRow(id)).status !== "pending") break;
     if (i === 11) await api(`/api/approvals/${id}/resolve`, "POST", { status: "approved", reason: "demo video" });
   }
-  await read(text.split(/\s+/).length);
+  await read(NARRATED ? 4 : text.split(/\s+/).length);
 }
 async function approveQuietly(ids) {
   for (const id of ids) {
@@ -414,6 +510,10 @@ async function main() {
   for (const stale of await api(`/api/approvals?status=pending&po=${late}`)) {
     await api(`/api/approvals/${stale.id}/resolve`, "POST", { status: "rejected", reason: "stale draft, retired before filming" });
     log(`retired stale approval #${stale.id} on ${late}`);
+  }
+  for (const stale of await api("/api/approvals?status=pending&kind=escalation")) {
+    await api(`/api/approvals/${stale.id}/resolve`, "POST", { status: "rejected", reason: "leftover of an earlier run, retired before filming" });
+    log(`retired escalation #${stale.id}`);
   }
 
   mkdirSync(OUT_DIR, { recursive: true });
@@ -668,9 +768,20 @@ async function main() {
     const reads = runs.filter((r) => r.trace_url && r.agent === "supplier_comms" && r.llm_calls > 0 && /change\(s\) applied/.test(r.summary ?? ""));
     const traced = reads.find((r) => r.po_name === rfq) ?? reads[0] ?? runs.find((r) => r.trace_url && r.llm_calls > 0);
     if (traced) {
-      await go(traced.trace_url.replace(/^https?:\/\/[^/]+/, LANGFUSE), { settle: 4000 });
-      // the trace page compiles on first use: wait for its tree
-      await page.getByText(/chat deepseek/).first().waitFor({ state: "visible", timeout: 90000 }).catch(() => undefined);
+      // Langfuse loads its data after the page: a dropped request leaves it on "Loading ...".
+      // Reload until the trace tree is there; without it the scene is not filmed at all.
+      let tree = false;
+      for (let attempt = 0; attempt < 5 && !tree; attempt += 1) {
+        await go(traced.trace_url.replace(/^https?:\/\/[^/]+/, LANGFUSE), { settle: 4000 });
+        tree = await page
+          .getByText(/chat deepseek/)
+          .first()
+          .waitFor({ state: "visible", timeout: 40000 })
+          .then(() => true)
+          .catch(() => false);
+        if (!tree) log(`  Langfuse did not show the trace (attempt ${attempt + 1})`);
+      }
+      if (!tree) throw new Error("Langfuse never showed the trace");
       await sleep(1500);
       await overlay();
       await say("The thinking", "Every agent run is traced in Langfuse, step by step, with the time and the cost of each model call.", { who: WHO.langfuse });
@@ -774,19 +885,13 @@ async function main() {
  *  One stretch at a time, then a stream-copy join: a single filter graph over the whole
  *  take decodes it once per stretch and runs a laptop out of memory. */
 async function cut(raw, marks, target) {
-  let ffmpeg = process.env.FFMPEG_PATH;
-  if (!ffmpeg) {
-    try {
-      ffmpeg = createRequire(import.meta.url)("ffmpeg-static");
-    } catch {
-      ffmpeg = "ffmpeg";
-    }
-  }
+  const ffmpeg = ffmpegPath();
   const dir = resolve(OUT_DIR, "parts");
   rmSync(dir, { recursive: true, force: true });
   mkdirSync(dir, { recursive: true });
   const encode = ["-an", "-c:v", "libx264", "-preset", "medium", "-crf", "21", "-pix_fmt", "yuv420p", "-r", "30", "-video_track_timescale", "15360", "-threads", "2"];
   const names = [];
+  const sound = []; // per part: { frames, voice } so the audio can match the picture to the sample
   let length = 0;
   let painter = null;
   for (let i = 0; i < marks.length; i += 1) {
@@ -815,10 +920,44 @@ async function cut(raw, marks, target) {
       return;
     }
     names.push(name);
+    // the part's real length, in frames: nominal lengths drift by a frame per part
+    const counted = spawnSync(ffmpeg, ["-v", "info", "-stats", "-i", resolve(dir, name), "-map", "0:v", "-f", "null", "-"], { encoding: "utf8" });
+    const frames = [...(counted.stderr ?? "").matchAll(/frame=\s*(\d+)/g)].pop();
+    sound.push({ frames: frames ? Number(frames[1]) : 0, voice: mark.voice && existsSync(mark.voice) ? mark.voice : null });
   }
   await painter?.close();
   writeFileSync(resolve(dir, "list.txt"), names.map((n) => `file '${n}'`).join("\n"));
-  const joined = spawnSync(ffmpeg, ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", resolve(dir, "list.txt"), "-c", "copy", "-movflags", "+faststart", target], { stdio: "inherit" });
+  const narrated = sound.some((part) => part.voice);
+  const picture = narrated ? resolve(dir, "picture.mp4") : target;
+  let joined = spawnSync(ffmpeg, ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", resolve(dir, "list.txt"), "-c", "copy", "-movflags", "+faststart", picture], { stdio: "inherit" });
+  if (joined.status === 0 && narrated) {
+    // One WAV per spoken part (padded to the part's length) and one per silence between them;
+    // PCM joins sample-exact, so the voice cannot drift from the picture.
+    const pcm = ["-ar", "44100", "-ac", "2", "-c:a", "pcm_s16le"];
+    const wavs = [];
+    let quiet = 0;
+    const flush = () => {
+      if (!quiet) return;
+      const wav = `quiet_${wavs.length}.wav`;
+      spawnSync(ffmpeg, ["-v", "error", "-y", "-f", "lavfi", "-t", (quiet / 30).toFixed(6), "-i", "anullsrc=r=44100:cl=stereo", ...pcm, resolve(dir, wav)], { stdio: "inherit" });
+      wavs.push(wav);
+      quiet = 0;
+    };
+    for (const part of sound) {
+      if (!part.voice) {
+        quiet += part.frames;
+        continue;
+      }
+      flush();
+      const wav = `voice_${wavs.length}.wav`;
+      spawnSync(ffmpeg, ["-v", "error", "-y", "-i", part.voice, "-af", "adelay=200|200,apad", "-t", (part.frames / 30).toFixed(6), ...pcm, resolve(dir, wav)], { stdio: "inherit" });
+      wavs.push(wav);
+    }
+    flush();
+    writeFileSync(resolve(dir, "sound.txt"), wavs.map((n) => `file '${n}'`).join("\n"));
+    spawnSync(ffmpeg, ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", resolve(dir, "sound.txt"), "-c", "copy", resolve(dir, "sound.wav")], { stdio: "inherit" });
+    joined = spawnSync(ffmpeg, ["-v", "error", "-y", "-i", picture, "-i", resolve(dir, "sound.wav"), "-c:v", "copy", "-c:a", "aac", "-b:a", "160k", "-movflags", "+faststart", target], { stdio: "inherit" });
+  }
   if (joined.status === 0 && existsSync(target)) {
     rmSync(dir, { recursive: true, force: true });
     log(`video: ${target} (${Math.floor(length / 60)}m${String(Math.round(length % 60)).padStart(2, "0")}s)`);
@@ -827,7 +966,7 @@ async function cut(raw, marks, target) {
 
 if (args.includes("--recut")) {
   // the take was filmed for 2x; another --speed scales every stretch by the same ratio
-  const marks = JSON.parse(readFileSync(resolve(OUT_DIR, "demo-timeline.json"), "utf8")).map((m) => ({ ...m, speed: (m.speed * SPEED) / 2 }));
+  const marks = JSON.parse(readFileSync(resolve(OUT_DIR, "demo-timeline.json"), "utf8")).map((m) => (m.voice ? m : { ...m, speed: (m.speed * SPEED) / 2 }));
   await cut(resolve(OUT_DIR, "demo-raw.webm"), marks, resolve(OUT_DIR, "demo.mp4"));
 } else {
   main().catch((error) => {

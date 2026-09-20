@@ -52,6 +52,7 @@ AGENTS = [
     "logistics",
     "invoice_match",
     "supplier_performance",
+    "sourcing",  # it reads the bot API key too: left out, its Odoo calls answer "Access Denied"
 ]
 
 

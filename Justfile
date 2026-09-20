@@ -294,13 +294,18 @@ demo-auto:
 demo-pace:
     {{UV}} run python scripts/demo_day.py --pace
 
+# After `just odoo-fresh`: run the scorecard and planning jobs, approve the scorecards, check readiness
+demo-prepare:
+    {{UV}} run python scripts/demo_prepare.py
+
 # Put the demo orders back to their start state
 demo-reset:
     {{UV}} run python scripts/demo_day.py --reset
 
-# Film the demo day into demo-video/demo.mp4: captions, Odoo, Langfuse, approvals on screen (live stack)
-demo-video:
-    cd {{UI}} && node scripts/demo-video.mjs
+# Film the demo day into demo-video/demo.mp4: narrated, captions, Odoo, Langfuse, approvals on screen
+# (live stack; voice="off" for the silent version, or any edge-tts voice name)
+demo-video voice="en-US-AndrewNeural":
+    cd {{UI}} && node scripts/demo-video.mjs --voice {{voice}}
 
 # Re-time the last take without filming again (demo-video/demo-raw.webm + demo-timeline.json)
 demo-video-recut speed="2":
