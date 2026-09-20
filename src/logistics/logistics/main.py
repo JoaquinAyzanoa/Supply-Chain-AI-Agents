@@ -11,9 +11,9 @@ from fastapi import FastAPI
 from loguru import logger
 
 from logistics import __version__
-from logistics.handler import LogisticsHandler, agent_spec
-from logistics.routers import approvals
-from logistics.service import AgentProvider, module_list
+from logistics.api.handler import LogisticsHandler, agent_spec
+from logistics.api.routers import approvals
+from logistics.infra.service import AgentProvider, module_list
 from sc_core.a2a import mount
 from sc_core.app import create_application
 from sc_core.infra.db import Database

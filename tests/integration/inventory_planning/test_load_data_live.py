@@ -6,8 +6,8 @@ import time
 
 import pytest
 
-from inventory_planning.nodes.load_data import load_dataset
-from inventory_planning.ports import LiveDataPorts
+from inventory_planning.graph.nodes.load_data import load_dataset
+from inventory_planning.infra.ports import LiveDataPorts
 from sc_core.odoo.client import OdooClient
 from sc_core.shared.time import local_today
 

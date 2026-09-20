@@ -18,10 +18,10 @@ from sc_core.infra.settings import Settings
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.events import BaseEvent
-from supplier_comms.agent import SupplierCommsAgent
-from supplier_comms.models import DraftOutput
-from supplier_comms.routers import approvals
-from supplier_comms.service import AgentProvider
+from supplier_comms.api.routers import approvals
+from supplier_comms.domain.models import DraftOutput
+from supplier_comms.graph.runner import SupplierCommsAgent
+from supplier_comms.infra.service import AgentProvider
 from supplier_comms.testing import FakePorts
 
 SECRET = "callback-secret"

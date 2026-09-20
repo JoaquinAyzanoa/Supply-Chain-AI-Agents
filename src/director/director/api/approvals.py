@@ -25,10 +25,10 @@ from loguru import logger
 from pydantic import Field, ValidationError, model_validator
 
 from director.api.auth import Approver, Principal, Viewer
-from director.autonomy import AutonomyChanges
-from director.learning import FeedbackRecorder
+from director.desk.autonomy import AutonomyChanges
+from director.desk.learning import FeedbackRecorder
+from director.orchestration.store import Case, CaseStore
 from director.playbooks import PlaybookEngine, PlaybookPosition
-from director.store import Case, CaseStore
 from sc_core.infra import tracing
 from sc_core.infra.settings import Settings
 from sc_core.odoo.links import record_url

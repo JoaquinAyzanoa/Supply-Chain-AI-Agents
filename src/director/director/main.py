@@ -17,7 +17,6 @@ from injector import Injector, Module, provider, singleton
 from loguru import logger
 
 from director import __version__
-from director.agents import Agents, build_agents
 from director.api import api_router
 from director.api.approvals import ApprovalsGateway, OdooApprovalsGateway
 from director.api.auth import LoginRateLimit, PostgresUserStore, UserStore
@@ -43,23 +42,26 @@ from director.api.risk import HttpRiskSource, RiskSource
 from director.api.runs import PostgresSchedulerRuns, RunsGateway, SchedulerRuns
 from director.api.settings import PostgresRuntimeSettingsStore, RuntimeSettingsStore
 from director.api.suppliers import MailLinks, SupplierPrices
-from director.assistant import (
+from director.desk.assistant import (
     AssistantStore,
     DepartmentAssistant,
     PlanRunner,
     PostgresAssistantStore,
 )
-from director.autonomy import (
+from director.desk.autonomy import (
     AutoActionsStore,
     AutonomyChanges,
     OdooReverter,
     PostgresAutoActionsStore,
     Reverter,
 )
-from director.briefing import BriefingBuilder, BriefingJob, BriefingStore, PostgresBriefingStore
-from director.concurrency import PoLocks
-from director.conversations import PostgresConversationLookup, PostgresMailActivity
-from director.demo import (
+from director.desk.briefing import (
+    BriefingBuilder,
+    BriefingJob,
+    BriefingStore,
+    PostgresBriefingStore,
+)
+from director.desk.demo import (
     DemoDirector,
     DemoStore,
     OdooDemoWorld,
@@ -67,20 +69,7 @@ from director.demo import (
     SmtpSupplierMailbox,
     SupplierMailbox,
 )
-from director.escalation import (
-    Escalator,
-    LoggingEscalator,
-    OdooApprovals,
-    OdooEscalationPorts,
-    OdooEscalator,
-)
-from director.handlers.followups import FollowUpJob, MailActivity
-from director.handlers.jobs import PlaybooksJob, SourcingJob
-from director.handlers.performance import PerformanceJob
-from director.handlers.planning import JobDispatcher, PlanningJob
-from director.inbox import EventInbox, EventResults, PostgresEventInbox, PostgresEventResults
-from director.jobs import JobRunner
-from director.learning import (
+from director.desk.learning import (
     CalibrationJob,
     FeedbackRecorder,
     FeedbackStore,
@@ -88,15 +77,36 @@ from director.learning import (
     PostgresSuggestionStore,
     SuggestionStore,
 )
+from director.desk.sourcing import HttpSourcingSource, SourcingDispatcher, SourcingSource
+from director.handlers.followups import FollowUpJob, MailActivity
+from director.handlers.jobs import PlaybooksJob, SourcingJob
+from director.handlers.performance import PerformanceJob
+from director.handlers.planning import JobDispatcher, PlanningJob
+from director.notifications.push import PostgresPushStore, PushRelay, PushStore, WebPushSender
+from director.notifications.realtime import BroadcastingCaseStore
+from director.notifications.teams import TeamsNotifier
+from director.orchestration.agents import Agents, build_agents
+from director.orchestration.concurrency import PoLocks
+from director.orchestration.conversations import PostgresConversationLookup, PostgresMailActivity
+from director.orchestration.escalation import (
+    Escalator,
+    LoggingEscalator,
+    OdooApprovals,
+    OdooEscalationPorts,
+    OdooEscalator,
+)
+from director.orchestration.inbox import (
+    EventInbox,
+    EventResults,
+    PostgresEventInbox,
+    PostgresEventResults,
+)
+from director.orchestration.jobs import JobRunner
+from director.orchestration.policies import FollowUpPolicy
+from director.orchestration.store import CaseStore, PostgresCaseStore
+from director.orchestration.workflow import Deps, Orchestrator
 from director.playbooks import PlaybookEngine, PlaybookStore, PostgresPlaybookStore
-from director.policies import FollowUpPolicy
-from director.push import PostgresPushStore, PushRelay, PushStore, WebPushSender
-from director.realtime import BroadcastingCaseStore
 from director.routers import events
-from director.sourcing import HttpSourcingSource, SourcingDispatcher, SourcingSource
-from director.store import CaseStore, PostgresCaseStore
-from director.teams import TeamsNotifier
-from director.workflow import Deps, Orchestrator
 from sc_core.a2a.events import HmacSigner
 from sc_core.app import create_application
 from sc_core.app.realtime import Realtime, RedisRealtime

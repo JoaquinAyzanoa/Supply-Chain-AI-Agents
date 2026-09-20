@@ -27,7 +27,7 @@ from sc_core.odoo.client import OdooClient
 from sc_core.odoo.repositories import AgentRunRepo, ApprovalRepo, MailLinkRepo, PurchaseOrderRepo
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.events import InboundMailLinked
-from supplier_comms.handler import SupplierCommsHandler
+from supplier_comms.api.handler import SupplierCommsHandler
 
 from .conftest import SUPPLIER_EMAIL
 

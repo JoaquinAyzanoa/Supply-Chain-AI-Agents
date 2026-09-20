@@ -18,8 +18,8 @@ from loguru import logger
 
 from director.api.approvals import ApprovalsGateway, case_for
 from director.api.auth import Approver, Principal, Viewer
-from director.policies import FollowUpPolicy, PoFacts, next_action
-from director.store import CaseStore
+from director.orchestration.policies import FollowUpPolicy, PoFacts, next_action
+from director.orchestration.store import CaseStore
 from sc_core.infra.settings import Settings
 from sc_core.odoo.links import record_url
 from sc_core.schema.base import StrictModel

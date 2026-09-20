@@ -11,10 +11,10 @@ from sc_core.graph import ApprovalGateway, memory_checkpointer
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import SupplierPerformanceTask
-from supplier_performance.agent import SupplierPerformanceAgent
-from supplier_performance.graph import Deps, build_graph
-from supplier_performance.metrics import score_supplier
-from supplier_performance.nodes.steps import ScorecardText
+from supplier_performance.domain.metrics import score_supplier
+from supplier_performance.graph.builder import Deps, build_graph
+from supplier_performance.graph.nodes.steps import ScorecardText
+from supplier_performance.graph.runner import SupplierPerformanceAgent
 from supplier_performance.testing import FakePerformancePorts, hidraulica_history
 from tests.unit.graph.toy import FakeApprovalPorts
 

@@ -12,8 +12,8 @@ from fastapi import APIRouter, FastAPI
 from fastapi_injector import Injected
 
 from mail_sync import __version__
-from mail_sync.module import MailSyncModule
-from mail_sync.sync import SyncReport, SyncRunner
+from mail_sync.domain.sync import SyncReport, SyncRunner
+from mail_sync.infra.module import MailSyncModule
 from sc_core.a2a.events import EventPublisher, SignedBody
 from sc_core.app import create_application
 from sc_core.infra.db import Database

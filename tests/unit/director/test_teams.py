@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from director.teams import TeamsNotifier, approval_card
+from director.notifications.teams import TeamsNotifier, approval_card
 
 
 def test_the_card_carries_the_summary_the_facts_and_a_link_to_the_inbox() -> None:

@@ -6,7 +6,7 @@ import pytest
 
 from sc_core.infra.settings import Settings
 from sc_core.shared.errors import ConfigurationError
-from scheduler.jobs import Job, job_table
+from scheduler.domain.jobs import Job, job_table
 
 
 def test_default_table_targets_and_crons() -> None:

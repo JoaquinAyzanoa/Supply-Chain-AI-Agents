@@ -1,0 +1,134 @@
+"""``review_product``: one product, plus the context only text holds.
+
+The rules have already produced the numbers. The model reads the product's
+internal notes and the reason the review was asked (an orderpoint trigger,
+a planner's remark, a supplier saying a part is discontinued) and picks one
+of a fixed set of actions: ``keep`` the rule output, ``hold`` (do not
+order), ``switch_supplier`` (recompute with the next supplier) or
+``manual_review``. It never proposes a quantity; a switch recomputes the
+line with the formulas.
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any, Literal
+
+from loguru import logger
+from pydantic import Field
+
+from inventory_planning.domain.forecasting import ForecastResult
+from inventory_planning.domain.models import ProductData
+from inventory_planning.domain.policy import ProductParams
+from inventory_planning.graph.nodes.compute_policy import compute_line
+from inventory_planning.graph.nodes.detect_exceptions import detect
+from inventory_planning.graph.nodes.explain import line_facts
+from inventory_planning.graph.nodes.propose import dataset_of, lines_of, params_of, task_of
+from inventory_planning.graph.state import Node
+from sc_core.i18n import Language, language_name, t
+from sc_core.infra.settings import LangfuseCfg, PlanningCfg
+from sc_core.llm import ChatCompleter, complete_structured, system, user
+from sc_core.prompts import get_prompt
+from sc_core.schema.base import StrictModel
+from sc_core.schema.planning import ReplenishmentLine
+from sc_core.shared.errors import ScError
+
+PROMPTS_DIR = Path(__file__).resolve().parents[2] / "prompts"
+ReviewAction = Literal["keep", "hold", "switch_supplier", "manual_review"]
+
+
+class ReviewDecision(StrictModel):
+    action: ReviewAction
+    reason: str = Field(max_length=600)
+
+
+def make_review(
+    chat: ChatCompleter,
+    cfg: PlanningCfg,
+    *,
+    langfuse: LangfuseCfg | None,
+    language: Language = "en",
+) -> Node:
+    async def review(state: Any) -> dict[str, Any]:
+        task = task_of(state)
+        if task.kind != "review_product":
+            return {}
+        dataset = dataset_of(state)
+        params = params_of(state)
+        out: list[dict[str, Any]] = []
+        for line in lines_of(state):
+            product = dataset.product(line.product_id)
+            if product is None:
+                out.append(line.model_dump(mode="json"))
+                continue
+            decision = await _decide(chat, line, product, task.context, langfuse, language)
+            reviewed = _apply_decision(line, decision, product, state, params, cfg, language)
+            logger.bind(product=line.product_ref, action=decision.action).info("product reviewed")
+            out.append(reviewed.model_dump(mode="json"))
+        return {"lines": out}
+
+    return review
+
+
+async def _decide(
+    chat: ChatCompleter,
+    line: ReplenishmentLine,
+    product: ProductData,
+    context: str | None,
+    langfuse: LangfuseCfg | None,
+    language: Language,
+) -> ReviewDecision:
+    prompt = get_prompt("review_product", local_dir=PROMPTS_DIR, cfg=langfuse)
+    alternates = [terms.partner_name for terms in product.suppliers[1:]]
+    facts = "\n".join(
+        [
+            line_facts(line),
+            f"- internal product notes: {product.notes or '(none)'}",
+            f"- reason for the review: {context or '(not given)'}",
+            f"- alternate suppliers: {', '.join(alternates) or 'none'}",
+        ]
+    )
+    try:
+        return await complete_structured(
+            chat,
+            [system(prompt.compile(language=language_name(language))), user(facts)],
+            ReviewDecision,
+            name="inventory_planning.review",
+            metadata={"prompt": prompt.name, "prompt_version": prompt.version},
+        )
+    except ScError as exc:
+        logger.bind(product=line.product_ref).warning("review unavailable: {}", exc)
+        return ReviewDecision(
+            action="manual_review",
+            reason=t("plan.review_unavailable", language, error=exc.message),
+        )
+
+
+def _apply_decision(
+    line: ReplenishmentLine,
+    decision: ReviewDecision,
+    product: ProductData,
+    state: dict[str, Any],
+    params: dict[int, ProductParams],
+    cfg: PlanningCfg,
+    language: Language,
+) -> ReplenishmentLine:
+    note = t("plan.review_note", language, reason=decision.reason)
+    if decision.action == "keep":
+        return line
+    if decision.action == "hold":
+        return line.model_copy(update={"action": "hold", "order_qty": 0.0, "explanation": note})
+    if decision.action == "switch_supplier" and len(product.suppliers) > 1:
+        forecast = ForecastResult(backtests={}, **state["forecasts"][str(line.product_id)])
+        alternate = product.model_copy(update={"suppliers": product.suppliers[1:]})
+        recomputed = compute_line(
+            alternate,
+            forecast,
+            params[line.product_id],
+            run_id=state["run_id"],
+            warehouse_id=line.warehouse_id,
+            lead_time_sigma_ratio=cfg.lead_time_sigma_ratio,
+        )
+        flagged = detect(recomputed, params[line.product_id])
+        return flagged.model_copy(update={"explanation": note})
+    return line.model_copy(update={"action": "manual_review", "explanation": note})

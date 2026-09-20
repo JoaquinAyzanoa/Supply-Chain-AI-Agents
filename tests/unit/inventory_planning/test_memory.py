@@ -6,9 +6,9 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Any
 
-from inventory_planning.policy import MemoryHoldStore, MemoryParamsStore
-from inventory_planning.policy.holds import next_hold
-from inventory_planning.runs import MemoryRunStore
+from inventory_planning.domain.policy import MemoryHoldStore, MemoryParamsStore
+from inventory_planning.domain.policy.holds import next_hold
+from inventory_planning.infra.runs import MemoryRunStore
 from inventory_planning.testing import FakeWritePorts
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import InventoryPlanningTask

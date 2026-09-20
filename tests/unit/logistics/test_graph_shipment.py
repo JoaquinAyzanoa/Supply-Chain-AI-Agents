@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
-from logistics.carriers import FakeCarrierTracking, TrackingInfo
+from logistics.infra.carriers import FakeCarrierTracking, TrackingInfo
 from logistics.testing import FakeLogisticsPorts
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import LogisticsTask, ShipmentInfo

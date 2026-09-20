@@ -7,9 +7,9 @@ from typing import Any
 
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import Need, SourcingTask
-from sourcing.models import PriceEntry
-from sourcing.nodes.compare import RecommendationText
-from sourcing.nodes.round import pick_invitees
+from sourcing.domain.models import PriceEntry
+from sourcing.graph.nodes.compare import RecommendationText
+from sourcing.graph.nodes.round import pick_invitees
 from sourcing.testing import (
     ALTERNA,
     HIDRAULICA,

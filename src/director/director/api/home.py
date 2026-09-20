@@ -23,8 +23,8 @@ from director.api.board import BoardOrders
 from director.api.exceptions import ExceptionsSource
 from director.api.performance import PerformanceSource
 from director.api.runs import RunsGateway
-from director.autonomy import AutoActionsStore
-from director.briefing import BriefingItem, needs_you_items
+from director.desk.autonomy import AutoActionsStore
+from director.desk.briefing import BriefingItem, needs_you_items
 from sc_core.i18n import t
 from sc_core.infra.settings import Settings
 from sc_core.schema.base import StrictModel

@@ -12,7 +12,7 @@ from loguru import logger
 from pydantic import SecretStr
 
 from director import __version__
-from director.inbox import MemoryEventInbox, MemoryEventResults
+from director.orchestration.inbox import MemoryEventInbox, MemoryEventResults
 from director.routers import events
 from director.testing import MemoryDirectorModule
 from sc_core.a2a.events import SIGNATURE_HEADER, HmacSigner, encode_event

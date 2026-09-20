@@ -7,7 +7,7 @@ from typing import Any
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
 from sc_core.mail.models import OutboundMessage
 from sc_core.schema.a2a import SupplierCommsTask
-from supplier_comms.models import DraftOutput
+from supplier_comms.domain.models import DraftOutput
 from supplier_comms.testing import FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from inventory_planning.policy import PostgresParamsStore, ProductParams
+from inventory_planning.domain.policy import PostgresParamsStore, ProductParams
 from sc_core.infra.db import Database
 
 pytestmark = pytest.mark.integration

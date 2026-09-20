@@ -10,10 +10,10 @@ import pytest
 from sc_core.graph import ApprovalGateway, memory_checkpointer
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.testing import ScriptedChatClient
-from sourcing.agent import SourcingAgent
-from sourcing.graph import Deps, build_graph
-from sourcing.models import BasketLine, OrderRef
-from sourcing.nodes.common import Limits
+from sourcing.domain.models import BasketLine, OrderRef
+from sourcing.graph.builder import Deps, build_graph
+from sourcing.graph.nodes.common import Limits
+from sourcing.graph.runner import SourcingAgent
 from sourcing.testing import HIDRAULICA, VALVE, FakeSourcingPorts, demo_entries, demo_options
 from tests.unit.graph.toy import FakeApprovalPorts
 

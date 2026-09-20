@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 
 import pytest
 
-from director.store import Case, CaseStore, MemoryCaseStore, matches
+from director.orchestration.store import Case, CaseStore, MemoryCaseStore, matches
 
 from .store_suite import CHECKS
 

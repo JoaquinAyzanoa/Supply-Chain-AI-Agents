@@ -7,10 +7,10 @@ from typing import Any
 
 import pytest
 
-from inventory_planning.agent import InventoryPlanningAgent
-from inventory_planning.graph import Deps, build_graph
-from inventory_planning.policy import MemoryParamsStore
-from inventory_planning.runs import MemoryRunStore
+from inventory_planning.domain.policy import MemoryParamsStore
+from inventory_planning.graph.builder import Deps, build_graph
+from inventory_planning.graph.runner import InventoryPlanningAgent
+from inventory_planning.infra.runs import MemoryRunStore
 from inventory_planning.testing import FakeDataPorts, FakePublisher, FakeWritePorts, demo_ports
 from sc_core.graph import ApprovalGateway, memory_checkpointer
 from sc_core.infra.settings import LangfuseCfg, PlanningCfg

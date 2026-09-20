@@ -14,7 +14,7 @@ from loguru import logger
 from pydantic import Field
 
 from director.api.auth import Approver, Principal, Viewer
-from director.assistant import (
+from director.desk.assistant import (
     AssistantMessage,
     AssistantStore,
     DepartmentAssistant,

@@ -26,9 +26,9 @@ from director.api.approvals import ApprovalsGateway
 from director.api.auth import Approver, Principal, Viewer
 from director.api.cases import load_case
 from director.api.exceptions import ExceptionsSource
-from director.escalation import PROMPTS_DIR
-from director.store import Case, CaseEvent, CaseStore
-from director.workflow import Deps, consolidate_outcome, outcome_from_reply
+from director.orchestration.escalation import PROMPTS_DIR
+from director.orchestration.store import Case, CaseEvent, CaseStore
+from director.orchestration.workflow import Deps, consolidate_outcome, outcome_from_reply
 from sc_core.i18n import Language, language_name
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.client import ChatCompleter, assistant, system, user

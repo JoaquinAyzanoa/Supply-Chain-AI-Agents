@@ -7,13 +7,13 @@ from typing import Any
 
 import pytest
 
-from invoice_match.agent import InvoiceMatchAgent
-from invoice_match.graph import Deps, build_graph
+from invoice_match.graph.builder import Deps, build_graph
+from invoice_match.graph.runner import InvoiceMatchAgent
 from invoice_match.testing import FakeInvoicePorts, demo_context
 from sc_core.graph import ApprovalGateway, memory_checkpointer
 from sc_core.infra.settings import LangfuseCfg
 from sc_core.llm.testing import ScriptedChatClient
-from supplier_comms.models import InboundMeta, LineView
+from supplier_comms.domain.models import InboundMeta, LineView
 
 
 def received_context() -> Any:

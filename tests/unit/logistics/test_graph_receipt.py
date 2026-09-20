@@ -7,7 +7,7 @@ from typing import Any
 from logistics.testing import FakeLogisticsPorts, demo_receipt
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import LogisticsTask
-from supplier_comms.models import DraftOutput
+from supplier_comms.domain.models import DraftOutput
 from tests.unit.graph.toy import FakeApprovalPorts
 
 DRAFT = DraftOutput(

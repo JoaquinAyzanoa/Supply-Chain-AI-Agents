@@ -9,8 +9,8 @@ import pytest
 from sc_core.llm.testing import ScriptedChatClient, tool_call_result
 from sc_core.schema.a2a import SupplierCommsTask
 from sc_core.schema.autonomy import AutonomyPolicy, AutonomyRule, RuleConditions
-from supplier_comms.models import DraftOutput
-from supplier_comms.routers.approvals import ApprovalCallback
+from supplier_comms.api.routers.approvals import ApprovalCallback
+from supplier_comms.domain.models import DraftOutput
 from supplier_comms.testing import SUPPLIER_EMAIL, FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
 
@@ -248,7 +248,7 @@ async def test_auto_send_by_kind_skips_approval_for_that_kind_only(
 
 
 def test_style_tables_gives_bare_tables_borders() -> None:
-    from supplier_comms.nodes.common import style_tables
+    from supplier_comms.graph.nodes.common import style_tables
 
     html = (
         "<p>Hola</p><table><tr><th>Producto</th><th>Cantidad</th></tr>"

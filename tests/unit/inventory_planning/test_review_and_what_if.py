@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from inventory_planning.nodes.explain import Explanation
-from inventory_planning.nodes.review import ReviewDecision
-from inventory_planning.ports import ReadOnlyWritePorts
+from inventory_planning.graph.nodes.explain import Explanation
+from inventory_planning.graph.nodes.review import ReviewDecision
+from inventory_planning.infra.ports import ReadOnlyWritePorts
 from inventory_planning.testing import FakeDataPorts, FakeWritePorts, product
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import InventoryPlanningTask, PlanningOverrides

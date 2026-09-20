@@ -11,9 +11,9 @@ import pytest
 from sc_core.a2a.events import EVENT_ID_HEADER, SIGNATURE_HEADER, HmacSigner
 from sc_core.schema.events import ScheduledTick
 from sc_core.shared.errors import NotFound
-from scheduler.jobs import Job
-from scheduler.runner import JobRunner
-from scheduler.runs import MemoryRunStore
+from scheduler.domain.jobs import Job
+from scheduler.infra.runner import JobRunner
+from scheduler.infra.runs import MemoryRunStore
 
 SECRET = "sched-secret"
 

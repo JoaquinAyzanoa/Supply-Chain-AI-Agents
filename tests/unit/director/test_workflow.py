@@ -8,13 +8,13 @@ from typing import Any
 
 import pytest
 
-from director.conversations import MemoryConversationLookup
-from director.escalation import MemoryEscalator
-from director.inbox import MemoryEventResults
-from director.jobs import JobRunner
-from director.store import MemoryCaseStore
+from director.orchestration.conversations import MemoryConversationLookup
+from director.orchestration.escalation import MemoryEscalator
+from director.orchestration.inbox import MemoryEventResults
+from director.orchestration.jobs import JobRunner
+from director.orchestration.store import MemoryCaseStore
+from director.orchestration.workflow import Orchestrator, case_status_for
 from director.testing import memory_deps
-from director.workflow import Orchestrator, case_status_for
 from sc_core.a2a import AgentReply
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.schema import events as ev

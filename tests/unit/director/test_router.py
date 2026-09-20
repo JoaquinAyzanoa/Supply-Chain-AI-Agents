@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from director.router import ROUTES, Route, UnroutableEvent, route
+from director.orchestration.router import ROUTES, Route, UnroutableEvent, route
 from sc_core.schema import events as ev
 from sc_core.schema.events import EVENT_TYPES, BaseEvent
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from logistics.reconcile import reconcile
+from logistics.domain.reconcile import reconcile
 from logistics.testing import demo_receipt
 
 

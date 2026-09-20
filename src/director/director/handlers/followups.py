@@ -21,11 +21,11 @@ from typing import Any, Protocol, runtime_checkable
 
 from loguru import logger
 
-from director.agents import Agents
-from director.escalation import Escalator
-from director.policies import Decision, FollowUpPolicy, PoFacts, decide
-from director.store import Case, CaseKind, CaseStore
-from director.workflow import (
+from director.orchestration.agents import Agents
+from director.orchestration.escalation import Escalator
+from director.orchestration.policies import Decision, FollowUpPolicy, PoFacts, decide
+from director.orchestration.store import Case, CaseKind, CaseStore
+from director.orchestration.workflow import (
     ConversationLookup,
     NoConversations,
     consolidate_outcome,

@@ -18,10 +18,10 @@ from director.api.approvals import (
     resolve_now,
 )
 from director.api.auth import Approver, Principal, Viewer
-from director.autonomy import AutonomyChanges
-from director.demo import DemoActor, DemoDirector, DemoView, SupplierEmail
-from director.learning import FeedbackRecorder
-from director.store import CaseStore
+from director.desk.autonomy import AutonomyChanges
+from director.desk.demo import DemoActor, DemoDirector, DemoView, SupplierEmail
+from director.desk.learning import FeedbackRecorder
+from director.orchestration.store import CaseStore
 from sc_core.schema.base import StrictModel
 from sc_core.shared.errors import ScError
 

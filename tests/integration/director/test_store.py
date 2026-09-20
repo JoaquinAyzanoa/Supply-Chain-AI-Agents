@@ -6,7 +6,7 @@ from collections.abc import Awaitable, Callable
 
 import pytest
 
-from director.store import CaseStore, PostgresCaseStore
+from director.orchestration.store import CaseStore, PostgresCaseStore
 from sc_core.infra.db import Database
 from tests.unit.director.store_suite import CHECKS
 

@@ -15,10 +15,10 @@ from director import __version__
 from director.api import api_router
 from director.api.auth import hash_password
 from director.api.planning import PlanningLineRow, PlanningRunRow
-from director.autonomy import AutoAction
-from director.learning import DecisionFeedback
-from director.policies import PoFacts
-from director.push import MemoryPushSender, PushRelay, PushSubscription
+from director.desk.autonomy import AutoAction
+from director.desk.learning import DecisionFeedback
+from director.notifications.push import MemoryPushSender, PushRelay, PushSubscription
+from director.orchestration.policies import PoFacts
 from director.testing import MemoryDirectorModule
 from sc_core.app import create_application
 from sc_core.app.realtime import RealtimeEvent

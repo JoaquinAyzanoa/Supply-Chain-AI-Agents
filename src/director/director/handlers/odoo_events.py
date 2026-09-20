@@ -12,8 +12,8 @@
 
 from __future__ import annotations
 
-from director.router import Dispatch, Route
-from director.store import CaseKind
+from director.orchestration.router import Dispatch, Route
+from director.orchestration.store import CaseKind
 from sc_core.schema.a2a import (
     InventoryPlanningTask,
     InvoiceMatchTask,

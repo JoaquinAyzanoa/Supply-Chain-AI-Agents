@@ -16,12 +16,12 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
-from director.inbox import MemoryEventInbox
+from director.orchestration.inbox import MemoryEventInbox
 from director.routers import events as director_events
 from director.testing import MemoryDirectorModule
-from mail_sync.ports import OdooPorts
-from mail_sync.state import PostgresSyncState
-from mail_sync.sync import SyncRunner
+from mail_sync.domain.sync import SyncRunner
+from mail_sync.infra.ports import OdooPorts
+from mail_sync.infra.state import PostgresSyncState
 from sc_core.a2a.events import EventPublisher, PostgresOutbox
 from sc_core.app import create_application
 from sc_core.infra.db import Database

@@ -24,8 +24,8 @@ from director.api.auth import Principal, Viewer
 from director.api.performance import PerformanceSource
 from director.api.planning import PlanningReadStore
 from director.api.runs import RunsGateway
-from director.autonomy import AutoActionsStore
-from director.learning import FeedbackStore
+from director.desk.autonomy import AutoActionsStore
+from director.desk.learning import FeedbackStore
 from sc_core.odoo.repositories.approval import ApprovalRepo
 from sc_core.schema.base import StrictModel
 from sc_core.shared.errors import ScError

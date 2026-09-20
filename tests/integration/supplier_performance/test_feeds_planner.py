@@ -15,11 +15,11 @@ from typing import Any, cast
 import pytest
 from pydantic import BaseModel
 
-from inventory_planning.agent import InventoryPlanningAgent
-from inventory_planning.graph import Deps, build_graph
-from inventory_planning.nodes.explain import Explanation
-from inventory_planning.policy import PostgresParamsStore, ProductParams
-from inventory_planning.runs import MemoryRunStore
+from inventory_planning.domain.policy import PostgresParamsStore, ProductParams
+from inventory_planning.graph.builder import Deps, build_graph
+from inventory_planning.graph.nodes.explain import Explanation
+from inventory_planning.graph.runner import InventoryPlanningAgent
+from inventory_planning.infra.runs import MemoryRunStore
 from inventory_planning.testing import PRIMARY, FakePublisher, FakeWritePorts, demo_ports
 from sc_core.graph import ApprovalGateway, memory_checkpointer
 from sc_core.infra.db import Database
@@ -29,7 +29,7 @@ from sc_core.llm.testing import ScriptedChatClient
 from sc_core.odoo.models import Ref, SupplierInfo
 from sc_core.schema.a2a import InventoryPlanningTask, SupplierScore
 from sc_core.schema.planning import ReplenishmentLine
-from supplier_performance.ports import LivePerformancePorts
+from supplier_performance.infra.ports import LivePerformancePorts
 from supplier_performance.testing import price_entry
 from tests.unit.graph.toy import FakeApprovalPorts
 

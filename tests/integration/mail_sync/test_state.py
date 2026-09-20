@@ -8,14 +8,14 @@ from pathlib import Path
 
 import pytest
 
-from director.inbox import PostgresEventInbox
-from mail_sync.state import PostgresSyncState
+from director.orchestration.inbox import PostgresEventInbox
+from mail_sync.infra.state import PostgresSyncState
 from sc_core.a2a.events import PostgresOutbox
 from sc_core.infra.db import Database
 from sc_core.infra.migrate import apply_migrations
 from sc_core.infra.settings import AppDbCfg
 from sc_core.schema.events import InboundMailLinked
-from scheduler.runs import PostgresRunStore, RunRecord
+from scheduler.infra.runs import PostgresRunStore, RunRecord
 
 pytestmark = pytest.mark.integration
 

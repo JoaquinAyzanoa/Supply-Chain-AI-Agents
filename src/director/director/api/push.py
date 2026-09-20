@@ -8,7 +8,7 @@ from loguru import logger
 from pydantic import Field
 
 from director.api.auth import Principal, Viewer
-from director.push import PushStore, PushSubscription
+from director.notifications.push import PushStore, PushSubscription
 from sc_core.infra.settings import Settings
 from sc_core.schema.base import StrictModel
 

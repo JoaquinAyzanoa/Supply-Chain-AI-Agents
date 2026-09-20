@@ -9,12 +9,12 @@ from typing import Any
 
 import pytest
 
-from director.agents import AgentProxy, Agents
-from director.conversations import MemoryMailActivity
-from director.escalation import MemoryEscalator
 from director.handlers.followups import FollowUpJob, OrdersPort
-from director.policies import Decision, FollowUpPolicy, PoFacts, decide, next_action
-from director.store import MemoryCaseStore
+from director.orchestration.agents import AgentProxy, Agents
+from director.orchestration.conversations import MemoryMailActivity
+from director.orchestration.escalation import MemoryEscalator
+from director.orchestration.policies import Decision, FollowUpPolicy, PoFacts, decide, next_action
+from director.orchestration.store import MemoryCaseStore
 from sc_core.a2a.testing import FakeAgentCaller
 from sc_core.infra.runtime_settings import MemoryRuntimeSettingsReader
 from sc_core.odoo.models import Approval, PurchaseOrder, Ref

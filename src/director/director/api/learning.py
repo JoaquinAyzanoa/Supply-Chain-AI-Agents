@@ -13,8 +13,8 @@ from pydantic import Field
 from director.api.approvals import ApprovalsGateway
 from director.api.auth import Admin, Approver, Principal, Viewer
 from director.api.autonomy import _pending_change
-from director.autonomy import AutonomyChanges
-from director.learning import (
+from director.desk.autonomy import AutonomyChanges
+from director.desk.learning import (
     FeedbackStats,
     FeedbackStore,
     Suggestion,

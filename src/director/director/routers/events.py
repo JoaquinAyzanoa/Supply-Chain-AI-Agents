@@ -21,8 +21,8 @@ from fastapi_injector import Injected
 from loguru import logger
 from pydantic import ValidationError
 
-from director.inbox import EventInbox
-from director.workflow import Orchestrator
+from director.orchestration.inbox import EventInbox
+from director.orchestration.workflow import Orchestrator
 from sc_core.a2a.events import SignedBody
 from sc_core.schema.base import StrictModel
 from sc_core.schema.events import ScheduledTick, parse_event

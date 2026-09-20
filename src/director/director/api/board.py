@@ -34,10 +34,10 @@ from director.api.exceptions import ExceptionsSource
 from director.api.performance import PerformanceSource
 from director.api.planning import PlanningReadStore
 from director.handlers.followups import MailActivity
+from director.orchestration.policies import next_action
+from director.orchestration.store import Case, CaseStore
+from director.orchestration.workflow import Deps, consolidate_outcome, outcome_from_reply
 from director.playbooks import PlaybookEngine, PlaybookPosition
-from director.policies import next_action
-from director.store import Case, CaseStore
-from director.workflow import Deps, consolidate_outcome, outcome_from_reply
 from sc_core.infra.settings import Settings
 from sc_core.odoo.links import record_url
 from sc_core.odoo.models import Approval, ApprovalKind, PurchaseOrder, PurchaseOrderLine

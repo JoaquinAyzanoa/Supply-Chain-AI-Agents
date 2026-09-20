@@ -1,0 +1,175 @@
+"""The inventory planning graph.
+
+    load -> forecast -> compute -> detect -> review -> explain -> propose
+        -> [planning_run approval] -> apply | rejected        (daily_plan, review_product)
+        -> no_action                                          (nothing actionable)
+        -> END                                                (what_if: no approval, no writes)
+
+``review`` only acts on ``review_product`` tasks: the model reads the
+product's notes and the reason for the review and may put a line on hold,
+switch it to the alternate supplier (numbers recomputed by the formulas)
+or send it to a person.
+
+Numbers come from ``forecast`` and ``compute``; ``explain`` and ``propose``
+are the only nodes that call the model, and only to write text.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Awaitable, Callable, Hashable
+from dataclasses import dataclass, field
+from datetime import date
+from typing import Any
+
+from langgraph.graph import END, START, StateGraph
+from langgraph.graph.state import CompiledStateGraph
+
+from inventory_planning.domain.policy import HoldStore, ParamsStore
+from inventory_planning.graph.nodes.apply import (
+    ACTIONABLE,
+    PLAN_STEP,
+    make_apply,
+    make_plan_approval,
+    make_rejected,
+)
+from inventory_planning.graph.nodes.propose import (
+    make_compute,
+    make_consolidate,
+    make_detect,
+    make_explain,
+    make_forecast,
+    make_load,
+    make_propose,
+)
+from inventory_planning.graph.nodes.review import make_review
+from inventory_planning.graph.state import Node, PlanningState
+from inventory_planning.infra.ports import DataPorts, WritePorts
+from inventory_planning.infra.runs import RunStore
+from sc_core.graph import ApprovalGateway
+from sc_core.i18n import Language, t
+from sc_core.infra.calendar import CalendarStore
+from sc_core.infra.profiles import ProfileReader
+from sc_core.infra.runtime_settings import RuntimeSettingsReader
+from sc_core.infra.settings import LangfuseCfg, PlanningCfg
+from sc_core.llm import ChatCompleter
+from sc_core.schema.events import BaseEvent
+from sc_core.shared.time import local_today
+
+Publish = Callable[[BaseEvent], Awaitable[Any]]
+
+
+async def _no_publish(_: BaseEvent) -> None:
+    return None
+
+
+@dataclass
+class Deps:
+    data: DataPorts
+    writes: WritePorts
+    params: ParamsStore
+    runs: RunStore
+    chat: ChatCompleter
+    approvals: ApprovalGateway
+    cfg: PlanningCfg = field(default_factory=PlanningCfg)
+    runtime: RuntimeSettingsReader | None = None  # Control Tower planning defaults
+    holds: HoldStore | None = None  # rule changes a person rejected twice
+    language: Language = "en"  # for what people read; internals stay English
+    publish: Publish = _no_publish
+    calendar: CalendarStore | None = None  # promotions, holidays, projects
+    profiles: ProfileReader | None = None  # supplier freight terms for consolidation
+    langfuse: LangfuseCfg | None = None
+    today: Callable[[], date] = field(default=local_today)
+
+
+def build_graph(deps: Deps, checkpointer: Any) -> CompiledStateGraph:
+    g: StateGraph = StateGraph(PlanningState)
+    _add(g, "load", make_load(deps.data, deps.cfg, today=deps.today))
+    _add(g, "forecast", make_forecast(deps.calendar))
+    _add(g, "consolidate", make_consolidate(deps.profiles, deps.runtime))
+    _add(
+        g,
+        "compute",
+        make_compute(
+            deps.params, deps.cfg, runtime=deps.runtime, holds=deps.holds, today=deps.today
+        ),
+    )
+    _add(g, "detect", make_detect())
+    lang = deps.language
+    _add(g, "review", make_review(deps.chat, deps.cfg, langfuse=deps.langfuse, language=lang))
+    _add(g, "explain", make_explain(deps.chat, langfuse=deps.langfuse, language=lang))
+    _add(g, "no_action", _no_action_node(lang))
+    _add(g, "propose", make_propose(deps.chat, deps.runs, langfuse=deps.langfuse, language=lang))
+    _add(
+        g,
+        "apply",
+        make_apply(
+            deps.writes,
+            deps.runs,
+            params_store=deps.params,
+            holds=deps.holds,
+            publish=deps.publish,
+            today=deps.today,
+            language=lang,
+        ),
+    )
+    _add(g, "rejected", make_rejected(deps.runs, language=lang))
+
+    g.add_edge(START, "load")
+    g.add_conditional_edges("load", _continue_or_end, {"go": "forecast", "end": END})
+    g.add_edge("forecast", "compute")
+    g.add_edge("compute", "detect")
+    g.add_edge("detect", "consolidate")
+    g.add_edge("consolidate", "review")
+    g.add_edge("review", "explain")
+    g.add_edge("explain", "propose")
+    g.add_conditional_edges(
+        "propose",
+        _after_propose,
+        {"approval": f"{PLAN_STEP}.request", "nothing": "no_action", "end": END},
+    )
+    deps.approvals.add_approval(
+        g,
+        step=PLAN_STEP,
+        build=make_plan_approval(language=deps.language),
+        after=None,
+        approved="apply",
+        rejected="rejected",
+    )
+    g.add_edge("apply", END)
+    g.add_edge("rejected", END)
+    g.add_edge("no_action", END)
+    return g.compile(checkpointer=checkpointer)
+
+
+def _add(g: StateGraph, name: str, node: Node) -> None:
+    # LangGraph's add_node overloads do not accept a Callable alias; the runtime contract holds.
+    g.add_node(name, node)  # type: ignore[call-overload, arg-type]
+
+
+def _continue_or_end(state: dict[str, Any]) -> Hashable:
+    return "end" if state.get("outcome") else "go"
+
+
+def _after_propose(state: dict[str, Any]) -> Hashable:
+    if state.get("outcome"):
+        return "end"
+    actionable = any(ln.get("action") in ACTIONABLE for ln in state.get("lines") or [])
+    return "approval" if actionable else "nothing"
+
+
+def _no_action_node(language: Language) -> Node:
+    async def no_action(state: Any) -> dict[str, Any]:
+        lines = state.get("lines") or []
+        held = [ln["product_ref"] for ln in lines if ln.get("action") == "hold"]
+        manual = [ln["product_ref"] for ln in lines if ln.get("action") == "manual_review"]
+        parts = [t("plan.nothing", language)]
+        if held:
+            parts.append(t("plan.on_hold", language, refs=", ".join(held)))
+        if manual:
+            parts.append(t("plan.manual_review", language, refs=", ".join(manual)))
+        explanation = next((ln.get("explanation") for ln in lines if ln.get("explanation")), None)
+        if explanation:
+            parts.append(str(explanation))
+        return {"outcome": {"status": "no_action", "summary": "; ".join(parts)[:500]}}
+
+    return no_action

@@ -19,8 +19,15 @@ from pydantic import Field
 from director.api.auth import Principal, Viewer
 from director.api.autonomy import AutoActionView, action_view
 from director.api.runs import AgentRunView, RunsGateway, run_view
-from director.autonomy import AutoActionsStore
-from director.store import Case, CaseEvent, CaseKind, CaseStatus, CaseStore, parse_case_code
+from director.desk.autonomy import AutoActionsStore
+from director.orchestration.store import (
+    Case,
+    CaseEvent,
+    CaseKind,
+    CaseStatus,
+    CaseStore,
+    parse_case_code,
+)
 from sc_core.infra import tracing
 from sc_core.schema.base import StrictModel
 

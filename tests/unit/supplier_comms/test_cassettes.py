@@ -19,7 +19,7 @@ from sc_core.infra.settings import Settings, reset_settings_cache
 from sc_core.llm import get_chat_client
 from sc_core.schema.a2a import SupplierCommsTask
 from supplier_comms import AGENT_NAME
-from supplier_comms.models import InboundMeta
+from supplier_comms.domain.models import InboundMeta
 from supplier_comms.testing import SUPPLIER_EMAIL, FakePorts, demo_context
 
 pytestmark = pytest.mark.llm_cassette

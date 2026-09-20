@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from director.store import CaseStore
+from director.orchestration.store import CaseStore
 
 
 async def check_attach_same_po_and_thread(store: CaseStore) -> None:

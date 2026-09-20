@@ -11,9 +11,9 @@ from fastapi import FastAPI
 from loguru import logger
 
 from invoice_match import __version__
-from invoice_match.handler import InvoiceMatchHandler, agent_spec
-from invoice_match.routers import approvals
-from invoice_match.service import AgentProvider, module_list
+from invoice_match.api.handler import InvoiceMatchHandler, agent_spec
+from invoice_match.api.routers import approvals
+from invoice_match.infra.service import AgentProvider, module_list
 from sc_core.a2a import mount
 from sc_core.app import create_application
 from sc_core.infra.db import Database

@@ -11,7 +11,7 @@ from loguru import logger
 from pydantic import Field, model_validator
 
 from director.api.auth import Approver, Principal, Viewer
-from director.sourcing import SourcingDispatcher, SourcingSource
+from director.desk.sourcing import SourcingDispatcher, SourcingSource
 from sc_core.schema.a2a import SourcingTask
 from sc_core.schema.base import StrictModel
 from sc_core.shared.errors import ScError

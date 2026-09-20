@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from mail_sync.linker import Confidence, PoRef
+from mail_sync.domain.linker import Confidence, PoRef
 from sc_core.mail.models import InboundMessage
 
 

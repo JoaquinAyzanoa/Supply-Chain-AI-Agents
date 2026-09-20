@@ -8,7 +8,7 @@ from typing import Any
 from sc_core.graph import cleared
 from sc_core.llm.testing import ScriptedChatClient
 from sc_core.schema.a2a import SupplierCommsTask
-from supplier_comms.models import InboundMeta, RequestedLine, RequestExtraction
+from supplier_comms.domain.models import InboundMeta, RequestedLine, RequestExtraction
 from supplier_comms.testing import FakePorts, demo_context
 from tests.unit.graph.toy import FakeApprovalPorts
 

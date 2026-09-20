@@ -15,9 +15,9 @@ from sc_core.infra.db import Database
 from sc_core.infra.settings import Settings
 from sc_core.odoo.client import OdooClient
 from supplier_performance import __version__
-from supplier_performance.handler import SupplierPerformanceHandler, agent_spec
-from supplier_performance.routers import approvals, ranking
-from supplier_performance.service import AgentProvider, module_list
+from supplier_performance.api.handler import SupplierPerformanceHandler, agent_spec
+from supplier_performance.api.routers import approvals, ranking
+from supplier_performance.infra.service import AgentProvider, module_list
 
 settings = Settings(service_name="supplier_performance")
 
