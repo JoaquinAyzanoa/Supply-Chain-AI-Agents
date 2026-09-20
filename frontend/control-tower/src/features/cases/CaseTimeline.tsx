@@ -17,7 +17,7 @@ import { formatDate, formatDateTime, formatNumber } from "@/lib/utils";
 import { PageTitle } from "@/routes/placeholders";
 import { useCase, type AgentRun, type CaseEvent, type CaseView } from "./api";
 import { CaseChat } from "@/features/chat/CaseChat";
-import { agentName, failureOf, labelFor, shortCaseId } from "./labels";
+import { agentName, failureOf, labelFor, shortCaseId, statusLabel } from "./labels";
 
 export function CaseTimelinePage() {
   const { caseId } = useParams({ strict: false }) as { caseId: string };
@@ -159,7 +159,7 @@ function EventLine({ event }: { event: CaseEvent }) {
         <p className="text-sm">
           {event.kind === "approval_requested"
             ? t("cases.line.approval_requested", { agent: labelFor(t, "agent", text("agent")) })
-            : t("cases.line.approval_resolved", { status: text("status"), by: text("by") || text("resolved_by") || "" })}
+            : t("cases.line.approval_resolved", { status: statusLabel(t, text("status")), by: text("by") || text("resolved_by") || "" })}
           {id !== undefined ? (
             <>
               {" · "}

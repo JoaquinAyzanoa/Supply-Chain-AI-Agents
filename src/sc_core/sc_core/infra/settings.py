@@ -344,6 +344,8 @@ class DemoCfg(_Section):
     a typed vendor bill) needs an Odoo login with stock and accounting rights, local only."""
 
     supplier_email: str = "ventas.hidraulica.sc@gmail.com"  # the demo supplier's mailbox
+    # The language the demo's suppliers write in; match the dataset (sun_hydraulics.es.yaml: es).
+    language: Literal["en", "es"] = "en"
     bot_email: str = "scai.compras@outlook.com"  # where the supplier's replies go
     # The supplier's replies are sent by SMTP from its own mailbox (Gmail: an app password).
     smtp_host: str = "smtp.gmail.com"

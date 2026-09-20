@@ -79,30 +79,37 @@ export function PlaybooksPage() {
   );
 }
 
+/** A playbook's words in the reader's language; the playbook's own (English) words otherwise. */
+function worded(t: (key: string) => string, key: string, fallback: string): string {
+  const text = t(key);
+  return text === key ? fallback : text;
+}
+
 function PlaybookCard({ playbook }: { playbook: PlaybookView }) {
   const { t } = useI18n();
+  const title = worded(t, `playbook.${playbook.name}`, playbook.title);
   return (
-    <article className="rounded-md border bg-card p-3" aria-label={playbook.title}>
+    <article className="rounded-md border bg-card p-3" aria-label={title}>
       <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="flex items-center gap-2 font-semibold">
-            <ListChecks className="h-4 w-4" /> {playbook.title}
+            <ListChecks className="h-4 w-4" /> {title}
           </h2>
-          <p className="mt-1 text-sm text-muted-foreground">{playbook.description}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{worded(t, `playbook.${playbook.name}.description`, playbook.description)}</p>
         </div>
         <Badge variant={playbook.active_runs ? "warning" : "outline"}>{t("playbooks.active_n", { n: playbook.active_runs })}</Badge>
       </div>
       <p className="mt-1 text-xs text-muted-foreground">{t("playbooks.trigger", { trigger: t(`playbooks.trigger.${playbook.trigger}`) })}</p>
       <ol className="mt-2 space-y-1">
         {playbook.steps.map((step, index) => (
-          <StepLine key={step.id} step={step} index={index} />
+          <StepLine key={step.id} step={step} index={index} playbook={playbook.name} />
         ))}
       </ol>
     </article>
   );
 }
 
-function StepLine({ step, index }: { step: StepView; index: number }) {
+function StepLine({ step, index, playbook }: { step: StepView; index: number; playbook: string }) {
   const { t } = useI18n();
   const Icon = step.kind === "agent" ? Bot : step.kind === "wait" ? Clock : UserCheck;
   const detail =
@@ -116,7 +123,7 @@ function StepLine({ step, index }: { step: StepView; index: number }) {
       <span className="w-5 shrink-0 text-right tabular-nums text-muted-foreground">{index + 1}.</span>
       <Icon className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
       <span className="min-w-0 flex-1">
-        <span>{step.label}</span>
+        <span>{worded(t, `playbook.${playbook}.step.${step.id}`, step.label)}</span>
         <span className="block text-xs text-muted-foreground">
           {detail}
           {step.when !== "always" ? ` · ${t("playbooks.step.when", { condition: t(`playbooks.cond.${step.when}`) })}` : ""}
@@ -151,7 +158,7 @@ function StartForm({ playbooks, onDone }: { playbooks: PlaybookView[]; onDone: (
         <select id="pb-name" className="h-9 rounded-md border bg-background px-2 text-sm" value={playbook} onChange={(event) => setPlaybook(event.target.value)}>
           {playbooks.map((item) => (
             <option key={item.name} value={item.name}>
-              {item.title}
+              {worded(t, `playbook.${item.name}`, item.title)}
             </option>
           ))}
         </select>
@@ -206,9 +213,9 @@ function RunsTable({ rows, canAct, onDone }: { rows: RunView[]; canAct: boolean;
                   "—"
                 )}
               </TableCell>
-              <TableCell>{row.position.title}</TableCell>
+              <TableCell>{worded(t, `playbook.${row.position.playbook}`, row.position.title)}</TableCell>
               <TableCell>
-                {row.position.step_label ? `${t("playbooks.step_of", { n: row.position.step_index + 1, total: row.position.steps_total })} · ${row.position.step_label}` : row.run.summary ?? "—"}
+                {row.position.step_label ? `${t("playbooks.step_of", { n: row.position.step_index + 1, total: row.position.steps_total })} · ${worded(t, `playbook.${row.position.playbook}.step.${row.position.step_id ?? ""}`, row.position.step_label)}` : row.run.summary ?? "—"}
               </TableCell>
               <TableCell>
                 <Badge variant={row.run.status === "done" ? "success" : row.run.status === "failed" ? "destructive" : row.run.status === "cancelled" ? "outline" : "warning"}>

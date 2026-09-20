@@ -207,8 +207,9 @@ class ApprovalGateway:
             return None
         return (await self._policy()).decide(req.kind, req.facts)
 
-    @staticmethod
-    def _reasoning(req: ApprovalRequest, verdict: PolicyDecision | None, level: str) -> Reasoning:
+    def _reasoning(
+        self, req: ApprovalRequest, verdict: PolicyDecision | None, level: str
+    ) -> Reasoning:
         return build_reasoning(
             kind=req.kind,
             facts=req.facts,
@@ -216,6 +217,7 @@ class ApprovalGateway:
             verdict=verdict,
             level=level,
             forced=req.force_approval,
+            lang=self._language,
         )
 
     async def _automatic(

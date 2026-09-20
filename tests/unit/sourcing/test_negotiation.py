@@ -152,3 +152,18 @@ def test_a_zero_price_is_refused() -> None:
             round_no=1,
             max_rounds=2,
         )
+
+
+def test_the_basis_is_said_in_the_language_the_buyer_reads() -> None:
+    plan = plan_offer(
+        current_price=110.0,
+        last_paid=108.0,
+        competing=[104.16, 114.24],
+        target_override=None,
+        cap_pct=10.0,
+        round_no=1,
+        max_rounds=2,
+        language="es",
+    )
+    assert plan is not None and plan.offered_price == 104.16
+    assert plan.basis == "un precio de la competencia, 104.16"

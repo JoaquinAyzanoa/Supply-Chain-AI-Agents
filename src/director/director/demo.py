@@ -68,23 +68,58 @@ StepNeeds = Literal["none", "mailbox", "world"]
 # --- what the suppliers write -----------------------------------------------------------
 # Rebuilt from the run's records whenever someone wants to read them: no email text is kept.
 
-RIVAL_TERMS = {  # how the two other suppliers quote: (price factor on their list, lead days, note)
-    "alterna": (1.00, 12, "Stock in Arequipa; we can ship within the week."),
+DemoLanguage = Literal["en", "es"]
+
+# how the two other suppliers quote: price factor on their own list, lead days, a note per language
+RIVAL_TERMS: dict[str, tuple[float, int, dict[str, str]]] = {
+    "alterna": (
+        1.00,
+        12,
+        {
+            "en": "Stock in Arequipa; we can ship within the week.",
+            "es": "Stock en Arequipa; podemos despachar esta misma semana.",
+        },
+    ),
     "importadora": (
         0.97,
         55,
-        "Price valid for full cartons; shipped by sea from the manufacturer.",
+        {
+            "en": "Price valid for full cartons; shipped by sea from the manufacturer.",
+            "es": "Precio válido por cajas completas; embarque marítimo desde el fabricante.",
+        },
     ),
 }
-DEFAULT_RIVAL_TERMS = (1.00, 25, "")
+SUBJECTS = {
+    "en": {"eta": "Delivery date", "quote": "Quotation"},
+    "es": {"eta": "Fecha de entrega", "quote": "Cotización"},
+}
+MONTHS_ES = (
+    "enero febrero marzo abril mayo junio julio agosto septiembre octubre noviembre diciembre"
+).split()
 
 
-def rival_terms(supplier_name: str) -> tuple[float, int, str]:
+def subject_for(kind: str, po_name: str, language: str = "en") -> str:
+    return f"Re: [{po_name}] {SUBJECTS.get(language, SUBJECTS['en'])[kind]}"
+
+
+def rival_terms(supplier_name: str, language: str = "en") -> tuple[float, int, str]:
     lowered = supplier_name.lower()
-    return next((t for key, t in RIVAL_TERMS.items() if key in lowered), DEFAULT_RIVAL_TERMS)
+    for key, (factor, lead_days, notes) in RIVAL_TERMS.items():
+        if key in lowered:
+            return factor, lead_days, notes.get(language, notes["en"])
+    return 1.00, 25, ""
 
 
-def eta_reply_text(po_name: str, new_date: date) -> str:
+def eta_reply_text(po_name: str, new_date: date, language: str = "en") -> str:
+    if language == "es":
+        written = f"{new_date.day} de {MONTHS_ES[new_date.month - 1]} de {new_date.year}"
+        return (
+            "Estimado equipo de Compras:\n\n"
+            f"Lamentamos la demora con la orden de compra {po_name}.\n\n"
+            f"Nueva fecha de entrega confirmada en su almacén: {written} "
+            f"({new_date.isoformat()}), para todas las líneas de la orden.\n\n"
+            "Saludos cordiales,\nVentas\nProveedor Hidraulica"
+        )
     return (
         "Dear Purchasing Team,\n\n"
         f"We apologise for the delay on purchase order {po_name}.\n\n"
@@ -95,13 +130,30 @@ def eta_reply_text(po_name: str, new_date: date) -> str:
 
 
 def quote_text(
-    po_name: str, lines: list[dict[str, Any]], *, lead_days: int, supplier: str, note: str = ""
+    po_name: str,
+    lines: list[dict[str, Any]],
+    *,
+    lead_days: int,
+    supplier: str,
+    note: str = "",
+    language: str = "en",
 ) -> str:
+    extra = f"{note}\n\n" if note else ""
+    if language == "es":
+        rows = "\n".join(
+            f"- {line['product']}: {line['qty']:g} unidades a USD {line['price']:.2f} cada una"
+            for line in lines
+        )
+        return (
+            "Estimado equipo de Compras:\n\n"
+            f"Gracias por su solicitud de cotización {po_name}. Nuestra cotización:\n{rows}\n\n"
+            f"Plazo de entrega: {lead_days} días. Precios en USD, sin impuestos. "
+            f"Validez: 15 días.\n\n{extra}Saludos cordiales,\nVentas\n{supplier}"
+        )
     rows = "\n".join(
         f"- {line['product']}: {line['qty']:g} units at USD {line['price']:.2f} each"
         for line in lines
     )
-    extra = f"{note}\n\n" if note else ""
     return (
         "Dear Purchasing Team,\n\n"
         f"Thank you for your request for quotation {po_name}. Our quote:\n{rows}\n\n"
@@ -110,7 +162,16 @@ def quote_text(
     )
 
 
-def acceptance_text(po_name: str, offered: float | None) -> str:
+def acceptance_text(po_name: str, offered: float | None, language: str = "en") -> str:
+    if language == "es":
+        price = f" de USD {offered:.2f} por unidad" if offered else ""
+        return (
+            "Estimado equipo de Compras:\n\n"
+            f"Aceptamos su contraoferta{price} para la solicitud {po_name}. "
+            "Se mantiene el plazo de entrega de 20 días.\n\n"
+            "Quedamos atentos a su orden de compra.\n\nSaludos cordiales,\nVentas\n"
+            "Proveedor Hidraulica"
+        )
     price = f" of USD {offered:.2f} per unit" if offered else ""
     return (
         "Dear Purchasing Team,\n\n"
@@ -870,6 +931,7 @@ class DemoDirector:
         """What the demo wrote for the suppliers in this run, rebuilt from the records."""
         records = (await self._store.load()).records
         bot = self._cfg.supplier_email
+        lang = self._cfg.language
         emails: list[SupplierEmail] = []
         late = records.get("late_order") or {}
         if records.get("eta_reply_sent") and records.get("eta_new_date"):
@@ -879,9 +941,9 @@ class DemoDirector:
                     po_name=str(late.get("po_name")),
                     from_name="Proveedor Hidraulica",
                     from_email=bot,
-                    subject=f"Re: [{late.get('po_name')}] Delivery date",
+                    subject=subject_for("eta", str(late.get("po_name")), lang),
                     text=eta_reply_text(
-                        str(late.get("po_name")), date.fromisoformat(records["eta_new_date"])
+                        str(late.get("po_name")), date.fromisoformat(records["eta_new_date"]), lang
                     ),
                 )
             )
@@ -892,13 +954,14 @@ class DemoDirector:
                     po_name=po_name,
                     from_name=quote["supplier"],
                     from_email=quote["email"],
-                    subject=f"Re: [{po_name}] Quotation",
+                    subject=subject_for("quote", po_name, lang),
                     text=quote_text(
                         po_name,
                         quote["lines"],
                         lead_days=quote["lead_days"],
                         supplier=quote["supplier"],
                         note=quote["note"],
+                        language=lang,
                     ),
                 )
             )
@@ -910,8 +973,8 @@ class DemoDirector:
                     po_name=po_name,
                     from_name="Proveedor Hidraulica",
                     from_email=bot,
-                    subject=f"Re: [{po_name}] Quotation",
-                    text=acceptance_text(po_name, records.get("accepted_price")),
+                    subject=subject_for("quote", po_name, lang),
+                    text=acceptance_text(po_name, records.get("accepted_price"), lang),
                 )
             )
         return emails
@@ -1219,8 +1282,8 @@ class DemoDirector:
             await self._mark_inbound(state, po_name)
             message_id = await mailbox.reply(
                 to=self._cfg.bot_email,
-                subject=f"Re: [{po_name}] Delivery date",
-                text=eta_reply_text(po_name, new_date),
+                subject=subject_for("eta", po_name, self._cfg.language),
+                text=eta_reply_text(po_name, new_date, self._cfg.language),
             )
             state.records["eta_reply_sent"] = message_id
             state.records["eta_new_date"] = new_date.isoformat()
@@ -1398,7 +1461,7 @@ class DemoDirector:
                 if await self._world.outbound_count(rival_po) == 0:
                     continue
                 name, email = await self._world.supplier_contact(rival_po)
-                factor, lead_days, note = rival_terms(name)
+                factor, lead_days, note = rival_terms(name, self._cfg.language)
                 quotes[rival_po] = {
                     "supplier": name,
                     "email": email or self._cfg.supplier_email,
@@ -1419,13 +1482,14 @@ class DemoDirector:
                 await self._mark_inbound(state, quoted_po)
                 await mailbox.reply(
                     to=self._cfg.bot_email,
-                    subject=f"Re: [{quoted_po}] Quotation",
+                    subject=subject_for("quote", quoted_po, self._cfg.language),
                     text=quote_text(
                         quoted_po,
                         quote["lines"],
                         lead_days=quote["lead_days"],
                         supplier=quote["supplier"],
                         note=quote["note"],
+                        language=self._cfg.language,
                     ),
                     sender_name=quote["supplier"],
                     sender_email=quote["email"],
@@ -1514,8 +1578,8 @@ class DemoDirector:
             await self._mark_inbound(state, po_name)
             message_id = await mailbox.reply(
                 to=self._cfg.bot_email,
-                subject=f"Re: [{po_name}] Quotation",
-                text=acceptance_text(po_name, offered),
+                subject=subject_for("quote", po_name, self._cfg.language),
+                text=acceptance_text(po_name, offered, self._cfg.language),
             )
             state.records["acceptance_sent"] = message_id
             state.records["accepted_price"] = offered

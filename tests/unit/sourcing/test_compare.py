@@ -172,3 +172,27 @@ def test_the_default_award_per_line_follows_the_recommendation_not_the_cheapest(
     assert award.partner_id == 8
     assert award.reasons[0].startswith("best on price, lead time and score")
     assert award.reasons[1] == "cheapest is Cheap and slow at 89.25"
+
+
+def test_the_reasons_follow_the_language_the_buyer_reads() -> None:
+    result = compare(
+        round_id=1,
+        basket=[VALVE],
+        offers=[
+            offer(8, "Proven", {1: 104.16}, lead=25, score=75),
+            offer(10, "Cheap and slow", {1: 85.00}, lead=55, score=45),
+        ],
+        weights=Weights(),
+        freight_pct=5.0,
+        language="es",
+    )
+    proven, cheap = result.quotes
+    assert proven.reasons == [
+        "22.5% sobre el más bajo",
+        "el más rápido: 25 día(s)",
+        "puntaje 75/100",
+    ]
+    assert cheap.reasons[0] == "el menor total puesto en almacén"
+    [award] = result.line_awards
+    assert award.reasons[1] == "el más barato es Cheap and slow a 89.25"
+    assert ". Le sigue: Cheap and slow (" in result.recommendation

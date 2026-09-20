@@ -397,3 +397,26 @@ async def test_a_kind_can_be_left_for_the_presenter_to_decide_on_screen(
     ).json()
     assert view["position"] == 1 and view["outcomes"][-1]["approval_ids"] == [201]
     assert (await module.approvals.get(201)).status == "pending"  # theirs to click
+
+
+async def test_the_demo_suppliers_write_in_spanish_when_the_demo_is_spanish(
+    client: TestClient, module: MemoryDirectorModule, supplier: FakeAgentCaller
+) -> None:
+    await _users(module)
+    _the_world(module)
+    module.settings.demo.__dict__["language"] = "es"  # as SC__DEMO__LANGUAGE=es would
+    ana = _token(client, "ana@x.com")
+    client.post("/api/demo/reset", headers=ana)
+    supplier.replies.append(_supplier_reply("request_eta", "sent"))
+    client.post("/api/demo/next", json={"approve": False}, headers=ana)
+    module.mailbox.report = {"status": "ok", "fetched": 1, "linked_po_names": ["P00077"]}
+    module.approvals.seed(202, kind="po_change", summary="cambio de fecha", po=(77, "P00077"))
+    view = client.post("/api/demo/next", json={"approve": False}, headers=ana).json()
+    assert view["position"] == 2
+    [sent] = module.supplier_mailbox.sent
+    assert sent["subject"] == "Re: [P00077] Fecha de entrega"
+    when = TODAY + timedelta(days=7)
+    assert "Nueva fecha de entrega confirmada en su almacén" in sent["text"]
+    assert f"({when.isoformat()})" in sent["text"] and " de " in sent["text"]
+    [email] = client.get("/api/demo/emails", headers=ana).json()
+    assert email["subject"] == sent["subject"] and email["text"] == sent["text"]

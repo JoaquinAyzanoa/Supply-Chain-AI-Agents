@@ -90,6 +90,7 @@ def make_find_alternates(
                 weights=weights,
                 invited=0,
                 source_po_name=order.po_name,
+                language=language,
             )
             updated = await ports.update_round(
                 round_.id, status="comparing", comparison=comparison.model_dump(mode="json")

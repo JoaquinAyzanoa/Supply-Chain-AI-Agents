@@ -1,7 +1,7 @@
 /**
  * Record the demo day as a captioned video, on the live stack (English).
  *
- *   SC_UI_PASSWORD=... node scripts/demo-video.mjs [--out ../../demo-video] [--speed 2] [--voice off|<edge-tts voice>]
+ *   SC_UI_PASSWORD=... node scripts/demo-video.mjs [--lang en|es] [--out ../../demo-video] [--speed 2] [--voice off|<edge-tts voice>]
  *
  * The scenario is the Director agent's own (POST /api/demo/next, see docs/demo.md): each step
  * runs through the API while the browser tours the screens that matter, so the time a real
@@ -25,7 +25,8 @@ const flag = (name, fallback) => {
   return index >= 0 && args[index + 1] ? args[index + 1] : fallback;
 };
 const BASE = (process.env.SC_DIRECTOR_URL ?? "http://127.0.0.1:8010").replace(/\/$/, "");
-const ODOO = (process.env.SC_ODOO_URL ?? "http://localhost:8069").replace(/\/$/, "");
+const ODOO = (process.env.SC_ODOO_URL ?? "http://127.0.0.1:8069").replace(/\/$/, "");
+// Langfuse signs in against its own NEXTAUTH_URL (localhost), so its cookies live on that host
 const LANGFUSE = (process.env.SC_LANGFUSE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const USER = process.env.SC_DEMO_USER ?? "admin@scai.dev";
 const PASSWORD = process.env.SC_UI_PASSWORD;
@@ -40,11 +41,20 @@ const SIZE = { width: 1600, height: 900 };
 // Narration: a neural voice through the free `edge-tts` library (run with uv, no key). It is an
 // unofficial route to Microsoft's voices: fine for a draft, check the terms before publishing.
 // `--voice off` films the silent version; any other value is an edge-tts voice name.
-const VOICE = flag("voice", "en-US-AndrewNeural");
+const LANG = flag("lang", "en") === "es" ? "es" : "en";
+const VOICE = flag("voice", LANG === "es" ? "es-PE-AlexNeural" : "en-US-AndrewNeural");
+// each language keeps its own take, timeline and film
+const NAME = LANG === "es" ? "demo-es" : "demo";
+// selectors follow the app's own words in the language being filmed
+const M = JSON.parse(readFileSync(new URL(`../src/i18n/messages.${LANG}.json`, import.meta.url), "utf8"));
+const escapeRe = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 const VOICE_RATE = flag("rate", "+6%");
 const VOICE_DIR = resolve(OUT_DIR, "voice");
 const NARRATED = VOICE !== "off";
-const APPROVE_BUTTON = /^Approve( \d+ line\(s\)| with edits)?$|^(Award|Send the counter-offer)$/;
+
+const APPROVE_BUTTON = new RegExp(
+  `^(${[M["approvals.approve"], M["approvals.approve_edited"], M["approvals.award.approve"], M["approvals.offer.approve"]].map(escapeRe).join("|")}|${escapeRe(M["approvals.approve_lines"]).replace("\\{n\\}", "\\d+")})$`,
+);
 
 // --- the director's API ---------------------------------------------------------------------------
 let token = "";
@@ -179,11 +189,207 @@ async function overlay() {
 }
 
 const WHO = {
-  agent: (name) => `agent|✎ WRITTEN BY THE ${name.toUpperCase()}`,
-  supplier: (name) => `supplier|✉ EMAIL FROM THE SUPPLIER · ${name.toUpperCase()}`,
-  person: "person|✓ A PERSON DECIDES",
-  odoo: "system|ODOO · THE SYSTEM OF RECORD",
-  langfuse: "system|LANGFUSE · WHAT THE MODEL SAW AND ANSWERED",
+  agent: (name) => `agent|✎ ${tr("WRITTEN BY THE")} ${tr(name).toUpperCase()}`,
+  supplier: (name) => `supplier|✉ ${tr("EMAIL FROM THE SUPPLIER")} · ${name.toUpperCase()}`,
+  get person() {
+    return `person|✓ ${tr("A PERSON DECIDES")}`;
+  },
+  get odoo() {
+    return `system|${tr("ODOO · THE SYSTEM OF RECORD")}`;
+  },
+  get langfuse() {
+    return `system|${tr("LANGFUSE · WHAT THE MODEL SAW AND ANSWERED")}`;
+  },
+};
+
+/** The film's words in Spanish, keyed by the English line. A line without an entry is filmed in
+ *  English and logged, so a missing translation is seen in the take's log, not in the film. */
+const ES = {
+  // cards
+  "Your inbound supply chain, run by AI agents": "Tu cadena de abastecimiento, operada por agentes de IA",
+  "Live on Odoo, a real mailbox and real emails. Agents do the work. People decide. Every step is auditable.":
+    "En vivo sobre Odoo, con un buzón real y correos reales. Los agentes hacen el trabajo. Las personas deciden. Cada paso es auditable.",
+  "Every email was real. Every Odoo record is real.": "Cada correo fue real. Cada registro de Odoo es real.",
+  "Agents do the work. Approvals and rules people set keep them in check.": "Los agentes hacen el trabajo. Las aprobaciones y las reglas que definen las personas los mantienen bajo control.",
+  // chapters
+  "The desk": "El escritorio",
+  "The orders board": "El tablero de órdenes",
+  "1 · A late order": "1 · Una orden atrasada",
+  "Talk to the Director agent": "Conversa con el Agente Director",
+  "While the supplier answers": "Mientras el proveedor responde",
+  "Real time": "Tiempo real",
+  "2 · The supplier answers": "2 · El proveedor responde",
+  History: "Historial",
+  "In Odoo": "En Odoo",
+  "3 · A stockout risk": "3 · Un riesgo de quiebre de stock",
+  "The PDF": "El PDF",
+  "While the suppliers quote": "Mientras los proveedores cotizan",
+  "4 · The quotes arrive": "4 · Llegan las cotizaciones",
+  "4 · A counter-offer": "4 · Una contraoferta",
+  "Ask the Director agent": "Pregúntale al Agente Director",
+  "While the supplier decides": "Mientras el proveedor decide",
+  "5 · The supplier accepts": "5 · El proveedor acepta",
+  "5 · Choosing the supplier": "5 · Cómo se elige al proveedor",
+  "The thinking": "El razonamiento",
+  "6 · A short receipt": "6 · Una recepción incompleta",
+  "7 · An invoice with a variance": "7 · Una factura con diferencia",
+  "8 · The next morning": "8 · A la mañana siguiente",
+  "The numbers": "Los números",
+  // captions
+  "Home: service level, late orders, approvals waiting, spend, and what the AI cost this month.":
+    "Inicio: nivel de servicio, órdenes atrasadas, aprobaciones pendientes, gasto y lo que costó la IA este mes.",
+  "The Director agent coordinates six specialist agents. What needs a person is one list.":
+    "El Agente Director coordina seis agentes especialistas. Lo que necesita a una persona está en una sola lista.",
+  "Every purchase order in Odoo is a card. Columns follow the order's life, from proposal to invoice.":
+    "Cada orden de compra de Odoo es una tarjeta. Las columnas siguen la vida de la orden, de la propuesta a la factura.",
+  "Requests for quotation wait here. A card counts the days without an answer and shows the next reminder.":
+    "Las solicitudes de cotización esperan aquí. La tarjeta cuenta los días sin respuesta y muestra el próximo recordatorio.",
+  "Confirmed orders show late days, the order's age, and a predicted delay from the supplier's record.":
+    "Las órdenes confirmadas muestran los días de atraso, la antigüedad y un retraso previsto según el historial del proveedor.",
+  "Swimlanes group the board by priority or by supplier. Problems rise to the top.":
+    "Los carriles agrupan el tablero por prioridad o por proveedor. Los problemas suben arriba.",
+  "The Supplier agent drafted a delivery date request from the order's own facts.":
+    "El Agente de Proveedores redactó una solicitud de fecha de entrega con los datos de la propia orden.",
+  "A person approves, and the email leaves from the purchasing mailbox.": "Una persona aprueba, y el correo sale desde el buzón de compras.",
+  "The Supplier agent already wrote asking for a firm date. A rule a person set lets date requests go alone.":
+    "El Agente de Proveedores ya escribió pidiendo una fecha firme. Una regla definida por una persona deja salir solas las solicitudes de fecha.",
+  "Ask about any order in plain words. It answers from Odoo, the emails and the rules.":
+    "Pregunta por cualquier orden con tus palabras. Responde con Odoo, los correos y las reglas.",
+  "A real answer, typed live: the facts of the order, and what was already done about it.":
+    "Una respuesta real, escrita en vivo: los hechos de la orden y lo que ya se hizo al respecto.",
+  "Supplier 360: scorecard, orders, prices with the supplier's rank, quote rounds and emails, on one page.":
+    "Proveedor 360: evaluación, órdenes, precios con el ranking del proveedor, rondas de cotización y correos, en una página.",
+  "Only links to emails are kept. The text of an email is never stored.": "Solo se guardan enlaces a los correos. El texto de un correo nunca se almacena.",
+  "Autonomy: what may run without a person is a rule people set, with a 30-day preview before saving.":
+    "Autonomía: lo que puede correr sin una persona es una regla que definen las personas, con una vista previa de 30 días antes de guardar.",
+  "This is what the supplier wrote, from its own mailbox.": "Esto es lo que escribió el proveedor, desde su propio buzón.",
+  "The Supplier agent read the new date and proposes the change, line by line, with its confidence.":
+    "El Agente de Proveedores leyó la nueva fecha y propone el cambio, línea por línea, con su nivel de confianza.",
+  "Every proposal explains itself: the facts it used, the rule that applied, what would let it run alone.":
+    "Cada propuesta se explica sola: los hechos que usó, la regla que aplicó y qué la dejaría correr sin una persona.",
+  "Odoo changes only after a person decides.": "Odoo solo cambia después de que una persona decide.",
+  "Every order keeps its story: the request that went out, the reply that came in, who decided what.":
+    "Cada orden guarda su historia: la solicitud que salió, la respuesta que llegó y quién decidió qué.",
+  "Each email is a link that opens it in Outlook. Outgoing and incoming, in order.":
+    "Cada correo es un enlace que lo abre en Outlook. Enviados y recibidos, en orden.",
+  "Odoo stays the system of record. The agents work through a bot user with limited rights.":
+    "Odoo sigue siendo el sistema de registro. Los agentes trabajan con un usuario bot de permisos limitados.",
+  "The risk radar: the odds of running out in 30 and 60 days per product, with the cash at stake.":
+    "El radar de riesgo: la probabilidad de quedarse sin stock a 30 y 60 días por producto, con el dinero en juego.",
+  "For a product at risk, the Sourcing agent asks every supplier who lists it for a quote.":
+    "Para un producto en riesgo, el Agente de Abastecimiento pide cotización a cada proveedor que lo ofrece.",
+  "Approved. The other requests are approved the same way.": "Aprobada. Las demás solicitudes se aprueban igual.",
+  "The request the supplier receives as a PDF: printed by Odoo, attached by the agent.":
+    "La solicitud que recibe el proveedor en PDF: la imprime Odoo y la adjunta el agente.",
+  "Planning: every morning the Planning agent proposes what to buy from two years of demand.":
+    "Planificación: cada mañana el Agente de Planificación propone qué comprar a partir de dos años de demanda.",
+  "Playbooks: multi-step plans that run for days. Remind, ask for a date, escalate, find another source.":
+    "Guiones: planes de varios pasos que duran días. Recordar, pedir fecha, escalar, buscar otra fuente.",
+  "Suppliers are scored weekly on what they did: on time and in full, lead time, replies, prices.":
+    "Los proveedores se evalúan cada semana por lo que hicieron: entregas a tiempo y completas, plazo, respuestas, precios.",
+  "Proveedor Hidraulica quotes 12% above its own list price, 20 days.": "Proveedor Hidraulica cotiza 12% por encima de su propia lista, a 20 días.",
+  "Hidráulica Alterna: at its list price, and it delivers in 12 days.": "Hidráulica Alterna: a su precio de lista, y entrega en 12 días.",
+  "Importadora del Sur: the cheapest quote, and by far the slowest at 55 days.": "Importadora del Sur: la cotización más barata, y por lejos la más lenta, a 55 días.",
+  "The Supplier agent read each quote and recorded price and lead time on the request, line by line.":
+    "El Agente de Proveedores leyó cada cotización y registró precio y plazo en la solicitud, línea por línea.",
+  "The Sourcing agent proposes a counter-offer: target, floor and the buyer's cap, with the evidence.":
+    "El Agente de Abastecimiento propone una contraoferta: objetivo, piso y el tope del comprador, con la evidencia.",
+  "A counter-offer is always a person's decision. No rule can automate it.": "Una contraoferta siempre la decide una persona. Ninguna regla puede automatizarla.",
+  "Ask about the whole department. Answers cite the records they rest on.": "Pregunta por todo el departamento. Las respuestas citan los registros en que se apoyan.",
+  "Typed live. Every reference under the answer opens the order, the approval or the rule it cites.":
+    "Escrito en vivo. Cada referencia bajo la respuesta abre la orden, la aprobación o la regla que cita.",
+  "Runs: every agent run with its model, tokens, cost in dollars, duration and a link to its trace.":
+    "Ejecuciones: cada corrida de un agente con su modelo, tokens, costo en dólares, duración y un enlace a su traza.",
+  "Proveedor Hidraulica accepts the counter-offer.": "Proveedor Hidraulica acepta la contraoferta.",
+  "How is the supplier chosen? The Sourcing agent compares every quote on the same terms.":
+    "¿Cómo se elige al proveedor? El Agente de Abastecimiento compara todas las cotizaciones en los mismos términos.",
+  "Landed cost includes freight. Lead time comes from the quote. The score is the supplier's measured record.":
+    "El costo puesto en almacén incluye el flete. El plazo viene de la cotización. El puntaje es el historial medido del proveedor.",
+  "Weights: 60% price, 20% lead time, 20% score. Each quote gets one composite number, and they are ranked.":
+    "Pesos: 60% precio, 20% plazo, 20% puntaje. Cada cotización recibe un número compuesto, y se ordenan.",
+  "The recommendation is written out with its reasons. The buyer can still award line by line.":
+    "La recomendación queda escrita con sus razones. El comprador aún puede adjudicar línea por línea.",
+  "A person awards. Odoo confirms the order; the others get a courteous decline.":
+    "Una persona adjudica. Odoo confirma la orden; los demás reciben una negativa cordial.",
+  "The purchase order as Odoo prints it, for the supplier that won. The agent sends it as a PDF.":
+    "La orden de compra tal como la imprime Odoo, para el proveedor que ganó. El agente la envía en PDF.",
+  "Every agent run is traced in Langfuse, step by step, with the time and the cost of each model call.":
+    "Cada corrida de un agente queda trazada en Langfuse, paso a paso, con el tiempo y el costo de cada llamada al modelo.",
+  "One model call, opened: the Supplier agent reading a supplier's email. First the instructions it was given.":
+    "Una llamada al modelo, abierta: el Agente de Proveedores leyendo el correo de un proveedor. Primero, las instrucciones que recibió.",
+  "Then the facts: the order from Odoo, line by line, and the supplier's email exactly as it arrived.":
+    "Luego los hechos: la orden de Odoo, línea por línea, y el correo del proveedor tal como llegó.",
+  "And the answer: the model's reasoning, then structured data. Price, lead time, and a confidence the code checks.":
+    "Y la respuesta: el razonamiento del modelo y luego datos estructurados. Precio, plazo y una confianza que el código verifica.",
+  "The model proposes. Deterministic code checks the answer and does the writing, behind an approval or a rule.":
+    "El modelo propone. Código determinista revisa la respuesta y es el que escribe, detrás de una aprobación o una regla.",
+  "The warehouse receives an order in Odoo: 18 units arrive, 20 were ordered.": "El almacén recibe una orden en Odoo: llegan 18 unidades, se pidieron 20.",
+  "The Logistics agent reconciled receipt against order and drafted the discrepancy report.":
+    "El Agente de Logística concilió la recepción con la orden y redactó el reporte de discrepancia.",
+  "Approved, and the supplier is told what is missing.": "Aprobado, y al proveedor se le informa lo que falta.",
+  "Accounting types the supplier's bill in Odoo. One line is 3% above the order.": "Contabilidad registra la factura del proveedor en Odoo. Una línea está 3% por encima de la orden.",
+  "The Invoice agent matched bill, order and receipt line by line, and found the price difference.":
+    "El Agente de Facturas cruzó factura, orden y recepción línea por línea, y encontró la diferencia de precio.",
+  "A person decides. Nothing is ever posted by the agents.": "Una persona decide. Los agentes nunca contabilizan nada.",
+  "The vendor bill in Odoo, still a draft, with the agent's check recorded on it.": "La factura en Odoo, todavía en borrador, con la revisión del agente registrada.",
+  "At 07:30 the Director agent writes the briefing from the facts of the day.": "A las 07:30 el Agente Director escribe el informe con los hechos del día.",
+  "What happened, what ran alone, what needs a decision, and the top risks. Every line opens its record.":
+    "Qué pasó, qué corrió solo, qué necesita una decisión y los principales riesgos. Cada línea abre su registro.",
+  "AI performance: automation rate by decision, how fast people answer, forecast error, and cost per case.":
+    "Rendimiento de la IA: tasa de automatización por decisión, qué tan rápido responden las personas, error de pronóstico y costo por caso.",
+  "One day of your inbound supply chain: eight situations handled, every decision explained, for a few cents of AI.":
+    "Un día de tu cadena de abastecimiento: ocho situaciones resueltas, cada decisión explicada, por unos centavos de IA.",
+  // waiting
+  "The Supplier agent is writing to the supplier…": "El Agente de Proveedores le está escribiendo al proveedor…",
+  "The supplier's reply is travelling from its mailbox to the purchasing inbox…": "La respuesta del proveedor viaja desde su buzón hasta la bandeja de compras…",
+  "The Sourcing agent is preparing the requests…": "El Agente de Abastecimiento prepara las solicitudes…",
+  "The suppliers are answering from their mailboxes…": "Los proveedores responden desde sus buzones…",
+  "The supplier is answering the counter-offer…": "El proveedor responde a la contraoferta…",
+  "The Logistics agent is reconciling the receipt…": "El Agente de Logística concilia la recepción…",
+  "The Invoice agent is matching the bill…": "El Agente de Facturas revisa la factura…",
+  "The Director agent is writing the briefing…": "El Agente Director escribe el informe…",
+  // spotlights
+  "What needs a person today": "Lo que hoy necesita a una persona",
+  "Requests sent, waiting for quotes": "Solicitudes enviadas, esperando cotización",
+  "Confirmed orders on their way": "Órdenes confirmadas en camino",
+  "Draft email, written by the Supplier agent": "Borrador de correo, escrito por el Agente de Proveedores",
+  "Draft email, written by the Logistics agent": "Borrador de correo, escrito por el Agente de Logística",
+  "How the agent reasoned": "Cómo razonó el agente",
+  "Landed cost · lead time · supplier score · why": "Costo puesto en almacén · plazo · puntaje del proveedor · por qué",
+  // badges and the supplier's email sheet
+  "Supplier agent": "Agente de Proveedores",
+  "Sourcing agent": "Agente de Abastecimiento",
+  "Logistics agent": "Agente de Logística",
+  "Invoice agent": "Agente de Facturas",
+  "WRITTEN BY THE": "ESCRITO POR EL",
+  "EMAIL FROM THE SUPPLIER": "CORREO DEL PROVEEDOR",
+  "A PERSON DECIDES": "UNA PERSONA DECIDE",
+  "ODOO · THE SYSTEM OF RECORD": "ODOO · EL SISTEMA DE REGISTRO",
+  "LANGFUSE · WHAT THE MODEL SAW AND ANSWERED": "LANGFUSE · LO QUE EL MODELO VIO Y RESPONDIÓ",
+  "INBOUND EMAIL · WRITTEN BY THE SUPPLIER": "CORREO RECIBIDO · ESCRITO POR EL PROVEEDOR",
+  From: "De",
+  To: "Para",
+  Subject: "Asunto",
+  "Purchasing Team": "Equipo de Compras",
+  // what is typed in the chat
+  "Why is this order late, and what have you done about it?": "¿Por qué está atrasada esta orden y qué has hecho al respecto?",
+  "Which orders are late, and what is being done about them?": "¿Qué órdenes están atrasadas y qué se está haciendo al respecto?",
+};
+const missing = new Set();
+function tr(text) {
+  if (LANG !== "es" || !text) return text;
+  if (ES[text] !== undefined) return ES[text];
+  if (!missing.has(text)) {
+    missing.add(text);
+    console.log(`  (no Spanish for: ${text.slice(0, 80)})`);
+  }
+  return text;
+}
+/** A line with figures in it: written once per language where it is used. */
+const L = (en, es) => {
+  if (LANG !== "es") return en;
+  missing.add(es); // already Spanish: tr() passes it through without a note in the log
+  return es;
 };
 
 /** Captions are written for the eye. Where one would sound wrong read aloud (a list behind a
@@ -216,7 +422,36 @@ const SPOKEN = {
   "Every email was real. Every Odoo record is real.":
     "Every email was real. Every Odoo record is real. Agents do the work. Approvals, and rules people set, keep them in check.",
 };
-const spoken = (text) => SPOKEN[text] ?? text.replace(/\bP\d{5}\b/g, "this order").replace(/\bAI\b/g, "A.I.");
+const SPOKEN_ES = {
+  "Tu cadena de abastecimiento, operada por agentes de IA":
+    "Tu cadena de abastecimiento, operada por agentes de inteligencia artificial. En vivo sobre Odoo, con un buzón real y correos reales. Los agentes hacen el trabajo. Las personas deciden. Y cada paso es auditable.",
+  "Cada correo fue real. Cada registro de Odoo es real.":
+    "Cada correo fue real. Cada registro de Odoo es real. Los agentes hacen el trabajo. Las aprobaciones, y las reglas que definen las personas, los mantienen bajo control.",
+  "Inicio: nivel de servicio, órdenes atrasadas, aprobaciones pendientes, gasto y lo que costó la IA este mes.":
+    "Esta es la pantalla de inicio: nivel de servicio, órdenes atrasadas, aprobaciones pendientes, gasto, y lo que costó la inteligencia artificial este mes.",
+  "Proveedor 360: evaluación, órdenes, precios con el ranking del proveedor, rondas de cotización y correos, en una página.":
+    "Proveedor tres sesenta reúne todo sobre un proveedor en una página: evaluación, órdenes, precios con su ranking, rondas de cotización y correos.",
+  "Autonomía: lo que puede correr sin una persona es una regla que definen las personas, con una vista previa de 30 días antes de guardar.":
+    "En la página de autonomía, las personas definen las reglas de lo que puede correr sin ellas, con una vista previa de treinta días antes de guardar.",
+  "El radar de riesgo: la probabilidad de quedarse sin stock a 30 y 60 días por producto, con el dinero en juego.":
+    "El radar de riesgo muestra la probabilidad de quedarse sin stock a treinta y sesenta días, por producto, con el dinero en juego.",
+  "Planificación: cada mañana el Agente de Planificación propone qué comprar a partir de dos años de demanda.":
+    "Cada mañana, el Agente de Planificación propone qué comprar, a partir de dos años de demanda.",
+  "Guiones: planes de varios pasos que duran días. Recordar, pedir fecha, escalar, buscar otra fuente.":
+    "Los guiones son planes de varios pasos que duran días: recordar, pedir fecha, escalar, buscar otra fuente.",
+  "Ejecuciones: cada corrida de un agente con su modelo, tokens, costo en dólares, duración y un enlace a su traza.":
+    "Cada corrida de un agente queda registrada, con su modelo, sus tokens, su costo en dólares, su duración, y un enlace a su traza.",
+  "Pesos: 60% precio, 20% plazo, 20% puntaje. Cada cotización recibe un número compuesto, y se ordenan.":
+    "Los pesos son sesenta por ciento precio, veinte por ciento plazo y veinte por ciento puntaje. Cada cotización recibe un número compuesto, y se ordenan.",
+  "A las 07:30 el Agente Director escribe el informe con los hechos del día.":
+    "A las siete y media, el Agente Director escribe el informe con los hechos del día.",
+  "Rendimiento de la IA: tasa de automatización por decisión, qué tan rápido responden las personas, error de pronóstico y costo por caso.":
+    "La página de rendimiento muestra la tasa de automatización por decisión, qué tan rápido responden las personas, el error de pronóstico, y el costo por caso.",
+};
+const spoken = (text) =>
+  LANG === "es"
+    ? (SPOKEN_ES[text] ?? text.replace(/\bP\d{5}\b/g, "esta orden").replace(/\bIA\b/g, "inteligencia artificial"))
+    : (SPOKEN[text] ?? text.replace(/\bP\d{5}\b/g, "this order").replace(/\bAI\b/g, "A.I."));
 
 function ffmpegPath() {
   if (process.env.FFMPEG_PATH) return process.env.FFMPEG_PATH;
@@ -249,6 +484,7 @@ function narrate(text) {
 
 /** Caption the screen and hold it while the line is spoken (or for as long as it takes to read). */
 async function say(chapter, text, { who = "", extraMs = 0 } = {}) {
+  [chapter, text] = [tr(chapter), tr(text)];
   pace(0); // the moment it takes to fetch the voice is not part of the film
   const voice = narrate(text);
   current = { chapter, text, who };
@@ -259,8 +495,10 @@ async function say(chapter, text, { who = "", extraMs = 0 } = {}) {
   await sleep((voice.seconds + 0.55) * 1000 + extraMs / 2);
 }
 
-async function go(url, { settle = 1200 } = {}) {
-  pace(WAIT_SPEED); // loading is not worth watching
+async function go(url, { settle = 1200, hidden = false } = {}) {
+  // loading is not worth watching; `hidden` keeps it out of the film altogether (pages that may
+  // need several attempts: a failed attempt is a blank page or an error box)
+  pace(hidden ? 0 : WAIT_SPEED);
   const target = url.startsWith("http") ? url : `${BASE}${url}`;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
@@ -312,6 +550,7 @@ async function scroll(top, { within } = {}) {
 
 /** Put a spotlight on part of the screen, with a label. */
 async function spotlight(locator, label) {
+  label = tr(label);
   await clearSpotlight();
   try {
     const target = locator.first();
@@ -350,6 +589,7 @@ async function clearSpotlight() {
  *  film can open on it (nothing filmed before the first card is kept) and its words can be
  *  changed in demo-timeline.json and re-cut without filming again. */
 function card(title, text, seconds) {
+  [title, text] = [tr(title), tr(text)];
   const at = (Date.now() - filmStart) / 1000;
   const last = timeline[timeline.length - 1];
   const voice = narrate(title);
@@ -371,12 +611,12 @@ async function supplierMail(mail, chapter, text) {
     const el = document.createElement("div");
     el.id = "demo-mail";
     el.innerHTML =
-      '<div class="sheet"><div class="head"><span class="tag">INBOUND EMAIL · WRITTEN BY THE SUPPLIER</span><div><b>From</b><span class="f"></span></div><div><b>To</b>Purchasing Team &lt;scai.compras@outlook.com&gt;</div><div><b>Subject</b><span class="s"></span></div></div><pre></pre></div>';
+      `<div class="sheet"><div class="head"><span class="tag">${m.words.tag}</span><div><b>${m.words.from}</b><span class="f"></span></div><div><b>${m.words.to}</b>${m.words.team} &lt;scai.compras@outlook.com&gt;</div><div><b>${m.words.subject}</b><span class="s"></span></div></div><pre></pre></div>`;
     el.querySelector(".f").textContent = `${m.from_name} <${m.from_email}>`;
     el.querySelector(".s").textContent = m.subject;
     el.querySelector("pre").textContent = m.text;
     document.body.appendChild(el);
-  }, mail);
+  }, { ...mail, words: { tag: tr("INBOUND EMAIL · WRITTEN BY THE SUPPLIER"), from: tr("From"), to: tr("To"), subject: tr("Subject"), team: tr("Purchasing Team") } });
   await say(chapter, text, { who: WHO.supplier(mail.from_name), extraMs: 3000 });
   await page.evaluate(() => document.getElementById("demo-mail")?.remove());
 }
@@ -430,7 +670,7 @@ async function openApproval(id) {
 async function decide(id, chapter, text) {
   if ((await approvalRow(id)).status !== "pending") return;
   if (NARRATED) await say(chapter, text, { who: WHO.person });
-  current = { chapter, text, who: WHO.person };
+  current = { chapter: tr(chapter), text: tr(text), who: WHO.person };
   await overlay();
   try {
     const button = page.getByRole("button", { name: APPROVE_BUTTON }).last();
@@ -461,7 +701,7 @@ async function during(step, scenes, chapter, waitingText) {
     await scene();
   }
   if (!step.done) {
-    current = { chapter, text: waitingText, who: "" };
+    current = { chapter: tr(chapter), text: tr(waitingText), who: "" };
     await overlay();
     pace(WAIT_SPEED);
     while (!step.done) await sleep(1000);
@@ -479,19 +719,43 @@ async function odooLogin() {
   }
 }
 async function odooForm(model, id) {
-  await go(`${ODOO}/web#id=${id}&model=${model}&view_type=form`, { settle: 5000 });
-  await page.locator(".o_form_view").first().waitFor({ state: "visible", timeout: 25000 }).catch(() => undefined);
+  // Odoo builds its assets per language on first use, and a dropped request leaves a blank page:
+  // wait for the form itself, and load the page again when it does not come.
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    await go(`${ODOO}/web#id=${id}&model=${model}&view_type=form`, { settle: 5000, hidden: true });
+    const shown = await page
+      .locator(".o_form_view")
+      .first()
+      .waitFor({ state: "visible", timeout: 60000 })
+      .then(() => true)
+      .catch(() => false);
+    if (shown) break;
+    log(`  Odoo did not show ${model} ${id} (attempt ${attempt})`);
+  }
   await sleep(1500);
   await overlay();
 }
+/** Sign in to Langfuse and make sure it took: a dropped request leaves the sign-in form
+ *  unrendered, and a browser that is not signed in is shown "not a member of this project". */
 async function langfuseLogin() {
-  await go(`${LANGFUSE}/auth/sign-in`, { settle: 3500 });
-  if (await page.locator("input[name=email]").count()) {
-    await page.fill("input[name=email]", LANGFUSE_USER);
-    await page.fill("input[name=password]", LANGFUSE_PASSWORD);
-    await page.keyboard.press("Enter");
-    await sleep(6000);
+  const signedIn = () =>
+    page
+      .evaluate(async () => Boolean((await (await fetch("/api/auth/session")).json())?.user))
+      .catch(() => false);
+  for (let attempt = 1; attempt <= 4; attempt += 1) {
+    await go(`${LANGFUSE}/auth/sign-in`, { settle: 3500, hidden: true });
+    if (await signedIn()) return true;
+    const email = page.locator("input[name=email]");
+    if (await email.waitFor({ state: "visible", timeout: 30000 }).then(() => true).catch(() => false)) {
+      await email.fill(LANGFUSE_USER);
+      await page.fill("input[name=password]", LANGFUSE_PASSWORD);
+      await page.keyboard.press("Enter");
+      await sleep(6000);
+      if (await signedIn()) return true;
+    }
+    log(`  Langfuse sign-in did not take (attempt ${attempt})`);
   }
+  return false;
 }
 
 // --- the film -------------------------------------------------------------------------------------
@@ -518,15 +782,15 @@ async function main() {
 
   mkdirSync(OUT_DIR, { recursive: true });
   const browser = await chromium.launch();
-  const context = await browser.newContext({ viewport: SIZE, recordVideo: { dir: OUT_DIR, size: SIZE }, locale: "en-US" });
+  const context = await browser.newContext({ viewport: SIZE, recordVideo: { dir: OUT_DIR, size: SIZE }, locale: LANG === "es" ? "es-PE" : "en-US" });
   await context.addInitScript(
-    ([session]) => {
+    ([session, language]) => {
       if (window.location.port === "8010") {
         window.localStorage.setItem("control-tower.session", session);
-        window.localStorage.setItem("control-tower.language", "en");
+        window.localStorage.setItem("control-tower.language", language);
       }
     },
-    [JSON.stringify({ token, user: { email: me.email, name: me.name, role: me.role } })],
+    [JSON.stringify({ token, user: { email: me.email, name: me.name, role: me.role } }), LANG],
   );
   page = await context.newPage();
   filmStart = Date.now();
@@ -538,19 +802,19 @@ async function main() {
   await go("/");
   card("Your inbound supply chain, run by AI agents", "Live on Odoo, a real mailbox and real emails. Agents do the work. People decide. Every step is auditable.", 6);
   await say("The desk", "Home: service level, late orders, approvals waiting, spend, and what the AI cost this month.");
-  await spotlight(page.getByRole("region", { name: "Needs you" }), "What needs a person today");
+  await spotlight(page.getByRole("region", { name: M["home.needs_you"] }), "What needs a person today");
   await say("The desk", "The Director agent coordinates six specialist agents. What needs a person is one list.");
   await clearSpotlight();
 
   // --- the board, explained ---------------------------------------------------------------------
   await go("/board");
   await say("The orders board", "Every purchase order in Odoo is a card. Columns follow the order's life, from proposal to invoice.");
-  await spotlight(page.getByRole("region", { name: "Quotation requested" }), "Requests sent, waiting for quotes");
+  await spotlight(page.getByRole("region", { name: M["board.col.rfq_sent"] }), "Requests sent, waiting for quotes");
   await say("The orders board", "Requests for quotation wait here. A card counts the days without an answer and shows the next reminder.");
-  await spotlight(page.getByRole("region", { name: "To receive" }), "Confirmed orders on their way");
+  await spotlight(page.getByRole("region", { name: M["board.col.incoming"] }), "Confirmed orders on their way");
   await say("The orders board", "Confirmed orders show late days, the order's age, and a predicted delay from the supplier's record.");
   await clearSpotlight();
-  await page.getByLabel("Swimlanes").selectOption("priority").catch(() => undefined);
+  await page.getByLabel(M["board.lanes"]).selectOption("priority").catch(() => undefined);
   await sleep(1500);
   await say("The orders board", "Swimlanes group the board by priority or by supplier. Problems rise to the top.");
 
@@ -561,7 +825,7 @@ async function main() {
     [
       async () => {
         await go(`/board?po=${late}`);
-        await say("1 · A late order", `${late} from Proveedor Hidraulica is past its date. Nobody had to notice: the Director agent did.`);
+        await say("1 · A late order", L(`${late} from Proveedor Hidraulica is past its date. Nobody had to notice: the Director agent did.`, `${late}, de Proveedor Hidraulica, pasó su fecha. Nadie tuvo que darse cuenta: lo hizo el Agente Director.`));
       },
     ],
     "1 · A late order",
@@ -582,10 +846,10 @@ async function main() {
   // live chat on the order
   try {
     await go(`/board?po=${late}`);
-    current = { chapter: "Talk to the Director agent", text: "Ask about any order in plain words. It answers from Odoo, the emails and the rules.", who: "" };
+    current = { chapter: tr("Talk to the Director agent"), text: tr("Ask about any order in plain words. It answers from Odoo, the emails and the rules."), who: "" };
     await overlay();
-    await chat(page.getByLabel("Message to your AI").first(), "Why is this order late, and what have you done about it?", /is looking at the case/);
-    await page.getByLabel("Message to your AI").first().scrollIntoViewIfNeeded().catch(() => undefined);
+    await chat(page.getByLabel(M["chat.input"]).first(), tr("Why is this order late, and what have you done about it?"), M["chat.thinking"]);
+    await page.getByLabel(M["chat.input"]).first().scrollIntoViewIfNeeded().catch(() => undefined);
     await say("Talk to the Director agent", "A real answer, typed live: the facts of the order, and what was already done about it.");
   } catch (error) {
     log(`  order chat skipped: ${String(error).slice(0, 80)}`);
@@ -618,7 +882,7 @@ async function main() {
   if (change) {
     await openApproval(change.id);
     await say("2 · The supplier answers", "The Supplier agent read the new date and proposes the change, line by line, with its confidence.", { who: WHO.agent("Supplier agent") });
-    await spotlight(page.getByText("Because:", { exact: false }).first().locator("xpath=.."), "How the agent reasoned");
+    await spotlight(page.getByText(`${M["approvals.reasoning.rule"]}:`, { exact: false }).first().locator("xpath=.."), "How the agent reasoned");
     await say("2 · The supplier answers", "Every proposal explains itself: the facts it used, the rule that applied, what would let it run alone.");
     await clearSpotlight();
     await decide(change.id, "2 · The supplier answers", "Odoo changes only after a person decides.");
@@ -632,7 +896,7 @@ async function main() {
   }
   if (lateCard) {
     await odooForm("purchase.order", lateCard.po_id);
-    await say("In Odoo", `${late} in Odoo: the delivery date moved, and the agent left an audit note on the order.`, { who: WHO.odoo });
+    await say("In Odoo", L(`${late} in Odoo: the delivery date moved, and the agent left an audit note on the order.`, `${late} en Odoo: la fecha de entrega cambió, y el agente dejó una nota de auditoría en la orden.`), { who: WHO.odoo });
     await scroll(600, { within: ".o_content" });
     await scroll(600);
     await say("In Odoo", "Odoo stays the system of record. The agents work through a bot user with limited rights.", { who: WHO.odoo });
@@ -651,7 +915,7 @@ async function main() {
     const mine = rows.find((r) => r.po_name === rfq) ?? rows[0];
     await openApproval(mine.id);
     await spotlight(page.getByTestId("email-preview"), "Draft email, written by the Supplier agent");
-    await say("3 · A stockout risk", `One request for quotation per supplier: ${rfqNames.length} this time. Each is drafted from the order's lines.`, { who: WHO.agent("Supplier agent") });
+    await say("3 · A stockout risk", L(`One request for quotation per supplier: ${rfqNames.length} this time. Each is drafted from the order's lines.`, `Una solicitud de cotización por proveedor: ${rfqNames.length} esta vez. Cada una se redacta con las líneas de la orden.`), { who: WHO.agent("Supplier agent") });
     await clearSpotlight();
     await decide(mine.id, "3 · A stockout risk", "Approved. The other requests are approved the same way.");
     await approveQuietly(rows.filter((r) => r.id !== mine.id).map((r) => r.id));
@@ -708,10 +972,10 @@ async function main() {
     [
       async () => {
         await go("/assistant");
-        current = { chapter: "Ask the Director agent", text: "Ask about the whole department. Answers cite the records they rest on.", who: "" };
+        current = { chapter: tr("Ask the Director agent"), text: tr("Ask about the whole department. Answers cite the records they rest on."), who: "" };
         await overlay();
         try {
-          await chat(page.getByLabel("Message to your AI").last(), "Which orders are late, and what is being done about them?", /is reading the desk/);
+          await chat(page.getByLabel(M["assistant.input"]).last(), tr("Which orders are late, and what is being done about them?"), M["assistant.thinking"]);
           await say("Ask the Director agent", "Typed live. Every reference under the answer opens the order, the approval or the rule it cites.");
         } catch (error) {
           log(`  assistant scene skipped: ${String(error).slice(0, 80)}`);
@@ -742,7 +1006,7 @@ async function main() {
     if (winner && runner)
       await say(
         "5 · Choosing the supplier",
-        `Here ${winner.partner_name} ranks first with ${points(winner)} points: ${winner.lead_days} days, score ${Math.round(winner.score ?? 0)}. ${runner.partner_name} follows with ${points(runner)}: ${runner.lead_days} days, score ${Math.round(runner.score ?? 0)}.`,
+        L(`Here ${winner.partner_name} ranks first with ${points(winner)} points: ${winner.lead_days} days, score ${Math.round(winner.score ?? 0)}. ${runner.partner_name} follows with ${points(runner)}: ${runner.lead_days} days, score ${Math.round(runner.score ?? 0)}.`, `Aquí ${winner.partner_name} queda primero con ${points(winner)} puntos: ${winner.lead_days} días, puntaje ${Math.round(winner.score ?? 0)}. Le sigue ${runner.partner_name} con ${points(runner)}: ${runner.lead_days} días, puntaje ${Math.round(runner.score ?? 0)}.`),
       );
     await clearSpotlight();
     await scroll(300);
@@ -765,21 +1029,24 @@ async function main() {
     const runs = await api("/api/runs?limit=80");
     // the run that read the supplier's quote: its model call shows the email going in and
     // structured prices coming out
-    const reads = runs.filter((r) => r.trace_url && r.agent === "supplier_comms" && r.llm_calls > 0 && /change\(s\) applied/.test(r.summary ?? ""));
+    const reads = runs.filter((r) => r.trace_url && r.agent === "supplier_comms" && r.llm_calls > 0 && r.status === "applied");
     const traced = reads.find((r) => r.po_name === rfq) ?? reads[0] ?? runs.find((r) => r.trace_url && r.llm_calls > 0);
     if (traced) {
       // Langfuse loads its data after the page: a dropped request leaves it on "Loading ...".
       // Reload until the trace tree is there; without it the scene is not filmed at all.
       let tree = false;
       for (let attempt = 0; attempt < 5 && !tree; attempt += 1) {
-        await go(traced.trace_url.replace(/^https?:\/\/[^/]+/, LANGFUSE), { settle: 4000 });
+        await go(traced.trace_url.replace(/^https?:\/\/[^/]+/, LANGFUSE), { settle: 4000, hidden: true });
         tree = await page
           .getByText(/chat deepseek/)
           .first()
           .waitFor({ state: "visible", timeout: 40000 })
           .then(() => true)
           .catch(() => false);
-        if (!tree) log(`  Langfuse did not show the trace (attempt ${attempt + 1})`);
+        if (!tree) {
+          log(`  Langfuse did not show the trace (attempt ${attempt + 1})`);
+          await langfuseLogin(); // the usual reason: the browser is not signed in
+        }
       }
       if (!tree) throw new Error("Langfuse never showed the trace");
       await sleep(1500);
@@ -872,13 +1139,13 @@ async function main() {
   const video = page.video();
   await context.close();
   await browser.close();
-  const raw = resolve(OUT_DIR, "demo-raw.webm");
+  const raw = resolve(OUT_DIR, `${NAME}-raw.webm`);
   renameSync(await video.path(), raw);
   const seconds = (Date.now() - filmStart) / 1000;
   timeline.push({ at: seconds, speed: 0 });
-  writeFileSync(resolve(OUT_DIR, "demo-timeline.json"), JSON.stringify(timeline, null, 1));
+  writeFileSync(resolve(OUT_DIR, `${NAME}-timeline.json`), JSON.stringify(timeline, null, 1));
   log(`raw take: ${raw} (${Math.floor(seconds / 60)}m${String(Math.round(seconds % 60)).padStart(2, "0")}s)`);
-  await cut(raw, timeline, resolve(OUT_DIR, "demo.mp4"));
+  await cut(raw, timeline, resolve(OUT_DIR, `${NAME}.mp4`));
 }
 
 /** Re-time the take with ffmpeg: each stretch of the timeline plays at its own speed.
@@ -966,8 +1233,8 @@ async function cut(raw, marks, target) {
 
 if (args.includes("--recut")) {
   // the take was filmed for 2x; another --speed scales every stretch by the same ratio
-  const marks = JSON.parse(readFileSync(resolve(OUT_DIR, "demo-timeline.json"), "utf8")).map((m) => (m.voice ? m : { ...m, speed: (m.speed * SPEED) / 2 }));
-  await cut(resolve(OUT_DIR, "demo-raw.webm"), marks, resolve(OUT_DIR, "demo.mp4"));
+  const marks = JSON.parse(readFileSync(resolve(OUT_DIR, `${NAME}-timeline.json`), "utf8")).map((m) => (m.voice ? m : { ...m, speed: (m.speed * SPEED) / 2 }));
+  await cut(resolve(OUT_DIR, `${NAME}-raw.webm`), marks, resolve(OUT_DIR, `${NAME}.mp4`));
 } else {
   main().catch((error) => {
     console.error(error);

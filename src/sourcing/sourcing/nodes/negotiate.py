@@ -84,6 +84,7 @@ def make_plan_offer(
             cap_pct=current.cap_pct,
             round_no=round_no,
             max_rounds=current.max_rounds,
+            language=language,
         )
         if round_no > current.max_rounds:
             update = await approvals.prepare(

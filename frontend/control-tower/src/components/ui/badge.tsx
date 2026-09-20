@@ -1,6 +1,7 @@
 import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
 
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
@@ -28,6 +29,9 @@ export function Badge({ className, variant, ...props }: BadgeProps) {
 
 /** A status word as a badge, coloured by what it means. */
 export function StatusBadge({ status }: { status: string }) {
+  const { t } = useI18n();
+  // a status the page has no word for is shown as the system names it
+  const word = t(`status.${status}`);
   const variant =
     status === "done" || status === "sent" || status === "applied" || status === "ok" || status === "approved"
       ? "success"
@@ -36,5 +40,5 @@ export function StatusBadge({ status }: { status: string }) {
         : status === "failed" || status === "rejected" || status === "expired"
           ? "destructive"
           : "secondary";
-  return <Badge variant={variant}>{status.replace(/_/g, " ")}</Badge>;
+  return <Badge variant={variant}>{word === `status.${status}` ? status.replace(/_/g, " ") : word}</Badge>;
 }

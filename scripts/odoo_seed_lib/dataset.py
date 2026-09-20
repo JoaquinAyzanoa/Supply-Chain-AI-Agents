@@ -144,6 +144,8 @@ class OpenRfq(Strict):
 class Dataset(Strict):
     seed: int
     language: str
+    # The note printed under every line of a request for quotation, in the dataset's language.
+    purchase_note: str = "Sun Hydraulics brand. Quote the part number."
     company: Company
     warehouse: str
     categories: list[str]

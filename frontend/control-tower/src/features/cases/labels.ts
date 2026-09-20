@@ -13,6 +13,13 @@ export function labelFor(t: T, prefix: "event" | "task" | "agent" | "source" | "
   return label === key ? value.replace(/[._]/g, " ") : label;
 }
 
+/** ``awaiting_approval`` -> "awaiting approval" / "espera aprobación"; unknown statuses spaced out. */
+export function statusLabel(t: T, status: string): string {
+  const key = `status.${status}`;
+  const label = t(key);
+  return label === key ? status.replace(/_/g, " ") : label;
+}
+
 /** ``supplier_comms`` -> "Supplier agent"; unknown agents keep their identifier spaced out. */
 export function agentName(t: T, agent: string | null | undefined): string {
   if (!agent) return "";

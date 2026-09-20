@@ -60,8 +60,10 @@ def compare(
     weights: Weights | None = None,
     invited: int = 0,
     source_po_name: str | None = None,
+    language: str = "en",
 ) -> QuoteComparison:
     weights = weights or Weights()
+    say = _Words(language)
     wanted = {line.product_id: line for line in basket}
     quotes: list[ComparedQuote] = []
     for offer in offers:
@@ -125,7 +127,7 @@ def compare(
                 quote.model_copy(
                     update={
                         "composite": round(composite, 4),
-                        "reasons": _reasons(quote, best_total, best_lead, wanted),
+                        "reasons": _reasons(quote, best_total, best_lead, wanted, say),
                     }
                 )
             )
@@ -145,7 +147,7 @@ def compare(
         for position, quote in enumerate(ranked, start=1)
     ]
     recommended = next((q for q in ranked if q.recommended), None)
-    line_awards = _line_awards(basket, ranked)
+    line_awards = _line_awards(basket, ranked, say)
     return QuoteComparison(
         round_id=round_id,
         source_po_name=source_po_name,
@@ -156,7 +158,7 @@ def compare(
         quotes=ranked,
         recommended_partner_id=recommended.partner_id if recommended else None,
         line_awards=line_awards,
-        recommendation=_recommendation(recommended, ranked) if recommended else "",
+        recommendation=_recommendation(recommended, ranked, say) if recommended else "",
         freight_pct=freight_pct,
         weights=weights.as_dict(),
         last_paid={
@@ -167,7 +169,9 @@ def compare(
     )
 
 
-def _line_awards(basket: list[BasketLine], ranked: list[ComparedQuote]) -> list[LineAward]:
+def _line_awards(
+    basket: list[BasketLine], ranked: list[ComparedQuote], say: _Words
+) -> list[LineAward]:
     """Per product: the quote that ranks best on the same weights as the recommendation
     (price, lead time, score), so approving without choosing follows what was recommended.
     The cheapest is named when it is someone else; the person may still award otherwise."""
@@ -184,17 +188,19 @@ def _line_awards(basket: list[BasketLine], ranked: list[ComparedQuote]) -> list[
         _, _, best, line = candidates[0]
         cheapest = min(candidates, key=lambda c: c[1])
         if cheapest[2].partner_id == best.partner_id:
-            reasons = [f"cheapest landed unit {line.landed_unit:.2f}"]
+            reasons = [say("cheapest_unit", price=line.landed_unit)]
             if len(candidates) > 1:
                 runner = sorted(candidates, key=lambda c: c[1])[1]
-                reasons.append(f"next {runner[2].partner_name} at {runner[3].landed_unit:.2f}")
+                reasons.append(
+                    say("next_at", name=runner[2].partner_name, price=runner[3].landed_unit)
+                )
         else:
             reasons = [
-                f"best on price, lead time and score at {line.landed_unit:.2f}",
-                f"cheapest is {cheapest[2].partner_name} at {cheapest[3].landed_unit:.2f}",
+                say("best_overall", price=line.landed_unit),
+                say("cheapest_is", name=cheapest[2].partner_name, price=cheapest[3].landed_unit),
             ]
         if best.lead_days is not None:
-            reasons.append(f"{best.lead_days} day(s)")
+            reasons.append(say("days", days=best.lead_days))
         awards.append(
             LineAward(
                 product_id=want.product_id,
@@ -214,46 +220,98 @@ def _reasons(
     best_total: float,
     best_lead: int | None,
     wanted: dict[int, BasketLine],
+    say: _Words,
 ) -> list[str]:
     reasons: list[str] = []
     assert quote.total is not None
     if quote.total <= best_total + 1e-9:
-        reasons.append("lowest landed total")
+        reasons.append(say("lowest_total"))
     elif best_total > 0:
-        reasons.append(f"{100 * (quote.total / best_total - 1):.1f}% above the lowest")
+        reasons.append(say("above_lowest", pct=100 * (quote.total / best_total - 1)))
     if quote.lead_days is not None:
         if best_lead is not None and quote.lead_days <= best_lead:
-            reasons.append(f"fastest: {quote.lead_days} day(s)")
+            reasons.append(say("fastest", days=quote.lead_days))
         else:
-            reasons.append(f"{quote.lead_days} day(s) lead time")
+            reasons.append(say("lead_time", days=quote.lead_days))
     if quote.score is not None:
-        reasons.append(f"score {quote.score:.0f}/100")
+        reasons.append(say("score", score=quote.score))
     else:
-        reasons.append("no score yet")
+        reasons.append(say("no_score"))
     if not quote.complete:
         missing = [
             wanted[pid].product
             for pid in wanted
             if pid not in {line.product_id for line in quote.lines if line.landed_unit is not None}
         ]
-        reasons.append("not quoted: " + ", ".join(missing))
+        reasons.append(say("not_quoted", products=", ".join(missing)))
     if quote.source == "price_list":
-        reasons.append("list price, no reply yet")
+        reasons.append(say("list_price"))
     if quote.first_time_supplier:
-        reasons.append("first order with this supplier")
+        reasons.append(say("first_order"))
     return reasons
 
 
-def _recommendation(best: ComparedQuote, ranked: list[ComparedQuote]) -> str:
+def _recommendation(best: ComparedQuote, ranked: list[ComparedQuote], say: _Words) -> str:
     others = [q for q in ranked if q is not best and q.total is not None]
     text = f"{best.partner_name}: " + "; ".join(best.reasons)
     if others:
         runner = others[0]
-        text += f". Next: {runner.partner_name} ({'; '.join(runner.reasons)})"
+        text += say("next", name=runner.partner_name, reasons="; ".join(runner.reasons))
     unpriced = [q.partner_name for q in ranked if q.total is None]
     if unpriced:
-        text += ". No price from: " + ", ".join(unpriced)
+        text += say("no_price", names=", ".join(unpriced))
     return text
+
+
+# The reasons are read by the buyer in the award, so they follow the instance's language.
+WORDS: dict[str, dict[str, str]] = {
+    "en": {
+        "lowest_total": "lowest landed total",
+        "above_lowest": "{pct:.1f}% above the lowest",
+        "fastest": "fastest: {days} day(s)",
+        "lead_time": "{days} day(s) lead time",
+        "score": "score {score:.0f}/100",
+        "no_score": "no score yet",
+        "not_quoted": "not quoted: {products}",
+        "list_price": "list price, no reply yet",
+        "first_order": "first order with this supplier",
+        "cheapest_unit": "cheapest landed unit {price:.2f}",
+        "next_at": "next {name} at {price:.2f}",
+        "best_overall": "best on price, lead time and score at {price:.2f}",
+        "cheapest_is": "cheapest is {name} at {price:.2f}",
+        "days": "{days} day(s)",
+        "next": ". Next: {name} ({reasons})",
+        "no_price": ". No price from: {names}",
+    },
+    "es": {
+        "lowest_total": "el menor total puesto en almacén",
+        "above_lowest": "{pct:.1f}% sobre el más bajo",
+        "fastest": "el más rápido: {days} día(s)",
+        "lead_time": "{days} día(s) de plazo",
+        "score": "puntaje {score:.0f}/100",
+        "no_score": "aún sin puntaje",
+        "not_quoted": "no cotizó: {products}",
+        "list_price": "precio de lista, aún sin respuesta",
+        "first_order": "primera orden con este proveedor",
+        "cheapest_unit": "el menor costo unitario puesto en almacén: {price:.2f}",
+        "next_at": "le sigue {name} a {price:.2f}",
+        "best_overall": "el mejor en precio, plazo y puntaje, a {price:.2f}",
+        "cheapest_is": "el más barato es {name} a {price:.2f}",
+        "days": "{days} día(s)",
+        "next": ". Le sigue: {name} ({reasons})",
+        "no_price": ". Sin precio de: {names}",
+    },
+}
+
+
+class _Words:
+    """The comparison's phrases in one language (English when the language is unknown)."""
+
+    def __init__(self, language: str) -> None:
+        self._words = WORDS.get(language, WORDS["en"])
+
+    def __call__(self, key: str, **values: object) -> str:
+        return self._words[key].format(**values)
 
 
 __all__ = ["Offer", "Weights", "compare", "landed"]

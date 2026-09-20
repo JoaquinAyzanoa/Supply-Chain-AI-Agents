@@ -245,6 +245,23 @@ async def test_home_gathers_the_kpis_and_what_needs_you(
     assert "4,200 USD" in body["needs_you"][0]["text"]
 
 
+async def test_home_tiles_explain_themselves_in_the_language_people_read(
+    client: TestClient, module: MemoryDirectorModule
+) -> None:
+    await _users(module)
+    await _the_desk(module)
+    vic = _token(client, "vic@x.com")
+    english = {k["key"]: k["detail"] for k in client.get("/api/home", headers=vic).json()["kpis"]}
+    assert english["service_level"] == "2 scored supplier(s)"
+    assert english["late_orders"].endswith("silent RFQ(s)")
+    settings = client.app.state.injector.get(Settings)  # type: ignore[attr-defined]
+    settings.agents.__dict__["language"] = "es"  # as SC__AGENTS__LANGUAGE=es would
+    spanish = {k["key"]: k["detail"] for k in client.get("/api/home", headers=vic).json()["kpis"]}
+    assert spanish["service_level"] == "2 proveedor(es) evaluado(s)"
+    assert spanish["late_orders"].endswith("solicitud(es) sin respuesta")
+    assert spanish["pending_approvals"].startswith("antigüedad mediana")
+
+
 async def test_the_ai_page_measures_automation_decisions_predictions_and_cost(
     client: TestClient, module: MemoryDirectorModule
 ) -> None:

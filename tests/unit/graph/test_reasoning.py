@@ -81,6 +81,57 @@ def test_the_nodes_own_reasons_come_first_and_the_never_automated_kinds_say_so()
     )
 
 
+def test_the_reasoning_is_written_in_the_language_people_read() -> None:
+    facts = ActionFacts(
+        partner_id=8,
+        partner_name="Proveedor Hidraulica",
+        amount=1250.5,
+        currency="USD",
+        change_days=7,
+        confidence=0.82,
+    )
+    reasoning = build_reasoning(
+        kind="po_change",
+        facts=facts,
+        given=None,
+        verdict=PolicyDecision(level="approve", reason="no rule matched"),
+        level="approve",
+        forced=False,
+        lang="es",
+    )
+    assert reasoning.facts == [
+        "proveedor Proveedor Hidraulica",
+        "importe 1,250.50 USD",
+        "cambio de fecha 7 día(s)",
+        "confianza del agente 82%",
+    ]
+    assert reasoning.rule == "ninguna regla aplica"
+    assert reasoning.alternatives[0] == "Aceptar solo algunas líneas"
+    assert reasoning.counterfactual is not None
+    assert reasoning.counterfactual.startswith("Una regla de autonomía para cambio de orden")
+    assert "limitada al proveedor Proveedor Hidraulica" in reasoning.counterfactual
+    award = build_reasoning(
+        kind="award", facts=None, given=None, verdict=None, level="approve", forced=False, lang="es"
+    )
+    assert award.rule == "siempre lo decide una persona"
+    assert award.counterfactual is not None and "(adjudicación)" in award.counterfactual
+    # a rule a person named keeps its note; a rule without one is named, not described in English
+    noted = PolicyDecision(level="auto_notice", rule_id="eta", reason="fechas de Hidraulica")
+    described = PolicyDecision(level="auto_notice", rule_id="eta", reason="rule eta: emails x")
+    for verdict, expected in ((noted, "regla eta: fechas de Hidraulica"), (described, "regla eta")):
+        ran = build_reasoning(
+            kind="send_email",
+            facts=None,
+            given=None,
+            verdict=verdict,
+            level="auto_notice",
+            forced=False,
+            lang="es",
+        )
+        assert ran.rule == expected
+        assert ran.counterfactual is not None and ran.counterfactual.startswith("Corrió solo")
+
+
 def _state() -> dict[str, Any]:
     return {"case_id": "case_1", "run_id": "run_1"}
 

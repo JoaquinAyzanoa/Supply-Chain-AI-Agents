@@ -134,6 +134,7 @@ def make_collect(
             weights=weights,
             invited=len(rfqs),
             source_po_name=round_.source_po_name,
+            language=language,
         )
         if comparison.recommended_partner_id is None:
             await ports.update_round(round_.id, comparison=comparison.model_dump(mode="json"))

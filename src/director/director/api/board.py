@@ -336,7 +336,7 @@ async def build_board(
                 last_outbound=last_out,
                 last_inbound=last_in,
                 next_action=(
-                    "escalate to a person"
+                    "escalate"  # the page's words: task.escalate
                     if step and step.escalate
                     else (step.task if step else None)
                 ),

@@ -698,6 +698,14 @@ MESSAGES: dict[str, dict[Language, str]] = {
         "es": "{exception}: sin explicación ({error})",
     },
     "plan.action_label": {"en": "Action:", "es": "Acción:"},
+    # --- director: the home page's tiles ---------------------------------------------
+    "home.scored": {"en": "{n} scored supplier(s)", "es": "{n} proveedor(es) evaluado(s)"},
+    "home.no_scorecard": {"en": "no scorecard yet", "es": "aún sin evaluaciones"},
+    "home.silent": {"en": "{n} silent RFQ(s)", "es": "{n} solicitud(es) sin respuesta"},
+    "home.median_age": {
+        "en": "median age {days:.1f} day(s)",
+        "es": "antigüedad mediana {days:.1f} día(s)",
+    },
     "plan.what_if_never_writes": {
         "en": "what_if runs never write",
         "es": "las simulaciones nunca escriben",

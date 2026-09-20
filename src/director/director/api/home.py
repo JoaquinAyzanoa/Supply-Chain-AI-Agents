@@ -25,6 +25,7 @@ from director.api.performance import PerformanceSource
 from director.api.runs import RunsGateway
 from director.autonomy import AutoActionsStore
 from director.briefing import BriefingItem, needs_you_items
+from sc_core.i18n import t
 from sc_core.infra.settings import Settings
 from sc_core.schema.base import StrictModel
 from sc_core.shared.errors import ScError
@@ -89,7 +90,11 @@ async def build_home(
             key="service_level",
             value=round(100 * sum(otif) / len(otif), 1) if otif else None,
             unit="pct",
-            detail=f"{len(otif)} scored supplier(s)" if otif else "no scorecard yet",
+            detail=(
+                t("home.scored", language, n=len(otif))
+                if otif
+                else t("home.no_scorecard", language)
+            ),
         )
     )
 
@@ -101,7 +106,14 @@ async def build_home(
         if f.is_confirmed_open and f.date_planned is not None and f.date_planned < today
     )
     silent = sum(1 for f in facts if f.is_rfq and (f.silent_days(today) or 0) > 0)
-    kpis.append(Kpi(key="late_orders", value=late, unit="count", detail=f"{silent} silent RFQ(s)"))
+    kpis.append(
+        Kpi(
+            key="late_orders",
+            value=late,
+            unit="count",
+            detail=t("home.silent", language, n=silent),
+        )
+    )
 
     # pending approvals and how long they have waited
     pending = await approvals.list(status="pending", kind=None, po_name=None)
@@ -112,7 +124,7 @@ async def build_home(
             value=len(pending),
             previous=round(median(ages), 1) if ages else None,
             unit="count",
-            detail=f"median age {median(ages):.1f} day(s)" if ages else None,
+            detail=t("home.median_age", language, days=median(ages)) if ages else None,
         )
     )
 

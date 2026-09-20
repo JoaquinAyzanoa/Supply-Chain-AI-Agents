@@ -303,13 +303,14 @@ demo-reset:
     {{UV}} run python scripts/demo_day.py --reset
 
 # Film the demo day into demo-video/demo.mp4: narrated, captions, Odoo, Langfuse, approvals on screen
-# (live stack; voice="off" for the silent version, or any edge-tts voice name)
-demo-video voice="en-US-AndrewNeural":
-    cd {{UI}} && node scripts/demo-video.mjs --voice {{voice}}
+# (live stack; voice="off" for the silent version, or any edge-tts voice name). lang="es" films
+# demo-video/demo-es.mp4 on a Spanish stack (see docs/demo.md) with a Spanish voice.
+demo-video lang="en" voice="":
+    cd {{UI}} && node scripts/demo-video.mjs --lang {{lang}} {{ if voice != "" { "--voice " + voice } else { "" } }}
 
-# Re-time the last take without filming again (demo-video/demo-raw.webm + demo-timeline.json)
-demo-video-recut speed="2":
-    cd {{UI}} && node scripts/demo-video.mjs --recut --speed {{speed}}
+# Re-time the last take without filming again (demo-video/demo[-es]-raw.webm + its timeline)
+demo-video-recut lang="en" speed="2":
+    cd {{UI}} && node scripts/demo-video.mjs --lang {{lang}} --recut --speed {{speed}}
 
 # --------------------------------------------------------------------
 # Packaging & cleaning

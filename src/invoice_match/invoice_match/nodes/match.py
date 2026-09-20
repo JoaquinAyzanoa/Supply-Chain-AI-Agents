@@ -105,6 +105,7 @@ def make_match(
             price_tolerance_pct=price_tolerance_pct,
             qty_tolerance_pct=qty_tolerance_pct,
             fuzzy_threshold=fuzzy_threshold,
+            language=language,
         )
         logger.bind(
             po_name=ctx.name,

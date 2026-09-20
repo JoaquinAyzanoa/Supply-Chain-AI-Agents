@@ -142,7 +142,13 @@ def main() -> int:
     parser.add_argument("--ui-admin", default="admin@scai.dev", help="Control Tower admin email")
     parser.add_argument("--ui-name", default="Admin")
     parser.add_argument("--from", dest="start", type=int, default=1, help="resume at step N")
+    parser.add_argument(
+        "--dataset",
+        help="dataset file for the seed (default odoo/demo/sun_hydraulics.yaml; the Spanish "
+        "variant is odoo/demo/sun_hydraulics.es.yaml)",
+    )
     args = parser.parse_args()
+    dataset = ["--file", args.dataset] if args.dataset else []
 
     if not args.yes and args.start <= 1:
         print(
@@ -205,7 +211,7 @@ def main() -> int:
 
     if args.start <= 5:
         step("5/7 seed the dataset")
-        script("odoo_seed.py")
+        script("odoo_seed.py", *dataset)
         script("odoo_demo_supplier.py")
 
     step("6/7 clean check and Control Tower admin")
@@ -230,7 +236,7 @@ def main() -> int:
     wait_http("http://localhost:8010/health/ready", seconds=600)
     for port in (8015, 8016):  # logistics, invoice_match: they act on the announcement
         wait_http(f"http://localhost:{port}/health/ready", seconds=300)
-    script("odoo_seed.py", "--only", "announce", "--no-summary")
+    script("odoo_seed.py", "--only", "announce", "--no-summary", *dataset)
     print("if mail_sync stays unhealthy, the mailbox login is gone: run `just mail-login`")
 
     minutes = (time.perf_counter() - started) / 60

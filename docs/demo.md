@@ -140,7 +140,8 @@ question, with citations that open the records.
 
 ## A recorded version
 
-`just demo-video` films the same scenario without a presenter, in English. Every step runs
+`just demo-video` films the same scenario without a presenter, in English (`just demo-video es`
+for Spanish, below). Every step runs
 through the demo API while a browser tours the product, and the captions tell the story:
 
 - the board explained column by column, Supplier 360, Autonomy, Planning, Playbooks, Runs;
@@ -160,7 +161,7 @@ through the demo API while a browser tours the product, and the captions tell th
 The take is kept as `demo-video/demo-raw.webm` with `demo-timeline.json`, which marks the
 seconds meant to be read and the seconds spent waiting for real email. ffmpeg (the
 `ffmpeg-static` dev dependency) re-times it into `demo-video/demo.mp4`: reading at 2x,
-waiting at 10x. `just demo-video-recut 1.5` re-times the same take at another speed.
+waiting at 10x. `just demo-video-recut en 1.5` re-times the same take at another speed.
 **Narration.** Every caption is also spoken, by a neural voice from the free `edge-tts` library
 (run through `uv`, no key; an unofficial route to Microsoft's voices, so check the terms before
 publishing, or swap in a licensed service). Lines are cached in `demo-video/voice/` by their
@@ -174,6 +175,25 @@ edge-tts voice) and `--rate +10%` change the narrator.
 Title cards are not filmed: they are marks in the timeline (`card: {title, text, seconds}`) that the
 cut renders as clips of their own. The film therefore opens on the card (nothing filmed before the
 first card is kept), and a card's words can be edited in `demo-timeline.json` and re-cut.
+**In Spanish.** The whole film can be Spanish: the interface, what the agents write, the emails
+in both directions, the captions and the voice. Nothing is dubbed, so the stack itself has to be
+Spanish when it is filmed:
+
+1. in `.env`: `SC__AGENTS__LANGUAGE=es` (what people read: summaries, explanations, briefing, chat),
+   `SC__DEMO__LANGUAGE=es` (what the demo's suppliers write) and
+   `SC__PLANNING__PRODUCT_CATEGORY=Hidráulica` (the Spanish dataset's category);
+2. `just mail-clear-inbox`, then rebuild on the Spanish dataset:
+   `uv run python scripts/odoo_fresh.py --yes --dataset odoo/demo/sun_hydraulics.es.yaml`
+   (suppliers are `es_PE`, so the agents' emails to them are Spanish), then `just demo-prepare`;
+3. `just demo-video es` films `demo-video/demo-es.mp4` (take and timeline are `demo-es-*`, the
+   English ones stay). The script reads its selectors from `src/i18n/messages.es.json`, its words
+   from the `ES` table (a line without a translation is logged, never silently English) and
+   speaks with `es-PE-AlexNeural`; `SPOKEN_ES` holds what the voice says where a caption would
+   read badly aloud.
+
+Back to English: remove the three `.env` lines, rebuild the images' containers (`just up`) and run
+`just odoo-fresh` with the default dataset.
+
 The folder is git-ignored. Each take creates real records, like any other run of the demo;
 before filming, stale pending approvals on the late order are retired.
 

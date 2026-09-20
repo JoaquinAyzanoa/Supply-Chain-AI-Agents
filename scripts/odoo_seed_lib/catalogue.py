@@ -49,6 +49,8 @@ async def ensure_company(client: SeedClient, ds: Dataset) -> int:
     partner = await odoo.read("res.company", [company_id], ["partner_id"])
     partner_id = int(partner[0]["partner_id"][0])
     await odoo.write("res.partner", [partner_id], {"lang": ds.language})
+    # People read Odoo in the dataset's language too (the administrator; the bot stays as is).
+    await odoo.write("res.users", [2], {"lang": ds.language})
     client.found["res.company"] = 1
     return company_id
 
@@ -86,7 +88,7 @@ async def ensure_products(
             "sale_ok": True,
             "uom_id": uom_id,
             "uom_po_id": uom_id,
-            "description_purchase": ("Sun Hydraulics brand. Quote the part number."),
+            "description_purchase": ds.purchase_note,
         }
         template_id = await client.find_or_create(
             "product.template", [["default_code", "=", p.code]], values, update=True
