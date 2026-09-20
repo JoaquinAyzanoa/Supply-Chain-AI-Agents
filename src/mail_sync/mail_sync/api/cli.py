@@ -16,6 +16,7 @@ from injector import Injector
 from mail_sync.domain.sync import SyncRunner
 from mail_sync.infra.module import MailSyncModule
 from sc_core.a2a.events import EventPublisher
+from sc_core.app.run import use_selector_loop_on_windows
 from sc_core.infra.db import Database
 from sc_core.infra.health import HealthRegistry
 from sc_core.infra.logger import configure_logging
@@ -48,6 +49,7 @@ def cmd_sync_once(settings: Settings) -> int:
         print(json.dumps(report.model_dump(), indent=2))
         return 0 if report.status in ("ok", "skipped_locked") else 1
 
+    use_selector_loop_on_windows()  # psycopg cannot use the Proactor loop
     return asyncio.run(run())
 
 
